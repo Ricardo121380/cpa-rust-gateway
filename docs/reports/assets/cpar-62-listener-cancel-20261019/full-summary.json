@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "steps": 45,
+  "rust": {
+    "passed": 1553,
+    "failed": 0,
+    "ignored": 14
+  },
+  "seconds": 534.6427959160001,
+  "not_actual_cli": "opt-in actual CLI remains ignored in Full and is run separately"
+}

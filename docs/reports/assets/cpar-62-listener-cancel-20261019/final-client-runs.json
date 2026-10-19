@@ -1,0 +1,551 @@
+[
+  {
+    "label": "immutable-old-direct",
+    "source": "8fb45692dca5231e371eda6d592a78026e6c841a",
+    "run": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-listener-immutable-old-direct-20261019",
+    "expected_exit": 1,
+    "actual_exit": 1,
+    "qualification_exit": 101,
+    "cancellation": {
+      "abort_to_release_upper_bound_ms": 14991,
+      "alive_after_observation": {
+        "observed_at_ms": 1792396861289,
+        "pid": 71094,
+        "rpc_alive": true
+      },
+      "cli_alive_at_abort": true,
+      "cli_kept_alive": true,
+      "cli_pid": 71094,
+      "eventually_released_before_server_stop": true,
+      "lease_before_abort": {
+        "lease": 1,
+        "observed_at_ms": 1792396846287
+      },
+      "leases_after_first_second": 1,
+      "leases_at_observation_end": 0,
+      "observation_end_at_ms": 1792396861288,
+      "peer_close_at_observation_end": 1,
+      "release_observed_at_ms": 1792396861288,
+      "released_within_first_second": false,
+      "rpc_timeline": {
+        "abort_sent_at_ms": 1792396846297,
+        "delta_at_ms": 1792396846286,
+        "pid": 71094,
+        "rpc_aborted_at_ms": 1792396846309,
+        "rpc_alive": true
+      },
+      "total_observation_ms": 14977
+    },
+    "client_cleanup_started_at_ms": 1792396861289,
+    "cancel_public_chunk_elapsed_ms": [
+      133,
+      133,
+      133,
+      133,
+      133,
+      15137
+    ],
+    "cancel_keepalive_count": 1,
+    "cancel_accounting": {
+      "attempts": 1,
+      "client_requests": 1,
+      "cost": "UNKNOWN",
+      "finished": 1,
+      "ledger": 0,
+      "lineage": [],
+      "outcome": "Cancelled",
+      "requests_including_negative_probe": 1,
+      "usage": 0
+    },
+    "standard_accounting": {
+      "attempts": 5,
+      "client_requests": 5,
+      "cost": "UNKNOWN",
+      "finished": 6,
+      "ledger": 5,
+      "lineage": [
+        {
+          "attempt_id": "attempt:45:p1-request-1e7ed50208b00e08bb3a9bf93d9a0a9f-0:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-1e7ed50208b00e08bb3a9bf93d9a0a9f-0",
+          "source_event_id": "usage-attempt:e46d10fae8033b2b9c98cd816b0752e3ef4fd2d83cc17f8eaa5bbae409e6846e"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-1e7ed50208b00e08bb3a9bf93d9a0a9f-1:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-1e7ed50208b00e08bb3a9bf93d9a0a9f-1",
+          "source_event_id": "usage-attempt:6d780029357500ca7b2497a0376fcbf06346a96529f1714206bc61abdc6e8d08"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-1e7ed50208b00e08bb3a9bf93d9a0a9f-2:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-1e7ed50208b00e08bb3a9bf93d9a0a9f-2",
+          "source_event_id": "usage-attempt:93d110fb9159c245c898989a17e939841d39aa80d3c1c7864ed7305053f3e9ba"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-1e7ed50208b00e08bb3a9bf93d9a0a9f-3:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-1e7ed50208b00e08bb3a9bf93d9a0a9f-3",
+          "source_event_id": "usage-attempt:f806f1366175e9fd2790138cb22b622b81e56eb1d881c22c6dcddea211e649c4"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-1e7ed50208b00e08bb3a9bf93d9a0a9f-4:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-1e7ed50208b00e08bb3a9bf93d9a0a9f-4",
+          "source_event_id": "usage-attempt:ddd40b5b61008ad4b6a4c63079608e0601089f8a214221f6a6480f7a71b9c26d"
+        }
+      ],
+      "outcome": "Succeeded",
+      "requests_including_negative_probe": 6,
+      "usage": 5
+    },
+    "failure_accounting": {
+      "attempts": 1,
+      "client_requests": 1,
+      "cost": "UNKNOWN",
+      "finished": 1,
+      "ledger": 1,
+      "lineage": [
+        {
+          "attempt_id": "attempt:45:p1-request-abc08a3e0ba6ab4a14b721087e49c5a6-0:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-abc08a3e0ba6ab4a14b721087e49c5a6-0",
+          "source_event_id": "usage-attempt:7446cdca21a11670c7679fabca40988099f5a0085bb6e26235400527eeca4059"
+        }
+      ],
+      "outcome": "Failed",
+      "requests_including_negative_probe": 1,
+      "usage": 1
+    },
+    "installs_unchanged": true,
+    "codex_success_gate": {
+      "status": "FAIL",
+      "checks": {
+        "cli_exit_zero": false,
+        "answer_tool_task_and_follow_up": false,
+        "five_incremental_public_responses": false,
+        "independent_receives_and_exact_accounting": false,
+        "two_correlated_tool_results": false,
+        "actual_tool_file_result": false
+      }
+    },
+    "tcp_observer": false
+  },
+  {
+    "label": "final-direct2",
+    "source": "0d8e548a5e983350e8d890d296405da24d669ffd",
+    "run": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-listener-final-direct2-20261019",
+    "expected_exit": 0,
+    "actual_exit": 0,
+    "qualification_exit": 0,
+    "cancellation": {
+      "abort_to_release_upper_bound_ms": 14,
+      "alive_after_observation": {
+        "observed_at_ms": 1792397033702,
+        "pid": 74531,
+        "rpc_alive": true
+      },
+      "cli_alive_at_abort": true,
+      "cli_kept_alive": true,
+      "cli_pid": 74531,
+      "eventually_released_before_server_stop": true,
+      "lease_before_abort": {
+        "lease": 1,
+        "observed_at_ms": 1792397033682
+      },
+      "leases_after_first_second": 0,
+      "leases_at_observation_end": 0,
+      "observation_end_at_ms": 1792397033696,
+      "peer_close_at_observation_end": 1,
+      "release_observed_at_ms": 1792397033696,
+      "released_within_first_second": true,
+      "rpc_timeline": {
+        "abort_sent_at_ms": 1792397033682,
+        "delta_at_ms": 1792397033682,
+        "pid": 74531,
+        "rpc_aborted_at_ms": 1792397033686,
+        "rpc_alive": true
+      },
+      "total_observation_ms": 0
+    },
+    "client_cleanup_started_at_ms": 1792397033702,
+    "cancel_public_chunk_elapsed_ms": [
+      131,
+      131,
+      131,
+      131,
+      131
+    ],
+    "cancel_keepalive_count": 0,
+    "cancel_accounting": {
+      "attempts": 1,
+      "client_requests": 1,
+      "cost": "UNKNOWN",
+      "finished": 1,
+      "ledger": 0,
+      "lineage": [],
+      "outcome": "Cancelled",
+      "requests_including_negative_probe": 1,
+      "usage": 0
+    },
+    "standard_accounting": {
+      "attempts": 5,
+      "client_requests": 5,
+      "cost": "UNKNOWN",
+      "finished": 6,
+      "ledger": 5,
+      "lineage": [
+        {
+          "attempt_id": "attempt:45:p1-request-80eeaa67dafcb1748196741b158a846c-0:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-80eeaa67dafcb1748196741b158a846c-0",
+          "source_event_id": "usage-attempt:7e3df4b550d31da44386c7aa0274da195c95dc128e218ea15d4f38777ecd5386"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-80eeaa67dafcb1748196741b158a846c-1:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-80eeaa67dafcb1748196741b158a846c-1",
+          "source_event_id": "usage-attempt:a73a17855cb1e367964299ba4b28f8194a45eed9658d88464c8a1fcba2165d37"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-80eeaa67dafcb1748196741b158a846c-2:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-80eeaa67dafcb1748196741b158a846c-2",
+          "source_event_id": "usage-attempt:ef87044ac068d4fb50e059fe1699e8a06a68c512f317bb7895465ecc3f4cf005"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-80eeaa67dafcb1748196741b158a846c-3:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-80eeaa67dafcb1748196741b158a846c-3",
+          "source_event_id": "usage-attempt:faae575e4a13c301350c2cb2c1e2b2cb4c5fd95eb033187aab341c1697768ac8"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-80eeaa67dafcb1748196741b158a846c-4:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-80eeaa67dafcb1748196741b158a846c-4",
+          "source_event_id": "usage-attempt:9925c0ae16e69591ba16517842003e2b5d96918f71fcd3809d8514b6592329ed"
+        }
+      ],
+      "outcome": "Succeeded",
+      "requests_including_negative_probe": 6,
+      "usage": 5
+    },
+    "failure_accounting": {
+      "attempts": 1,
+      "client_requests": 1,
+      "cost": "UNKNOWN",
+      "finished": 1,
+      "ledger": 1,
+      "lineage": [
+        {
+          "attempt_id": "attempt:45:p1-request-f4ef2f7345c3292e1975bfb64f0f3f87-0:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-f4ef2f7345c3292e1975bfb64f0f3f87-0",
+          "source_event_id": "usage-attempt:7d7d7d9e03f81b2f54cd51da715b250030b2760f5f2d01a93baca3cf222ce41f"
+        }
+      ],
+      "outcome": "Failed",
+      "requests_including_negative_probe": 1,
+      "usage": 1
+    },
+    "installs_unchanged": true,
+    "codex_success_gate": {
+      "status": "FAIL",
+      "checks": {
+        "cli_exit_zero": false,
+        "answer_tool_task_and_follow_up": false,
+        "five_incremental_public_responses": false,
+        "independent_receives_and_exact_accounting": false,
+        "two_correlated_tool_results": false,
+        "actual_tool_file_result": false
+      }
+    },
+    "tcp_observer": false
+  },
+  {
+    "label": "final-observer2",
+    "source": "0d8e548a5e983350e8d890d296405da24d669ffd",
+    "run": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-listener-final-observer2-20261019",
+    "expected_exit": 0,
+    "actual_exit": 0,
+    "qualification_exit": 0,
+    "cancellation": {
+      "abort_to_release_upper_bound_ms": 12,
+      "alive_after_observation": {
+        "observed_at_ms": 1792397051445,
+        "pid": 74736,
+        "rpc_alive": true
+      },
+      "cli_alive_at_abort": true,
+      "cli_kept_alive": true,
+      "cli_pid": 74736,
+      "eventually_released_before_server_stop": true,
+      "lease_before_abort": {
+        "lease": 1,
+        "observed_at_ms": 1792397051429
+      },
+      "leases_after_first_second": 0,
+      "leases_at_observation_end": 0,
+      "observation_end_at_ms": 1792397051442,
+      "peer_close_at_observation_end": 1,
+      "release_observed_at_ms": 1792397051442,
+      "released_within_first_second": true,
+      "rpc_timeline": {
+        "abort_sent_at_ms": 1792397051430,
+        "delta_at_ms": 1792397051419,
+        "pid": 74736,
+        "rpc_aborted_at_ms": 1792397051432,
+        "rpc_alive": true
+      },
+      "total_observation_ms": 0
+    },
+    "client_cleanup_started_at_ms": 1792397051446,
+    "cancel_public_chunk_elapsed_ms": [
+      177,
+      177,
+      177,
+      177,
+      177
+    ],
+    "cancel_keepalive_count": 0,
+    "cancel_accounting": {
+      "attempts": 1,
+      "client_requests": 1,
+      "cost": "UNKNOWN",
+      "finished": 1,
+      "ledger": 0,
+      "lineage": [],
+      "outcome": "Cancelled",
+      "requests_including_negative_probe": 1,
+      "usage": 0
+    },
+    "standard_accounting": {
+      "attempts": 5,
+      "client_requests": 5,
+      "cost": "UNKNOWN",
+      "finished": 6,
+      "ledger": 5,
+      "lineage": [
+        {
+          "attempt_id": "attempt:45:p1-request-71fae125ab97c739308c703caa912b8b-0:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-71fae125ab97c739308c703caa912b8b-0",
+          "source_event_id": "usage-attempt:474ab36da240bd352c14a8bdbdf1bc484dbc5da843ea9e4f0da36952d0c14e69"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-71fae125ab97c739308c703caa912b8b-1:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-71fae125ab97c739308c703caa912b8b-1",
+          "source_event_id": "usage-attempt:db33508eca89b6a64d16ef1483dd00df3d492615b3958f0bfe6754cacb338d60"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-71fae125ab97c739308c703caa912b8b-2:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-71fae125ab97c739308c703caa912b8b-2",
+          "source_event_id": "usage-attempt:25829c0f34671cd10584d430de879352c80f1e840193168628c88c1415c3ad17"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-71fae125ab97c739308c703caa912b8b-3:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-71fae125ab97c739308c703caa912b8b-3",
+          "source_event_id": "usage-attempt:a8924d0271d247222525289ba9861825593bd7c739021e910d548c6a82b880c1"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-71fae125ab97c739308c703caa912b8b-4:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-71fae125ab97c739308c703caa912b8b-4",
+          "source_event_id": "usage-attempt:abebb3b64d0b5868984e7446ae0c6c64c8c4eb65d4ec9247b5114540f50c4808"
+        }
+      ],
+      "outcome": "Succeeded",
+      "requests_including_negative_probe": 6,
+      "usage": 5
+    },
+    "failure_accounting": {
+      "attempts": 1,
+      "client_requests": 1,
+      "cost": "UNKNOWN",
+      "finished": 1,
+      "ledger": 1,
+      "lineage": [
+        {
+          "attempt_id": "attempt:45:p1-request-f66c1b735cc95c06d0fb4f5e7d9f30fc-0:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-f66c1b735cc95c06d0fb4f5e7d9f30fc-0",
+          "source_event_id": "usage-attempt:c9d278a80f51f022b4685c6ec9cc880cce0e565477a6fe5711edffbd41a3b90e"
+        }
+      ],
+      "outcome": "Failed",
+      "requests_including_negative_probe": 1,
+      "usage": 1
+    },
+    "installs_unchanged": true,
+    "codex_success_gate": {
+      "status": "FAIL",
+      "checks": {
+        "cli_exit_zero": false,
+        "answer_tool_task_and_follow_up": false,
+        "five_incremental_public_responses": false,
+        "independent_receives_and_exact_accounting": false,
+        "two_correlated_tool_results": false,
+        "actual_tool_file_result": false
+      }
+    },
+    "tcp_observer": true
+  },
+  {
+    "label": "final-codex-required2",
+    "source": "0d8e548a5e983350e8d890d296405da24d669ffd",
+    "run": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-listener-final-codex-required2-20261019",
+    "expected_exit": 1,
+    "actual_exit": 1,
+    "qualification_exit": 0,
+    "cancellation": {
+      "abort_to_release_upper_bound_ms": 5,
+      "alive_after_observation": {
+        "observed_at_ms": 1792397069923,
+        "pid": 74855,
+        "rpc_alive": true
+      },
+      "cli_alive_at_abort": true,
+      "cli_kept_alive": true,
+      "cli_pid": 74855,
+      "eventually_released_before_server_stop": true,
+      "lease_before_abort": {
+        "lease": 1,
+        "observed_at_ms": 1792397069897
+      },
+      "leases_after_first_second": 0,
+      "leases_at_observation_end": 0,
+      "observation_end_at_ms": 1792397069910,
+      "peer_close_at_observation_end": 1,
+      "release_observed_at_ms": 1792397069910,
+      "released_within_first_second": true,
+      "rpc_timeline": {
+        "abort_sent_at_ms": 1792397069905,
+        "delta_at_ms": 1792397069891,
+        "pid": 74855,
+        "rpc_aborted_at_ms": 1792397069908,
+        "rpc_alive": true
+      },
+      "total_observation_ms": 0
+    },
+    "client_cleanup_started_at_ms": 1792397069923,
+    "cancel_public_chunk_elapsed_ms": [
+      161,
+      161,
+      161,
+      161,
+      161
+    ],
+    "cancel_keepalive_count": 0,
+    "cancel_accounting": {
+      "attempts": 1,
+      "client_requests": 1,
+      "cost": "UNKNOWN",
+      "finished": 1,
+      "ledger": 0,
+      "lineage": [],
+      "outcome": "Cancelled",
+      "requests_including_negative_probe": 1,
+      "usage": 0
+    },
+    "standard_accounting": {
+      "attempts": 5,
+      "client_requests": 5,
+      "cost": "UNKNOWN",
+      "finished": 6,
+      "ledger": 5,
+      "lineage": [
+        {
+          "attempt_id": "attempt:45:p1-request-3e0ee1e09e734d92f2f4a7fd609c710c-0:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-3e0ee1e09e734d92f2f4a7fd609c710c-0",
+          "source_event_id": "usage-attempt:a21b6a127bb5fbb22037b83432fbc29ed167482cf691032538f7258be08b0ed7"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-3e0ee1e09e734d92f2f4a7fd609c710c-1:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-3e0ee1e09e734d92f2f4a7fd609c710c-1",
+          "source_event_id": "usage-attempt:cc3a066780864089299c2b066ccbececebafc5161dfbdc2757d9679382a1f246"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-3e0ee1e09e734d92f2f4a7fd609c710c-2:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-3e0ee1e09e734d92f2f4a7fd609c710c-2",
+          "source_event_id": "usage-attempt:6b0530741991bf92adcace5aa25762ad828a4b76eb22904f3a7cbb810dbff89c"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-3e0ee1e09e734d92f2f4a7fd609c710c-3:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-3e0ee1e09e734d92f2f4a7fd609c710c-3",
+          "source_event_id": "usage-attempt:a60134500c76a8a972fd14894ef2b68f245f3cdd288a962cf98e878bc8240078"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-3e0ee1e09e734d92f2f4a7fd609c710c-4:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-3e0ee1e09e734d92f2f4a7fd609c710c-4",
+          "source_event_id": "usage-attempt:291e194f4f4dacbd36a6e90e859a1850207691b9b7009936bee0a4d0cc267779"
+        }
+      ],
+      "outcome": "Succeeded",
+      "requests_including_negative_probe": 6,
+      "usage": 5
+    },
+    "failure_accounting": {
+      "attempts": 1,
+      "client_requests": 1,
+      "cost": "UNKNOWN",
+      "finished": 1,
+      "ledger": 1,
+      "lineage": [
+        {
+          "attempt_id": "attempt:45:p1-request-410fe6981e6b670d658cf80e094cbdbb-0:1",
+          "native_companion": "UNKNOWN",
+          "owner": "p12-runtime-client-key",
+          "request_id": "p1-request-410fe6981e6b670d658cf80e094cbdbb-0",
+          "source_event_id": "usage-attempt:046f3224c2b94393bb82ae3007f54cf0e2c4c66f854d0d3e363ededd24a4e8ce"
+        }
+      ],
+      "outcome": "Failed",
+      "requests_including_negative_probe": 1,
+      "usage": 1
+    },
+    "installs_unchanged": true,
+    "codex_success_gate": {
+      "status": "FAIL",
+      "checks": {
+        "cli_exit_zero": false,
+        "answer_tool_task_and_follow_up": false,
+        "five_incremental_public_responses": false,
+        "independent_receives_and_exact_accounting": false,
+        "two_correlated_tool_results": false,
+        "actual_tool_file_result": false
+      }
+    },
+    "tcp_observer": false
+  }
+]

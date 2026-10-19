@@ -1,0 +1,32 @@
+{
+  "actix_web": "4.14.0",
+  "actix_http": "3.13.1",
+  "public_half_close": {
+    "production": false,
+    "test_before": true,
+    "test_after": false
+  },
+  "http_connection_keep_alive_seconds": 5,
+  "client_request_head_timeout_seconds": 5,
+  "client_connection_shutdown_timeout_seconds": 1,
+  "sse_byte_idle_keepalive_seconds": 15,
+  "management_listener": "unchanged; default half-close allowed",
+  "upstream_cli_cancel_idle_seconds": 30,
+  "upstream_cli_cancel_total_seconds": 60,
+  "notes": [
+    "HTTP connection keep-alive applies between requests; it is separate from the active SSE byte-idle keepalive.",
+    "Request-head timeout is not an upstream-response deadline.",
+    "No request, disconnect, upstream deadline or SSE interval was shortened.",
+    "Test workers=1; max_connections remains the Actix test default rather than the production data-plane ceiling. This slice aligns cancellation policy, not a full deployment configuration.",
+    "lo0 packet capture was unavailable: /dev/bpf0 permission denied. Optional TCP relay records initial EOF/reset but changes topology and closes on EOF; direct runs alone establish cancellation timing."
+  ],
+  "sources": [
+    "apps/gateway/src/deployment.rs:304",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle.rs:271",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/cli.rs:29",
+    "crates/gateway-http-actix/src/lib.rs:112",
+    "actix-web-4.14.0/src/server.rs:121",
+    "actix-http-3.13.1/src/keep_alive.rs:44",
+    "actix-http-3.13.1/src/h1/dispatcher.rs:1360"
+  ]
+}

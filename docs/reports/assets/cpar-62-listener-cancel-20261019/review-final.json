@@ -1,0 +1,50 @@
+{
+  "fixed_baseline": "36e937ff37f78be9da80e06ebb79ce3a1e33a1ba",
+  "candidate": "ab6c88a02e865db5317ac27894f6ad2ee67a40df",
+  "diff_command": "git diff 36e937ff37f78be9da80e06ebb79ce3a1e33a1ba...ab6c88a02e865db5317ac27894f6ad2ee67a40df",
+  "scope": "five source files plus specified evidence/report draft; two independent read-only agents; no test rerun",
+  "standards": {
+    "agent": "/root/standards_final",
+    "status": "PASS",
+    "documented_breaches": 0,
+    "fowler_judgements": 0,
+    "supplemental_correctness_observations": [
+      {
+        "priority": "P3",
+        "status": "nonblocking, static inference, not reproduced",
+        "file": "scripts/acceptance/cpar62-cli.py:98",
+        "finding": "The observer except OSError covers connection, recv and sendall failures but records them all under read. A write BrokenPipe/ConnectionReset can be mislabeled as a read error.",
+        "impact": "Current EOF receipts come from the separate empty-recv branch and are unaffected; direct listener acceptance never depends on the relay error branch.",
+        "disposition": "Retain as explicit diagnostic limitation; no claim of RST read-error attribution or packet-level closure sequence. No production/required acceptance defect is demonstrated."
+      }
+    ],
+    "checks": [
+      "two listeners match ADR-0100 existing FIN contract",
+      "FIN retains client read half through resource observation",
+      "owned source/candidate/validation/manifest bytes agree",
+      "16 validation-only document overlays are separate",
+      "direct, relay, Full, Codex gate FAIL and real Provider boundaries remain separate"
+    ]
+  },
+  "spec": {
+    "agent": "/root/spec_final",
+    "slice": "PASS",
+    "whole_issue": "PARTIAL/BLOCKED",
+    "new_behavior_bugs": 0,
+    "scope_creep": 0,
+    "verified_evidence_overclaims": 0,
+    "remaining_gap_classes": [
+      "Actual Codex required controls/tool loops/native failure/cancel remain blocked",
+      "Exact Attempt success metadata retention and formal #61 prerequisite remain blocked",
+      "Pi failed-Usage display remains zero despite known durable20/7; unqualified modes remain separate"
+    ],
+    "checks": [
+      "immutable old control differs by only two listener lines",
+      "raw CLI receipts agree with final-client-runs",
+      "same PID alive, peer_close1, lease0 precede cleanup",
+      "cancel missing terminal Usage never interpreted as free",
+      "Full is bound to validation source and explicit16 overlays"
+    ],
+    "draft_closeout": "review-final.json and delivery readback were pending at review; this receipt closes the review reference; remote readback follows authorized push/comment"
+  }
+}

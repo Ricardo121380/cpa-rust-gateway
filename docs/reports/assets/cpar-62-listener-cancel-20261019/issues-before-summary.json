@@ -1,0 +1,94 @@
+[
+  {
+    "number": 58,
+    "id": 5905680648,
+    "state": "open",
+    "updated_at": "2026-10-18T03:15:12Z",
+    "body_sha256": "05be6b4d2ead2272f37af7cb226cde4611cb1e13c3ed6ac715eec06f132958e6",
+    "comments": [],
+    "dependencies": {
+      "blocked_by": [],
+      "blocking": []
+    }
+  },
+  {
+    "number": 61,
+    "id": 5906831609,
+    "state": "open",
+    "updated_at": "2026-10-18T15:19:58Z",
+    "body_sha256": "85c7ecd73fe765a898bd3e336cd8933149379f2cf506310bb15044a528fb0b08",
+    "comments": [
+      {
+        "id": 6249280299,
+        "body_sha256": "7526ab3bbc26515ee4921d49fe4df68cdbb14848cde079c61977cb269eb0dcae"
+      },
+      {
+        "id": 6251016058,
+        "body_sha256": "431abaef56b48e33e35552bfaa48287b5d6471f7c5ab82c2d9fa88bbe94ae475"
+      },
+      {
+        "id": 6251598716,
+        "body_sha256": "46599578e504797980138a4022a5848378eedb8478c89c3f88284379718aaf1f"
+      }
+    ],
+    "dependencies": {
+      "blocked_by": [
+        {
+          "id": 5906830972,
+          "number": 59,
+          "state": "closed"
+        },
+        {
+          "id": 5906831303,
+          "number": 60,
+          "state": "closed"
+        }
+      ],
+      "blocking": [
+        {
+          "id": 5906832311,
+          "number": 62,
+          "state": "open"
+        },
+        {
+          "id": 5906832622,
+          "number": 63,
+          "state": "open"
+        }
+      ]
+    }
+  },
+  {
+    "number": 62,
+    "id": 5906832311,
+    "state": "open",
+    "updated_at": "2026-10-19T06:06:39Z",
+    "body_sha256": "dc3652f066e9832623fdd0a257343ec2f07071e2ea1eddd196c8baefc548e02e",
+    "comments": [
+      {
+        "id": 6252691392,
+        "body_sha256": "9715f620514ae70f3fcb810e036f12577ec92ed225cf4bccc4ad1e0236c177dd"
+      },
+      {
+        "id": 6260827093,
+        "body_sha256": "49a1031496824ea93def253ce8998f8d1281da7f6fe74554a29535672330883a"
+      }
+    ],
+    "dependencies": {
+      "blocked_by": [
+        {
+          "id": 5906831609,
+          "number": 61,
+          "state": "open"
+        }
+      ],
+      "blocking": [
+        {
+          "id": 5906833834,
+          "number": 66,
+          "state": "open"
+        }
+      ]
+    }
+  }
+]

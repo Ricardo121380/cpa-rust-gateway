@@ -1,0 +1,108 @@
+{
+  "slice": "PASS controlled listener configuration and cancellation slice",
+  "production_code_changed": false,
+  "full": {
+    "status": "PASS",
+    "steps": 45,
+    "rust": {
+      "passed": 1553,
+      "failed": 0,
+      "ignored": 14
+    },
+    "seconds": 534.6427959160001,
+    "not_actual_cli": "opt-in actual CLI remains ignored in Full and is run separately"
+  },
+  "actual_cli": [
+    {
+      "label": "immutable-old-direct",
+      "source": "8fb45692dca5231e371eda6d592a78026e6c841a",
+      "pid": 71094,
+      "abort_to_release_upper_bound_ms": 14991,
+      "after_rpc_ack_observation_ms": 14977,
+      "one_second_probe": false,
+      "actual_lease_before": 1,
+      "actual_lease_after": 0,
+      "independent_peer_close": 1,
+      "same_pid_alive_after_observation": true,
+      "public_keepalive_count": 1,
+      "transport_observation": null,
+      "qualification_exit": 101,
+      "outer_exit": 1
+    },
+    {
+      "label": "final-direct2",
+      "source": "0d8e548a5e983350e8d890d296405da24d669ffd",
+      "pid": 74531,
+      "abort_to_release_upper_bound_ms": 14,
+      "after_rpc_ack_observation_ms": 0,
+      "one_second_probe": true,
+      "actual_lease_before": 1,
+      "actual_lease_after": 0,
+      "independent_peer_close": 1,
+      "same_pid_alive_after_observation": true,
+      "public_keepalive_count": 0,
+      "transport_observation": null,
+      "qualification_exit": 0,
+      "outer_exit": 0
+    },
+    {
+      "label": "final-observer2",
+      "source": "0d8e548a5e983350e8d890d296405da24d669ffd",
+      "pid": 74736,
+      "abort_to_release_upper_bound_ms": 12,
+      "after_rpc_ack_observation_ms": 0,
+      "one_second_probe": true,
+      "actual_lease_before": 1,
+      "actual_lease_after": 0,
+      "independent_peer_close": 1,
+      "same_pid_alive_after_observation": true,
+      "public_keepalive_count": 0,
+      "transport_observation": {
+        "kind": "diagnostic TCP relay",
+        "bytes": [
+          6567,
+          1357
+        ],
+        "direction": "client_to_gateway",
+        "read": "EOF",
+        "observed_at_ms": 1792397051431
+      },
+      "qualification_exit": 0,
+      "outer_exit": 0
+    },
+    {
+      "label": "final-codex-required2",
+      "source": "0d8e548a5e983350e8d890d296405da24d669ffd",
+      "pid": 74855,
+      "abort_to_release_upper_bound_ms": 5,
+      "after_rpc_ack_observation_ms": 0,
+      "one_second_probe": true,
+      "actual_lease_before": 1,
+      "actual_lease_after": 0,
+      "independent_peer_close": 1,
+      "same_pid_alive_after_observation": true,
+      "public_keepalive_count": 0,
+      "transport_observation": null,
+      "qualification_exit": 0,
+      "outer_exit": 1
+    }
+  ],
+  "causal_scope": "Only two listener lines differ in immutable source control. Direct runs show old default retention until the 15s SSE write and prompt release after alignment. Packet-level error/FIN/RST sequence is not captured; relay observes initial CLI EOF in a different topology, not direct latency.",
+  "preserved_failures": [
+    "historical 1s failures",
+    "new FIN/header RED",
+    "old immutable direct 1s FAIL",
+    "early relay original 21s window resource FAIL",
+    "initial compile and Clippy harness feedback",
+    "shared-target stale baked source path denied before actual CLI launch",
+    "strict Codex success gate FAIL"
+  ],
+  "cost": "UNKNOWN; #61 NOT_ADMITTED",
+  "whole_issue_62": "OPEN/BLOCKED",
+  "real_grok": "NOT_RUN/UNPROVEN",
+  "gaps": [
+    "actual Codex required controls/tool loops/native lifecycle",
+    "formal #61 successful complete encrypted metadata qualification and retention",
+    "Pi failed-Usage display and unqualified modes; fixed service/real Provider and other client forms remain separate"
+  ]
+}
