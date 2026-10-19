@@ -61,6 +61,9 @@ the verification procedure requires a distinct build directory.
 
 ## Git synchronization and recovery
 
+The active development branch is `develop`; local and GitHub names follow the
+[branch policy](branch-policy.md). Public `main` remains a separate history.
+
 Before changing refs or moving material, record HEAD, branch, index, dirty paths,
 worktree registrations and the live remote refs. A local Git bundle preserves
 referenced commits; it does not include uncommitted or ignored files. Save those
@@ -82,6 +85,10 @@ push local `main`, merge unrelated histories, or use `push --all`/`--mirror` as 
 cleanup operation. The integration method needs an explicit decision after both
 histories have been reviewed. Ordinary development-branch synchronization can be
 handled independently.
+
+After the branch cleanup, local `main` tracks that existing public history. Its
+previous tip remains in `develop`, with the exact old ref recorded in the cleanup
+mapping. Changing the local ref did not merge or rewrite GitHub `main`.
 
 The 2026-10-19 local maintenance directory contains the exact before/after inventory,
 backup scope, worktree relocation map and verification receipts. Those private local

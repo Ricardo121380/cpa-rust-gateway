@@ -10,6 +10,7 @@ changing its original paths and revision references.
 | What does CPAR provide? | [English README](../README.md), [中文 README](../README.zh-CN.md) |
 | What requirements and phase history exist? | [Development plan](06-development-plan.md), [traceability](traceability.md) |
 | Where do files and local work belong? | [Repository and workspace layout](repository-layout.md) |
+| Which branch contains current development? | [Branch names and retained history](branch-policy.md) |
 | How is the system structured? | [Target architecture](03-target-architecture-draft.md), [crate boundaries](crate-boundaries.md) |
 | Which behavior is required? | [Behavior contracts](02-behavior-contracts.md), [contract index](contracts/README.md) |
 | Why was a design chosen? | [ADR index](adr/README.md) |
@@ -30,8 +31,10 @@ its Git status before treating it as part of a published revision.
   [feature selection](01-feature-selection-matrix.md),
   [channel reference analysis](04-channel-reference-analysis.md) and
   [upstream aggregation design](05-upstream-aggregation-design.md) retain source decisions.
+- [Current branch policy](branch-policy.md) identifies `develop`, the separate
+  public `main`, retained research and historical references.
 - [The August 19 branch inventory](git-branch-inventory-2026-08-19.md) is a dated
-  audit. Check live GitHub refs before applying its merge recommendations.
+  audit. Its branch names and merge recommendations are historical.
 
 Dates and commit IDs in reports define their evidence scope. A historical PASS
 does not establish that the current checkout, GitHub branch, release or production
