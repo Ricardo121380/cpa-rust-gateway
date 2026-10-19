@@ -1,0 +1,11 @@
+{
+  "initial_tracked_modified": 9,
+  "initial_untracked_files": 81,
+  "preexisting_entries_verified": 90,
+  "content_mode_symlink_changes_excluding_two_owned_append_only_index_entries": 0,
+  "original_untracked_still_untracked": 81,
+  "preexisting_changes_in_code_commit": false,
+  "ignored_history_scope": "not recursively hashed; no preexisting ignored evidence was edited or removed",
+  "original_worktrees": "registrations retained; three new authorized validation trees added",
+  "code_commit": "85b372bd97fceecf6c106234b3e59e6dd261ac43"
+}

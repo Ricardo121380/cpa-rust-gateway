@@ -1,0 +1,94 @@
+{
+  "authoritative_source": "8cffdc2f0b5128a79e7722e1b98900bd314bec49",
+  "owned_candidate": "f5198b8128f396d4145a5f902491141cc71f02b2",
+  "reviewed_tree": "727452ba7e16b68ba100c99bfa50c28ba44de9b1",
+  "delivery_code_commit": "85b372bd97fceecf6c106234b3e59e6dd261ac43",
+  "delivery_code_tree_matches_reviewed": true,
+  "full_steps": {
+    "passed": 45,
+    "failed": 0
+  },
+  "rust": {
+    "passed": 1551,
+    "failed": 0,
+    "ignored": 14
+  },
+  "full_seconds": 426.926127542,
+  "actual_preparation": "PASS expected-400 preparation only",
+  "codex_must_succeed": "FAIL",
+  "actual_codex": "BLOCKED HTTP400; receive/Attempt/Usage/ledger=0",
+  "actual_pi": "PASS bounded sequential explicit-history tool loop; limitations retained",
+  "real_provider": "NOT_RUN",
+  "overlays_validation_only": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002"
+    },
+    {
+      "path": "CONTEXT.md",
+      "sha256": "eaa545ede563d661387baff18ebd21e8acc3a9661000c4123eec6bf2d1779e21"
+    },
+    {
+      "path": "README.md",
+      "sha256": "c82e240d37175f70ca1c8cffbc000e1b0672c585278b854455ed6708a510d542"
+    },
+    {
+      "path": "README.zh-CN.md",
+      "sha256": "128eaf73e38b23f87e6b7ed9bfc7a9ef0848e7a0b3f9f26ec031084bc3bf8845"
+    },
+    {
+      "path": "docs/06-development-plan.md",
+      "sha256": "322ac4c20b44eedf1b3e7bdb3ed1bfc7b9e12c9cf2192b3b85ffe274061b3fe5"
+    },
+    {
+      "path": "docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md",
+      "sha256": "ad35d32a70725f9da6b412c0100e920eb52cd560f67faefbb9013b3ad1834bcb"
+    },
+    {
+      "path": "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+      "sha256": "a426616e9a4cbb875e3eb081e40160357433817306ff045ed5de3c3797c39131"
+    },
+    {
+      "path": "docs/adr/ADR-0106-native-fidelity-profile.md",
+      "sha256": "8e770df75f08f2ce4c4471cfaa58365bc8e20715880dc7239e7d98438d530409"
+    },
+    {
+      "path": "docs/adr/ADR-0107-standard-response-metadata-separation.md",
+      "sha256": "dad1f8391de1a6d82a0c280189346f1a065bc04ee84f88502859e766b485938e"
+    },
+    {
+      "path": "docs/adr/ADR-0108-build-summary-standard-messages.md",
+      "sha256": "a8088457f16a6f60fbb13cd617594cb896f9c168a4dfe9122295602ade0f82ec"
+    },
+    {
+      "path": "docs/adr/README.md",
+      "sha256": "3fd196b212ed3b0eeb236a4573746448e407692236e5eaa46673ff4aa296f228"
+    },
+    {
+      "path": "docs/agents/domain.md",
+      "sha256": "143fbbb108382fe791a9a9a7b2f0c208d7a8b9a64f0250b3b172f1660c6f9b40"
+    },
+    {
+      "path": "docs/agents/issue-tracker.md",
+      "sha256": "c95aff9dd13f35beb3646a2e01cf28559c1ceb0122e01515f354911385c312d0"
+    },
+    {
+      "path": "docs/agents/triage-labels.md",
+      "sha256": "ef4786ebc27973fe8afd053bc91ff16038195c354f05d7456776ec6aeea2c721"
+    },
+    {
+      "path": "docs/engineering-roadmap.md",
+      "sha256": "0babeedb83b7c2138ab7e540ef8be4c2b0a0831a0710a0e00f5a9f861f28777b"
+    },
+    {
+      "path": "docs/traceability.md",
+      "sha256": "62d6f19784b2849a26a947ff66a06691fc6e4a342094f2b5e6488f3f06be3d7a"
+    }
+  ],
+  "manifests": {
+    "Cargo.toml": "1b1a37ce8d8fcafa51d379ffae2ff33fff091c5a48c0f3458e47b99c12b22355",
+    "Cargo.lock": "ee3d735f0f7aa364f3f4675e75a87751c8ad3784f0788ac244c4d391ce479cce",
+    "web/prism/package.json": "c7e04ca0624909505b7b031c595b88885a79e92c396feee34f054970fe956988",
+    "web/prism/package-lock.json": "0ed3bda6fa6ee996408383bcad93d9c959cfe862fff11bbe005d0e8b061a3b4f"
+  }
+}

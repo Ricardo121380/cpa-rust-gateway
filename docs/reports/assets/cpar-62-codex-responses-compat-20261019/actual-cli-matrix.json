@@ -1,0 +1,419 @@
+{
+  "source": "8cffdc2f0b5128a79e7722e1b98900bd314bec49",
+  "rows": [
+    {
+      "run": "default",
+      "scenario": "codex-standard",
+      "received": 0,
+      "accounting": {
+        "attempts": 0,
+        "client_requests": 1,
+        "cost": "UNKNOWN",
+        "finished": 1,
+        "ledger": 0,
+        "lineage": [],
+        "outcome": "Failed",
+        "requests_including_negative_probe": 1,
+        "usage": 0
+      },
+      "public": [
+        {
+          "client_usable": false,
+          "http": 400
+        }
+      ],
+      "cli_exit": 1,
+      "turn_outcomes": null
+    },
+    {
+      "run": "default",
+      "scenario": "pi-standard",
+      "received": 5,
+      "accounting": {
+        "attempts": 5,
+        "client_requests": 5,
+        "cost": "UNKNOWN",
+        "finished": 6,
+        "ledger": 5,
+        "lineage": [
+          {
+            "attempt_id": "attempt:45:p1-request-e2f4f0a763852cc8313c4bdddfc132da-0:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-e2f4f0a763852cc8313c4bdddfc132da-0",
+            "source_event_id": "usage-attempt:c6e04f78070c052e58a0a7bce9c93e98c977577ca82abf5268715a58a01e4b2d"
+          },
+          {
+            "attempt_id": "attempt:45:p1-request-e2f4f0a763852cc8313c4bdddfc132da-1:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-e2f4f0a763852cc8313c4bdddfc132da-1",
+            "source_event_id": "usage-attempt:fc88049b6b893b963c601d79d11690654fb851c5ab7e3bae110f73143dfb6654"
+          },
+          {
+            "attempt_id": "attempt:45:p1-request-e2f4f0a763852cc8313c4bdddfc132da-2:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-e2f4f0a763852cc8313c4bdddfc132da-2",
+            "source_event_id": "usage-attempt:ffa643551eb97a5ed89a76d8c3efd4173e74ae9b38f1c7a82de3ca158e46b187"
+          },
+          {
+            "attempt_id": "attempt:45:p1-request-e2f4f0a763852cc8313c4bdddfc132da-3:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-e2f4f0a763852cc8313c4bdddfc132da-3",
+            "source_event_id": "usage-attempt:fe3abe9798ff4341901c79d1591b382431fe28dbf2eb25e613f0de8800ab3b7a"
+          },
+          {
+            "attempt_id": "attempt:45:p1-request-e2f4f0a763852cc8313c4bdddfc132da-4:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-e2f4f0a763852cc8313c4bdddfc132da-4",
+            "source_event_id": "usage-attempt:3f21f5725f2ac110fb20cd4b0fb48bb0c8d587f623a077b734e28fcb09ba67bd"
+          }
+        ],
+        "outcome": "Succeeded",
+        "requests_including_negative_probe": 6,
+        "usage": 5
+      },
+      "public": [
+        {
+          "chunks": 24,
+          "completed": 1,
+          "failed": 0,
+          "http": 200
+        },
+        {
+          "chunks": 20,
+          "completed": 1,
+          "failed": 0,
+          "http": 200
+        },
+        {
+          "chunks": 39,
+          "completed": 1,
+          "failed": 0,
+          "http": 200
+        },
+        {
+          "chunks": 21,
+          "completed": 1,
+          "failed": 0,
+          "http": 200
+        },
+        {
+          "chunks": 21,
+          "completed": 1,
+          "failed": 0,
+          "http": 200
+        }
+      ],
+      "cli_exit": null,
+      "turn_outcomes": [
+        "stop",
+        "stop",
+        "stop"
+      ]
+    },
+    {
+      "run": "default",
+      "scenario": "pi-failure",
+      "received": 1,
+      "accounting": {
+        "attempts": 1,
+        "client_requests": 1,
+        "cost": "UNKNOWN",
+        "finished": 1,
+        "ledger": 1,
+        "lineage": [
+          {
+            "attempt_id": "attempt:45:p1-request-8345df73922d85f63a26e5a5e8efb0e5-0:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-8345df73922d85f63a26e5a5e8efb0e5-0",
+            "source_event_id": "usage-attempt:74b1703f10783126f691ebf787eada9cbcf3cbed0a5ce8f7d1a78d2895d39b08"
+          }
+        ],
+        "outcome": "Failed",
+        "requests_including_negative_probe": 1,
+        "usage": 1
+      },
+      "public": [
+        {
+          "chunks": 6,
+          "completed": 0,
+          "failed": 1,
+          "http": 200
+        }
+      ],
+      "cli_exit": null,
+      "turn_outcomes": [
+        "error"
+      ],
+      "client_last_assistant_usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      }
+    },
+    {
+      "run": "default",
+      "scenario": "pi-cancel",
+      "received": 1,
+      "accounting": {
+        "attempts": 1,
+        "client_requests": 1,
+        "cost": "UNKNOWN",
+        "finished": 1,
+        "ledger": 0,
+        "lineage": [],
+        "outcome": "Cancelled",
+        "requests_including_negative_probe": 1,
+        "usage": 0
+      },
+      "public": [
+        {
+          "chunks": 6,
+          "completed": 0,
+          "failed": 0,
+          "http": 200
+        }
+      ],
+      "cli_exit": null,
+      "turn_outcomes": [
+        "aborted"
+      ],
+      "cancel_diagnostic": {
+        "alive_after_observation": {
+          "pid": 11014,
+          "rpc_alive": true
+        },
+        "cli_alive_at_abort": true,
+        "cli_kept_alive": true,
+        "cli_pid": 11014,
+        "eventually_released_before_server_stop": true,
+        "leases_after_first_second": 1,
+        "leases_at_observation_end": 0,
+        "peer_close_at_observation_end": 1,
+        "released_within_first_second": false,
+        "total_observation_ms": 14980
+      }
+    },
+    {
+      "run": "codex-required",
+      "scenario": "codex-standard",
+      "received": 0,
+      "accounting": {
+        "attempts": 0,
+        "client_requests": 1,
+        "cost": "UNKNOWN",
+        "finished": 1,
+        "ledger": 0,
+        "lineage": [],
+        "outcome": "Failed",
+        "requests_including_negative_probe": 1,
+        "usage": 0
+      },
+      "public": [
+        {
+          "client_usable": false,
+          "http": 400
+        }
+      ],
+      "cli_exit": 1,
+      "turn_outcomes": null
+    },
+    {
+      "run": "codex-required",
+      "scenario": "pi-standard",
+      "received": 5,
+      "accounting": {
+        "attempts": 5,
+        "client_requests": 5,
+        "cost": "UNKNOWN",
+        "finished": 6,
+        "ledger": 5,
+        "lineage": [
+          {
+            "attempt_id": "attempt:45:p1-request-ac84fc5694f98074a9e14589062f454c-0:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-ac84fc5694f98074a9e14589062f454c-0",
+            "source_event_id": "usage-attempt:73d915dbe1ae61f75cd7bcbee702c30d8dabde68b847bba1a9d1cd3d04950a06"
+          },
+          {
+            "attempt_id": "attempt:45:p1-request-ac84fc5694f98074a9e14589062f454c-1:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-ac84fc5694f98074a9e14589062f454c-1",
+            "source_event_id": "usage-attempt:fd4673261871d686c3bd0df868b5b9e25aad08fc505d30a34f1c8256e71bbb45"
+          },
+          {
+            "attempt_id": "attempt:45:p1-request-ac84fc5694f98074a9e14589062f454c-2:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-ac84fc5694f98074a9e14589062f454c-2",
+            "source_event_id": "usage-attempt:fdb0ecbb4cd48b09a52640731e732b58cdc2183c6c73582b9e2732218143fba7"
+          },
+          {
+            "attempt_id": "attempt:45:p1-request-ac84fc5694f98074a9e14589062f454c-3:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-ac84fc5694f98074a9e14589062f454c-3",
+            "source_event_id": "usage-attempt:eccadf1a5086fcf3276f6c4acd785261cb336ae37d3e6ab8b95fb4e945cd8c0d"
+          },
+          {
+            "attempt_id": "attempt:45:p1-request-ac84fc5694f98074a9e14589062f454c-4:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-ac84fc5694f98074a9e14589062f454c-4",
+            "source_event_id": "usage-attempt:1da5c20202a259c3d6b91cfd430f8ce26940b23f5c917beaa7db0167bd32a7b7"
+          }
+        ],
+        "outcome": "Succeeded",
+        "requests_including_negative_probe": 6,
+        "usage": 5
+      },
+      "public": [
+        {
+          "chunks": 24,
+          "completed": 1,
+          "failed": 0,
+          "http": 200
+        },
+        {
+          "chunks": 20,
+          "completed": 1,
+          "failed": 0,
+          "http": 200
+        },
+        {
+          "chunks": 39,
+          "completed": 1,
+          "failed": 0,
+          "http": 200
+        },
+        {
+          "chunks": 21,
+          "completed": 1,
+          "failed": 0,
+          "http": 200
+        },
+        {
+          "chunks": 21,
+          "completed": 1,
+          "failed": 0,
+          "http": 200
+        }
+      ],
+      "cli_exit": null,
+      "turn_outcomes": [
+        "stop",
+        "stop",
+        "stop"
+      ]
+    },
+    {
+      "run": "codex-required",
+      "scenario": "pi-failure",
+      "received": 1,
+      "accounting": {
+        "attempts": 1,
+        "client_requests": 1,
+        "cost": "UNKNOWN",
+        "finished": 1,
+        "ledger": 1,
+        "lineage": [
+          {
+            "attempt_id": "attempt:45:p1-request-51b68791821534e2f3353f971297f44c-0:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-51b68791821534e2f3353f971297f44c-0",
+            "source_event_id": "usage-attempt:306d496520d3a926a0545ffbdb23cc96b8496b87fd784ef5693d8e6726cb74de"
+          }
+        ],
+        "outcome": "Failed",
+        "requests_including_negative_probe": 1,
+        "usage": 1
+      },
+      "public": [
+        {
+          "chunks": 6,
+          "completed": 0,
+          "failed": 1,
+          "http": 200
+        }
+      ],
+      "cli_exit": null,
+      "turn_outcomes": [
+        "error"
+      ],
+      "client_last_assistant_usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      }
+    },
+    {
+      "run": "codex-required",
+      "scenario": "pi-cancel",
+      "received": 1,
+      "accounting": {
+        "attempts": 1,
+        "client_requests": 1,
+        "cost": "UNKNOWN",
+        "finished": 1,
+        "ledger": 0,
+        "lineage": [],
+        "outcome": "Cancelled",
+        "requests_including_negative_probe": 1,
+        "usage": 0
+      },
+      "public": [
+        {
+          "chunks": 6,
+          "completed": 0,
+          "failed": 0,
+          "http": 200
+        }
+      ],
+      "cli_exit": null,
+      "turn_outcomes": [
+        "aborted"
+      ],
+      "cancel_diagnostic": {
+        "alive_after_observation": {
+          "pid": 11103,
+          "rpc_alive": true
+        },
+        "cli_alive_at_abort": true,
+        "cli_kept_alive": true,
+        "cli_pid": 11103,
+        "eventually_released_before_server_stop": true,
+        "leases_after_first_second": 1,
+        "leases_at_observation_end": 0,
+        "peer_close_at_observation_end": 1,
+        "released_within_first_second": false,
+        "total_observation_ms": 14988
+      }
+    }
+  ]
+}

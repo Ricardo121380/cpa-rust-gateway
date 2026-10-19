@@ -1,0 +1,24 @@
+{
+  "branch": "feature/62-codex-responses-compat",
+  "candidate": "f5198b8128f396d4145a5f902491141cc71f02b2",
+  "workflows": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "sha256": "06fc3e19d7591a82bb40c3a18db291ee3f19b9531d75be254ca482415d8cd95c"
+    },
+    {
+      "path": ".github/workflows/delivery-gate.yml",
+      "sha256": "251e1a30477b430ab5d58f9778f42d0bbe11c68cc5a825ca7cd73749205e050c"
+    },
+    {
+      "path": ".github/workflows/release-artifact.yml",
+      "sha256": "03ed6991517e65ac210bbddd244997ad2c4937dcc64042963be4037d1eacbf8a"
+    }
+  ],
+  "ci_push": "main only",
+  "delivery_push": "phase-p*-complete tags only",
+  "release": "workflow_dispatch only",
+  "feature_push_deploy_release_provider_trigger": "NONE_FOUND_IN_CURRENT_WORKFLOWS",
+  "pre_push_hook_exists": false,
+  "pre_push_hook_executable": false
+}

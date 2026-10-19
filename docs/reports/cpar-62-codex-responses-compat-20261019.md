@@ -70,9 +70,8 @@ mode. It writes per-check failures instead of treating preparation PASS as Codex
 A positive actual Codex scenario remains unqualified while required fields are blocked; the new
 gate does not itself certify missing native lifecycle or encrypted evidence behavior.
 
-Final immutable source, explicit validation overlays, Full, actual CLI opt-in, exact logs/hashes,
-Standards/Spec reviews, preservation checks and authorized synchronization receipts are recorded
-below after execution. **Pending results here are not PASS claims.**
+Final source, explicit validation overlays, Full, actual CLI opt-in, reviews and preservation
+are recorded below. No preparation result or ignored test is treated as Codex compatibility.
 
 ## Remaining ticket and product boundaries
 
@@ -100,3 +99,77 @@ Initial Spec review found no new implementation bug/scope creep and retained the
 See [initial review](assets/cpar-62-codex-responses-compat-20261019/review-initial.json).
 The corrected source receives a fresh complete Full and independent final review; earlier runs
 remain historical and are not aggregated into the final result.
+
+## Final immutable validation and client readback
+
+Reviewed owned candidate `f5198b8128f396d4145a5f902491141cc71f02b2`, tree
+`727452ba7e16b68ba100c99bfa50c28ba44de9b1`. Delivery code commit
+`85b372bd97fceecf6c106234b3e59e6dd261ac43` has that **exact same tree**.
+Validation source `8cffdc2f0b5128a79e7722e1b98900bd314bec49`, tree
+`be8396afb259d76dfa6b63c118e6833e427adc03`, was checked out at
+`/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-codex-compat-20261019-f5198b8128f3`.
+Its 16 previously existing local document overlays are individually named and hashed in the
+[source manifest](assets/cpar-62-codex-responses-compat-20261019/source-manifest.json).
+They do not enter either delivery commit; this is **not a bare delivery-commit-tree Full**.
+The nine owned Rust/Python source files match product, review candidate and validation checkout
+byte-for-byte. Root Cargo manifest/lock and Prism manifest/lock match the frozen hashes.
+
+**Full PASS 45/45; Rust 1551 passed / 0 failed / 14 ignored; 426.926 seconds.**
+The complete Full includes #59/#60/#61 strict evidence, identity, failed Usage and lifecycle
+regressions. The opt-in actual CLI is among the ignored tests and was separately executed twice
+on this same validation source, with clean tracked/index status before and after.
+
+| Final actual run | Preparation subprocess | Overall requested result | Interpretation |
+| --- | --- | --- | --- |
+| Default | 1 test passed, exit 0 | PASS preparation; Codex gate FAIL | Expected raw Codex400 is only a preparation oracle |
+| `--require-codex-success` | Same preparation passed, exit 0 | FAIL, outer exit 1; all six success checks false | Accurately refuses to call Codex compatible |
+
+Both runs freshly verified actual Codex 0.161.0, original Pi 0.84.3 (including actual private
+SDK/loaded ESM paths) and Node v26.8.2; install contents/modes/links remained unchanged. Codex's
+raw request still has namespace multi_agent_v1, web_search with external_web_access=false,
+summary=auto without effort, client_metadata, parallel=true and auto tool choice. It returns
+HTTP400 ClientRequestError, CLI exit1, independent receive/Attempt/Usage/ledger all0. Its required
+native tool loop and failure/cancellation remain NOT_RUN/BLOCKED; no actual request field was removed.
+
+Pi completes answer -> read(41) -> related bash calculation/save/readback(42) -> answer -> follow-up
+in its original CLI/RPC form. Each run has five real upstream receives and five exact
+Attempt/Usage/ledger records; all public successes are incremental with one completed terminal,
+known Usage20/7 and preserved summary/call/argument/result history. The separate background
+negative adds one failed Request, no Attempt/Usage/receive, and is not a sixth CLI inference.
+Failure receives once, returns one failed terminal and durable20/7; the current actual Pi error
+again displays all-zero usage/cost. Those client defaults do not establish zero execution or bill.
+
+The same Pi PID stays alive throughout cancellation. Default release is **14,980ms**; required-
+Codex run release is **14,988ms**, with peer_close=1 and lease=0 before cleanup. The one-second
+window is false in both. Its previous explicit one-second FAIL remains historical; this is no
+new SLA. Cancellation has one receive/Attempt and no received terminal Usage, hence no Usage/
+ledger row, not a zero-cost claim. Complete encrypted companions still read UNKNOWN under #61.
+IPv4/IPv6 non-loopback, real-user-directory read and outside-temp write probes again return EPERM.
+
+See [verification summary](assets/cpar-62-codex-responses-compat-20261019/verification-summary.json),
+[actual CLI matrix](assets/cpar-62-codex-responses-compat-20261019/actual-cli-matrix.json),
+[full execution receipt](assets/cpar-62-codex-responses-compat-20261019/final-validation.json) and
+[byte binding](assets/cpar-62-codex-responses-compat-20261019/source-binding-check.json).
+[The selected evidence archive](assets/cpar-62-codex-responses-compat-20261019/verified-evidence.tar.gz)
+has **114 members**, each independently read back and checked against its exact SHA256.
+The [manifest](assets/cpar-62-codex-responses-compat-20261019/evidence-manifest.json) records all
+bytes, including historical failures and prior candidates. Raw and decompressed contents passed
+the unchanged repository secret policy. Credentials/config directories, SQLite, compiler-artifact
+JSON, unrelated output and raw ESM stderr are excluded; hashes of retained private stderr remain.
+
+## Final independent review
+
+The [final review](assets/cpar-62-codex-responses-compat-20261019/review-final.json) covers all22
+changed files/hunks at baseline c39bc07b -> candidate f5198b81, using two fresh read-only agents.
+Standards **PASS:0 documented breaches;1 non-blocking Fowler Duplicated Code judgement** for
+independent Router/codec selector checks. Its previous duplicate-key divergence is corrected;
+adding a production codec dependency solely to remove that small check was not necessary.
+Spec **PARTIAL/BLOCKED:0 new increment bugs;0 scope creep;3 ticket-gap classes**, namely actual
+Codex/fixed-profile qualifications, Pi limitations and #61 complete success evidence. Full,
+Standards and the bounded implementation do not override these Spec gaps.
+
+The subsequent evidence commit adds only reviewed report/receipt/archive material; source,
+manifest/lock and contracts remain identical to the tested code commit. Its verification is
+appropriately static. Authorized branch synchronization and the single #62 result comment follow
+these checks, with independent Git/GitHub API readback in the final local delivery receipt; they
+are not remote CI, release, deployment or Provider acceptance. #58/#61/#62 remain OPEN.

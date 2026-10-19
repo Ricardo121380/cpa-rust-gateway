@@ -1,0 +1,31 @@
+{
+  "fixed_baseline": "c39bc07b1d53f831199f21cc5ae5062c987670b2",
+  "owned_candidate": "f5198b8128f396d4145a5f902491141cc71f02b2",
+  "validation_source": "8cffdc2f0b5128a79e7722e1b98900bd314bec49",
+  "standards": {
+    "status": "PASS",
+    "documented_breaches": 0,
+    "fowler_judgements": 1,
+    "worst": "Duplicated Code (non-blocking judgement)",
+    "finding": "Router and codec independently maintain the three summary selectors; strict duplicate-name divergence is fixed. Router codec dependency remains dev-only; no production dependency was added.",
+    "p2_recheck": "RawExtensions unique-map parse precedes Value; direct-Canonical regression covers Canonical/CanonicalBridge/Passthrough; retained RED and GREEN inspected"
+  },
+  "spec": {
+    "status": "PARTIAL_BLOCKED",
+    "new_increment_bugs": 0,
+    "scope_creep": 0,
+    "ticket_gap_classes": 3,
+    "gaps": [
+      "Codex required fields and actual native lifecycle/tool closure; fixed Build summary-only service qualification remains UNPROVEN",
+      "Pi failed-Usage display and roughly15-second cancellation/one-second diagnostic limitation",
+      "61 complete successful encrypted evidence/confirmation/readback remains BLOCKED and NOT_ADMITTED"
+    ],
+    "notes": [
+      "CLI success gate is partial and not a full mode qualifier",
+      "storage envelope test is not an actual old production database/process upgrade",
+      "final Full pending was not counted as a source bug or PASS"
+    ]
+  },
+  "scope": "all22 changed files/all hunks at fixed diff;16 preexisting validation overlays excluded",
+  "review_mode": "two independent clean-context single-turn read-only reviewers; no tests/CLI/Provider by reviewers"
+}

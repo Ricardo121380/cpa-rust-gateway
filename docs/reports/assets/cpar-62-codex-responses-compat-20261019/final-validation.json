@@ -1,0 +1,275 @@
+{
+  "source": {
+    "fixed_baseline": "c39bc07b1d53f831199f21cc5ae5062c987670b2",
+    "branch": "feature/62-codex-responses-compat",
+    "owned_candidate": "f5198b8128f396d4145a5f902491141cc71f02b2",
+    "owned_tree": "727452ba7e16b68ba100c99bfa50c28ba44de9b1",
+    "validation_source": "8cffdc2f0b5128a79e7722e1b98900bd314bec49",
+    "validation_tree": "be8396afb259d76dfa6b63c118e6833e427adc03",
+    "worktree": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-codex-compat-20261019-f5198b8128f3",
+    "overlays_validation_only": [
+      {
+        "path": "AGENTS.md",
+        "sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002"
+      },
+      {
+        "path": "CONTEXT.md",
+        "sha256": "eaa545ede563d661387baff18ebd21e8acc3a9661000c4123eec6bf2d1779e21"
+      },
+      {
+        "path": "README.md",
+        "sha256": "c82e240d37175f70ca1c8cffbc000e1b0672c585278b854455ed6708a510d542"
+      },
+      {
+        "path": "README.zh-CN.md",
+        "sha256": "128eaf73e38b23f87e6b7ed9bfc7a9ef0848e7a0b3f9f26ec031084bc3bf8845"
+      },
+      {
+        "path": "docs/06-development-plan.md",
+        "sha256": "322ac4c20b44eedf1b3e7bdb3ed1bfc7b9e12c9cf2192b3b85ffe274061b3fe5"
+      },
+      {
+        "path": "docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md",
+        "sha256": "ad35d32a70725f9da6b412c0100e920eb52cd560f67faefbb9013b3ad1834bcb"
+      },
+      {
+        "path": "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+        "sha256": "a426616e9a4cbb875e3eb081e40160357433817306ff045ed5de3c3797c39131"
+      },
+      {
+        "path": "docs/adr/ADR-0106-native-fidelity-profile.md",
+        "sha256": "8e770df75f08f2ce4c4471cfaa58365bc8e20715880dc7239e7d98438d530409"
+      },
+      {
+        "path": "docs/adr/ADR-0107-standard-response-metadata-separation.md",
+        "sha256": "dad1f8391de1a6d82a0c280189346f1a065bc04ee84f88502859e766b485938e"
+      },
+      {
+        "path": "docs/adr/ADR-0108-build-summary-standard-messages.md",
+        "sha256": "a8088457f16a6f60fbb13cd617594cb896f9c168a4dfe9122295602ade0f82ec"
+      },
+      {
+        "path": "docs/adr/README.md",
+        "sha256": "3fd196b212ed3b0eeb236a4573746448e407692236e5eaa46673ff4aa296f228"
+      },
+      {
+        "path": "docs/agents/domain.md",
+        "sha256": "143fbbb108382fe791a9a9a7b2f0c208d7a8b9a64f0250b3b172f1660c6f9b40"
+      },
+      {
+        "path": "docs/agents/issue-tracker.md",
+        "sha256": "c95aff9dd13f35beb3646a2e01cf28559c1ceb0122e01515f354911385c312d0"
+      },
+      {
+        "path": "docs/agents/triage-labels.md",
+        "sha256": "ef4786ebc27973fe8afd053bc91ff16038195c354f05d7456776ec6aeea2c721"
+      },
+      {
+        "path": "docs/engineering-roadmap.md",
+        "sha256": "0babeedb83b7c2138ab7e540ef8be4c2b0a0831a0710a0e00f5a9f861f28777b"
+      },
+      {
+        "path": "docs/traceability.md",
+        "sha256": "62d6f19784b2849a26a947ff66a06691fc6e4a342094f2b5e6488f3f06be3d7a"
+      }
+    ],
+    "owned_files": [
+      {
+        "path": "apps/gateway/src/runtime/batch_c/grok/standard_responses.rs",
+        "sha256": "34c781fae782ff351614779314ee76c147bcdfaff4d8a514c6c0eda8afc64b74"
+      },
+      {
+        "path": "apps/gateway/src/runtime/batch_c/grok/standard_responses/codex_controls.rs",
+        "sha256": "bf3656d5495703a24621f20787236e947f2017e77a6c8bdc824af0f798c0264a"
+      },
+      {
+        "path": "apps/gateway/src/runtime/batch_c/grok/standard_responses/tool_rounds.rs",
+        "sha256": "cb15e799e04ad3a1367aea4f4b5f385587ccb907f8bf06cd63c33f2bc061e178"
+      },
+      {
+        "path": "crates/gateway-router/src/protocol_transform.rs",
+        "sha256": "94f3313dde02a1daf70119c4f8d6e5b9b94a6f05958c35f2f71b03a6ff6c5889"
+      },
+      {
+        "path": "crates/gateway-store/src/stored_response.rs",
+        "sha256": "0aa6f18fec1d97762f287b3bfbd0297409c236bd5d5f03b9465876a4e3f0c516"
+      },
+      {
+        "path": "crates/protocol-openai-responses/src/lib.rs",
+        "sha256": "a9b39ad6d75b8834bcc41f007c80f85e9c021889949b8c10bbcf557316b5d53d"
+      },
+      {
+        "path": "crates/provider-grok/src/build_responses.rs",
+        "sha256": "266158dddd103ade7f9cd78028cd5f6a352590625bb07608a6ad25721a5d0614"
+      },
+      {
+        "path": "crates/provider-openai-compatible/src/openai_responses.rs",
+        "sha256": "026afc6a7c875e22690746d0eefe30dc9536168f9e93276173ea386e275d3ea2"
+      },
+      {
+        "path": "docs/adr/ADR-0113-responses-summary-without-effort.md",
+        "sha256": "66e5b889bcda4211928521e18a4ee6be2df7255a4ae5c1ccc167426569ab91c8"
+      },
+      {
+        "path": "docs/adr/README.md",
+        "sha256": "3a78a0aca5d16259755b5856fcfc78fd95b84e2f19b77ba175b757ceb0cdfa06"
+      },
+      {
+        "path": "docs/contracts/BC-CORE-002-canonical-request.md",
+        "sha256": "98e711fb99a23a4664d1ceead813d422aaaecc07e65f01491b5efb48b56b6499"
+      },
+      {
+        "path": "docs/contracts/BC-PROTOCOL-001-openai-responses-adapter.md",
+        "sha256": "d820e03442fc4c41f43384cb298a269f0b883cb92857f43581265aeeab4a02a2"
+      },
+      {
+        "path": "docs/contracts/BC-PROTOCOL-009-codex-responses-controls.md",
+        "sha256": "d11c12f2439c834290f65976b3e959dda2ac4650408ee4fe2c14cb8b7a185327"
+      },
+      {
+        "path": "docs/contracts/BC-PROVIDER-003-grok-build-responses-boundary.md",
+        "sha256": "3eb27d335950b0b9c386f37a43f99cfde7f656132cad2bbc801e83eacf7e7b23"
+      },
+      {
+        "path": "docs/contracts/BC-ROUTER-004-protocol-transform-admission.md",
+        "sha256": "0ecb7fa04200ffcbae3929db52ecdc29599d58cce5a7d6968ac3ce698b054a0a"
+      },
+      {
+        "path": "docs/reports/assets/cpar-62-codex-responses-compat-20261019/baseline-summary.json",
+        "sha256": "a5ef28f1f3edc2a6862d5b1b345432617f407258b83fcb5f110ee6674ea3ddf1"
+      },
+      {
+        "path": "docs/reports/assets/cpar-62-codex-responses-compat-20261019/field-decisions.json",
+        "sha256": "0cb8bc0132735cc3eb7435b272778d113fca1939d994c40442d95e101238e7b8"
+      },
+      {
+        "path": "docs/reports/assets/cpar-62-codex-responses-compat-20261019/public-source-manifest.json",
+        "sha256": "af3b54093992d08876b3a0bba818108c62f327646ddad5140e4c1c96762c2830"
+      },
+      {
+        "path": "docs/reports/assets/cpar-62-codex-responses-compat-20261019/review-initial.json",
+        "sha256": "c33f3960cdb733ccd60b4206aa290bcf84d6531c09bea18fd80ad251fcf0eb00"
+      },
+      {
+        "path": "docs/reports/cpar-62-codex-responses-compat-20261019.md",
+        "sha256": "4506b64c353e80491232d05d5f9ffcfe72210d28409f65b6c441744d3e85adde"
+      },
+      {
+        "path": "docs/traceability.md",
+        "sha256": "6fbe1771363b69361b3f63cb0bb5b3dc5242b86a0239d8a93de78fd7c27e5d73"
+      },
+      {
+        "path": "scripts/acceptance/cpar62-cli.py",
+        "sha256": "366d474c5d611d4cf12d8d15aaaa7102d893c66274fc2c70cd555e40c918bc8b"
+      }
+    ],
+    "manifests": {
+      "Cargo.toml": "1b1a37ce8d8fcafa51d379ffae2ff33fff091c5a48c0f3458e47b99c12b22355",
+      "Cargo.lock": "ee3d735f0f7aa364f3f4675e75a87751c8ad3784f0788ac244c4d391ce479cce",
+      "web/prism/package.json": "c7e04ca0624909505b7b031c595b88885a79e92c396feee34f054970fe956988",
+      "web/prism/package-lock.json": "0ed3bda6fa6ee996408383bcad93d9c959cfe862fff11bbe005d0e8b061a3b4f"
+    }
+  },
+  "steps": [
+    {
+      "name": "offline-spa-prepare",
+      "command": [
+        "npm",
+        "--prefix",
+        "web/prism",
+        "ci",
+        "--offline",
+        "--ignore-scripts",
+        "--no-audit",
+        "--no-fund"
+      ],
+      "exit": 0,
+      "seconds": 1.0021009589999998,
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-codex-compat-20261019-f5198b8128f3"
+    },
+    {
+      "name": "full",
+      "command": [
+        "bash",
+        "scripts/check.sh",
+        "full"
+      ],
+      "exit": 0,
+      "seconds": 426.926127542,
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-codex-compat-20261019-f5198b8128f3"
+    },
+    {
+      "name": "actual-cli",
+      "command": [
+        "/usr/bin/python3",
+        "scripts/acceptance/cpar62-cli.py",
+        "--output",
+        "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-compat-final-cli-20261019-f5198b81"
+      ],
+      "exit": 0,
+      "seconds": 62.86150220800005,
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-codex-compat-20261019-f5198b8128f3"
+    },
+    {
+      "name": "actual-cli-codex-required",
+      "command": [
+        "/usr/bin/python3",
+        "scripts/acceptance/cpar62-cli.py",
+        "--require-codex-success",
+        "--output",
+        "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-compat-final-codex-required-20261019-f5198b81"
+      ],
+      "exit": 1,
+      "seconds": 31.289283124999997,
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-codex-compat-20261019-f5198b8128f3",
+      "expected_result": "FAIL while Codex required fields are blocked",
+      "diagnostic": {
+        "command": [
+          "/usr/bin/sandbox-exec",
+          "-f",
+          "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-compat-final-codex-required-20261019-f5198b81/isolated.sb",
+          "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway/target/debug/deps/gateway-73e16e067fb70849",
+          "actual_cli_public_build_qualification",
+          "--ignored",
+          "--nocapture"
+        ],
+        "exit": 0,
+        "runner_status": "FAIL",
+        "require_prompt_release": false,
+        "cancellation": {
+          "alive_after_observation": {
+            "pid": 11103,
+            "rpc_alive": true
+          },
+          "cli_alive_at_abort": true,
+          "cli_kept_alive": true,
+          "cli_pid": 11103,
+          "eventually_released_before_server_stop": true,
+          "leases_after_first_second": 1,
+          "leases_at_observation_end": 0,
+          "peer_close_at_observation_end": 1,
+          "released_within_first_second": false,
+          "total_observation_ms": 14988
+        },
+        "require_codex_success": true,
+        "codex_success_gate": {
+          "status": "FAIL",
+          "checks": {
+            "cli_exit_zero": false,
+            "answer_tool_task_and_follow_up": false,
+            "five_incremental_public_responses": false,
+            "independent_receives_and_exact_accounting": false,
+            "two_correlated_tool_results": false,
+            "actual_tool_file_result": false
+          }
+        },
+        "installs_unchanged": true,
+        "claim": "local controlled independent preparation; #62 remains blocked"
+      }
+    }
+  ],
+  "cli_root": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-compat-final-cli-20261019-f5198b81",
+  "codex_required_root": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-compat-final-codex-required-20261019-f5198b81",
+  "codex_required_outer_exit": 1,
+  "validation_status": ""
+}

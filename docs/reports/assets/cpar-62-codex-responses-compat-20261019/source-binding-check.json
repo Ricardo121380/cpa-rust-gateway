@@ -1,0 +1,63 @@
+{
+  "owned_source_bytes_match": [
+    {
+      "path": "apps/gateway/src/runtime/batch_c/grok/standard_responses.rs",
+      "product": "34c781fae782ff351614779314ee76c147bcdfaff4d8a514c6c0eda8afc64b74",
+      "validation": "34c781fae782ff351614779314ee76c147bcdfaff4d8a514c6c0eda8afc64b74",
+      "reviewed": "34c781fae782ff351614779314ee76c147bcdfaff4d8a514c6c0eda8afc64b74"
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/grok/standard_responses/codex_controls.rs",
+      "product": "bf3656d5495703a24621f20787236e947f2017e77a6c8bdc824af0f798c0264a",
+      "validation": "bf3656d5495703a24621f20787236e947f2017e77a6c8bdc824af0f798c0264a",
+      "reviewed": "bf3656d5495703a24621f20787236e947f2017e77a6c8bdc824af0f798c0264a"
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/grok/standard_responses/tool_rounds.rs",
+      "product": "cb15e799e04ad3a1367aea4f4b5f385587ccb907f8bf06cd63c33f2bc061e178",
+      "validation": "cb15e799e04ad3a1367aea4f4b5f385587ccb907f8bf06cd63c33f2bc061e178",
+      "reviewed": "cb15e799e04ad3a1367aea4f4b5f385587ccb907f8bf06cd63c33f2bc061e178"
+    },
+    {
+      "path": "crates/gateway-router/src/protocol_transform.rs",
+      "product": "94f3313dde02a1daf70119c4f8d6e5b9b94a6f05958c35f2f71b03a6ff6c5889",
+      "validation": "94f3313dde02a1daf70119c4f8d6e5b9b94a6f05958c35f2f71b03a6ff6c5889",
+      "reviewed": "94f3313dde02a1daf70119c4f8d6e5b9b94a6f05958c35f2f71b03a6ff6c5889"
+    },
+    {
+      "path": "crates/gateway-store/src/stored_response.rs",
+      "product": "0aa6f18fec1d97762f287b3bfbd0297409c236bd5d5f03b9465876a4e3f0c516",
+      "validation": "0aa6f18fec1d97762f287b3bfbd0297409c236bd5d5f03b9465876a4e3f0c516",
+      "reviewed": "0aa6f18fec1d97762f287b3bfbd0297409c236bd5d5f03b9465876a4e3f0c516"
+    },
+    {
+      "path": "crates/protocol-openai-responses/src/lib.rs",
+      "product": "a9b39ad6d75b8834bcc41f007c80f85e9c021889949b8c10bbcf557316b5d53d",
+      "validation": "a9b39ad6d75b8834bcc41f007c80f85e9c021889949b8c10bbcf557316b5d53d",
+      "reviewed": "a9b39ad6d75b8834bcc41f007c80f85e9c021889949b8c10bbcf557316b5d53d"
+    },
+    {
+      "path": "crates/provider-grok/src/build_responses.rs",
+      "product": "266158dddd103ade7f9cd78028cd5f6a352590625bb07608a6ad25721a5d0614",
+      "validation": "266158dddd103ade7f9cd78028cd5f6a352590625bb07608a6ad25721a5d0614",
+      "reviewed": "266158dddd103ade7f9cd78028cd5f6a352590625bb07608a6ad25721a5d0614"
+    },
+    {
+      "path": "crates/provider-openai-compatible/src/openai_responses.rs",
+      "product": "026afc6a7c875e22690746d0eefe30dc9536168f9e93276173ea386e275d3ea2",
+      "validation": "026afc6a7c875e22690746d0eefe30dc9536168f9e93276173ea386e275d3ea2",
+      "reviewed": "026afc6a7c875e22690746d0eefe30dc9536168f9e93276173ea386e275d3ea2"
+    },
+    {
+      "path": "scripts/acceptance/cpar62-cli.py",
+      "product": "366d474c5d611d4cf12d8d15aaaa7102d893c66274fc2c70cd555e40c918bc8b",
+      "validation": "366d474c5d611d4cf12d8d15aaaa7102d893c66274fc2c70cd555e40c918bc8b",
+      "reviewed": "366d474c5d611d4cf12d8d15aaaa7102d893c66274fc2c70cd555e40c918bc8b"
+    }
+  ],
+  "manifest_lock_match": true,
+  "validation_source": "8cffdc2f0b5128a79e7722e1b98900bd314bec49",
+  "validation_status_now": "",
+  "staged_tree": "727452ba7e16b68ba100c99bfa50c28ba44de9b1",
+  "reviewed_tree": "727452ba7e16b68ba100c99bfa50c28ba44de9b1"
+}
