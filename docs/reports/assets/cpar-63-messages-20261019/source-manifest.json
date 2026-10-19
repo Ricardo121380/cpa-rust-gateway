@@ -1,0 +1,317 @@
+{
+  "fixed_baseline": "098c92a51ac549a38c8f15fd265e0fb379de2c77",
+  "delivery_code_commit": "0d196a66d60cbdbb5c5441a158e5d2f33dda7966",
+  "delivery_code_tree": "e1dda68f049862de563b11bb137fbf1240bd448b",
+  "validation_source": "2cfa920167e9445786c3600468eadc1d1bc58a8b",
+  "validation_tree": "863db56fa4f41c576628ebfa263d55b0a33819a7",
+  "validation_worktree": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar63-messages-20261019-0d196a66d60c",
+  "validation_target": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar63-20261019/target-full-0d196a66d60c",
+  "overlays_validation_only": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+      "mode": 420
+    },
+    {
+      "path": "CONTEXT.md",
+      "sha256": "eaa545ede563d661387baff18ebd21e8acc3a9661000c4123eec6bf2d1779e21",
+      "mode": 420
+    },
+    {
+      "path": "README.md",
+      "sha256": "376de5be81e5b8ac7b0ad6ac25b4e186db18321a0cd89057d7432ef5524219f9",
+      "mode": 420
+    },
+    {
+      "path": "README.zh-CN.md",
+      "sha256": "d5ae62085c88f4200b19f973b675b10fad63c0e86ed42178969ec869bfbe3b76",
+      "mode": 420
+    },
+    {
+      "path": "docs/06-development-plan.md",
+      "sha256": "322ac4c20b44eedf1b3e7bdb3ed1bfc7b9e12c9cf2192b3b85ffe274061b3fe5",
+      "mode": 420
+    },
+    {
+      "path": "docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md",
+      "sha256": "ad35d32a70725f9da6b412c0100e920eb52cd560f67faefbb9013b3ad1834bcb",
+      "mode": 420
+    },
+    {
+      "path": "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+      "sha256": "a426616e9a4cbb875e3eb081e40160357433817306ff045ed5de3c3797c39131",
+      "mode": 420
+    },
+    {
+      "path": "docs/adr/ADR-0106-native-fidelity-profile.md",
+      "sha256": "8e770df75f08f2ce4c4471cfaa58365bc8e20715880dc7239e7d98438d530409",
+      "mode": 420
+    },
+    {
+      "path": "docs/adr/ADR-0107-standard-response-metadata-separation.md",
+      "sha256": "dad1f8391de1a6d82a0c280189346f1a065bc04ee84f88502859e766b485938e",
+      "mode": 420
+    },
+    {
+      "path": "docs/adr/ADR-0108-build-summary-standard-messages.md",
+      "sha256": "a8088457f16a6f60fbb13cd617594cb896f9c168a4dfe9122295602ade0f82ec",
+      "mode": 420
+    },
+    {
+      "path": "docs/adr/README.md",
+      "sha256": "1da966c9a0826a38f7b71121e59bdbc3c0539a1eac0ab5bed770686503d8a2dd",
+      "mode": 420
+    },
+    {
+      "path": "docs/agents/domain.md",
+      "sha256": "143fbbb108382fe791a9a9a7b2f0c208d7a8b9a64f0250b3b172f1660c6f9b40",
+      "mode": 420
+    },
+    {
+      "path": "docs/agents/issue-tracker.md",
+      "sha256": "c95aff9dd13f35beb3646a2e01cf28559c1ceb0122e01515f354911385c312d0",
+      "mode": 420
+    },
+    {
+      "path": "docs/agents/triage-labels.md",
+      "sha256": "ef4786ebc27973fe8afd053bc91ff16038195c354f05d7456776ec6aeea2c721",
+      "mode": 420
+    },
+    {
+      "path": "docs/engineering-roadmap.md",
+      "sha256": "0babeedb83b7c2138ab7e540ef8be4c2b0a0831a0710a0e00f5a9f861f28777b",
+      "mode": 420
+    },
+    {
+      "path": "docs/traceability.md",
+      "sha256": "8ef39ca0dc80a221de0bf4cd253b641bcf5acc9915d5d55c00f105baf4bee756",
+      "mode": 420
+    }
+  ],
+  "owned_files": [
+    {
+      "path": "README.md",
+      "sha256": "376de5be81e5b8ac7b0ad6ac25b4e186db18321a0cd89057d7432ef5524219f9",
+      "includes_overlay": true
+    },
+    {
+      "path": "README.zh-CN.md",
+      "sha256": "d5ae62085c88f4200b19f973b675b10fad63c0e86ed42178969ec869bfbe3b76",
+      "includes_overlay": true
+    },
+    {
+      "path": "apps/gateway/src/main.rs",
+      "sha256": "7cb0150d3300232a57e6c21f3976bdadae7a64cac1177aff91f9f1217c8c0576",
+      "includes_overlay": false
+    },
+    {
+      "path": "apps/gateway/src/runtime.rs",
+      "sha256": "1853406d135c50ebbcf14ba5fd1d78f4b49b326b4fcdd060eb34c6ee1e35af4b",
+      "includes_overlay": false
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c.rs",
+      "sha256": "a2979727c5f38231caa9628e2159e1577730db883c4fe81f7d0df1335efe6c38",
+      "includes_overlay": false
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/grok/model_identity.rs",
+      "sha256": "07120e11976e720ed20fbfbaa5924d613b127ed3bbcedb8ab7498d142a95dd06",
+      "includes_overlay": false
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/grok/native_chat_offline.rs",
+      "sha256": "5b63a70e0646b76874ff489c5ce664bdf374f1257aabcbb614bfff3553da6e3c",
+      "includes_overlay": false
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/grok/projection_usage.rs",
+      "sha256": "c2bf7f9929b9b310a8a3635f33ae952ad678a5d9e7f8b03c1b84c46f01f95021",
+      "includes_overlay": false
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle.rs",
+      "sha256": "634202ed048f4f3d9a8b337fd6c8492e88937a3c116cea11bcd4e96299e322ba",
+      "includes_overlay": false
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/messages.rs",
+      "sha256": "66a078405be5e50a2738e10aedaf7cf8b880ce20725e7040d3a407a58c08df4a",
+      "includes_overlay": false
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/messages/cancellation.rs",
+      "sha256": "b008296f1d3fe312cc24b50c3e25d6950c976ff466549f66127bbd59cd4c6403",
+      "includes_overlay": false
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/messages/failures.rs",
+      "sha256": "4a14eeaec59cfab055b61890fc9b4b30137fd5c012ccc7ccc91ff3aef7574351",
+      "includes_overlay": false
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/messages/policy.rs",
+      "sha256": "9a31a04ddce3239f7ee94b7f71ccb2ab5ea9b8ec6157c9e37fd546383f24606d",
+      "includes_overlay": false
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/messages/tool_rounds.rs",
+      "sha256": "198fcfe25ea0aea4e8e01181c69b4bb3ebf47afec2d28cb8dca9c7991932d88e",
+      "includes_overlay": false
+    },
+    {
+      "path": "apps/gateway/src/runtime/batch_c/grok/standard_responses/tool_rounds.rs",
+      "sha256": "45f45c3eb25479ef1e0ebb8b319adcbb2a3ace9b93007b08f10ac86c53d47d07",
+      "includes_overlay": false
+    },
+    {
+      "path": "apps/gateway/src/runtime/build_messages_summary.rs",
+      "sha256": "27c1d52480b242d4b2af419809682198748ed053eb9f9884ec8f7d796d963706",
+      "includes_overlay": false
+    },
+    {
+      "path": "apps/gateway/src/usage_evidence.rs",
+      "sha256": "b27bc89fa2c81d46b7572f8573d1538228030ae16c06bc5d7b4580d713111e57",
+      "includes_overlay": false
+    },
+    {
+      "path": "apps/gateway/tests/cpar59_usage_evidence.rs",
+      "sha256": "c48da2438adb6e89b474cf49f7c18aed7f33f319d2056f46e9f9e106463507c2",
+      "includes_overlay": false
+    },
+    {
+      "path": "apps/gateway/tests/cpar63_messages_summary.rs",
+      "sha256": "bea488ba37f8a63e55d8631c7732822b30560e21a670160b15e774fdecb35443",
+      "includes_overlay": false
+    },
+    {
+      "path": "crates/gateway-core/src/gateway_event.rs",
+      "sha256": "919c1973d1d3dfd9843bfd199ad5f65f473052a3db7c0a385c74a06ec5ca5b09",
+      "includes_overlay": false
+    },
+    {
+      "path": "crates/gateway-core/src/lib.rs",
+      "sha256": "bd0d4ef174ba8e2af623dad0a3680d7fee5c8299194c66187ab752def6092149",
+      "includes_overlay": false
+    },
+    {
+      "path": "crates/gateway-core/src/messages_summary.rs",
+      "sha256": "3b241b437e45d92df30ac66b8bc7c6aa7de16553799067ae74cc4bf680793c44",
+      "includes_overlay": false
+    },
+    {
+      "path": "crates/gateway-http-actix/src/lib.rs",
+      "sha256": "f900505f2a302ed0738b374d29a50da0763836743c380601fe1976c85afe54d8",
+      "includes_overlay": false
+    },
+    {
+      "path": "crates/gateway-observability/src/lib.rs",
+      "sha256": "9fd1e118ac89b1d6e03831c71cc983dd53ae616c4a89bfa899436169ccd4d095",
+      "includes_overlay": false
+    },
+    {
+      "path": "crates/gateway-router/src/lib.rs",
+      "sha256": "ce5571ee3bf6da6b74a539886d8864b68b2c0f1d1bd0954dc4c5fb3eb33aa027",
+      "includes_overlay": false
+    },
+    {
+      "path": "crates/gateway-store/migrations/0036_messages_summary_evidence.down.sql",
+      "sha256": "8f0ed28220991a4c2874aae0b590091007015f8fd7a683a274be3d1ec8296cb8",
+      "includes_overlay": false
+    },
+    {
+      "path": "crates/gateway-store/migrations/0036_messages_summary_evidence.up.sql",
+      "sha256": "6bdd04793d4bb0f0aee710d62a8b4c4e688a1e1fe4a7c70fdb93abf1b9bec750",
+      "includes_overlay": false
+    },
+    {
+      "path": "crates/gateway-store/src/event_store.rs",
+      "sha256": "a56906a1f14842005f40368cfd76a44d3851bae68e49fbc1268ad40b6abce0f0",
+      "includes_overlay": false
+    },
+    {
+      "path": "crates/gateway-store/src/lib.rs",
+      "sha256": "9870471245d6b5b540673d65b1ebe670c4dbb1d6bd3180fcf262f8fb7b54b00b",
+      "includes_overlay": false
+    },
+    {
+      "path": "crates/gateway-store/src/messages_summary.rs",
+      "sha256": "36a128ed1d65d874c23286dd29131e7981f73787997ca25664b5510923d5ed4b",
+      "includes_overlay": false
+    },
+    {
+      "path": "crates/gateway-store/src/native_usage.rs",
+      "sha256": "5e43ca27694a40a9249d96602f435b52500a2a000933fbaa12bc03999fe48b2c",
+      "includes_overlay": false
+    },
+    {
+      "path": "docs/02-behavior-contracts.md",
+      "sha256": "9eb9bb3a4619283aab00122f9a560806235918b93cc113c062d0a4cbadc4fdf0",
+      "includes_overlay": false
+    },
+    {
+      "path": "docs/adr/ADR-0114-confirmed-build-messages-summary.md",
+      "sha256": "babe1b06e802a33609851616f0decccbb4a1487a47ca23288948c76119a6aa88",
+      "includes_overlay": false
+    },
+    {
+      "path": "docs/adr/README.md",
+      "sha256": "1da966c9a0826a38f7b71121e59bdbc3c0539a1eac0ab5bed770686503d8a2dd",
+      "includes_overlay": true
+    },
+    {
+      "path": "docs/contracts/BC-OBS-007-messages-summary-evidence.md",
+      "sha256": "0c63088435821564f4349171272ec2ff76b02ebc1e287687faadabb36e72195c",
+      "includes_overlay": false
+    },
+    {
+      "path": "docs/contracts/BC-PROVIDER-003-grok-build-responses-boundary.md",
+      "sha256": "23b810abe96185a14148f22bb64ad750fa5bfb59d76e431e3f98937895910bea",
+      "includes_overlay": false
+    },
+    {
+      "path": "docs/contracts/BC-ROUTER-004-protocol-transform-admission.md",
+      "sha256": "d8b0e446b2f5c5132d5cbc9f657a9fa51fd3509cd141af3762c7d89a04e69b86",
+      "includes_overlay": false
+    },
+    {
+      "path": "docs/support/grok-build-messages.md",
+      "sha256": "c44f316017b4af5795635aa76522cc79a0042c212259c2b516292bcab98cc55b",
+      "includes_overlay": false
+    },
+    {
+      "path": "docs/traceability.md",
+      "sha256": "8ef39ca0dc80a221de0bf4cd253b641bcf5acc9915d5d55c00f105baf4bee756",
+      "includes_overlay": true
+    }
+  ],
+  "manifests": {
+    ".cargo/config.toml": "5a9705c62232bc1693b244807434f01e59a16c46a1832bc73baaa6e5db3e4f64",
+    "Cargo.lock": "ee3d735f0f7aa364f3f4675e75a87751c8ad3784f0788ac244c4d391ce479cce",
+    "Cargo.toml": "1b1a37ce8d8fcafa51d379ffae2ff33fff091c5a48c0f3458e47b99c12b22355",
+    "apps/gateway/Cargo.toml": "d483d81a55d933c17c833b31ee22d180a38186da824b2be45a70d68c22378ae8",
+    "crates/gateway-auth/Cargo.toml": "a6d07850a6c2c83b070aff4a0060250816fd0ca1317ee201e2b773df3ef71e7d",
+    "crates/gateway-catalog/Cargo.toml": "2ee94cc3bc269eef5ae6fd06da3a06545a21564d8d2b26164d69dbc3aadf1126",
+    "crates/gateway-control/Cargo.toml": "879a7fcea3f104d4775d06efac082a12b44d725de1777f8261f80458ed6d577a",
+    "crates/gateway-core/Cargo.toml": "13646113701b13e5e1bca21712f7dbb66cdceb96b6339025341bf1bf9dc525c2",
+    "crates/gateway-http-actix/Cargo.toml": "a2d756f5bb54aee1fae4989410497e1acc0088ece840a2d75224d9fc3aa63f87",
+    "crates/gateway-observability/Cargo.toml": "dcb1a1e240990af4bea5e14f33c7da2525f50380409f6c0f9cf3f297ab1f0bf4",
+    "crates/gateway-protocol/Cargo.toml": "d7e3b752815f2c5e5f83e676d9ee7415ef955958402129f58997de567c30afa7",
+    "crates/gateway-provider/Cargo.toml": "0b58266bb90f716f5125fc91f2099f006bf7ec31ec7b7ccb0ca7bea13f2081af",
+    "crates/gateway-router/Cargo.toml": "facd85888e32dd09db620bc89a69a2a4b37e8cbbfe6c03f640655633b0555477",
+    "crates/gateway-store/Cargo.toml": "ba4905ed75e5899176efc7b7cefb2bef60c34b1d5ac5396dabc98bf602a15e68",
+    "crates/gateway-stream/Cargo.toml": "6a0a28dc19c755cd5f8735a4f629d9fb4df0533709eca5e069bbf93218905cb3",
+    "crates/gateway-upstream/Cargo.toml": "990dfdc5da49a5401c1a904be61ac8bc8619780897e9fa2e3d07540743051c0c",
+    "crates/protocol-anthropic/Cargo.toml": "cff3bb62bbefbc8bc331e1b8c11e75cecc2a2c2bf6d682b058bcf779ba4b97d5",
+    "crates/protocol-openai-chat/Cargo.toml": "b705bd02b41646e51ab3df32eb902f3ac1399bc4e4e428ef2dd8e06d000a0f08",
+    "crates/protocol-openai-responses/Cargo.toml": "3b52a8e180ae0258ca6575cb02cacc59208f118d4f6bb390d301119f7b4296cd",
+    "crates/provider-anthropic-compatible/Cargo.toml": "c4f30a8622460a9a3fa034ab2369df1d643d3f30e613e96498ba891a28128435",
+    "crates/provider-grok/Cargo.toml": "8b7e7d98ecaa489cb6d54400d4f204bc0dd6a1f8afa195d75a93d5d7ac9e0dc1",
+    "crates/provider-kiro/Cargo.toml": "8b3d6f2ae5f1058fb2da27575689c1f7f50526a5ba4428fedd58387b923e600d",
+    "crates/provider-openai-compatible/Cargo.toml": "24e74455c5389a3e3bce0949b1c581f31ac5790489fde7fe0cf0a160e48f8067",
+    "rust-toolchain.toml": "8e390d6a0838315f972690f46ef8bae8b7ecc9ee6c1ed70140ef852869c2482e",
+    "tests/differential/Cargo.toml": "285c93c634fd4c18badb9874976aa514a363b9286495280e11fd89e588cb95c6",
+    "web/prism/package-lock.json": "0ed3bda6fa6ee996408383bcad93d9c959cfe862fff11bbe005d0e8b061a3b4f",
+    "web/prism/package.json": "c7e04ca0624909505b7b031c595b88885a79e92c396feee34f054970fe956988"
+  }
+}

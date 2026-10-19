@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "head": "098c92a51ac549a38c8f15fd265e0fb379de2c77",
+  "branch": "feature/62-codex-responses-compat",
+  "preexisting_tracked_modified": 9,
+  "preexisting_untracked_files": 81,
+  "files_bytes_modes_links_preserved": 90,
+  "index_empty": true,
+  "isolated_implementation_branch": "feature/63-build-messages-summary",
+  "original_worktree_mutated": false
+}

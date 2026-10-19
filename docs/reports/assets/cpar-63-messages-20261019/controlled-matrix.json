@@ -1,0 +1,881 @@
+{
+  "delivery_code_commit": "0d196a66d60cbdbb5c5441a158e5d2f33dda7966",
+  "validation_source": "2cfa920167e9445786c3600468eadc1d1bc58a8b",
+  "validation_target": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar63-20261019/target-full-0d196a66d60c",
+  "command": "cargo test --locked -p gateway --all-features public_build_messages_json_and_sse_keep_two_standard_tool_cycles -- --nocapture",
+  "source_identity": {
+    "exit": 0,
+    "duration_seconds": 45.048,
+    "delivery_code_commit": "0d196a66d60cbdbb5c5441a158e5d2f33dda7966",
+    "validation_source": "2cfa920167e9445786c3600468eadc1d1bc58a8b",
+    "validation_target": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar63-20261019/target-full-0d196a66d60c",
+    "manifests_verified": 27,
+    "overlays_verified": 16,
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "gateway",
+      "--all-features",
+      "public_build_messages_json_and_sse_keep_two_standard_tool_cycles",
+      "--",
+      "--nocapture"
+    ]
+  },
+  "receipts": [
+    {
+      "attempt_id": "attempt:45:p1-request-c5216cb8f4789e5683c51144f6029bec-0:1",
+      "chunk_bytes": 31,
+      "ciphertext_bytes": 1336,
+      "ciphertext_sha256": "81334459771f0e696fa9e723b2dc0fb02f472106cee812f3f25a7bdba70e1d4f",
+      "completeness": "completed_response",
+      "cost": "UNKNOWN",
+      "input_tokens": 20,
+      "key_version": 1,
+      "model_override": "grok-4.5",
+      "output_tokens": 7,
+      "owner": "p12-runtime-client-key",
+      "public_model": "grok-4.5",
+      "reader_authenticated": true,
+      "receive_count": 1,
+      "received_upstream_model": "grok-4.5",
+      "request_id": "p1-request-c5216cb8f4789e5683c51144f6029bec-0",
+      "response_id": "response-61",
+      "round": 0,
+      "source": "build_json",
+      "streaming": false,
+      "summary_items": [
+        {
+          "body_present": false,
+          "item_id": "reason-0",
+          "item_sha256": "9c4ff919dedd6e1bda7ed93c29e360b6442f3c2fc60349ef33216d4ba1c22fd6",
+          "output_index": 0,
+          "part_count": 2
+        },
+        {
+          "body_present": true,
+          "item_id": "reason-b-0",
+          "item_sha256": "389ff6a4d9b2c060afb63f3eb3a6183f327281a84fad5979a6fdf7165442592f",
+          "output_index": 2,
+          "part_count": 1
+        }
+      ],
+      "synthetic": true,
+      "visible_history_only_verified": true
+    },
+    {
+      "attempt_id": "attempt:45:p1-request-c5216cb8f4789e5683c51144f6029bec-1:1",
+      "chunk_bytes": 31,
+      "ciphertext_bytes": 1336,
+      "ciphertext_sha256": "fda2e661a882416f5c3018d04f9f60502d1af75992decf46bb8654b2f8a3bde8",
+      "completeness": "completed_response",
+      "cost": "UNKNOWN",
+      "input_tokens": 20,
+      "key_version": 1,
+      "model_override": "grok-4.5",
+      "output_tokens": 7,
+      "owner": "p12-runtime-client-key",
+      "public_model": "grok-4.5",
+      "reader_authenticated": true,
+      "receive_count": 2,
+      "received_upstream_model": "grok-4.5",
+      "request_id": "p1-request-c5216cb8f4789e5683c51144f6029bec-1",
+      "response_id": "response-61",
+      "round": 1,
+      "source": "build_json",
+      "streaming": false,
+      "summary_items": [
+        {
+          "body_present": false,
+          "item_id": "reason-1",
+          "item_sha256": "4429baa7d4f65d740d0b02bda0ed5e14169794ca1b54254a8fdf5e73e87bffca",
+          "output_index": 0,
+          "part_count": 2
+        },
+        {
+          "body_present": true,
+          "item_id": "reason-b-1",
+          "item_sha256": "36127839437017c217fbcab35006e9230432f6359f32cf59b1f13850603c7bca",
+          "output_index": 2,
+          "part_count": 1
+        }
+      ],
+      "synthetic": true,
+      "visible_history_only_verified": true
+    },
+    {
+      "attempt_id": "attempt:45:p1-request-c5216cb8f4789e5683c51144f6029bec-2:1",
+      "chunk_bytes": 31,
+      "ciphertext_bytes": 1336,
+      "ciphertext_sha256": "d1afa08e7ecea62c7439cc31eb6d8eab06f6b513b4c318cf31a4b366ecc4592c",
+      "completeness": "completed_response",
+      "cost": "UNKNOWN",
+      "input_tokens": 20,
+      "key_version": 1,
+      "model_override": "grok-4.5",
+      "output_tokens": 7,
+      "owner": "p12-runtime-client-key",
+      "public_model": "grok-4.5",
+      "reader_authenticated": true,
+      "receive_count": 3,
+      "received_upstream_model": "grok-4.5",
+      "request_id": "p1-request-c5216cb8f4789e5683c51144f6029bec-2",
+      "response_id": "response-61",
+      "round": 2,
+      "source": "build_json",
+      "streaming": false,
+      "summary_items": [
+        {
+          "body_present": false,
+          "item_id": "reason-2",
+          "item_sha256": "ae7e16a3dffab356cd1feba98363f15cbc68bcb5f7db819dac31cee5ccc2af71",
+          "output_index": 0,
+          "part_count": 2
+        },
+        {
+          "body_present": true,
+          "item_id": "reason-b-2",
+          "item_sha256": "91464bdc1f25ad5bd197a5a6fc5f79121ae018696c7727101c25cfa82b72f724",
+          "output_index": 2,
+          "part_count": 1
+        }
+      ],
+      "synthetic": true,
+      "visible_history_only_verified": true
+    },
+    {
+      "attempt_id": "attempt:45:p1-request-c5216cb8f4789e5683c51144f6029bec-3:1",
+      "chunk_bytes": 31,
+      "ciphertext_bytes": 1336,
+      "ciphertext_sha256": "282bb2e689e4db5614da5f513f4815733e6a38a3eec8b8e11b1277beb6aff9b1",
+      "completeness": "completed_response",
+      "cost": "UNKNOWN",
+      "input_tokens": 20,
+      "key_version": 1,
+      "model_override": "grok-4.5",
+      "output_tokens": 7,
+      "owner": "p12-runtime-client-key",
+      "public_model": "grok-4.5",
+      "reader_authenticated": true,
+      "receive_count": 4,
+      "received_upstream_model": "grok-4.5",
+      "request_id": "p1-request-c5216cb8f4789e5683c51144f6029bec-3",
+      "response_id": "response-61",
+      "round": 3,
+      "source": "build_json",
+      "streaming": false,
+      "summary_items": [
+        {
+          "body_present": false,
+          "item_id": "reason-3",
+          "item_sha256": "3c00ac9eadc7148e08c8fcda3685af51c678857c10698e8b83feffc715238d5c",
+          "output_index": 0,
+          "part_count": 2
+        },
+        {
+          "body_present": true,
+          "item_id": "reason-b-3",
+          "item_sha256": "c821a137c214428118b1d3c7f2026d1e4971f9cefc898730352bd321c21fd06f",
+          "output_index": 2,
+          "part_count": 1
+        }
+      ],
+      "synthetic": true,
+      "visible_history_only_verified": true
+    },
+    {
+      "attempt_id": "attempt:45:p1-request-c5216cb8f4789e5683c51144f6029bec-4:1",
+      "chunk_bytes": 31,
+      "ciphertext_bytes": 1336,
+      "ciphertext_sha256": "6f47502c5330c4db5b1398184f7443c41abe3a7cf092938d58186071440aa0a3",
+      "completeness": "completed_response",
+      "cost": "UNKNOWN",
+      "input_tokens": 20,
+      "key_version": 1,
+      "model_override": "grok-4.5",
+      "output_tokens": 7,
+      "owner": "p12-runtime-client-key",
+      "public_model": "grok-4.5",
+      "reader_authenticated": true,
+      "receive_count": 5,
+      "received_upstream_model": "grok-4.5",
+      "request_id": "p1-request-c5216cb8f4789e5683c51144f6029bec-4",
+      "response_id": "response-61",
+      "round": 4,
+      "source": "build_json",
+      "streaming": false,
+      "summary_items": [
+        {
+          "body_present": false,
+          "item_id": "reason-4",
+          "item_sha256": "e5e54382ee54b59112d6ead59677669feaf255b9c36c4f0f0cd1fa64541f7999",
+          "output_index": 0,
+          "part_count": 2
+        },
+        {
+          "body_present": true,
+          "item_id": "reason-b-4",
+          "item_sha256": "e496ff35b1d35e8396f10e8df224f98c385357cdaa3fa169bcfad72d4e4b019e",
+          "output_index": 2,
+          "part_count": 1
+        }
+      ],
+      "synthetic": true,
+      "visible_history_only_verified": true
+    },
+    {
+      "attempt_id": "attempt:45:p1-request-8643fe32c4f78fe35910f81dd4cebf77-0:1",
+      "chunk_bytes": 1,
+      "ciphertext_bytes": 1335,
+      "ciphertext_sha256": "2f906f0be87e32148289d2e6aad80eeda6127ebb61f780a89b8e64e1a15099f4",
+      "completeness": "completed_response",
+      "cost": "UNKNOWN",
+      "input_tokens": 20,
+      "key_version": 1,
+      "model_override": "grok-4.5",
+      "output_tokens": 7,
+      "owner": "p12-runtime-client-key",
+      "public_model": "grok-4.5",
+      "reader_authenticated": true,
+      "receive_count": 1,
+      "received_upstream_model": "grok-4.5",
+      "request_id": "p1-request-8643fe32c4f78fe35910f81dd4cebf77-0",
+      "response_id": "response-61",
+      "round": 0,
+      "source": "build_sse",
+      "streaming": true,
+      "summary_items": [
+        {
+          "body_present": false,
+          "item_id": "reason-0",
+          "item_sha256": "9c4ff919dedd6e1bda7ed93c29e360b6442f3c2fc60349ef33216d4ba1c22fd6",
+          "output_index": 0,
+          "part_count": 2
+        },
+        {
+          "body_present": true,
+          "item_id": "reason-b-0",
+          "item_sha256": "389ff6a4d9b2c060afb63f3eb3a6183f327281a84fad5979a6fdf7165442592f",
+          "output_index": 2,
+          "part_count": 1
+        }
+      ],
+      "synthetic": true,
+      "visible_history_only_verified": true
+    },
+    {
+      "attempt_id": "attempt:45:p1-request-8643fe32c4f78fe35910f81dd4cebf77-1:1",
+      "chunk_bytes": 1,
+      "ciphertext_bytes": 1335,
+      "ciphertext_sha256": "1cd8f4a545c63073be2efbeee78f02235699567554b5c43edd1397d0a16794de",
+      "completeness": "completed_response",
+      "cost": "UNKNOWN",
+      "input_tokens": 20,
+      "key_version": 1,
+      "model_override": "grok-4.5",
+      "output_tokens": 7,
+      "owner": "p12-runtime-client-key",
+      "public_model": "grok-4.5",
+      "reader_authenticated": true,
+      "receive_count": 2,
+      "received_upstream_model": "grok-4.5",
+      "request_id": "p1-request-8643fe32c4f78fe35910f81dd4cebf77-1",
+      "response_id": "response-61",
+      "round": 1,
+      "source": "build_sse",
+      "streaming": true,
+      "summary_items": [
+        {
+          "body_present": false,
+          "item_id": "reason-1",
+          "item_sha256": "4429baa7d4f65d740d0b02bda0ed5e14169794ca1b54254a8fdf5e73e87bffca",
+          "output_index": 0,
+          "part_count": 2
+        },
+        {
+          "body_present": true,
+          "item_id": "reason-b-1",
+          "item_sha256": "36127839437017c217fbcab35006e9230432f6359f32cf59b1f13850603c7bca",
+          "output_index": 2,
+          "part_count": 1
+        }
+      ],
+      "synthetic": true,
+      "visible_history_only_verified": true
+    },
+    {
+      "attempt_id": "attempt:45:p1-request-8643fe32c4f78fe35910f81dd4cebf77-2:1",
+      "chunk_bytes": 1,
+      "ciphertext_bytes": 1335,
+      "ciphertext_sha256": "3b236b13255065c2957e5428054d7da9dffaad55b93d76ab3c1ece569e1c38dc",
+      "completeness": "completed_response",
+      "cost": "UNKNOWN",
+      "input_tokens": 20,
+      "key_version": 1,
+      "model_override": "grok-4.5",
+      "output_tokens": 7,
+      "owner": "p12-runtime-client-key",
+      "public_model": "grok-4.5",
+      "reader_authenticated": true,
+      "receive_count": 3,
+      "received_upstream_model": "grok-4.5",
+      "request_id": "p1-request-8643fe32c4f78fe35910f81dd4cebf77-2",
+      "response_id": "response-61",
+      "round": 2,
+      "source": "build_sse",
+      "streaming": true,
+      "summary_items": [
+        {
+          "body_present": false,
+          "item_id": "reason-2",
+          "item_sha256": "ae7e16a3dffab356cd1feba98363f15cbc68bcb5f7db819dac31cee5ccc2af71",
+          "output_index": 0,
+          "part_count": 2
+        },
+        {
+          "body_present": true,
+          "item_id": "reason-b-2",
+          "item_sha256": "91464bdc1f25ad5bd197a5a6fc5f79121ae018696c7727101c25cfa82b72f724",
+          "output_index": 2,
+          "part_count": 1
+        }
+      ],
+      "synthetic": true,
+      "visible_history_only_verified": true
+    },
+    {
+      "attempt_id": "attempt:45:p1-request-8643fe32c4f78fe35910f81dd4cebf77-3:1",
+      "chunk_bytes": 1,
+      "ciphertext_bytes": 1335,
+      "ciphertext_sha256": "1ea591efa7b3af69df03fe8e1be97afe212daf1d6dd7862cefff538c2aebe55f",
+      "completeness": "completed_response",
+      "cost": "UNKNOWN",
+      "input_tokens": 20,
+      "key_version": 1,
+      "model_override": "grok-4.5",
+      "output_tokens": 7,
+      "owner": "p12-runtime-client-key",
+      "public_model": "grok-4.5",
+      "reader_authenticated": true,
+      "receive_count": 4,
+      "received_upstream_model": "grok-4.5",
+      "request_id": "p1-request-8643fe32c4f78fe35910f81dd4cebf77-3",
+      "response_id": "response-61",
+      "round": 3,
+      "source": "build_sse",
+      "streaming": true,
+      "summary_items": [
+        {
+          "body_present": false,
+          "item_id": "reason-3",
+          "item_sha256": "3c00ac9eadc7148e08c8fcda3685af51c678857c10698e8b83feffc715238d5c",
+          "output_index": 0,
+          "part_count": 2
+        },
+        {
+          "body_present": true,
+          "item_id": "reason-b-3",
+          "item_sha256": "c821a137c214428118b1d3c7f2026d1e4971f9cefc898730352bd321c21fd06f",
+          "output_index": 2,
+          "part_count": 1
+        }
+      ],
+      "synthetic": true,
+      "visible_history_only_verified": true
+    },
+    {
+      "attempt_id": "attempt:45:p1-request-8643fe32c4f78fe35910f81dd4cebf77-4:1",
+      "chunk_bytes": 1,
+      "ciphertext_bytes": 1335,
+      "ciphertext_sha256": "2cf85ba44941b3bfb038793a1be991ad6d304082a404b67aa87220dee5be7176",
+      "completeness": "completed_response",
+      "cost": "UNKNOWN",
+      "input_tokens": 20,
+      "key_version": 1,
+      "model_override": "grok-4.5",
+      "output_tokens": 7,
+      "owner": "p12-runtime-client-key",
+      "public_model": "grok-4.5",
+      "reader_authenticated": true,
+      "receive_count": 5,
+      "received_upstream_model": "grok-4.5",
+      "request_id": "p1-request-8643fe32c4f78fe35910f81dd4cebf77-4",
+      "response_id": "response-61",
+      "round": 4,
+      "source": "build_sse",
+      "streaming": true,
+      "summary_items": [
+        {
+          "body_present": false,
+          "item_id": "reason-4",
+          "item_sha256": "e5e54382ee54b59112d6ead59677669feaf255b9c36c4f0f0cd1fa64541f7999",
+          "output_index": 0,
+          "part_count": 2
+        },
+        {
+          "body_present": true,
+          "item_id": "reason-b-4",
+          "item_sha256": "e496ff35b1d35e8396f10e8df224f98c385357cdaa3fa169bcfad72d4e4b019e",
+          "output_index": 2,
+          "part_count": 1
+        }
+      ],
+      "synthetic": true,
+      "visible_history_only_verified": true
+    },
+    {
+      "attempt_id": "attempt:45:p1-request-ff52d893251aac2fe51e4a45703cdd8e-0:1",
+      "chunk_bytes": 7,
+      "ciphertext_bytes": 1335,
+      "ciphertext_sha256": "454d46f5d7f34100494f08dec59a2e3564980de17d4ca98a68ea5d58dcac05f8",
+      "completeness": "completed_response",
+      "cost": "UNKNOWN",
+      "input_tokens": 20,
+      "key_version": 1,
+      "model_override": "grok-4.5",
+      "output_tokens": 7,
+      "owner": "p12-runtime-client-key",
+      "public_model": "grok-4.5",
+      "reader_authenticated": true,
+      "receive_count": 1,
+      "received_upstream_model": "grok-4.5",
+      "request_id": "p1-request-ff52d893251aac2fe51e4a45703cdd8e-0",
+      "response_id": "response-61",
+      "round": 0,
+      "source": "build_sse",
+      "streaming": true,
+      "summary_items": [
+        {
+          "body_present": false,
+          "item_id": "reason-0",
+          "item_sha256": "9c4ff919dedd6e1bda7ed93c29e360b6442f3c2fc60349ef33216d4ba1c22fd6",
+          "output_index": 0,
+          "part_count": 2
+        },
+        {
+          "body_present": true,
+          "item_id": "reason-b-0",
+          "item_sha256": "389ff6a4d9b2c060afb63f3eb3a6183f327281a84fad5979a6fdf7165442592f",
+          "output_index": 2,
+          "part_count": 1
+        }
+      ],
+      "synthetic": true,
+      "visible_history_only_verified": true
+    },
+    {
+      "attempt_id": "attempt:45:p1-request-ff52d893251aac2fe51e4a45703cdd8e-1:1",
+      "chunk_bytes": 7,
+      "ciphertext_bytes": 1335,
+      "ciphertext_sha256": "c8c8a7914dbbf58617f2724f4cab1d1fa832d289891fd00f81eb3a87fe44d93f",
+      "completeness": "completed_response",
+      "cost": "UNKNOWN",
+      "input_tokens": 20,
+      "key_version": 1,
+      "model_override": "grok-4.5",
+      "output_tokens": 7,
+      "owner": "p12-runtime-client-key",
+      "public_model": "grok-4.5",
+      "reader_authenticated": true,
+      "receive_count": 2,
+      "received_upstream_model": "grok-4.5",
+      "request_id": "p1-request-ff52d893251aac2fe51e4a45703cdd8e-1",
+      "response_id": "response-61",
+      "round": 1,
+      "source": "build_sse",
+      "streaming": true,
+      "summary_items": [
+        {
+          "body_present": false,
+          "item_id": "reason-1",
+          "item_sha256": "4429baa7d4f65d740d0b02bda0ed5e14169794ca1b54254a8fdf5e73e87bffca",
+          "output_index": 0,
+          "part_count": 2
+        },
+        {
+          "body_present": true,
+          "item_id": "reason-b-1",
+          "item_sha256": "36127839437017c217fbcab35006e9230432f6359f32cf59b1f13850603c7bca",
+          "output_index": 2,
+          "part_count": 1
+        }
+      ],
+      "synthetic": true,
+      "visible_history_only_verified": true
+    },
+    {
+      "attempt_id": "attempt:45:p1-request-ff52d893251aac2fe51e4a45703cdd8e-2:1",
+      "chunk_bytes": 7,
+      "ciphertext_bytes": 1335,
+      "ciphertext_sha256": "9d0f69f810b52a4bfc137f02c2b9c627fccc41293ecd120c087b5077963860f6",
+      "completeness": "completed_response",
+      "cost": "UNKNOWN",
+      "input_tokens": 20,
+      "key_version": 1,
+      "model_override": "grok-4.5",
+      "output_tokens": 7,
+      "owner": "p12-runtime-client-key",
+      "public_model": "grok-4.5",
+      "reader_authenticated": true,
+      "receive_count": 3,
+      "received_upstream_model": "grok-4.5",
+      "request_id": "p1-request-ff52d893251aac2fe51e4a45703cdd8e-2",
+      "response_id": "response-61",
+      "round": 2,
+      "source": "build_sse",
+      "streaming": true,
+      "summary_items": [
+        {
+          "body_present": false,
+          "item_id": "reason-2",
+          "item_sha256": "ae7e16a3dffab356cd1feba98363f15cbc68bcb5f7db819dac31cee5ccc2af71",
+          "output_index": 0,
+          "part_count": 2
+        },
+        {
+          "body_present": true,
+          "item_id": "reason-b-2",
+          "item_sha256": "91464bdc1f25ad5bd197a5a6fc5f79121ae018696c7727101c25cfa82b72f724",
+          "output_index": 2,
+          "part_count": 1
+        }
+      ],
+      "synthetic": true,
+      "visible_history_only_verified": true
+    },
+    {
+      "attempt_id": "attempt:45:p1-request-ff52d893251aac2fe51e4a45703cdd8e-3:1",
+      "chunk_bytes": 7,
+      "ciphertext_bytes": 1335,
+      "ciphertext_sha256": "b61b03e055206d0bd4b3519bc9c51504c8c94e181e9e25130abea94031065181",
+      "completeness": "completed_response",
+      "cost": "UNKNOWN",
+      "input_tokens": 20,
+      "key_version": 1,
+      "model_override": "grok-4.5",
+      "output_tokens": 7,
+      "owner": "p12-runtime-client-key",
+      "public_model": "grok-4.5",
+      "reader_authenticated": true,
+      "receive_count": 4,
+      "received_upstream_model": "grok-4.5",
+      "request_id": "p1-request-ff52d893251aac2fe51e4a45703cdd8e-3",
+      "response_id": "response-61",
+      "round": 3,
+      "source": "build_sse",
+      "streaming": true,
+      "summary_items": [
+        {
+          "body_present": false,
+          "item_id": "reason-3",
+          "item_sha256": "3c00ac9eadc7148e08c8fcda3685af51c678857c10698e8b83feffc715238d5c",
+          "output_index": 0,
+          "part_count": 2
+        },
+        {
+          "body_present": true,
+          "item_id": "reason-b-3",
+          "item_sha256": "c821a137c214428118b1d3c7f2026d1e4971f9cefc898730352bd321c21fd06f",
+          "output_index": 2,
+          "part_count": 1
+        }
+      ],
+      "synthetic": true,
+      "visible_history_only_verified": true
+    },
+    {
+      "attempt_id": "attempt:45:p1-request-ff52d893251aac2fe51e4a45703cdd8e-4:1",
+      "chunk_bytes": 7,
+      "ciphertext_bytes": 1335,
+      "ciphertext_sha256": "136d55883f371538aacc1d7481ea006207023ad38e43c1f429083d2b044d7cc6",
+      "completeness": "completed_response",
+      "cost": "UNKNOWN",
+      "input_tokens": 20,
+      "key_version": 1,
+      "model_override": "grok-4.5",
+      "output_tokens": 7,
+      "owner": "p12-runtime-client-key",
+      "public_model": "grok-4.5",
+      "reader_authenticated": true,
+      "receive_count": 5,
+      "received_upstream_model": "grok-4.5",
+      "request_id": "p1-request-ff52d893251aac2fe51e4a45703cdd8e-4",
+      "response_id": "response-61",
+      "round": 4,
+      "source": "build_sse",
+      "streaming": true,
+      "summary_items": [
+        {
+          "body_present": false,
+          "item_id": "reason-4",
+          "item_sha256": "e5e54382ee54b59112d6ead59677669feaf255b9c36c4f0f0cd1fa64541f7999",
+          "output_index": 0,
+          "part_count": 2
+        },
+        {
+          "body_present": true,
+          "item_id": "reason-b-4",
+          "item_sha256": "e496ff35b1d35e8396f10e8df224f98c385357cdaa3fa169bcfad72d4e4b019e",
+          "output_index": 2,
+          "part_count": 1
+        }
+      ],
+      "synthetic": true,
+      "visible_history_only_verified": true
+    },
+    {
+      "attempt_id": "attempt:45:p1-request-1cb1dc128e3c8ffdc4e4e91eb21254d4-0:1",
+      "chunk_bytes": 31,
+      "ciphertext_bytes": 1335,
+      "ciphertext_sha256": "6cffe6566f7cdc29a83af0f2af52bef243013f0d431005cff73c74475b7b5fac",
+      "completeness": "completed_response",
+      "cost": "UNKNOWN",
+      "input_tokens": 20,
+      "key_version": 1,
+      "model_override": "grok-4.5",
+      "output_tokens": 7,
+      "owner": "p12-runtime-client-key",
+      "public_model": "grok-4.5",
+      "reader_authenticated": true,
+      "receive_count": 1,
+      "received_upstream_model": "grok-4.5",
+      "request_id": "p1-request-1cb1dc128e3c8ffdc4e4e91eb21254d4-0",
+      "response_id": "response-61",
+      "round": 0,
+      "source": "build_sse",
+      "streaming": true,
+      "summary_items": [
+        {
+          "body_present": false,
+          "item_id": "reason-0",
+          "item_sha256": "9c4ff919dedd6e1bda7ed93c29e360b6442f3c2fc60349ef33216d4ba1c22fd6",
+          "output_index": 0,
+          "part_count": 2
+        },
+        {
+          "body_present": true,
+          "item_id": "reason-b-0",
+          "item_sha256": "389ff6a4d9b2c060afb63f3eb3a6183f327281a84fad5979a6fdf7165442592f",
+          "output_index": 2,
+          "part_count": 1
+        }
+      ],
+      "synthetic": true,
+      "visible_history_only_verified": true
+    },
+    {
+      "attempt_id": "attempt:45:p1-request-1cb1dc128e3c8ffdc4e4e91eb21254d4-1:1",
+      "chunk_bytes": 31,
+      "ciphertext_bytes": 1335,
+      "ciphertext_sha256": "568311ece145ec2d2a6e8ea04d03bb5050b4b8490e970b90d3eac07905510570",
+      "completeness": "completed_response",
+      "cost": "UNKNOWN",
+      "input_tokens": 20,
+      "key_version": 1,
+      "model_override": "grok-4.5",
+      "output_tokens": 7,
+      "owner": "p12-runtime-client-key",
+      "public_model": "grok-4.5",
+      "reader_authenticated": true,
+      "receive_count": 2,
+      "received_upstream_model": "grok-4.5",
+      "request_id": "p1-request-1cb1dc128e3c8ffdc4e4e91eb21254d4-1",
+      "response_id": "response-61",
+      "round": 1,
+      "source": "build_sse",
+      "streaming": true,
+      "summary_items": [
+        {
+          "body_present": false,
+          "item_id": "reason-1",
+          "item_sha256": "4429baa7d4f65d740d0b02bda0ed5e14169794ca1b54254a8fdf5e73e87bffca",
+          "output_index": 0,
+          "part_count": 2
+        },
+        {
+          "body_present": true,
+          "item_id": "reason-b-1",
+          "item_sha256": "36127839437017c217fbcab35006e9230432f6359f32cf59b1f13850603c7bca",
+          "output_index": 2,
+          "part_count": 1
+        }
+      ],
+      "synthetic": true,
+      "visible_history_only_verified": true
+    },
+    {
+      "attempt_id": "attempt:45:p1-request-1cb1dc128e3c8ffdc4e4e91eb21254d4-2:1",
+      "chunk_bytes": 31,
+      "ciphertext_bytes": 1335,
+      "ciphertext_sha256": "dc9e41d4ef9cffc6ef48c2dde25b4d3fda06bd0398a28f41d2353b323e174b03",
+      "completeness": "completed_response",
+      "cost": "UNKNOWN",
+      "input_tokens": 20,
+      "key_version": 1,
+      "model_override": "grok-4.5",
+      "output_tokens": 7,
+      "owner": "p12-runtime-client-key",
+      "public_model": "grok-4.5",
+      "reader_authenticated": true,
+      "receive_count": 3,
+      "received_upstream_model": "grok-4.5",
+      "request_id": "p1-request-1cb1dc128e3c8ffdc4e4e91eb21254d4-2",
+      "response_id": "response-61",
+      "round": 2,
+      "source": "build_sse",
+      "streaming": true,
+      "summary_items": [
+        {
+          "body_present": false,
+          "item_id": "reason-2",
+          "item_sha256": "ae7e16a3dffab356cd1feba98363f15cbc68bcb5f7db819dac31cee5ccc2af71",
+          "output_index": 0,
+          "part_count": 2
+        },
+        {
+          "body_present": true,
+          "item_id": "reason-b-2",
+          "item_sha256": "91464bdc1f25ad5bd197a5a6fc5f79121ae018696c7727101c25cfa82b72f724",
+          "output_index": 2,
+          "part_count": 1
+        }
+      ],
+      "synthetic": true,
+      "visible_history_only_verified": true
+    },
+    {
+      "attempt_id": "attempt:45:p1-request-1cb1dc128e3c8ffdc4e4e91eb21254d4-3:1",
+      "chunk_bytes": 31,
+      "ciphertext_bytes": 1335,
+      "ciphertext_sha256": "cc554eeab4e14da69907a89697a5bf0a576e0ef61ee383a699592b5dc2b4ead5",
+      "completeness": "completed_response",
+      "cost": "UNKNOWN",
+      "input_tokens": 20,
+      "key_version": 1,
+      "model_override": "grok-4.5",
+      "output_tokens": 7,
+      "owner": "p12-runtime-client-key",
+      "public_model": "grok-4.5",
+      "reader_authenticated": true,
+      "receive_count": 4,
+      "received_upstream_model": "grok-4.5",
+      "request_id": "p1-request-1cb1dc128e3c8ffdc4e4e91eb21254d4-3",
+      "response_id": "response-61",
+      "round": 3,
+      "source": "build_sse",
+      "streaming": true,
+      "summary_items": [
+        {
+          "body_present": false,
+          "item_id": "reason-3",
+          "item_sha256": "3c00ac9eadc7148e08c8fcda3685af51c678857c10698e8b83feffc715238d5c",
+          "output_index": 0,
+          "part_count": 2
+        },
+        {
+          "body_present": true,
+          "item_id": "reason-b-3",
+          "item_sha256": "c821a137c214428118b1d3c7f2026d1e4971f9cefc898730352bd321c21fd06f",
+          "output_index": 2,
+          "part_count": 1
+        }
+      ],
+      "synthetic": true,
+      "visible_history_only_verified": true
+    },
+    {
+      "attempt_id": "attempt:45:p1-request-1cb1dc128e3c8ffdc4e4e91eb21254d4-4:1",
+      "chunk_bytes": 31,
+      "ciphertext_bytes": 1335,
+      "ciphertext_sha256": "b48e81346396d82e7ad75939d8e6d08fdbabefded19ef701934a2573666119be",
+      "completeness": "completed_response",
+      "cost": "UNKNOWN",
+      "input_tokens": 20,
+      "key_version": 1,
+      "model_override": "grok-4.5",
+      "output_tokens": 7,
+      "owner": "p12-runtime-client-key",
+      "public_model": "grok-4.5",
+      "reader_authenticated": true,
+      "receive_count": 5,
+      "received_upstream_model": "grok-4.5",
+      "request_id": "p1-request-1cb1dc128e3c8ffdc4e4e91eb21254d4-4",
+      "response_id": "response-61",
+      "round": 4,
+      "source": "build_sse",
+      "streaming": true,
+      "summary_items": [
+        {
+          "body_present": false,
+          "item_id": "reason-4",
+          "item_sha256": "e5e54382ee54b59112d6ead59677669feaf255b9c36c4f0f0cd1fa64541f7999",
+          "output_index": 0,
+          "part_count": 2
+        },
+        {
+          "body_present": true,
+          "item_id": "reason-b-4",
+          "item_sha256": "e496ff35b1d35e8396f10e8df224f98c385357cdaa3fa169bcfad72d4e4b019e",
+          "output_index": 2,
+          "part_count": 1
+        }
+      ],
+      "synthetic": true,
+      "visible_history_only_verified": true
+    }
+  ],
+  "accounting": [
+    {
+      "active_leases": 0,
+      "attempts": 5,
+      "chunk_bytes": 31,
+      "cost": "UNKNOWN",
+      "ledger_rows": 5,
+      "receives": 5,
+      "requests": 5,
+      "streaming": false,
+      "synthetic": true,
+      "usage_rows": 5
+    },
+    {
+      "active_leases": 0,
+      "attempts": 5,
+      "chunk_bytes": 1,
+      "cost": "UNKNOWN",
+      "ledger_rows": 5,
+      "receives": 5,
+      "requests": 5,
+      "streaming": true,
+      "synthetic": true,
+      "usage_rows": 5
+    },
+    {
+      "active_leases": 0,
+      "attempts": 5,
+      "chunk_bytes": 7,
+      "cost": "UNKNOWN",
+      "ledger_rows": 5,
+      "receives": 5,
+      "requests": 5,
+      "streaming": true,
+      "synthetic": true,
+      "usage_rows": 5
+    },
+    {
+      "active_leases": 0,
+      "attempts": 5,
+      "chunk_bytes": 31,
+      "cost": "UNKNOWN",
+      "ledger_rows": 5,
+      "receives": 5,
+      "requests": 5,
+      "streaming": true,
+      "synthetic": true,
+      "usage_rows": 5
+    }
+  ],
+  "json_sse_item_semantics_equal": true,
+  "cost": "UNKNOWN",
+  "provider_scope": "independent loopback receiver; no real Provider"
+}

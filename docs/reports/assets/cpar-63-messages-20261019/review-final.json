@@ -1,0 +1,23 @@
+{
+  "fixed_baseline": "098c92a51ac549a38c8f15fd265e0fb379de2c77",
+  "delivery_code_commit": "0d196a66d60cbdbb5c5441a158e5d2f33dda7966",
+  "method": "independent parallel read-only single-turn scouts; static review, no reviewer-run tests",
+  "standards": {
+    "status": "PASS",
+    "unresolved_findings": 0,
+    "fixed_prior_findings": 1,
+    "prior_P2": "GC deleted evidence receipt and allowed replay recreation/renewal; RED then fixed in 0d196a66"
+  },
+  "spec": {
+    "controlled_slice": "PASS_BOUNDED",
+    "unresolved_slice_findings": 0,
+    "whole_issue": "PARTIAL_BLOCKED_BY_61"
+  },
+  "not_run": [
+    "actual Claude Code (#64)",
+    "real Provider",
+    "remote CI",
+    "release",
+    "deployment"
+  ]
+}

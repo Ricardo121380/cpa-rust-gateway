@@ -1,0 +1,11 @@
+{
+  "steps": 45,
+  "rust_groups": 127,
+  "rust_passed": 1572,
+  "rust_failed": 0,
+  "rust_ignored": 14,
+  "message_scope_tests": 19,
+  "delivery_code_commit": "0d196a66d60cbdbb5c5441a158e5d2f33dda7966",
+  "validation_source": "2cfa920167e9445786c3600468eadc1d1bc58a8b",
+  "overlay_count": 16
+}

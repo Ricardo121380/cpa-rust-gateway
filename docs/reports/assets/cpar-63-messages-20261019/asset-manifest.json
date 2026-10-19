@@ -1,0 +1,75 @@
+{
+  "report_sha256": "0732a0d24e3063ad51fba712b32b48af74a634f0333bf5ee77e9dd81f2ecf774",
+  "files": [
+    {
+      "path": "archive-index.json",
+      "sha256": "c3405e7c7d56a4bbdf6b0afe968260ba00cac68d8a4170b75b52dfbcbfe6a8f5",
+      "bytes": 11084
+    },
+    {
+      "path": "controlled-matrix.json",
+      "sha256": "ac1892e8ba97f3e57c9f486931421defc53e6ead06c234183f530d57977a673a",
+      "bytes": 29380
+    },
+    {
+      "path": "full-final-check-report.md",
+      "sha256": "619db5e0b904c7eec26098c8bac0e670c155bc1b3be574ef2b63a624c32a049a",
+      "bytes": 1850
+    },
+    {
+      "path": "full-final-receipt.json",
+      "sha256": "0fad28d246e0be3e52094992e03be28577b55c5fcd130ba82ab6151f4d5bab33",
+      "bytes": 331
+    },
+    {
+      "path": "issue-63-spec-snapshot.json",
+      "sha256": "cc46f8d3b7d482f25995e96c74f4bd79f482912e6c88a40062f23023e362e922",
+      "bytes": 4023
+    },
+    {
+      "path": "preservation-final.json",
+      "sha256": "15d7beff224cc300fd6daba72ae5125cb72a136f74b5ed5e7b53f1d33f9e9c76",
+      "bytes": 377
+    },
+    {
+      "path": "publication-scan.json",
+      "sha256": "5ea9033f3bdfdbf6b01f2625b0c53485da4cb0d86c4500e023f1eab11dc4e7bd",
+      "bytes": 266
+    },
+    {
+      "path": "review-final.json",
+      "sha256": "af540ee12b7ec8d6c6f32c2c1c50f0d0c04ed3b20a05b01b6e562bd6fe5be3b2",
+      "bytes": 715
+    },
+    {
+      "path": "review-initial.json",
+      "sha256": "10bb51bbfa845cd121c7fcc46de8cbb75bb53d778507b55c50c44d575de0dc45",
+      "bytes": 1208
+    },
+    {
+      "path": "review-spec-final.md",
+      "sha256": "d0cc5c4bf0fc638af66d06d379f1da15acdc9e3ee46533cda3f3cf4c12ad46c7",
+      "bytes": 867
+    },
+    {
+      "path": "review-standards-final.md",
+      "sha256": "a44821271053a26b69824c5014cfe93a87a116771ec0027eb15d6627e457a249",
+      "bytes": 1202
+    },
+    {
+      "path": "source-manifest.json",
+      "sha256": "830f042db2ce9bd5c6f760342013a2d36d1bb108a5db8f4511ad73ab1ca84e1b",
+      "bytes": 13747
+    },
+    {
+      "path": "verification-logs.tar.gz",
+      "sha256": "54020b7714eccf8e8231058bdbcf3d4c7b77ccf7910d969ccd6cc9a7f3d64bca",
+      "bytes": 142544
+    },
+    {
+      "path": "verification-summary.json",
+      "sha256": "693c52fbc3ec1949d4be68cbd904e94bd21d417cdeeb5029a3d39f9ffcc7ed3b",
+      "bytes": 294
+    }
+  ]
+}

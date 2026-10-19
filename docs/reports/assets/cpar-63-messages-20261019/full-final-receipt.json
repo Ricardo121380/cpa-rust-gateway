@@ -1,0 +1,9 @@
+{
+  "exit": 0,
+  "duration_seconds": 725.704,
+  "source": "2cfa920167e9445786c3600468eadc1d1bc58a8b",
+  "delivery_code_commit": "0d196a66d60cbdbb5c5441a158e5d2f33dda7966",
+  "target": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar63-20261019/target-full-0d196a66d60c",
+  "command": "scripts/check.sh full",
+  "overlays": 16
+}

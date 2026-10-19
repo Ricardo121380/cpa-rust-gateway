@@ -1,0 +1,30 @@
+{
+  "fixed_point": "098c92a51ac549a38c8f15fd265e0fb379de2c77",
+  "candidate": "c6d0ffe36ab782ae4b5869012a15425b50762ab2",
+  "standards": {
+    "status": "FINDING",
+    "findings": [
+      {
+        "priority": "P2",
+        "file": "crates/gateway-store/src/messages_summary.rs",
+        "lines": [
+          240,
+          279
+        ],
+        "finding": "GC deleted expired companion; replay could take first-write branch, renew TTL and lose conflict history.",
+        "rule": "BC-OBS-007 replay does not renew expiry; changed evidence conflicts.",
+        "reproduced": "gc-replay-red.log",
+        "fixed_by": "0d196a66d60cbdbb5c5441a158e5d2f33dda7966",
+        "regression": "gc-replay-green.log"
+      }
+    ],
+    "limitation": "Reviewer used a wrong ADR0113 path then stopped; final fresh review uses exact paths."
+  },
+  "spec": {
+    "status": "PASS_BOUNDED_STATIC",
+    "findings": 0,
+    "coverage": "actual adapter/mode qualification, original lifecycle/summary hierarchy, persisted ACK before success, exact owner/execution/key binding, controlled tools/history, cancellation and distinct Usage/delivery",
+    "whole_issue": "PARTIAL_BLOCKED_BY_61",
+    "tests_run_by_reviewer": false
+  }
+}

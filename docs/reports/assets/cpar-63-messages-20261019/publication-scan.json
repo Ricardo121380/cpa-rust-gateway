@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "regex_source": "scripts/secret-scan.sh secret_regex",
+  "top_level_plain_files_scanned": 12,
+  "archive_members_scanned": 69,
+  "report_scanned": true,
+  "forbidden_paths_checked": true,
+  "values_printed": false,
+  "synthetic_only": true
+}
