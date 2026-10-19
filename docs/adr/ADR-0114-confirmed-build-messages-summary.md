@@ -49,6 +49,9 @@ creation/expiry. The encrypted payload repeats the original Attempt/execution an
 of the complete companion precedes Persisted. Queue-only, disabled, missing writer/key, storage,
 encryption, identity conflict and unconfirmed receipts all fail client success. Same evidence
 replay authenticates and compares; changed evidence conflicts and cannot renew the 30-day TTL.
+After expiry, bounded GC erases ciphertext while retaining the non-payload Attempt receipt in the
+same table. Both identical and changed replay then fail, including after restart or key rotation;
+recovery preserves these receipts so missing live ciphertext never means a new admissible capture.
 
 Evidence confirmation time belongs to the original Request lifetime. A pending local transaction
 may finish after cancellation or a failed delivery, without recapturing historical content. New

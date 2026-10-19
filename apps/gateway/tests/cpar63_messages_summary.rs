@@ -489,3 +489,83 @@ async fn messages_summary_requires_writer_exact_live_lineage_and_bounded_payload
     assert_eq!(task.await?.required_events_quarantined, 1);
     Ok(())
 }
+
+#[tokio::test]
+async fn messages_summary_expired_gc_replay_never_recreates_payload() -> TestResult {
+    let dir = Directory::new()?;
+    let (queue, task) = writer(&dir, keys(1, &[1], false)?).await?;
+    let (request, attempt) = events("gc-replay", "owner")?;
+    admit(&queue, &request, &attempt).await;
+    let original = evidence("PRIVATE_CPAR63_EXPIRED")?;
+    assert_eq!(
+        queue
+            .emit_summary_evidence_confirmed(attempt.clone(), original.clone())
+            .await,
+        EventEmission::Persisted
+    );
+    assert_eq!(
+        queue
+            .emit_confirmed(GatewayEvent::RequestFinished(RequestFinishedEvent {
+                request_id: request.request_id().clone(),
+                started_at_ms: 1000,
+                finished_at_ms: 1003,
+                duration_ms: 3,
+                first_content_ms: None,
+                outcome: RequestOutcome::Succeeded,
+                error_code: None
+            }))
+            .await,
+        EventEmission::Persisted
+    );
+    // Force only the retention index into the past. The production transaction must perform
+    // GC and refuse replay itself; the test never reconstructs or reseals a summary payload.
+    gateway_store::open(dir.db())?.execute(
+        "UPDATE messages_summary_evidence SET created_at_ms=0,expires_at_ms=1 WHERE attempt_id=?1",
+        [attempt.attempt_id().as_str()],
+    )?;
+    assert_eq!(
+        queue
+            .emit_confirmed(GatewayEvent::Request(request.clone()))
+            .await,
+        EventEmission::Persisted
+    );
+    assert!(read(&dir, &request, &attempt, keys(1, &[1], false)?)?.is_none());
+    for replay in [original.clone(), evidence("changed after GC")?] {
+        assert_eq!(
+            queue
+                .emit_summary_evidence_confirmed(attempt.clone(), replay)
+                .await,
+            EventEmission::PersistenceUnavailable
+        );
+    }
+    let tombstone:(i64,i64,bool)=gateway_store::open(dir.db())?.query_row(
+        "SELECT created_at_ms,expires_at_ms,ciphertext IS NULL FROM messages_summary_evidence WHERE attempt_id=?1",
+        [attempt.attempt_id().as_str()],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?)))?;
+    assert_eq!(tombstone, (0, 1, true));
+    assert!(read(&dir, &request, &attempt, keys(1, &[1], false)?)?.is_none());
+    drop(queue);
+    assert_eq!(task.await?.required_events_quarantined, 2);
+    assert_eq!(
+        SqliteEventStore::open_read_only(dir.db())?
+            .list_events()?
+            .len(),
+        3
+    );
+    let (queue, task) = writer(&dir, keys(2, &[1, 2], false)?).await?;
+    assert_eq!(
+        queue
+            .emit_summary_evidence_confirmed(attempt.clone(), original)
+            .await,
+        EventEmission::PersistenceUnavailable
+    );
+    let key: i64 = gateway_store::open(dir.db())?.query_row(
+        "SELECT key_version FROM messages_summary_evidence WHERE attempt_id=?1",
+        [attempt.attempt_id().as_str()],
+        |r| r.get(0),
+    )?;
+    assert_eq!(key, 1);
+    assert!(read(&dir, &request, &attempt, keys(2, &[1, 2], false)?)?.is_none());
+    drop(queue);
+    assert_eq!(task.await?.required_events_quarantined, 1);
+    Ok(())
+}

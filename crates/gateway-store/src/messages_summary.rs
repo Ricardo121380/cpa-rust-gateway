@@ -45,7 +45,7 @@ struct Row {
     expires: i64,
     version: i64,
     key: i64,
-    ciphertext: Vec<u8>,
+    ciphertext: Option<Vec<u8>>,
 }
 fn invalid() -> StoreError {
     StoreError::InvalidPersistedGatewayEvent
@@ -75,12 +75,13 @@ fn aad(attempt: &str, row: &Row) -> StoreResult<Vec<u8>> {
     Ok(bytes)
 }
 fn open_row(secrets: &SecretStore, attempt: &str, row: &Row) -> StoreResult<MessagesSummaryRecord> {
-    if row.ciphertext.len() > gateway_core::MAX_MESSAGES_SUMMARY_BYTES * 8 {
+    let ciphertext = row.ciphertext.as_ref().ok_or_else(invalid)?;
+    if ciphertext.len() > gateway_core::MAX_MESSAGES_SUMMARY_BYTES * 8 {
         return Err(invalid());
     }
     let encrypted = EncryptedSecret::try_from_persisted(
         KeyVersion::try_from_sqlite_i64(row.key).map_err(|_| invalid())?,
-        row.ciphertext.clone(),
+        ciphertext.clone(),
     )
     .map_err(|_| invalid())?;
     let plain = secrets
@@ -238,7 +239,8 @@ pub(crate) fn append(
         evidence: evidence.clone(),
     };
     if let Some(row) = load(transaction, attempt.attempt_id().as_str())? {
-        if now_ms()? >= row.expires
+        if row.ciphertext.is_none()
+            || now_ms()? >= row.expires
             || open_row(secrets, attempt.attempt_id().as_str(), &row)? != record
         {
             return Err(StoreError::ConflictingGatewayEventReplay);
@@ -265,7 +267,7 @@ pub(crate) fn append(
             .ok_or_else(invalid)?,
         version: 1,
         key: secrets.active_key_version().as_sqlite_i64(),
-        ciphertext: Vec::new(),
+        ciphertext: None,
     };
     let plain = Zeroizing::new(serde_json::to_vec(&record).map_err(|_| invalid())?);
     let encrypted = secrets
@@ -276,5 +278,7 @@ pub(crate) fn append(
     Ok(())
 }
 pub(crate) fn purge_expired(connection: &Connection, now: i64) -> StoreResult<usize> {
-    connection.execute("DELETE FROM messages_summary_evidence WHERE attempt_id IN (SELECT attempt_id FROM messages_summary_evidence WHERE expires_at_ms<=?1 ORDER BY expires_at_ms LIMIT 128)",[now]).map_err(StoreError::from)
+    // Keep the non-payload Attempt receipt after erasing expired ciphertext. Deleting the
+    // receipt would let an old confirmed companion be mistaken for its first persistence.
+    connection.execute("UPDATE messages_summary_evidence SET ciphertext=NULL WHERE attempt_id IN (SELECT attempt_id FROM messages_summary_evidence WHERE expires_at_ms<=?1 AND ciphertext IS NOT NULL ORDER BY expires_at_ms LIMIT 128)",[now]).map_err(StoreError::from)
 }

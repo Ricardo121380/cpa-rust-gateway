@@ -34,7 +34,7 @@ summary outside the admitted request lifetime or from interrupted recovery canno
 Same-Attempt identical evidence is idempotent; different evidence conflicts and preserves the original.
 
 Schema 36 stores `messages_summary_evidence`: Attempt primary key, Request, exact Client Key owner,
-creation/exclusive expiry, payload/key versions and ciphertext. Encrypted v1 repeats owner, original
+creation/exclusive expiry, payload/key versions and ciphertext (NULL only for an expired receipt). Encrypted v1 repeats owner, original
 Attempt/execution and the complete evidence. AAD is `cpar:messages-summary:v1\0`, followed by
 u32-length-prefixed owner/Request/Attempt and big-endian i64 version/creation/expiry. Use the existing
 key ring and active key for new writes, retain old keys for reads, and never implicitly reseal.
@@ -73,8 +73,11 @@ The canonical 0700 directory must already exist. Output creation is descriptor-r
 no-follow and 0600, with owner/single-link checks and sync. Plaintext never goes to stdout, logs,
 public responses, audit, telemetry, quarantine or Git. Only synthetic fixtures may be published.
 
-Retention is 30 days with `now >= expires` unavailable; GC deletes at most 128 expired rows per
-transaction, independently of event/ledger retention. Replay does not renew expiry. Migration
+Retention is 30 days with `now >= expires` unavailable; GC erases at most 128 expired ciphertexts per
+transaction, independently of event/ledger retention. The non-payload Attempt receipt remains in
+the same table so neither identical nor changed evidence can recreate an expired payload, including
+after restart or key rotation. Replay does not renew expiry. Recovery must preserve these receipts
+with the coherent snapshot; it must not restore only live ciphertext rows. Migration
 35 -> 36 creates an empty namespace without rewriting history. New readers treat schema 34/35 as
 UNKNOWN; old binaries are not qualified for schema 36. Recovery preserves a coherent encrypted
 SQLite snapshot and all external key versions with a compatible reader. Destructive down migration
@@ -103,3 +106,5 @@ release and deployment remain separate acceptance layers.
 - `public_build_messages_body_only_keeps_existing_strict_projection`
 
 - `public_build_messages_cancel_pending_summary_keeps_native_complete_delivery_cancelled`
+
+- `messages_summary_expired_gc_replay_never_recreates_payload`

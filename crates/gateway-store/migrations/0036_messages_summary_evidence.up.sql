@@ -6,6 +6,6 @@ CREATE TABLE messages_summary_evidence (
     expires_at_ms INTEGER NOT NULL CHECK (expires_at_ms > created_at_ms),
     payload_version INTEGER NOT NULL CHECK (payload_version = 1),
     key_version INTEGER NOT NULL CHECK (key_version > 0),
-    ciphertext BLOB NOT NULL CHECK (length(ciphertext) BETWEEN 41 AND 524288)
+    ciphertext BLOB CHECK (ciphertext IS NULL OR length(ciphertext) BETWEEN 41 AND 524288)
 ) STRICT;
-CREATE INDEX messages_summary_evidence_expiry ON messages_summary_evidence(expires_at_ms);
+CREATE INDEX messages_summary_evidence_expiry ON messages_summary_evidence(expires_at_ms) WHERE ciphertext IS NOT NULL;
