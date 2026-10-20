@@ -550,17 +550,25 @@ print(json.dumps(result))
                 self.check("native Usage completeness", record["completeness"] == "complete_usage_object")
                 self.check("native Usage exact identity source and missing counters", record["client_key_id"] == item["owner"]
                     and record["usage"]["request_id"] == item["request"] and record["usage"]["attempt_id"] == item["attempt"]
+                    and record["usage"]["response_id"] == "native-65-" + str(item["receiver_ordinal"])
                     and record["evidence"]["source"] == ("build_sse_terminal" if item["stream"] else "build_json")
                     and record["usage"]["usage"]["cached_tokens"] == 0
                     and record["usage"]["usage"]["cache_read_tokens"] is None
                     and record["usage"]["usage"]["cache_creation_tokens"] is None)
             else:
                 items = record["evidence"]["items"]
-                objects = [json.loads(r["item"]) if isinstance(r["item"], str) else r["item"] for r in items]
-                self.check("summary identity hierarchy order and absent body", [r["output_index"] for r in items] == [0, 2]
-                    and [r["id"] for r in objects] == ["reason-a", "reason-b"] and "content" not in objects[0]
-                    and objects[1]["content"] == [] and [len(r["summary"]) for r in objects] == [2, 1]
-                    and record["evidence"]["completeness"] == "completed_response")
+                # Independent received-content oracle, before trusting the first read as a baseline.
+                # Compare every part/text/status and body presence, including the order within an item.
+                expected_items = [
+                    {"id": "reason-a", "type": "reasoning", "status": "completed", "summary": [
+                        {"type": "summary_text", "text": "PRIVATE_SUMMARY_65 计划"},
+                        {"type": "summary_text", "text": "辅助 🐦"}]},
+                    {"id": "reason-b", "type": "reasoning", "status": "completed", "content": [],
+                     "summary": [{"type": "summary_text", "text": "PRIVATE_SUMMARY_65 核对"}]}]
+                self.check("summary full received content identity hierarchy and order", [r["output_index"] for r in items] == [0, 2]
+                    and [r["item"] for r in items] == expected_items
+                    and record["evidence"]["completeness"] == "completed_response"
+                    and record["evidence"]["response_id"] == "native-65-" + str(item["receiver_ordinal"]))
                 self.check("summary source exact owner and execution", record["client_key_id"] == item["owner"]
                     and record["attempt"]["request_id"] == item["request"]
                     and record["attempt"]["attempt_id"] == item["attempt"]
