@@ -37,9 +37,10 @@ def isolated_env(root):
 
 def profile(root, port):
     # The client and all descendants inherit this fence. No arbitrary loopback service is allowed.
+    network = '' if port is None else f'(allow network-outbound (remote ip "localhost:{port}"))\n'
     return ('(version 1)\n(allow default)\n'
             '(deny network*)\n'
-            f'(allow network-outbound (remote ip "localhost:{port}"))\n'
+            f'{network}'
             '(deny file-read* (subpath "/Users") (subpath "/Volumes") '
             '(subpath "/private/tmp") (subpath "/private/var/folders"))\n'
             '(deny file-read* (subpath "/Library/Application Support/ClaudeCode") '
@@ -113,7 +114,7 @@ def freeze(root):
         raise RuntimeError('frozen executable differs')
     env = isolated_env(root)
     fence = root / 'identity.sb'
-    fence.write_text(profile(root, 9))
+    fence.write_text(profile(root, None))
     isolation(root, fence, env)
     outputs = {}
     for flag in ('--version', '--help'):

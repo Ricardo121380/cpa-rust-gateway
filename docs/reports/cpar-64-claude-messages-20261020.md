@@ -28,7 +28,7 @@ ADR-0040/0100/0108/0112/0114、BC-OBS-007 与相关协议契约；读取 #58/#61
 | 文件 | Mach-O 64-bit executable arm64 |
 | SHA-256 | `5262ce9de86243fed0d21edc39b271555d56780d0112e2b194439fe1c6662d37` |
 | 隔离内运行时 | `2.1.302 (Claude Code)` |
-| 实际请求 SDK 标识 | `x-stainless-package-version: 0.128.0`，embedded runtime `v26.3.0` |
+| 实际请求 SDK 标识 | `x-stainless-package-version: 0.128.0`，声明的 runtime `v26.3.0`（不是独立的 engine 版本查询） |
 
 冻结安装当前字节到独占的 OS 临时目录，再运行该相同文件，不换版本、不安装或升级。
 每次运行前后核对实际入口、目标文件和冻结副本。驱动为
@@ -37,7 +37,8 @@ ADR-0040/0100/0108/0112/0114、BC-OBS-007 与相关协议契约；读取 #58/#61
 工作目录及临时目录，只带合成 Client Key。真实用户会话、配置、凭据文件均没有由 harness 读取。
 CLI 的内置组件清单仍可出现在 init 中；它不是读取用户插件的证据。
 
-客户端及所有工具子进程继承 Seatbelt：只允许本次公共 listener 的 localhost 端口出站；拒绝其他网络，
+版本/帮助检查阶段完全禁网；实际任务中的客户端及所有工具子进程继承 Seatbelt，只允许本次公共 listener
+的 localhost 端口出站；拒绝其他网络，
 拒绝 `/Users`、`/Volumes`、任务外临时目录和 Claude 的系统管理配置路径读取，拒绝任务外写入与
 securityd lookup。独立 IPv4/IPv6、另一个 loopback 端口、真实用户目录 open、任务外合成凭据 read/write
 及实际 shell 子进程的负例均要求 EPERM/拒绝；独立负例接收器 accepts=0，合成 sentinel 保持。
