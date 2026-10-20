@@ -117,6 +117,106 @@ fn assert_capture(fixture: &Fixture, raw: &str, attempts: usize) -> TestResult {
 }
 
 #[actix_web::test]
+async fn public_build_c4_stored_response_excludes_local_metadata() -> TestResult {
+    for streaming in [false, true] {
+        let peer = ModelPeer::start_wire(streaming, tool_rounds::wire_response(1, streaming)?)?;
+        let mut fixture = lifecycle_fixture(namespaces::transport(&peer, 7)?)?;
+        let database = fixture.directory.path().join("batch-c.sqlite3");
+        let stored = Arc::new(
+            gateway_store::stored_response::SqliteStoredResponseStore::open(
+                &database,
+                test_secret_store()?,
+            )?,
+        );
+        fixture.state = fixture
+            .state
+            .clone()
+            .with_stored_response_store(stored.clone());
+        let recording = Recording::start(&fixture, false)?;
+        let (url, server) = namespaces::listener(&fixture)?;
+        let body = json!({"model":"p12-test-model","input":"C4 stored answer",
+            "stream":streaming,"store":true,"client_metadata":metadata()});
+        let (status, bytes) = namespaces::request(&fixture, &url, &body).await?;
+        assert_eq!(status, 200, "{}", String::from_utf8_lossy(&bytes));
+        let terminal = namespaces::terminal(&bytes, streaming)?;
+        assert_eq!(terminal["output"], tool_rounds::output(1));
+        assert_eq!(terminal["usage"]["input_tokens"], 20);
+        assert_capture(&fixture, &metadata().to_string(), 1)?;
+        let requests = SqliteEventStore::open_read_only(&database)?.list_events()?;
+        let request = requests
+            .iter()
+            .find_map(|row| match row.event() {
+                GatewayEvent::Request(request) => Some(request),
+                _ => None,
+            })
+            .ok_or("authenticated Request")?;
+        let response_id =
+            gateway_core::ResponseId::try_new(terminal["id"].as_str().ok_or("response id")?)?;
+        let record = stored
+            .get_owned(
+                request.client_key_id(),
+                &response_id,
+                system_now_ms_runtime()?,
+            )?
+            .ok_or("owned stored Response")?;
+        let replay = record.payload().request();
+        assert!(
+            replay
+                .extensions
+                .get(gateway_core::CODEX_CLIENT_METADATA)
+                .is_none()
+        );
+        assert!(!serde_json::to_string(record.payload())?.contains("C4_PRIVATE"));
+        assert!(record.payload().canonical_response()?.events().len() > 1);
+        let expires: i64 = gateway_store::open(&database)?.query_row(
+            "SELECT expires_at_ms FROM request_metadata_evidence",
+            [],
+            |r| r.get(0),
+        )?;
+        assert_eq!(
+            gateway_store::request_metadata::purge_expired(
+                &gateway_store::open(&database)?,
+                expires,
+            )?,
+            1
+        );
+        assert!(
+            SqliteRequestMetadataReader::open(&database, test_secret_store()?)?
+                .get_owned(request.client_key_id(), request.request_id(), None, expires)?
+                .is_none()
+        );
+        assert!(
+            !serde_json::to_string(
+                stored
+                    .get_owned(
+                        request.client_key_id(),
+                        &response_id,
+                        record.created_at_ms(),
+                    )?
+                    .ok_or("independent StoredResponse lifetime")?
+                    .payload()
+            )?
+            .contains("C4_PRIVATE")
+        );
+        assert_eq!(peer.requests.lock().map_err(|_| "receiver")?.len(), 1);
+        assert!(
+            !String::from_utf8_lossy(&peer.requests.lock().map_err(|_| "receiver")?[0].wire)
+                .contains("C4_PRIVATE")
+        );
+        server.stop(false).await;
+        let database = recording.finish(&fixture, 0).await?;
+        namespaces::assert_recorded(&database, 1).await?;
+        println!(
+            "CPAR62_C4_STORED {}",
+            json!({"streaming":streaming,
+            "receive":1,"attempt":1,"usage":1,"ledger":1,"capture":1,
+            "stored_response_metadata":false,"metadata_expiry_purged":true})
+        );
+    }
+    Ok(())
+}
+
+#[actix_web::test]
 async fn public_build_c4_request_only_rejection_retains_no_attempt() -> TestResult {
     for streaming in [false, true] {
         let peer = ModelPeer::start(streaming, response())?;

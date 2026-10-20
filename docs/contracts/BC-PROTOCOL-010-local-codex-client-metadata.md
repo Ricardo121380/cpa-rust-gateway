@@ -107,6 +107,8 @@ No extra Usage/ledger event, retry, source read or upstream request is produced.
 never generate/overwrite authenticated owner, Request/Attempt ID, route, credential, approval
 decision, sandbox policy or Build tracking headers. They never enter model input, ordinary logs,
 public errors, telemetry, quarantine, audit or billing. Diagnostics do not provide saved history.
+For `store:true`, the stored continuation/compaction request is captured after local metadata
+consumption; StoredResponse payloads contain no C4 copy and cannot extend its retention clock.
 
 ## Reader, expiry and recovery
 
@@ -145,6 +147,7 @@ GitHub writes/push/merge, release and deployment are outside this slice.
 ## Corresponding tests
 
 - `public_build_c4_metadata_is_local_and_answer_usage_are_preserved`
+- `public_build_c4_stored_response_excludes_local_metadata`
 - `public_build_c4_request_only_rejection_retains_no_attempt`
 - `public_build_c4_rejects_unknown_invalid_duplicate_and_overbound_metadata`
 - `public_build_c4_recording_faults_never_send_or_report_success`

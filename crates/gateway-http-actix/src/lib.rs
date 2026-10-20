@@ -589,7 +589,6 @@ impl StoredResponseCapture {
 struct PreparedResponsesExecution {
     execution: ResponsesExecution,
     mode: ResponseMode,
-    canonical_request_for_store: Option<CanonicalRequest>,
     lineage_recorder: Option<Arc<ResponsesExecutionLineageRecorder>>,
 }
 
@@ -861,7 +860,6 @@ fn prepare_responses_execution(
         || (decoded.request.clone(), None),
         |owned| (owned.request, Some(owned.pin)),
     );
-    let canonical_request_for_store = decoded.store.then(|| request.clone());
     let lineage_recorder = (decoded.store || require_lineage)
         .then(|| Arc::new(ResponsesExecutionLineageRecorder::new()));
     let response_mode = match mode {
@@ -905,7 +903,6 @@ fn prepare_responses_execution(
     PreparedResponsesExecution {
         execution,
         mode,
-        canonical_request_for_store,
         lineage_recorder,
     }
 }
@@ -1486,7 +1483,6 @@ async fn execute_responses_websocket_turn(
     let PreparedResponsesExecution {
         mut execution,
         mode: _,
-        canonical_request_for_store,
         lineage_recorder,
     } = prepare_responses_execution(
         context,
@@ -1497,6 +1493,7 @@ async fn execute_responses_websocket_turn(
         owned_continuation,
         true,
     );
+    let canonical_request_for_store = decoded.store.then(|| execution.request().clone());
     execution.request().validate_tool_history()?;
     let canonical_request_for_session = execution.request().clone();
     execution = execution.with_client_transport(ResponsesClientTransport::WebSocket);
@@ -2071,7 +2068,6 @@ async fn responses(
     let PreparedResponsesExecution {
         mut execution,
         mode,
-        canonical_request_for_store,
         lineage_recorder,
     } = prepare_responses_execution(
         context,
@@ -2083,6 +2079,8 @@ async fn responses(
         false,
     );
     let metadata = state.executor.prepare_request_metadata(&mut execution);
+    // Replay roots contain only the executable request, after local-only fields are consumed.
+    let canonical_request_for_store = decoded.store.then(|| execution.request().clone());
     let request_event = RequestEvent::new(
         request_id.clone(),
         client_key_id.clone(),
