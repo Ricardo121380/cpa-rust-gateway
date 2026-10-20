@@ -13,11 +13,16 @@ use std::{
 
 mod annotations;
 mod native_output;
+mod tool_set;
 mod upstream_response;
 pub use annotations::validate as validate_annotations;
 pub use native_output::{
     has_native_output_metadata, native_annotation_extensions, native_item_metadata,
     native_item_metadata_rejection, native_part_extensions,
+};
+pub use tool_set::{
+    FunctionIdentity, RESPONSES_TOOLS, ResponsesToolSet,
+    optional_member as optional_tool_identity_member, uses_namespaces, validate_identity_history,
 };
 
 use gateway_core::{
@@ -268,13 +273,7 @@ pub fn decode_request(input: &str) -> Result<DecodedResponsesRequest, GatewayErr
         return Err(client_request_error());
     }
 
-    let tools = match root.get("tools") {
-        None => Vec::new(),
-        Some(value) => decode_tools(value)?,
-    };
-    if root.get("tool_choice").and_then(Value::as_str) == Some("required") && tools.is_empty() {
-        return Err(client_request_error());
-    }
+    let (tools, native_tools) = decode_tool_declarations(root)?;
 
     let (thinking, summary_only) = match root.get("reasoning") {
         None => (None, None),
@@ -307,6 +306,11 @@ pub fn decode_request(input: &str) -> Result<DecodedResponsesRequest, GatewayErr
     if let Some(raw) = summary_only {
         extensions
             .try_insert("openai.responses.reasoning", raw)
+            .map_err(|_| client_request_error())?;
+    }
+    if let Some(raw) = native_tools {
+        extensions
+            .try_insert(RESPONSES_TOOLS, raw)
             .map_err(|_| client_request_error())?;
     }
 
@@ -617,6 +621,39 @@ fn decode_function_call_output(
         })],
         extensions: RawExtensions::default(),
     })
+}
+
+fn decode_tool_declarations(
+    root: &Map<String, Value>,
+) -> Result<(Vec<ToolDefinition>, Option<RawJson>), GatewayError> {
+    let native_tools = root
+        .get("tools")
+        .filter(|value| {
+            value.as_array().is_some_and(|tools| {
+                tools
+                    .iter()
+                    .any(|tool| tool.get("type").and_then(Value::as_str) == Some("namespace"))
+            })
+        })
+        .map(|value| {
+            let raw = raw_json(value)?;
+            ResponsesToolSet::decode(&raw)?;
+            Ok::<_, GatewayError>(raw)
+        })
+        .transpose()?;
+    let tools = match root.get("tools") {
+        Some(_) if native_tools.is_some() => Vec::new(),
+        None => Vec::new(),
+        Some(value) => decode_tools(value)?,
+    };
+    if root.get("tool_choice").and_then(Value::as_str) == Some("required")
+        && tools.is_empty()
+        && native_tools.is_none()
+    {
+        return Err(client_request_error());
+    }
+
+    Ok((tools, native_tools))
 }
 
 fn decode_tools(value: &Value) -> Result<Vec<ToolDefinition>, GatewayError> {
@@ -1159,6 +1196,9 @@ impl OpenAiResponsesSseEncoder {
             CanonicalEvent::TextDelta(delta) => self.encode_text_delta(&delta.text),
             CanonicalEvent::ReasoningDelta(delta) => self.encode_reasoning_delta(&delta.text),
             CanonicalEvent::ToolCallStart(start) => {
+                if !start.extensions.is_empty() {
+                    return Err(stream_protocol_error());
+                }
                 self.encode_tool_start(&start.call_id, &start.name)
             }
             CanonicalEvent::ToolCallArgumentsDelta(delta) => {
@@ -2056,6 +2096,13 @@ fn insert_optional_number(object: &mut Map<String, Value>, name: &str, value: Op
 }
 
 fn ensure_representable_event_extensions(event: &CanonicalEvent) -> Result<(), GatewayError> {
+    if let CanonicalEvent::ToolCallStart(call) = event
+        && call.extensions.iter().all(|(key, _)| key == "namespace")
+    {
+        FunctionIdentity::from_call(&call.name, &call.extensions)
+            .map_err(|_| stream_protocol_error())?;
+        return Ok(());
+    }
     if has_native_output_metadata(event) {
         return Ok(());
     }

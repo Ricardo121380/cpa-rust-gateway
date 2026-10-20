@@ -539,6 +539,7 @@ mod tests {
             &bytes,
             Some(owner.clone()),
             None,
+            false,
         )?;
         let downstream = encode_response(
             &canonical,
@@ -592,6 +593,7 @@ mod tests {
             protocol_openai_responses::ResponseMode::NonStreaming,
             None,
             Some(&owner),
+            false,
         )?;
         let outbound: Value = serde_json::from_slice(outbound.body())?;
         assert_eq!(

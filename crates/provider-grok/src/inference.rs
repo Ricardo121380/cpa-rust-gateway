@@ -251,6 +251,7 @@ impl GrokBuildTransport for GrokBuildUpstreamTransport {
 /// A real Grok Build [`InferenceAdapter`] with injected credential and transport state.
 #[derive(Clone)]
 pub struct GrokBuildInferenceAdapter {
+    namespaces_qualified: bool,
     provider_id: ProviderId,
     credential: GrokBuildCredential,
     upstream_model: String,
@@ -285,6 +286,7 @@ impl GrokBuildInferenceAdapter {
         let provider_id =
             ProviderId::try_new(GROK_BUILD_PROVIDER_ID.to_owned()).map_err(|_| internal_error())?;
         Ok(Self {
+            namespaces_qualified: false,
             provider_id,
             credential,
             upstream_model,
@@ -301,6 +303,15 @@ impl GrokBuildInferenceAdapter {
     #[must_use]
     pub fn with_model_binding(mut self, binding: crate::GrokBuildModelBinding) -> Self {
         self.model_binding = Some(binding);
+        self
+    }
+
+    /// Qualifies only an owning local controlled test assembly, never the fixed Build service.
+    /// This API requires an explicit dependency test feature; stock composition has no caller.
+    #[cfg(feature = "controlled-test-support")]
+    #[must_use]
+    pub fn with_local_controlled_namespaces(mut self) -> Self {
+        self.namespaces_qualified = true;
         self
     }
 
@@ -333,6 +344,7 @@ impl fmt::Debug for GrokBuildInferenceAdapter {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("GrokBuildInferenceAdapter")
+            .field("local_controlled_namespaces", &self.namespaces_qualified)
             .field("model_binding", &self.model_binding.is_some())
             .field("reasoning_owner", &self.reasoning_owner.is_some())
             .field("provider_id", &self.provider_id)
@@ -356,6 +368,10 @@ impl ProviderAdapter for GrokBuildInferenceAdapter {
 }
 
 impl InferenceAdapter for GrokBuildInferenceAdapter {
+    #[allow(
+        clippy::too_many_lines,
+        reason = "one attempt keeps credential, model, egress and field qualification together through native mode decoding"
+    )]
     fn execute(
         &self,
         context: RequestContext,
@@ -369,6 +385,7 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
         let cache_identity_deriver = self.cache_identity_deriver.clone();
         let reasoning_owner = self.reasoning_owner.clone();
         let model_binding = self.model_binding.clone();
+        let namespaces_qualified = self.namespaces_qualified;
 
         Box::pin(async move {
             let binding = model_binding.map_or_else(
@@ -401,6 +418,7 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
                 mode.response_mode(),
                 cache_identity.as_ref(),
                 reasoning_owner.as_ref(),
+                namespaces_qualified,
             )?;
             let response = transport
                 .send_with_egress_attempt(outbound, egress_attempt.clone())
@@ -443,6 +461,7 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
                         &bytes,
                         reasoning_owner,
                         Some(expected_native_model),
+                        namespaces_qualified,
                     )?;
                     let events = decoded.into_events();
                     let source =
@@ -456,6 +475,7 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
                         body,
                         reasoning_owner,
                         expected_native_model,
+                        namespaces_qualified,
                     )) as Box<dyn CanonicalEventSource>;
                     Ok(wrap_egress_source(source, egress_attempt))
                 }
@@ -531,11 +551,13 @@ impl StreamingEventSource {
         body: Box<dyn GrokBuildResponseBody>,
         owner: Option<crate::GrokBuildReasoningOwner>,
         expected_model: String,
+        namespaces_qualified: bool,
     ) -> Self {
         Self {
             body,
             decoder: GrokBuildResponsesStreamDecoder::new()
                 .with_reasoning_owner(owner)
+                .with_namespace_qualification(namespaces_qualified)
                 .with_expected_model(expected_model),
             pending: VecDeque::new(),
             response_started: false,

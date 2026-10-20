@@ -3,9 +3,12 @@
 use std::{collections::BTreeSet, fmt};
 
 use gateway_core::{CanonicalRequest, RawJson};
+use protocol_openai_responses::{FunctionIdentity, ResponsesToolSet};
 use serde_json::{Value, json};
 
 use crate::{ProtocolFormat, ProtocolTransformRejection};
+#[cfg(test)]
+mod namespace_tests;
 
 /// Selection that has an equivalent representation in the three supported protocols.
 #[derive(Clone, Eq, PartialEq)]
@@ -36,7 +39,7 @@ impl fmt::Debug for ToolSelection {
 pub struct ToolExecutionConstraints {
     pub(crate) parallel: Option<bool>,
     pub(crate) selection: Option<ToolSelection>,
-    pub(crate) declared: BTreeSet<String>,
+    pub(crate) declared: BTreeSet<FunctionIdentity>,
 }
 
 impl ToolExecutionConstraints {
@@ -57,12 +60,24 @@ impl ToolExecutionConstraints {
                     .name
                     .bytes()
                     .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
-                || !declared.insert(tool.name.clone())
+                || !declared.insert(FunctionIdentity::flat(&tool.name))
                 || !serde_json::from_str::<Value>(tool.input_schema.get())
                     .is_ok_and(|schema| schema.is_object())
             {
                 return Err(invalid());
             }
+        }
+        if let Some(tools) = ResponsesToolSet::from_request(request).map_err(|_| invalid())? {
+            if source != ProtocolFormat::OpenAiResponses {
+                return Err(invalid());
+            }
+            tools.validate_history(request).map_err(|_| invalid())?;
+            declared.clone_from(tools.functions());
+        } else if protocol_openai_responses::uses_namespaces(request) {
+            return Err(invalid());
+        } else if source == ProtocolFormat::OpenAiResponses {
+            protocol_openai_responses::validate_identity_history(request, None)
+                .map_err(|_| invalid())?;
         }
         let mut parallel = request
             .extensions
@@ -81,7 +96,11 @@ impl ToolExecutionConstraints {
             .transpose()?;
         match &selection {
             Some(ToolSelection::Required) if declared.is_empty() => return Err(invalid()),
-            Some(ToolSelection::Named(name)) if !declared.contains(name) => return Err(invalid()),
+            Some(ToolSelection::Named(name))
+                if !declared.contains(&FunctionIdentity::flat(name)) =>
+            {
+                return Err(invalid());
+            }
             _ => {}
         }
         Ok(Self {

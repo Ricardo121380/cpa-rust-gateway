@@ -1562,6 +1562,9 @@ fn item_metadata(
     item: &Map<String, Value>,
     completed: bool,
 ) -> Result<gateway_core::OutputItemMetadata, GatewayError> {
+    if item.contains_key("namespace") {
+        return Err(stream_protocol_error());
+    }
     // An owned-token prefix alone is not authentication. Official/Console have no
     // ciphertext owner, so they cannot borrow the separate Build ownership path.
     if item

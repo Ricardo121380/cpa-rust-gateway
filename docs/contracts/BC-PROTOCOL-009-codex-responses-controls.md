@@ -2,9 +2,9 @@
 
 | Field | Value |
 | --- | --- |
-| Status | PARTIAL; summary-only local implementation, other required controls BLOCKED |
+| Status | PARTIAL; summary-only and C1-C3 local implementation; BUILD_ACTIVATION_BLOCKED |
 | Task | #62; parent #58 T01/T02/T03/T08/T10 |
-| ADR | [ADR-0113](../adr/ADR-0113-responses-summary-without-effort.md) |
+| ADR | [ADR-0113](../adr/ADR-0113-responses-summary-without-effort.md), [ADR-0115](../adr/ADR-0115-native-namespaced-function-identity.md) |
 | Profile | Fixed Build 1.0.50; unchanged endpoint, model binding and capability declarations |
 
 ## Evidence and scope
@@ -41,7 +41,7 @@ that gap. #61 cost remains NOT_ADMITTED; no cost re-research or additional metad
 | Field | Input semantics and Canonical representation | Admission and Build output | Return/history and boundary |
 | --- | --- | --- | --- |
 | summary-only reasoning | A sole supported summary selector, with effort **absent**. Retain the complete object in `openai.responses.reasoning`; typed `thinking` is absent. | Responses target only; existing Reasoning capability required in every mode. Revalidate and emit the same object, with no effort added. | Preserve validated native summary and ordered history under existing ownership rules. This does not invent reasoning body, ciphertext or effective effort. |
-| namespace | A named group of function/custom tools; namespace and child name are distinct from correlation call_id. No qualified Canonical execution representation is implemented. | Decoder rejects namespace declarations; known namespaced selectors/history also fail before send. No name concatenation, flattening, child dropping or alternate tool type. | Namespaced output remains unrepresentable and fails once without executable-call completion or retry. It must not be matched solely by bare function name. |
+| namespace/function C1-C3 | Closed function-only groups use the ordered `openai.responses.tools` envelope and `ResponsesToolSet`; typed flat declarations remain unchanged. Group descriptions, child schema/strict and complete `(namespace?,name)` identity are retained; call_id correlates results. | Normal Build activation remains blocked before lease/send. Only owned local test assembly grants field qualification; transport injection alone does not. auto/none/required, actual ParallelTools capability and serial enforcement use the complete set. No namespaced forced selector is invented. | Native JSON/SSE and explicit history preserve identity/order. Results retain independent absent/null/string name/namespace members and confirm supplied values. Complete arguments and item/terminal confirmation precede executable completion; invalid/unknown/conflicting shapes fail without retry. |
 | client_metadata | Codex-owned string map. Observed keys: root_turn_id, session_id, thread_id, turn_id, x-codex-installation-id, x-codex-turn-metadata, x-codex-window-id. The last metadata blob remains a JSON **string**. Root decoder retains the entire field under `openai.responses.client_metadata`. | The executable admitted set for Build is empty: router rejects every shape before acquisition/send. No unknown-root whitelist, silent deletion, standard-metadata renaming, or translation into Build tracking headers. | No response echo, storage/search semantics or Build interpretation is promised. Client-supplied identities never grant authentication, owner or route authority. |
 | web_search | Provider-executed hosted tool, including explicit cache-only control; not a client function. No qualified Canonical search contract is implemented. | Reject declarations before send, whether external access is false, true or absent. Do not remove the declaration/constraint, fabricate a result, or infer qualification from Codex. | Search-call output item ID, phase events, search/open/find actions, sources, URL citations and related Usage need a joint fixed-profile contract before admission. |
 
@@ -59,14 +59,13 @@ off. Official/Console and other providers do not inherit a new capability from s
 
 ### Namespace qualifications still required
 
-Before this control can enter production Build execution, define and prove the entire chain:
+[ADR-0115](../adr/ADR-0115-native-namespaced-function-identity.md) implements the bounded local chain below; its controlled success does not grant production activation. Before this control can enter production Build execution, independently qualify the entire chain for fixed profile 1.0.50:
 declaration and child schema, namespace/name identity, duplicate namespace/child and cross-group
 name conflicts, tool_choice and parallel/serial constraints, returned namespace/name and call_id,
 complete object arguments, exactly correlated results, and ordered later history. Current standard
 sources do not establish an unambiguous forced namespaced-function selector; CPAR cannot invent
 `namespace.function`, concatenate separators, or add an unproven selector field. All such requests
-remain blocked. Tests cover explicit pre-send refusal for declarations, overlapping names,
-selectors, serial/parallel controls, and namespaced call/result history; output rejection is separate.
+remain blocked. Normal assembly retains declaration/history and serial/parallel pre-send negatives. Controlled namespace-only qualification does not grant ParallelTools; the production Build capability ledger still lacks it. The local positive chain uses serial. Qualified parallel identity constraints are checked separately in pure Router tests. Fixed-profile evidence must cover native declarations, auto/parallel behavior, JSON/SSE identities, parameters, results and explicit history, with applicable date/version and source/release binding or authoritative serving declaration.
 
 ## Persistence, upgrade and recovery
 
@@ -108,3 +107,23 @@ Real Grok, other client forms, remote CI, release and deployment remain separate
 - `summary_only_reasoning_has_an_explicit_extension_and_no_effort_default`
 - `summary_only_and_legacy_effort_payloads_reopen_without_rewriting_or_replay_conflicts`
 - `summary_only_duplicate_keys_are_rejected_by_router_in_every_mode`
+
+## C1-C3 controlled namespace implementation
+
+The exact representation, bounds, qualification seam, argument/terminal completion barrier and
+existing-envelope persistence rules are in ADR-0115. This slice leaves C4 client_metadata, C5
+web_search (including external_web_access:false), C6 non-assistant input IDs and #61 blocked.
+D1 local request-metadata consumption and D2 Claude configuration are not implemented.
+
+## Corresponding tests
+
+- `public_build_namespace_json_and_fragmented_sse_keep_two_related_cycles`
+- `public_build_namespace_invalid_requests_and_unqualified_assembly_send_zero`
+- `public_build_namespace_sse_identity_conflicts_never_complete_tools_or_retry`
+- `public_build_namespace_json_invalid_identity_and_arguments_fail_once`
+- `public_build_namespace_selection_controls_and_result_presence_are_exact`
+- `native_namespace_envelope_preserves_order_and_rejects_collisions_and_duplicate_json`
+- `namespace_results_retain_independent_absent_null_and_value_identity_members`
+- `namespace_controls_use_complete_identities_and_actual_parallel_capability`
+- `namespace_extensions_reopen_in_payload_v1_without_identity_or_presence_loss`
+- `namespaced_semantic_call_without_native_identity_envelope_cannot_flatten`

@@ -43,8 +43,8 @@ allowed = {
   "gateway-observability" => %w[gateway-core opentelemetry serde serde_json sha2 tokio tracing tracing-subscriber],
   "gateway-protocol" => %w[gateway-core],
   "gateway-provider" => %w[criterion gateway-core serde serde_json tokio],
-  # Protocol/provider dependencies below are dev-only D1-D3 matrix tests; production routing still
-  # depends only on transport-neutral gateway interfaces.
+  # ADR-0115 adds the pure Responses tool-set/identity view to production admission. It has no
+  # Provider/HTTP/Router dependency. Other concrete protocol/provider edges remain dev-only.
   "gateway-router" => %w[arc-swap gateway-auth gateway-catalog gateway-core gateway-protocol gateway-provider gateway-upstream proptest protocol-anthropic protocol-openai-chat protocol-openai-responses provider-anthropic-compatible provider-openai-compatible serde_json sha2 tokio],
   "gateway-store" => %w[base64 chacha20poly1305 gateway-core gateway-observability getrandom libc rusqlite serde serde_json sha2 tokio zeroize],
   "gateway-stream" => %w[gateway-core gateway-protocol proptest tokio tokio-util],

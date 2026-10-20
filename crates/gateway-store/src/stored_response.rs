@@ -1536,6 +1536,96 @@ mod tests {
     }
 
     #[test]
+    fn namespace_extensions_reopen_in_payload_v1_without_identity_or_presence_loss() -> TestResult {
+        use gateway_core::{
+            CanonicalMessage, MessageContent, RawJson, ToolCall, ToolCallEnd, ToolCallStart,
+            ToolResult,
+        };
+        let mut request = request()?;
+        request.extensions.try_insert("openai.responses.tools",RawJson::from_json_string(
+            r#"[{"type":"namespace","name":"alpha","description":"first group","tools":[{"type":"function","name":"lookup","parameters":{"type":"object"},"strict":false}]},{"type":"namespace","name":"beta","description":"second group","tools":[{"type":"function","name":"lookup","parameters":{"type":"object"},"strict":true}]}]"#.into())?)?;
+        let mut identity = RawExtensions::default();
+        identity.try_insert("namespace", RawJson::from_json_string(r#""alpha""#.into())?)?;
+        let mut result_identity = RawExtensions::default();
+        result_identity.try_insert("name", RawJson::from_json_string("null".into())?)?;
+        request.messages = vec![
+            CanonicalMessage {
+                role: MessageRole("assistant".into()),
+                content: vec![MessageContent::ToolCall(ToolCall {
+                    id: "call-a".into(),
+                    name: "lookup".into(),
+                    arguments: RawJson::from_json_string("{}".into())?,
+                    extensions: identity.clone(),
+                })],
+                extensions: RawExtensions::default(),
+            },
+            CanonicalMessage {
+                role: MessageRole("tool".into()),
+                content: vec![MessageContent::ToolResult(ToolResult {
+                    call_id: "call-a".into(),
+                    output: RawJson::from_json_string(r#""41""#.into())?,
+                    is_error: false,
+                    extensions: result_identity,
+                })],
+                extensions: RawExtensions::default(),
+            },
+        ];
+        request.validate_tool_history()?;
+        let mut events = canonical_response("resp-namespace", "unused")?.into_events();
+        events.splice(
+            2..3,
+            [
+                CanonicalEvent::ToolCallStart(ToolCallStart {
+                    call_id: "call-b".into(),
+                    name: "lookup".into(),
+                    extensions: identity,
+                }),
+                CanonicalEvent::ToolCallEnd(ToolCallEnd {
+                    call_id: "call-b".into(),
+                    arguments: RawJson::from_json_string("{}".into())?,
+                    extensions: RawExtensions::default(),
+                }),
+            ],
+        );
+        let payload = StoredResponsePayload::try_new(
+            lineage()?,
+            "model-a",
+            1,
+            request,
+            CanonicalResponse::try_new(events)?,
+        )?;
+        let path = temporary_database_path();
+        let owner = client_key("client-a")?;
+        {
+            let store = SqliteStoredResponseStore::open(&path, secret_store(1, &[(1, 0x11)])?)?;
+            assert_eq!(
+                store.put_owned(&owner, 1_000, &payload)?,
+                StoredResponsePutOutcome::Stored
+            );
+        }
+        {
+            let store =
+                SqliteStoredResponseStore::open(&path, secret_store(2, &[(1, 0x11), (2, 0x22)])?)?;
+            let record = store
+                .get_owned(&owner, payload.response_id()?, 1_001)?
+                .ok_or("reopened")?;
+            assert_eq!(record.payload(), &payload);
+            assert_eq!(record.payload().payload_version, 1);
+            assert_eq!(
+                store.put_owned(&owner, 1_000, record.payload())?,
+                StoredResponsePutOutcome::Replayed
+            );
+            assert!(
+                store
+                    .get_owned(&client_key("foreign")?, payload.response_id()?, 1_001)?
+                    .is_none()
+            );
+        }
+        fs::remove_file(path)?;
+        Ok(())
+    }
+
+    #[test]
     fn summary_only_and_legacy_effort_payloads_reopen_without_rewriting_or_replay_conflicts()
     -> TestResult {
         const LEGACY: &str = r#"{"requested_model":"model-a","messages":[],"tools":[],"thinking":{"effort":"medium","extensions":{"summary":"auto"}},"extensions":{}}"#;

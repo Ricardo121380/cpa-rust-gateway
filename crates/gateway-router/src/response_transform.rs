@@ -61,9 +61,14 @@ impl ProtocolResponseProjector {
         if let Some(constraints) = &self.tool_constraints {
             match event {
                 CanonicalEvent::ToolCallStart(call) => {
-                    if !constraints.declared.contains(&call.name)
+                    let identity = protocol_openai_responses::FunctionIdentity::from_call(
+                        &call.name,
+                        &call.extensions,
+                    )
+                    .map_err(|_| ProtocolResponseRejection::ToolConstraintViolated)?;
+                    if !constraints.declared.contains(&identity)
                         || matches!(constraints.selection, Some(ToolSelection::None))
-                        || matches!(&constraints.selection, Some(ToolSelection::Named(name)) if name != &call.name)
+                        || matches!(&constraints.selection, Some(ToolSelection::Named(name)) if !identity.is_flat_named(name))
                         || constraints.parallel == Some(false) && tool_count > 0
                     {
                         return Err(ProtocolResponseRejection::ToolConstraintViolated);
@@ -185,6 +190,12 @@ fn project_event(
         if target != ProtocolFormat::OpenAiResponses {
             return project_native_identity(event);
         }
+    } else if target == ProtocolFormat::OpenAiResponses
+        && matches!(event, CanonicalEvent::ToolCallStart(call)
+        if call.extensions.iter().all(|(key,_)| key == "namespace")
+        && protocol_openai_responses::FunctionIdentity::from_call(&call.name, &call.extensions).is_ok())
+    {
+        // The native output envelope and semantic tool start carry the same complete identity.
     } else {
         reject_extensions(event)?;
     }

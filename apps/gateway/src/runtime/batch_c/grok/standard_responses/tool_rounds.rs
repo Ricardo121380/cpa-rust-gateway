@@ -6,10 +6,10 @@ struct Fragments {
     size: usize,
 }
 
-struct FragmentBody {
-    inner: Box<dyn GrokBuildResponseBody>,
-    pending: Vec<u8>,
-    size: usize,
+pub(super) struct FragmentBody {
+    pub(super) inner: Box<dyn GrokBuildResponseBody>,
+    pub(super) pending: Vec<u8>,
+    pub(super) size: usize,
 }
 
 impl GrokBuildResponseBody for FragmentBody {

@@ -65,7 +65,15 @@ fn native_item_metadata_checked(
             "encrypted_content",
         ],
         "message" => &["id", "type", "status", "role", "content", "phase"],
-        "function_call" => &["id", "type", "status", "call_id", "name", "arguments"],
+        "function_call" => &[
+            "id",
+            "type",
+            "status",
+            "call_id",
+            "name",
+            "namespace",
+            "arguments",
+        ],
         _ => return Err(stream_protocol_error()),
     };
     *stage = if item.contains_key("phase") {
@@ -130,6 +138,17 @@ fn native_item_metadata_checked(
             validate_parts(&item["content"], "output_text", stage)?;
         }
         Some("function_call") => {
+            if item.get("namespace").is_some_and(|value| {
+                value.as_str().is_none_or(|v| {
+                    v.is_empty()
+                        || v.len() > 64
+                        || !v
+                            .bytes()
+                            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'_' | b'-'))
+                })
+            }) {
+                return Err(stream_protocol_error());
+            }
             *stage = "function_fields";
             for field in ["call_id", "name"] {
                 if item
@@ -341,7 +360,17 @@ impl OpenAiResponsesSseEncoder {
                 let index = self
                     .native_tool_index(&v.call_id)
                     .ok_or_else(stream_protocol_error)?;
-                if self.native_value(index)?["name"] != v.name {
+                let namespace = v
+                    .extensions
+                    .get("namespace")
+                    .map(|raw| {
+                        serde_json::from_str::<Value>(raw.get())
+                            .map_err(|_| stream_protocol_error())
+                    })
+                    .transpose()?;
+                if self.native_value(index)?["name"] != v.name
+                    || self.native_value(index)?.get("namespace") != namespace.as_ref()
+                {
                     return Err(stream_protocol_error());
                 }
                 Ok(Some(Vec::new()))
@@ -529,6 +558,7 @@ impl OpenAiResponsesSseEncoder {
         if value["type"] == "function_call" {
             if old["call_id"] != value["call_id"]
                 || old["name"] != value["name"]
+                || old.get("namespace") != value.get("namespace")
                 || old["arguments"] != value["arguments"]
             {
                 return Err(stream_protocol_error());

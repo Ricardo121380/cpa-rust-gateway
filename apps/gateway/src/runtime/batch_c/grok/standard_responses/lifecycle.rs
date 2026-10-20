@@ -10,6 +10,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 mod cli;
 mod disconnect;
 mod messages;
+mod namespaces;
 mod recording_faults;
 
 struct SocketPeer {
@@ -210,9 +211,17 @@ impl GrokBuildTransport for SocketTransport {
             )
             .map_err(|_| internal_error())?;
             let response = self.pool.send(handoff, &self.profile).await?;
+            let kind = if response
+                .header("content-type")
+                .is_some_and(|v| v == "application/json")
+            {
+                GrokBuildResponseContentType::Json
+            } else {
+                GrokBuildResponseContentType::EventStream
+            };
             Ok(GrokBuildTransportResponse::new(
                 response.status(),
-                GrokBuildResponseContentType::EventStream,
+                kind,
                 provider_grok::GrokBuildResponseContentEncoding::Identity,
                 Box::new(SocketBody(response)),
             ))
@@ -357,6 +366,13 @@ fn complete_wire(raw: Option<&str>) -> String {
 }
 
 fn lifecycle_fixture(transport: Arc<dyn GrokBuildTransport>) -> Result<Fixture, Box<dyn Error>> {
+    lifecycle_fixture_qualified(transport, false)
+}
+
+fn lifecycle_fixture_qualified(
+    transport: Arc<dyn GrokBuildTransport>,
+    namespaces: bool,
+) -> Result<Fixture, Box<dyn Error>> {
     let (channel, secret) = native_channels()[0];
     fixture_with_configuration(
         channel,
@@ -381,6 +397,7 @@ fn lifecycle_fixture(transport: Arc<dyn GrokBuildTransport>) -> Result<Fixture, 
         |endpoints| {
             let mut profiles = P12TransportProfiles::try_new()?;
             profiles.build = Some(transport);
+            profiles.build_namespaces_local_controlled = namespaces;
             endpoints.values_mut().next().ok_or("endpoint")?.transports = Arc::new(profiles);
             Ok(())
         },

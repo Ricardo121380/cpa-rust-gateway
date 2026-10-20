@@ -334,6 +334,7 @@ impl GrokBuildResponsesRequestBuilder {
             mode,
             cache_identity,
             None,
+            false,
         )
     }
 
@@ -344,7 +345,17 @@ impl GrokBuildResponsesRequestBuilder {
         mode: ResponseMode,
         cache_identity: Option<&GrokBuildCacheIdentity>,
         owner: Option<&crate::GrokBuildReasoningOwner>,
+        namespaces_qualified: bool,
     ) -> Result<GrokBuildResponsesOutboundRequest, GatewayError> {
+        if protocol_openai_responses::uses_namespaces(request) && !namespaces_qualified {
+            return Err(GatewayError::new(
+                GatewayErrorCode::ClientRequestError,
+                ErrorScope::Request,
+            ));
+        }
+        if let Some(tools) = protocol_openai_responses::ResponsesToolSet::from_request(request)? {
+            tools.validate_history(request)?;
+        }
         if credential.access_token().is_empty()
             || !credential
                 .access_token()
@@ -610,6 +621,20 @@ fn encode_opaque_part(raw: &RawJson, extensions: &RawExtensions) -> Result<Value
     Ok(part)
 }
 
+fn namespace_extensions(item: &Map<String, Value>) -> Result<RawExtensions, GatewayError> {
+    let mut extensions = RawExtensions::default();
+    if let Some(namespace) = item.get("namespace") {
+        extensions
+            .try_insert(
+                "namespace",
+                RawJson::from_json_string(namespace.to_string())
+                    .map_err(|_| stream_protocol_error())?,
+            )
+            .map_err(|_| stream_protocol_error())?;
+    }
+    Ok(extensions)
+}
+
 fn encode_tool_call(call: &gateway_core::ToolCall) -> Result<Value, GatewayError> {
     if call.id.is_empty() || call.name.is_empty() {
         return Err(provider_protocol_error());
@@ -722,7 +747,11 @@ fn insert_root_extensions(
         let Some(name) = name.strip_prefix(OPENAI_RESPONSES_EXTENSION_PREFIX) else {
             return Err(provider_protocol_error());
         };
-        if name == "reasoning" && !root.contains_key(name) {
+        if name == "tools" && !root.contains_key(name) {
+            let tools = protocol_openai_responses::ResponsesToolSet::decode(raw)
+                .map_err(|_| provider_protocol_error())?;
+            root.insert(name.to_owned(), tools.wire().clone());
+        } else if name == "reasoning" && !root.contains_key(name) {
             let value = protocol_openai_responses::decode_summary_only_reasoning(raw)
                 .map_err(|_| provider_protocol_error())?;
             root.insert(name.to_owned(), value);
@@ -903,13 +932,14 @@ impl GrokBuildResponsesDecoder {
     ///
     /// Returns a safe provider/stream protocol error for malformed or unrepresentable input.
     pub fn decode_non_streaming(input: &[u8]) -> Result<CanonicalResponse, GatewayError> {
-        Self::decode_owned(input, None, None)
+        Self::decode_owned(input, None, None, false)
     }
 
     fn decode_owned(
         input: &[u8],
         owner: Option<crate::GrokBuildReasoningOwner>,
         expected_model: Option<String>,
+        namespaces_qualified: bool,
     ) -> Result<CanonicalResponse, GatewayError> {
         let value = parse_strict_json(input, MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES)
             .map_err(|()| provider_protocol_error())?;
@@ -919,6 +949,7 @@ impl GrokBuildResponsesDecoder {
         let mut state = GrokBuildResponsesDecodeState {
             reasoning_owner: owner,
             expected_model,
+            namespaces_qualified,
             raw_usage: received_usage_slice(input, false)?,
             ..Default::default()
         };
@@ -948,7 +979,7 @@ impl GrokBuildResponsesDecoder {
         content_encoding: Option<&str>,
         input: &[u8],
     ) -> Result<CanonicalResponse, GatewayError> {
-        Self::decode_owned_with_encoding(content_encoding, input, None, None)
+        Self::decode_owned_with_encoding(content_encoding, input, None, None, false)
     }
 
     pub(crate) fn decode_owned_with_encoding(
@@ -956,9 +987,10 @@ impl GrokBuildResponsesDecoder {
         input: &[u8],
         owner: Option<crate::GrokBuildReasoningOwner>,
         expected_model: Option<String>,
+        namespaces_qualified: bool,
     ) -> Result<CanonicalResponse, GatewayError> {
         let decoded = decode_non_streaming_content_encoding(content_encoding, input)?;
-        Self::decode_owned(&decoded, owner, expected_model)
+        Self::decode_owned(&decoded, owner, expected_model, namespaces_qualified)
     }
 }
 
@@ -1003,6 +1035,10 @@ pub struct GrokBuildResponsesStreamDecoder {
 }
 
 impl GrokBuildResponsesStreamDecoder {
+    pub(crate) fn with_namespace_qualification(mut self, qualified: bool) -> Self {
+        self.state.namespaces_qualified = qualified;
+        self
+    }
     pub(crate) fn with_expected_model(mut self, model: String) -> Self {
         self.state.expected_model = Some(model);
         self
@@ -1088,6 +1124,8 @@ impl fmt::Debug for GrokBuildResponsesStreamDecoder {
 
 #[derive(Clone, Default)]
 struct GrokBuildResponsesDecodeState {
+    namespaces_qualified: bool,
+    pending_tool_completion: Vec<CanonicalEvent>,
     expected_model: Option<String>,
     native_model: Option<String>,
     reasoning_owner: Option<crate::GrokBuildReasoningOwner>,
@@ -1099,6 +1137,7 @@ struct GrokBuildResponsesDecodeState {
     done_item_ids: BTreeSet<String>,
     function_call_ids: BTreeMap<String, String>,
     function_call_names: BTreeMap<String, String>,
+    function_call_namespaces: BTreeMap<String, Option<Value>>,
     function_arguments: BTreeMap<String, String>,
     emitted_function_arguments: BTreeSet<String>,
     completed_function_calls: BTreeSet<String>,
@@ -1116,6 +1155,15 @@ impl fmt::Debug for GrokBuildResponsesDecodeState {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("GrokBuildResponsesDecodeState")
+            .field("local_controlled_namespaces", &self.namespaces_qualified)
+            .field(
+                "pending_tool_completion_count",
+                &self.pending_tool_completion.len(),
+            )
+            .field(
+                "function_namespace_count",
+                &self.function_call_namespaces.len(),
+            )
             .field("expected_model", &self.expected_model.is_some())
             .field("native_model", &self.native_model.is_some())
             .field("native_usage_present", &self.raw_usage.is_some())
@@ -1164,6 +1212,9 @@ impl GrokBuildResponsesDecodeState {
         item: &Map<String, Value>,
         completed: bool,
     ) -> Result<gateway_core::OutputItemMetadata, GatewayError> {
+        if item.contains_key("namespace") && !self.namespaces_qualified {
+            return Err(stream_protocol_error());
+        }
         if item.get("status").is_some_and(|value| {
             !matches!(
                 value.as_str(),
@@ -1405,13 +1456,15 @@ impl GrokBuildResponsesDecodeState {
                 CanonicalEvent::ToolCallStart(ToolCallStart {
                     call_id: call_id.to_owned(),
                     name: name.to_owned(),
-                    extensions: RawExtensions::default(),
+                    extensions: namespace_extensions(item)?,
                 }),
             )?;
             self.function_call_ids
                 .insert(item_id.to_owned(), call_id.to_owned());
             self.function_call_names
                 .insert(item_id.to_owned(), name.to_owned());
+            self.function_call_namespaces
+                .insert(item_id.to_owned(), item.get("namespace").cloned());
         }
         if let Some(phase) = item.get("phase") {
             self.item_phases.insert(item_id.to_owned(), phase.clone());
@@ -1573,6 +1626,11 @@ impl GrokBuildResponsesDecodeState {
                 if self.function_call_names.get(item_id).map(String::as_str) != Some(name) {
                     return Err(stream_protocol_error());
                 }
+                if self.function_call_namespaces.get(item_id)
+                    != Some(&item.get("namespace").cloned())
+                {
+                    return Err(stream_protocol_error());
+                }
                 *stage = "arguments";
                 let arguments = required_string(item, "arguments", stream_protocol_error())?;
                 self.finish_function_call(call_id, arguments, events)?;
@@ -1627,7 +1685,14 @@ impl GrokBuildResponsesDecodeState {
         }
         native::retain_item_annotations(&completed, &mut self.annotations)?;
         *stage = "canonical_item_end";
-        self.emit(events, CanonicalEvent::OutputItemEnd(metadata))?;
+        let end = CanonicalEvent::OutputItemEnd(metadata);
+        if self.namespaces_qualified
+            && completed.get("type").and_then(Value::as_str) == Some("function_call")
+        {
+            self.pending_tool_completion.push(end);
+        } else {
+            self.emit(events, end)?;
+        }
         self.completed_items
             .insert(item_id.to_owned(), Value::Object(completed));
         self.done_item_ids.insert(item_id.to_owned());
@@ -1996,11 +2061,6 @@ impl GrokBuildResponsesDecodeState {
         if self.done_item_ids.contains(item_id) {
             return Err(stream_protocol_error());
         }
-        if event.get("name").is_some_and(|value| {
-            value.as_str() != self.function_call_names.get(item_id).map(String::as_str)
-        }) {
-            return Err(stream_protocol_error());
-        }
         let arguments = required_string(event, "arguments", stream_protocol_error())?;
         self.finish_function_call(&call_id, arguments, events)
     }
@@ -2014,6 +2074,11 @@ impl GrokBuildResponsesDecodeState {
         if event.contains_key("call_id")
             && required_identifier(event, "call_id", stream_protocol_error())? != call_id
         {
+            return Err(stream_protocol_error());
+        }
+        if event.get("name").is_some_and(|value| {
+            value.as_str() != self.function_call_names.get(item_id).map(String::as_str)
+        }) {
             return Err(stream_protocol_error());
         }
         Ok(call_id)
@@ -2067,6 +2132,14 @@ impl GrokBuildResponsesDecodeState {
                 .get(item_id)
                 .and_then(Value::as_object)
                 .ok_or_else(stream_protocol_error)?;
+            if known.get("type").and_then(Value::as_str) == Some("function_call") {
+                for key in ["type", "call_id", "name", "namespace"] {
+                    if item.get(key) != known.get(key) {
+                        return Err(stream_protocol_error());
+                    }
+                }
+                required_string(item, "arguments", stream_protocol_error())?;
+            }
             for (key, value) in item {
                 if key == "encrypted_content" {
                     if !value.is_null() && known.get(key) != Some(value) {
@@ -2097,9 +2170,10 @@ impl GrokBuildResponsesDecodeState {
         {
             return Err(stream_protocol_error());
         }
-        if let Some(usage) =
-            parse_usage(response, self.raw_usage.as_ref(), &stream_protocol_error())?
-        {
+        let usage = parse_usage(response, self.raw_usage.as_ref(), &stream_protocol_error())?;
+        // A controlled namespace call becomes executable only after its terminal snapshot and
+        // Usage have also passed validation. Earlier item.done cannot authorize execution.
+        if let Some(usage) = usage {
             self.emit(
                 events,
                 CanonicalEvent::UsageDelta(UsageDelta {
@@ -2108,6 +2182,11 @@ impl GrokBuildResponsesDecodeState {
                     extensions: RawExtensions::default(),
                 }),
             )?;
+        }
+        // Usage projection/confirmation precedes any executable namespace completion. An
+        // unadmitted Usage extension therefore fails without exposing a completed tool call.
+        for event in std::mem::take(&mut self.pending_tool_completion) {
+            self.emit(events, event)?;
         }
         if self.message_open {
             self.emit(
@@ -2289,14 +2368,16 @@ impl GrokBuildResponsesDecodeState {
             )?;
             self.emitted_function_arguments.insert(call_id.to_owned());
         }
-        self.emit(
-            events,
-            CanonicalEvent::ToolCallEnd(ToolCallEnd {
-                call_id: call_id.to_owned(),
-                arguments: raw_arguments,
-                extensions: RawExtensions::default(),
-            }),
-        )?;
+        let end = CanonicalEvent::ToolCallEnd(ToolCallEnd {
+            call_id: call_id.to_owned(),
+            arguments: raw_arguments,
+            extensions: RawExtensions::default(),
+        });
+        if self.namespaces_qualified {
+            self.pending_tool_completion.push(end);
+        } else {
+            self.emit(events, end)?;
+        }
         self.function_arguments
             .insert(call_id.to_owned(), arguments);
         self.completed_function_calls.insert(call_id.to_owned());

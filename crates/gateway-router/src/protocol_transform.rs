@@ -684,6 +684,12 @@ fn validate_target_content(
                             match key {
                                 "id" => valid_responses_item_id(&value),
                                 "status" => value.as_str() == Some("completed"),
+                                "namespace" => {
+                                    value.is_null()
+                                        || value
+                                            .as_str()
+                                            .is_some_and(|v| !v.is_empty() && v.len() <= 64)
+                                }
                                 _ => false,
                             }
                         })
@@ -691,7 +697,18 @@ fn validate_target_content(
         {
             return Err(ProtocolTransformRejection::UnknownContentExtensions);
         }
-        MessageContent::ToolResult(result) if !result.extensions.is_empty() => {
+        MessageContent::ToolResult(result)
+            if !(result.extensions.is_empty()
+                || target == ProtocolFormat::OpenAiResponses
+                    && result.extensions.iter().all(|(key, _)| {
+                        matches!(key, "name" | "namespace")
+                            && protocol_openai_responses::optional_tool_identity_member(
+                                &result.extensions,
+                                key,
+                            )
+                            .is_ok()
+                    })) =>
+        {
             return Err(ProtocolTransformRejection::UnknownContentExtensions);
         }
         MessageContent::Opaque(_)
@@ -822,6 +839,11 @@ fn validate_target_root_extensions(
             if !serde_json::from_str::<Value>(raw.get()).is_ok_and(|value| value.is_boolean()) {
                 return Err(ProtocolTransformRejection::UnknownRequestExtensions);
             }
+        } else if target == ProtocolFormat::OpenAiResponses
+            && name == protocol_openai_responses::RESPONSES_TOOLS
+        {
+            protocol_openai_responses::ResponsesToolSet::from_request(request)
+                .map_err(|_| ProtocolTransformRejection::UnknownToolDefinitionExtensions)?;
         } else if target == ProtocolFormat::OpenAiResponses && name == "openai.responses.reasoning"
         {
             // A summary request with no effort is distinct from an explicit Thinking effort.
@@ -1053,6 +1075,10 @@ fn capability_rejection(
     }
 
     let has_tools = !request.tools.is_empty()
+        || request
+            .extensions
+            .get(protocol_openai_responses::RESPONSES_TOOLS)
+            .is_some()
         || request.messages.iter().any(|message| {
             message.content.iter().any(|content| {
                 matches!(

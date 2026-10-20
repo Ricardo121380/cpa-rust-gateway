@@ -31,5 +31,9 @@ tracing.workspace = true
 url.workspace = true
 zeroize.workspace = true
 
+[features]
+# Explicitly used by the owning gateway's dev-dependency, never by stock composition.
+controlled-test-support = []
+
 [lints]
 workspace = true

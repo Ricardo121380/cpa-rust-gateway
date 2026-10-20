@@ -4219,6 +4219,8 @@ struct P12TransportProfiles {
     #[cfg(test)]
     build: Option<Arc<dyn provider_grok::GrokBuildTransport>>,
     #[cfg(test)]
+    build_namespaces_local_controlled: bool,
+    #[cfg(test)]
     console: Option<Arc<dyn provider_grok::GrokConsoleTransport>>,
     streaming: UpstreamTransportProfile,
     non_streaming: UpstreamTransportProfile,
@@ -4293,6 +4295,8 @@ impl P12TransportProfiles {
             official: None,
             #[cfg(test)]
             build: None,
+            #[cfg(test)]
+            build_namespaces_local_controlled: false,
             #[cfg(test)]
             console: None,
             streaming,
@@ -4636,6 +4640,34 @@ impl EndpointAttemptDriver {
         }
     }
 
+    fn validate_namespace_candidate(
+        &self,
+        runtime: &EndpointRuntime,
+        candidate: &SnapshotRouteCandidate,
+        target: ProtocolFormat,
+    ) -> Result<(), ProtocolTransformRejection> {
+        if protocol_openai_responses::uses_namespaces(&self.request) {
+            #[cfg(not(test))]
+            let qualified = false;
+            #[cfg(test)]
+            let qualified = runtime.transports.build_namespaces_local_controlled
+                && runtime.transports.build.is_some();
+            if !qualified
+                || !matches!(runtime.adapter, EndpointAdapter::GrokBuildResponses)
+                || self.client_protocol != ProtocolFormat::OpenAiResponses
+                || target != ProtocolFormat::OpenAiResponses
+                || !matches!(
+                    candidate.transform_mode(),
+                    gateway_router::SnapshotTransformMode::Canonical
+                        | gateway_router::SnapshotTransformMode::CanonicalBridge
+                )
+            {
+                return Err(ProtocolTransformRejection::UnknownToolDefinitionExtensions);
+            }
+        }
+        Ok(())
+    }
+
     /// Produces the exact request material for one Candidate without reading a Secret or taking a
     /// lease. The same function is used by the scheduler predicate and again by the driver, so
     /// admission and execution cannot drift.
@@ -4650,6 +4682,7 @@ impl EndpointAttemptDriver {
             .endpoints
             .get(candidate.endpoint_id())
             .ok_or(ProtocolTransformRejection::PairUnregistered)?;
+        self.validate_namespace_candidate(runtime, candidate, target)?;
         if self.client_transport == ResponsesClientTransport::WebSocket
             && !candidate
                 .effective_capabilities()
@@ -5289,6 +5322,14 @@ impl EndpointAttemptDriver {
         .with_model_binding(model_binding)
         .with_provider_egress_attempt(native_egress)
         .with_cache_identity_deriver(Arc::clone(&self.grok_build_cache_identity_deriver));
+        #[cfg(test)]
+        let adapter = if runtime.transports.build_namespaces_local_controlled
+            && runtime.transports.build.is_some()
+        {
+            adapter.with_local_controlled_namespaces()
+        } else {
+            adapter
+        };
         let adapter = if let (Some((codec, version, route)), Some(client)) =
             (&self.reasoning_binding, &self.client_key_id)
         {

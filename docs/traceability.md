@@ -275,3 +275,11 @@ summary/body及模型关系未实施；标准与协商消费者资格分列，#4
 #62 的 Codex 请求兼容增量对应 [ADR-0113](adr/ADR-0113-responses-summary-without-effort.md)、[BC-PROTOCOL-009](contracts/BC-PROTOCOL-009-codex-responses-controls.md) 与 [本轮报告](reports/cpar-62-codex-responses-compat-20261019.md)。summary-only 保留 effort 缺失；namespace、client_metadata 和 web_search 固定 Build 资格仍 BLOCKED，实际 Codex 成功门槛单列，#61 的正式依赖和 NOT_ADMITTED 保持。
 
 #63 的标准 Messages 受控摘要交付对应 [ADR-0114](adr/ADR-0114-confirmed-build-messages-summary.md)、[BC-OBS-007](contracts/BC-OBS-007-messages-summary-evidence.md) 与[支持范围](support/grok-build-messages.md)。仅限定 Build/CanonicalBridge/Messages；完整 summary 加密确认与标准工具历史分开核对，不改变 #61 依赖或 cost NOT_ADMITTED。实际 Claude Code 留在 #64，真实 Provider、发布和部署分别验收。
+
+## #62 C1-C3 native namespace/function slice
+
+[ADR-0115](adr/ADR-0115-native-namespaced-function-identity.md) links
+[BC-PROTOCOL-009](contracts/BC-PROTOCOL-009-codex-responses-controls.md), BC-CORE-002/003,
+BC-ROUTER-004 and BC-PROVIDER-003 to the ordered native tool-set view, Build field qualification
+barrier and public controlled namespace tests. This local software slice does not complete #62,
+activate fixed Build namespaces, admit C4/C5/C6/#61 or change GitHub dependencies.

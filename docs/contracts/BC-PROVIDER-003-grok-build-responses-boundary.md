@@ -206,3 +206,21 @@ complete confirmed summary item/part hierarchy in an independent encrypted names
 for commit before successful closure. Native lifecycle, model identity, unknown content, cost
 NOT_ADMITTED and no-read-ahead rules remain. Responses continues to expose summary; no other
 Provider inherits the exception. Details: [BC-OBS-007](BC-OBS-007-messages-summary-evidence.md).
+
+## 2026-10-20 native namespace/function successor
+
+[ADR-0115](../adr/ADR-0115-native-namespaced-function-identity.md) and
+[BC-PROTOCOL-009](BC-PROTOCOL-009-codex-responses-controls.md) define the C1-C3 local native
+function slice. The existing ordered raw extension/event envelope carries full namespace/name
+identity, group descriptions and schema/strict without changing core fields or stored payload v1.
+Call ID remains correlation only. Supplied result identities confirm their call and retain
+independent missing/null/value presence. Native argument/item/terminal checks precede executable
+completion. The normal fixed Build assembly remains unqualified and refuses before send; only
+owned local tests can inject field qualification. Existing capability, model, lease, Usage,
+summary, error, cancellation and ownership boundaries remain. No C4/C5/C6 or cost admission.
+
+## Corresponding tests
+
+- `public_build_namespace_json_and_fragmented_sse_keep_two_related_cycles`
+- `public_build_namespace_invalid_requests_and_unqualified_assembly_send_zero`
+- `public_build_namespace_sse_identity_conflicts_never_complete_tools_or_retry`

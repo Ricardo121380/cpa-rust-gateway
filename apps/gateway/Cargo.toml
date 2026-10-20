@@ -39,6 +39,7 @@ tokio.workspace = true
 zeroize.workspace = true
 
 [dev-dependencies]
+provider-grok = { path = "../../crates/provider-grok", features = ["controlled-test-support"] }
 tokio-tungstenite.workspace = true
 
 [lints]
