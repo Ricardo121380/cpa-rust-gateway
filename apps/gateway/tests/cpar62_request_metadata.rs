@@ -14,6 +14,7 @@ use std::{
     os::unix::fs::{MetadataExt, PermissionsExt},
     path::PathBuf,
     process::{Command, Stdio},
+    sync::atomic::{AtomicU64, Ordering},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 type TestResult = Result<(), Box<dyn Error>>;
@@ -21,10 +22,14 @@ const RAW: &str = r#"{ "session_id":"PRIVATE_C4_STORAGE", "x-codex-turn-metadata
 struct Directory(PathBuf);
 impl Directory {
     fn new() -> Result<Self, Box<dyn Error>> {
+        Self::at(SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos())
+    }
+    fn at(timestamp_ns: u128) -> Result<Self, Box<dyn Error>> {
+        static NEXT_DIRECTORY: AtomicU64 = AtomicU64::new(0);
         let path = std::env::temp_dir().join(format!(
-            "cpar62-meta-{}-{}",
+            "cpar62-meta-{}-{timestamp_ns}-{}",
             std::process::id(),
-            SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos()
+            NEXT_DIRECTORY.fetch_add(1, Ordering::Relaxed),
         ));
         fs::create_dir(&path)?;
         fs::set_permissions(&path, fs::Permissions::from_mode(0o700))?;
@@ -39,6 +44,19 @@ impl Drop for Directory {
         let _ = fs::remove_dir_all(&self.0);
     }
 }
+
+#[test]
+fn request_metadata_fixture_directories_do_not_collide_at_the_same_timestamp() -> TestResult {
+    let first = Directory::at(1_000_000)?;
+    let second = Directory::at(1_000_000)?;
+    assert_ne!(first.0, second.0);
+    for directory in [&first, &second] {
+        assert_eq!(fs::metadata(&directory.0)?.mode() & 0o777, 0o700);
+        assert!(!directory.db().exists());
+    }
+    Ok(())
+}
+
 fn keys(active: u32, versions: &[u32], wrong: bool) -> Result<SecretStore, Box<dyn Error>> {
     Ok(SecretStore::new(MasterKeyRing::try_new(
         KeyVersion::try_new(active)?,
