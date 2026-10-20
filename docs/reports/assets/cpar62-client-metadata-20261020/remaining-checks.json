@@ -1,0 +1,42 @@
+{
+  "original_full_status": "FAIL (both attempts)",
+  "workspace_without_gateway_exit": 0,
+  "runs": [
+    {
+      "log": "gateway-integration-final.log",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "--all-features",
+        "--test",
+        "*",
+        "--",
+        "--nocapture"
+      ],
+      "exit": 0,
+      "code_commit": "32ece7f4bd4ea02cdb07256af2a447842e156840"
+    },
+    {
+      "log": "green-public-final-immutable.log",
+      "command": [
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-client-metadata-20261020/eof-failure/final-full-gateway-failed",
+        "public_build_c4_",
+        "--nocapture"
+      ],
+      "exit": 0,
+      "code_commit": "32ece7f4bd4ea02cdb07256af2a447842e156840"
+    },
+    {
+      "log": "full-remainder.log",
+      "command": [
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-client-metadata-20261020/check-remainder.sh",
+        "full"
+      ],
+      "exit": 0,
+      "code_commit": "32ece7f4bd4ea02cdb07256af2a447842e156840"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "code_commit": "32ece7f4bd4ea02cdb07256af2a447842e156840",
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-client-metadata-20261020-32ece7f4bd4e",
+  "command": [
+    "python3",
+    "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-client-metadata-20261020-32ece7f4bd4e/scripts/acceptance/cpar62-cli.py",
+    "--require-codex-success",
+    "--require-prompt-release",
+    "--output",
+    "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c4-cli-20261020T144929Z-20d6fe37"
+  ],
+  "output": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c4-cli-20261020T144929Z-20d6fe37",
+  "driver_sha256": "52daceb172dfb286aafcb67aaeb9916e907c7ff3f7c4c3aef3199daa4f5a7da9",
+  "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-client-metadata-20261020/target-full",
+  "exit": 1
+}

@@ -1,0 +1,160 @@
+{
+  "overall": "PARTIAL_FULL_FAILURE",
+  "C4_functional_diagnostics": "PASS_BOUNDED",
+  "code_commit": "32ece7f4bd4ea02cdb07256af2a447842e156840",
+  "code_tree": "43698ae7521552c26f983d93cecfac49b6048d67",
+  "source_input_paths": 7038,
+  "source_inputs_sha256": "9e724b47115b297d4a14108f8814f4a28b46856e61ae23b0c1457b69ba2be6a3",
+  "source_inputs_unchanged": true,
+  "inherited_overlays": 18,
+  "full_runs": [
+    {
+      "log": "full.log",
+      "exit": 101,
+      "gateway": {
+        "passed": 269,
+        "failed": 1,
+        "ignored": 4
+      },
+      "case": "public_build_upstream_eof_idle_and_total_timeout_fail_once_without_resend",
+      "cause": "UNKNOWN"
+    },
+    {
+      "log": "full-repeat.log",
+      "exit": 101,
+      "gateway": {
+        "passed": 269,
+        "failed": 1,
+        "ignored": 4
+      },
+      "case": "public_build_upstream_eof_idle_and_total_timeout_fail_once_without_resend",
+      "cause": "UNKNOWN"
+    }
+  ],
+  "same_full_binary_sha256": "6b969388341b73776d04867e32924dda70631bdc509e0e5bfd4bc1bda9ab9f9b",
+  "same_full_binary_targeted": {
+    "passed": 1,
+    "failed": 0,
+    "seconds": 2.46,
+    "does_not_explain_cause": true
+  },
+  "reviews": {
+    "Standards": "PASS_STATIC",
+    "Spec": "PASS_STATIC_AFTER_P2_FIX"
+  },
+  "checks": {
+    "remaining-workspace-tests.log": {
+      "summary_groups": 124,
+      "summary_sums": {
+        "passed": 1312,
+        "failed": 0,
+        "ignored": 11
+      }
+    },
+    "gateway-integration-final.log": {
+      "summary_groups": 5,
+      "summary_sums": {
+        "passed": 19,
+        "failed": 0,
+        "ignored": 2
+      }
+    },
+    "green-public-final-immutable.log": {
+      "summary_groups": 1,
+      "summary_sums": {
+        "passed": 9,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    "full-check.md": {
+      "pass_steps": 32,
+      "fail_steps": 1
+    },
+    "full-repeat-check.md": {
+      "pass_steps": 32,
+      "fail_steps": 1
+    },
+    "full-remainder-check.md": {
+      "pass_steps": 12,
+      "fail_steps": 0
+    }
+  },
+  "actual_cli": {
+    "command": [
+      "/usr/bin/sandbox-exec",
+      "-f",
+      "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c4-cli-20261020T144929Z-20d6fe37/isolated.sb",
+      "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-client-metadata-20261020/target-full/debug/deps/gateway-6e770dcab36cc471",
+      "actual_cli_public_build_qualification",
+      "--ignored",
+      "--nocapture"
+    ],
+    "exit": 0,
+    "runner_status": "FAIL",
+    "require_prompt_release": true,
+    "cancellation": {
+      "abort_to_release_upper_bound_ms": 13,
+      "alive_after_observation": {
+        "observed_at_ms": 1792507803597,
+        "pid": 98611,
+        "rpc_alive": true
+      },
+      "cli_alive_at_abort": true,
+      "cli_kept_alive": true,
+      "cli_pid": 98611,
+      "eventually_released_before_server_stop": true,
+      "lease_before_abort": {
+        "lease": 1,
+        "observed_at_ms": 1792507803565
+      },
+      "leases_after_first_second": 0,
+      "leases_at_observation_end": 0,
+      "observation_end_at_ms": 1792507803590,
+      "peer_close_at_observation_end": 1,
+      "release_observed_at_ms": 1792507803590,
+      "released_within_first_second": true,
+      "rpc_timeline": {
+        "abort_sent_at_ms": 1792507803577,
+        "delta_at_ms": 1792507803563,
+        "pid": 98611,
+        "rpc_aborted_at_ms": 1792507803582,
+        "rpc_alive": true
+      },
+      "total_observation_ms": 0
+    },
+    "tcp_observer": false,
+    "require_codex_success": true,
+    "codex_success_gate": {
+      "status": "FAIL",
+      "checks": {
+        "cli_exit_zero": false,
+        "answer_tool_task_and_follow_up": false,
+        "five_incremental_public_responses": false,
+        "independent_receives_and_exact_accounting": false,
+        "two_correlated_tool_results": false,
+        "actual_tool_file_result": false
+      }
+    },
+    "installs_unchanged": true,
+    "claim": "local controlled independent preparation; #62 remains blocked"
+  },
+  "blocked": {
+    "namespace": "BUILD_ACTIVATION_BLOCKED",
+    "original_Codex": "FAIL/BLOCKED",
+    "#62": "OPEN/BLOCKED",
+    "#61_cost_in_usd_ticks": "NOT_ADMITTED",
+    "C5_C6_ParallelTools_Claude_D2_66_67": "OUT_OF_SCOPE/INDEPENDENT_BLOCKERS"
+  },
+  "not_run": [
+    "real Provider",
+    "real account",
+    "paid request",
+    "remote CI",
+    "push",
+    "GitHub mutation",
+    "merge",
+    "release",
+    "deployment"
+  ]
+}

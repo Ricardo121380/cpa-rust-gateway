@@ -1,0 +1,11 @@
+{
+  "cancel_pid": 98611,
+  "alive_after_driver_cleanup": false,
+  "driver_exit": 1,
+  "fixture_test_exit": 0,
+  "shutdown_exits": {
+    "pi-standard": 143,
+    "pi-failure": 143,
+    "pi-cancel": 143
+  }
+}

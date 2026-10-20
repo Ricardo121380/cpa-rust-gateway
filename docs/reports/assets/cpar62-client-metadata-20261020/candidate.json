@@ -1,0 +1,10 @@
+{
+  "base": "973e1f589d24d0220b58d95071d91f824f29074d",
+  "code_commit": "32ece7f4bd4ea02cdb07256af2a447842e156840",
+  "code_tree": "43698ae7521552c26f983d93cecfac49b6048d67",
+  "validation_worktree": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-client-metadata-20261020-32ece7f4bd4e",
+  "overlay_count": 18,
+  "scope": "local C4 only; no original Codex or #62 completion",
+  "preceding_code_commit": "50957d2369f705b7c6f440801950a92fb6522c92",
+  "stored_response_fix": "public boundary RED retained; 9 C4 public tests GREEN; Clippy PASS"
+}

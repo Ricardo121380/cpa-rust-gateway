@@ -1,0 +1,35 @@
+{
+  "accounting": {
+    "attempts": 1,
+    "client_requests": 1,
+    "cost": "UNKNOWN",
+    "finished": 1,
+    "ledger": 1,
+    "lineage": [
+      {
+        "attempt_id": "attempt:45:p1-request-dc249d32bf025823b27dc365e060af47-0:1",
+        "native_companion": "UNKNOWN",
+        "owner": "p12-runtime-client-key",
+        "request_id": "p1-request-dc249d32bf025823b27dc365e060af47-0",
+        "source_event_id": "usage-attempt:511dcf012ec271ed832c8a7a25277bb6eed600d633341f8994a43d51f2d0ee07"
+      }
+    ],
+    "outcome": "Failed",
+    "requests_including_negative_probe": 1,
+    "usage": 1
+  },
+  "client": "pi",
+  "public": [
+    {
+      "chunks": 6,
+      "completed": 0,
+      "failed": 1,
+      "http": 200
+    }
+  ],
+  "received": 1,
+  "released_before_server_stop": true,
+  "released_within_one_second": true,
+  "scenario": "failure",
+  "success_metadata_retention": "BLOCKED_BY_61"
+}

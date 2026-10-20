@@ -1,0 +1,69 @@
+{
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-client-metadata-20261020-32ece7f4bd4e",
+  "command": "./scripts/check.sh full",
+  "code_commit": "32ece7f4bd4ea02cdb07256af2a447842e156840",
+  "explicit_environment": {
+    "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-client-metadata-20261020/target-full",
+    "CHECK_REPORT_PATH": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-client-metadata-20261020/full-check.md"
+  },
+  "inherited_test_environment": {
+    "RUST_TEST_THREADS": null,
+    "RUSTFLAGS": null,
+    "CARGO_BUILD_JOBS": null,
+    "CARGO_PROFILE_TEST_OPT_LEVEL": null
+  },
+  "versions": [
+    {
+      "command": [
+        "rustc",
+        "-Vv"
+      ],
+      "output": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n"
+    },
+    {
+      "command": [
+        "cargo",
+        "--version"
+      ],
+      "output": "cargo 1.97.1 (c980f4866 2026-06-30)\n"
+    },
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "output": "v26.8.2\n"
+    },
+    {
+      "command": [
+        "npm",
+        "--version"
+      ],
+      "output": "11.19.1\n"
+    },
+    {
+      "command": [
+        "cargo",
+        "deny",
+        "--version"
+      ],
+      "output": "cargo-deny 0.20.2\n"
+    },
+    {
+      "command": [
+        "cargo",
+        "audit",
+        "--version"
+      ],
+      "output": "cargo-audit-audit 0.22.2\n"
+    },
+    {
+      "command": [
+        "cargo",
+        "cyclonedx",
+        "--version"
+      ],
+      "output": "cargo-cyclonedx-cyclonedx 0.5.9\n"
+    }
+  ]
+}

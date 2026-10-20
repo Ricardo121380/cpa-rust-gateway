@@ -1,0 +1,52 @@
+{
+  "base": "973e1f589d24d0220b58d95071d91f824f29074d",
+  "owned_paths": [
+    "apps/gateway/src/main.rs",
+    "apps/gateway/src/maintenance_worker.rs",
+    "apps/gateway/src/runtime.rs",
+    "apps/gateway/src/runtime/batch_c.rs",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle.rs",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/client_metadata.rs",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/namespaces.rs",
+    "apps/gateway/src/usage_evidence.rs",
+    "apps/gateway/tests/cpar62_request_metadata.rs",
+    "crates/gateway-core/src/gateway_event.rs",
+    "crates/gateway-core/src/lib.rs",
+    "crates/gateway-core/src/request_metadata.rs",
+    "crates/gateway-http-actix/src/lib.rs",
+    "crates/gateway-observability/src/lib.rs",
+    "crates/gateway-router/src/lib.rs",
+    "crates/gateway-store/migrations/0037_request_metadata_evidence.down.sql",
+    "crates/gateway-store/migrations/0037_request_metadata_evidence.up.sql",
+    "crates/gateway-store/src/event_store.rs",
+    "crates/gateway-store/src/lib.rs",
+    "crates/gateway-store/src/request_metadata.rs",
+    "crates/protocol-openai-responses/src/lib.rs",
+    "crates/provider-grok/src/build_responses.rs",
+    "docs/adr/ADR-0116-local-codex-request-metadata-diagnostics.md",
+    "docs/contracts/BC-PROTOCOL-010-local-codex-client-metadata.md",
+    "docs/adr/README.md",
+    "docs/traceability.md",
+    "docs/contracts/BC-PROTOCOL-009-codex-responses-controls.md"
+  ],
+  "common_doc_products": [
+    {
+      "path": "docs/adr/README.md",
+      "product_sha256": "341cfcbb027fda80b603ca8fa347c0d056fe81966133366f5f3b3c1bbd6b4ab3",
+      "applied_working_sha256": "4962d3591417f722de5dabae34629a9899bc2b7ca8e8d39442a4dd77624c3301",
+      "product_blob": "e22d609358623d40058a1e53722264bb2b3b56cb"
+    },
+    {
+      "path": "docs/traceability.md",
+      "product_sha256": "536cacb5f56b9ebb137862670ba2d20b8136fc457ac8b97be02990a1eb545084",
+      "applied_working_sha256": "c84389859180286a74567449f90b08cb755fcc68bc16e652d2d87689e0113373",
+      "product_blob": "9232771510eba99039f2c35afd08f0c6b63675ca"
+    },
+    {
+      "path": "docs/contracts/BC-PROTOCOL-009-codex-responses-controls.md",
+      "product_sha256": "0f15fd3c940a5cca5d30fb0ce806db10303a599a534aae7cf10a9428e7bba1da",
+      "applied_working_sha256": "6325d5699b7e3cb183aa27fbf5b2b8dddb28ff7df9d21b17676473272dcd1d14",
+      "product_blob": "d81d9f18294c769ca345bbf9dee7d0f62dd8d579"
+    }
+  ]
+}

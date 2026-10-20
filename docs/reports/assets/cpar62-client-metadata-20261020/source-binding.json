@@ -1,0 +1,35 @@
+{
+  "commit": "32ece7f4bd4ea02cdb07256af2a447842e156840",
+  "tree": "43698ae7521552c26f983d93cecfac49b6048d67",
+  "stages": [
+    {
+      "file": "source-inputs-before.json",
+      "sha256": "9e724b47115b297d4a14108f8814f4a28b46856e61ae23b0c1457b69ba2be6a3"
+    },
+    {
+      "file": "source-inputs-after-first-full.json",
+      "sha256": "9e724b47115b297d4a14108f8814f4a28b46856e61ae23b0c1457b69ba2be6a3"
+    },
+    {
+      "file": "source-inputs-after.json",
+      "sha256": "9e724b47115b297d4a14108f8814f4a28b46856e61ae23b0c1457b69ba2be6a3"
+    }
+  ],
+  "all_equal": true,
+  "records": 7038,
+  "full_binary": {
+    "code_commit": "32ece7f4bd4ea02cdb07256af2a447842e156840",
+    "source_inputs": "source-inputs-before.json",
+    "binary": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-client-metadata-20261020/target-full/debug/deps/gateway-8e1e81d2ce6d7d0d",
+    "preserved": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-client-metadata-20261020/eof-failure/final-full-gateway-failed",
+    "sha256": "6b969388341b73776d04867e32924dda70631bdc509e0e5bfd4bc1bda9ab9f9b",
+    "bytes": 153123416,
+    "full_log": "full.log",
+    "failure": "existing EOF/idle/total-timeout test; original HTTP200 oracle unchanged",
+    "cause": "UNKNOWN"
+  },
+  "actual_cli_binary_sha256": "71d1bf45db2ca0681e4c646ffe31db349a80fa0dcd65c153262fb4efe642d0f6",
+  "actual_cli_driver_sha256": "52daceb172dfb286aafcb67aaeb9916e907c7ff3f7c4c3aef3199daa4f5a7da9",
+  "separate_full_target": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-client-metadata-20261020/target-full",
+  "full_is_overlay_validation": true
+}

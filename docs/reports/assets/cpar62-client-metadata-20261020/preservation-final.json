@@ -1,0 +1,288 @@
+{
+  "source": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-native-namespace-20261020",
+  "original_head": "973e1f589d24d0220b58d95071d91f824f29074d",
+  "original_branch": "feature/62-native-namespace",
+  "checks": {
+    "head": true,
+    "branch": true,
+    "status": true,
+    "index": true,
+    "diff": true,
+    "overlays": true
+  },
+  "overlay": [
+    {
+      "path": "AGENTS.md",
+      "original": {
+        "sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      },
+      "feature": {
+        "sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      }
+    },
+    {
+      "path": "CONTEXT.md",
+      "original": {
+        "sha256": "eaa545ede563d661387baff18ebd21e8acc3a9661000c4123eec6bf2d1779e21",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      },
+      "feature": {
+        "sha256": "eaa545ede563d661387baff18ebd21e8acc3a9661000c4123eec6bf2d1779e21",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      }
+    },
+    {
+      "path": "README.md",
+      "original": {
+        "sha256": "376de5be81e5b8ac7b0ad6ac25b4e186db18321a0cd89057d7432ef5524219f9",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      },
+      "feature": {
+        "sha256": "376de5be81e5b8ac7b0ad6ac25b4e186db18321a0cd89057d7432ef5524219f9",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      }
+    },
+    {
+      "path": "README.zh-CN.md",
+      "original": {
+        "sha256": "d5ae62085c88f4200b19f973b675b10fad63c0e86ed42178969ec869bfbe3b76",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      },
+      "feature": {
+        "sha256": "d5ae62085c88f4200b19f973b675b10fad63c0e86ed42178969ec869bfbe3b76",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      }
+    },
+    {
+      "path": "docs/06-development-plan.md",
+      "original": {
+        "sha256": "322ac4c20b44eedf1b3e7bdb3ed1bfc7b9e12c9cf2192b3b85ffe274061b3fe5",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      },
+      "feature": {
+        "sha256": "322ac4c20b44eedf1b3e7bdb3ed1bfc7b9e12c9cf2192b3b85ffe274061b3fe5",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      }
+    },
+    {
+      "path": "docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md",
+      "original": {
+        "sha256": "ad35d32a70725f9da6b412c0100e920eb52cd560f67faefbb9013b3ad1834bcb",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      },
+      "feature": {
+        "sha256": "ad35d32a70725f9da6b412c0100e920eb52cd560f67faefbb9013b3ad1834bcb",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      }
+    },
+    {
+      "path": "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+      "original": {
+        "sha256": "a426616e9a4cbb875e3eb081e40160357433817306ff045ed5de3c3797c39131",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      },
+      "feature": {
+        "sha256": "a426616e9a4cbb875e3eb081e40160357433817306ff045ed5de3c3797c39131",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      }
+    },
+    {
+      "path": "docs/adr/ADR-0106-native-fidelity-profile.md",
+      "original": {
+        "sha256": "8e770df75f08f2ce4c4471cfaa58365bc8e20715880dc7239e7d98438d530409",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      },
+      "feature": {
+        "sha256": "8e770df75f08f2ce4c4471cfaa58365bc8e20715880dc7239e7d98438d530409",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      }
+    },
+    {
+      "path": "docs/adr/ADR-0107-standard-response-metadata-separation.md",
+      "original": {
+        "sha256": "dad1f8391de1a6d82a0c280189346f1a065bc04ee84f88502859e766b485938e",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      },
+      "feature": {
+        "sha256": "dad1f8391de1a6d82a0c280189346f1a065bc04ee84f88502859e766b485938e",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      }
+    },
+    {
+      "path": "docs/adr/ADR-0108-build-summary-standard-messages.md",
+      "original": {
+        "sha256": "a8088457f16a6f60fbb13cd617594cb896f9c168a4dfe9122295602ade0f82ec",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      },
+      "feature": {
+        "sha256": "a8088457f16a6f60fbb13cd617594cb896f9c168a4dfe9122295602ade0f82ec",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      }
+    },
+    {
+      "path": "docs/adr/README.md",
+      "original": {
+        "sha256": "dcdaebd28c2b9abfca8f132b031a552bdf618dec12c6f5652529e44e89cc2603",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      },
+      "feature": {
+        "sha256": "4962d3591417f722de5dabae34629a9899bc2b7ca8e8d39442a4dd77624c3301",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      }
+    },
+    {
+      "path": "docs/agents/domain.md",
+      "original": {
+        "sha256": "143fbbb108382fe791a9a9a7b2f0c208d7a8b9a64f0250b3b172f1660c6f9b40",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      },
+      "feature": {
+        "sha256": "143fbbb108382fe791a9a9a7b2f0c208d7a8b9a64f0250b3b172f1660c6f9b40",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      }
+    },
+    {
+      "path": "docs/agents/issue-tracker.md",
+      "original": {
+        "sha256": "c95aff9dd13f35beb3646a2e01cf28559c1ceb0122e01515f354911385c312d0",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      },
+      "feature": {
+        "sha256": "c95aff9dd13f35beb3646a2e01cf28559c1ceb0122e01515f354911385c312d0",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      }
+    },
+    {
+      "path": "docs/agents/triage-labels.md",
+      "original": {
+        "sha256": "ef4786ebc27973fe8afd053bc91ff16038195c354f05d7456776ec6aeea2c721",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      },
+      "feature": {
+        "sha256": "ef4786ebc27973fe8afd053bc91ff16038195c354f05d7456776ec6aeea2c721",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      }
+    },
+    {
+      "path": "docs/contracts/BC-PROTOCOL-009-codex-responses-controls.md",
+      "original": {
+        "sha256": "92c925a201969ea8dbf9875b950a5cb4fe900c8a6e7bf98e2bb5f7f08c339cc0",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      },
+      "feature": {
+        "sha256": "6325d5699b7e3cb183aa27fbf5b2b8dddb28ff7df9d21b17676473272dcd1d14",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      }
+    },
+    {
+      "path": "docs/engineering-roadmap.md",
+      "original": {
+        "sha256": "0babeedb83b7c2138ab7e540ef8be4c2b0a0831a0710a0e00f5a9f861f28777b",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      },
+      "feature": {
+        "sha256": "0babeedb83b7c2138ab7e540ef8be4c2b0a0831a0710a0e00f5a9f861f28777b",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      }
+    },
+    {
+      "path": "docs/reports/cpar-62-64-client-field-plan-20261020.md",
+      "original": {
+        "sha256": "26cb7b1a5af0ee25ed47f35ecac963433c9cd704830f181c9529f942571cac97",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      },
+      "feature": {
+        "sha256": "26cb7b1a5af0ee25ed47f35ecac963433c9cd704830f181c9529f942571cac97",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      }
+    },
+    {
+      "path": "docs/traceability.md",
+      "original": {
+        "sha256": "dea9a159399ea5d3be6c4690fa13aa83cd462563a611986bdbc2d3a5952f9e34",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      },
+      "feature": {
+        "sha256": "c84389859180286a74567449f90b08cb755fcc68bc16e652d2d87689e0113373",
+        "mode": "0o644",
+        "symlink": null,
+        "matches": true
+      }
+    }
+  ],
+  "feature_own_index_empty": true,
+  "original_index_sha256": "1f078e35dfa01d8ee5fa78d00feef183f2f0e587435b9bccbf28c714109dbbb9",
+  "original_diff_sha256": "d280f6e4f45378aebf5da16fe2918b66ec4d86360f16232261b8ff94f227cf03"
+}
