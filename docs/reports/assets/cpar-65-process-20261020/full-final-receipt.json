@@ -1,0 +1,27 @@
+{
+  "status": "PASS",
+  "exit_code": 0,
+  "started_utc": "2026-10-20T05:03:13.981410+00:00",
+  "elapsed_seconds": 758.732616416,
+  "source_head": "7dfe34ab3ff177dd7cb3fb211a80be169bffd811",
+  "source_tree": "24ee8e13e57167f28670a24b23e9ffce49bec1ee",
+  "manifest": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar65-process-20261020-fixed/Cargo.toml",
+  "manifest_sha256": "1b1a37ce8d8fcafa51d379ffae2ff33fff091c5a48c0f3458e47b99c12b22355",
+  "lock_sha256": "ee3d735f0f7aa364f3f4675e75a87751c8ad3784f0788ac244c4d391ce479cce",
+  "target": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar65-20261020/target-full-final",
+  "input_files": 6994,
+  "inputs_unchanged": true,
+  "tools": {
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "node": "v26.8.2",
+    "npm": "11.19.1"
+  },
+  "rust": {
+    "passed": 1575,
+    "failed": 0,
+    "ignored": 16,
+    "groups": 128
+  },
+  "full_steps": 45
+}

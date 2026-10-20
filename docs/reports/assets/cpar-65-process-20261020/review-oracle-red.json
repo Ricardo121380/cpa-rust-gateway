@@ -1,0 +1,21 @@
+{
+  "candidate": "ddad4d634c9688d2ed3df066fafd3f28f29b2631",
+  "result": "RED_ORACLE_ACCEPTED_ALL_MUTANTS",
+  "cases": [
+    {
+      "mutation": "changed_text",
+      "old_oracle_accepted": true,
+      "fixture": "test-only mutation of authorized reader output, not database/ciphertext"
+    },
+    {
+      "mutation": "reversed_parts",
+      "old_oracle_accepted": true,
+      "fixture": "test-only mutation of authorized reader output, not database/ciphertext"
+    },
+    {
+      "mutation": "wrong_response_id",
+      "old_oracle_accepted": true,
+      "fixture": "test-only mutation of authorized reader output, not database/ciphertext"
+    }
+  ]
+}

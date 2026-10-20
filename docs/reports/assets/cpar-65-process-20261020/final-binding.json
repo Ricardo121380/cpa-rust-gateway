@@ -1,0 +1,130 @@
+{
+  "status": "PASS",
+  "matrix": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar65-20261020/matrix-final/matrix.json",
+  "matrix_sha256": "737493cdd0a54376770002e85b8849b05309c31d1e76277370bf79db36cea347",
+  "full_source": "7dfe34ab3ff177dd7cb3fb211a80be169bffd811",
+  "product_code": "5f3c2b4035dca3aa20a74bb086afab1295b19c7d",
+  "full_input_files_rechecked": 6994,
+  "source_input_changes": [],
+  "product_files": {
+    "apps/gateway/tests/cpar65_process_support.rs": "6abf09204c5935e0282766a48b4d056bca2703ab930e0a380552484ca2a449cf",
+    "scripts/acceptance/cpar65-process-recovery.py": "df14f68579434ee3badec53e412310387445336852eae04608edc255c13e5aa3",
+    "docs/support/evidence-process-recovery.md": "ce120bcb171595ea4fbd3cc61ddfcc2df238811fb3ef52a9ff3ef7525f7ee52b"
+  },
+  "checks": 823,
+  "all_checks_pass": true,
+  "processes": 13,
+  "all_processes_reaped_exit0": true,
+  "receiver_accepts": 14,
+  "receiver_requests": 11,
+  "binary_identities": {
+    "current": {
+      "source": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar65-process-20261020-fixed",
+      "artifact": {
+        "reason": "compiler-artifact",
+        "package_id": "path+file:///Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar65-process-20261020-fixed/apps/gateway#0.1.0",
+        "manifest_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar65-process-20261020-fixed/apps/gateway/Cargo.toml",
+        "target": {
+          "kind": [
+            "bin"
+          ],
+          "crate_types": [
+            "bin"
+          ],
+          "name": "gateway",
+          "src_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar65-process-20261020-fixed/apps/gateway/src/main.rs",
+          "edition": "2024",
+          "doc": true,
+          "doctest": false,
+          "test": true
+        },
+        "profile": {
+          "opt_level": "0",
+          "debuginfo": 2,
+          "debug_assertions": true,
+          "overflow_checks": true,
+          "test": false
+        },
+        "features": [],
+        "filenames": [
+          "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar65-20261020/target-full-final/debug/gateway"
+        ],
+        "executable": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar65-20261020/target-full-final/debug/gateway",
+        "fresh": true
+      },
+      "binary_sha256": "8ec06f330f099f4111c74e15c149cda9155c03d640985ed930ac55e37d7a076f"
+    },
+    "schema35": {
+      "source": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar65-schema35-098c92a5",
+      "artifact": {
+        "reason": "compiler-artifact",
+        "package_id": "path+file:///Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar65-schema35-098c92a5/apps/gateway#0.1.0",
+        "manifest_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar65-schema35-098c92a5/apps/gateway/Cargo.toml",
+        "target": {
+          "kind": [
+            "bin"
+          ],
+          "crate_types": [
+            "bin"
+          ],
+          "name": "gateway",
+          "src_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar65-schema35-098c92a5/apps/gateway/src/main.rs",
+          "edition": "2024",
+          "doc": true,
+          "doctest": false,
+          "test": true
+        },
+        "profile": {
+          "opt_level": "0",
+          "debuginfo": 2,
+          "debug_assertions": true,
+          "overflow_checks": true,
+          "test": false
+        },
+        "features": [],
+        "filenames": [
+          "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar65-20261020/target-schema35/debug/gateway"
+        ],
+        "executable": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar65-20261020/target-schema35/debug/gateway",
+        "fresh": true
+      },
+      "binary_sha256": "7c14f0754b7108868cef79a2f91145ce9e00875c130ec4111a719fb213d8ff41"
+    },
+    "support": {
+      "source": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar65-process-20261020-fixed",
+      "artifact": {
+        "reason": "compiler-artifact",
+        "package_id": "path+file:///Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar65-process-20261020-fixed/apps/gateway#0.1.0",
+        "manifest_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar65-process-20261020-fixed/apps/gateway/Cargo.toml",
+        "target": {
+          "kind": [
+            "test"
+          ],
+          "crate_types": [
+            "bin"
+          ],
+          "name": "cpar65_process_support",
+          "src_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar65-process-20261020-fixed/apps/gateway/tests/cpar65_process_support.rs",
+          "edition": "2024",
+          "doc": false,
+          "doctest": false,
+          "test": true
+        },
+        "profile": {
+          "opt_level": "0",
+          "debuginfo": 2,
+          "debug_assertions": true,
+          "overflow_checks": true,
+          "test": true
+        },
+        "features": [],
+        "filenames": [
+          "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar65-20261020/target-full-final/debug/deps/cpar65_process_support-f3435e8bb936b718"
+        ],
+        "executable": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar65-20261020/target-full-final/debug/deps/cpar65_process_support-f3435e8bb936b718",
+        "fresh": false
+      },
+      "binary_sha256": "87f8c1e320dc3ed49ae4550619fe559c7393564336d85a484492bd92bf167f32"
+    }
+  }
+}

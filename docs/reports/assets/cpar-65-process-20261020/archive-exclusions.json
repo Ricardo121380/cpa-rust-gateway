@@ -1,0 +1,36 @@
+{
+  "reason": "Existing source/target filenames trigger the project literal-secret regex; raw complete files remain local, with hashes below. The selected actual gateway/operator Cargo artifacts are retained in source-manifest.",
+  "files": [
+    {
+      "file": "full-input-before.json",
+      "sha256": "3c6a9e2eb85ec41980eef38da927f260ed07bfa2cc3ae086a22089b7a3af1aac",
+      "bytes": 1468039
+    },
+    {
+      "file": "full-input-after.json",
+      "sha256": "3c6a9e2eb85ec41980eef38da927f260ed07bfa2cc3ae086a22089b7a3af1aac",
+      "bytes": 1468039
+    },
+    {
+      "file": "schema35-build-final.jsonl",
+      "sha256": "dd9f2e01aeb87f46a1098805960b80204311ed228e44b740ed0913b3aa6e9121",
+      "bytes": 304836
+    },
+    {
+      "file": "serve-build.jsonl",
+      "sha256": "5cb42aa2de8cc896a259d5e92f9684805b06edd3adac1aa1077d677af0d1cd10",
+      "bytes": 306472
+    },
+    {
+      "file": "support-build-final.jsonl",
+      "sha256": "413def3bf5b777582f47169f4368ba369f70d1a4484b39039b72d81797262a71",
+      "bytes": 310355
+    },
+    {
+      "file": "support-build.jsonl",
+      "sha256": "ab3577c0ef5c18cd3dc50368d3a78eba51cd48bf35afaad329d325147a53552e",
+      "bytes": 305839
+    }
+  ],
+  "classification_verified": "matches appear only in full-input file paths or Cargo artifact filenames, not credentials"
+}

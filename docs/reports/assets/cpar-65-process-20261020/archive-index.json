@@ -1,0 +1,1409 @@
+{
+  "status": "PASS",
+  "archive": "verification-logs.tar.gz",
+  "archive_sha256": "9da4d300de5ab6abf7a2c19efbb4c6a6ca9f064202ecef8b77b75499da829a95",
+  "compressed_bytes": 1286075,
+  "members": 271,
+  "uncompressed_bytes": 6593773,
+  "scans": {
+    "project_secret_regex_each_uncompressed_member": "PASS",
+    "project_forbidden_paths": "PASS",
+    "private_fixture_markers": "ABSENT",
+    "synthetic_credential_literals": "ABSENT",
+    "symlinks_traversal_absolute_members": "ABSENT"
+  },
+  "readback": "ALL_MEMBER_NAMES_BYTES_AND_SHA256_VERIFIED",
+  "exclusions": {
+    "reason": "Existing source/target filenames trigger the project literal-secret regex; raw complete files remain local, with hashes below. The selected actual gateway/operator Cargo artifacts are retained in source-manifest.",
+    "files": [
+      {
+        "file": "full-input-before.json",
+        "sha256": "3c6a9e2eb85ec41980eef38da927f260ed07bfa2cc3ae086a22089b7a3af1aac",
+        "bytes": 1468039
+      },
+      {
+        "file": "full-input-after.json",
+        "sha256": "3c6a9e2eb85ec41980eef38da927f260ed07bfa2cc3ae086a22089b7a3af1aac",
+        "bytes": 1468039
+      },
+      {
+        "file": "schema35-build-final.jsonl",
+        "sha256": "dd9f2e01aeb87f46a1098805960b80204311ed228e44b740ed0913b3aa6e9121",
+        "bytes": 304836
+      },
+      {
+        "file": "serve-build.jsonl",
+        "sha256": "5cb42aa2de8cc896a259d5e92f9684805b06edd3adac1aa1077d677af0d1cd10",
+        "bytes": 306472
+      },
+      {
+        "file": "support-build-final.jsonl",
+        "sha256": "413def3bf5b777582f47169f4368ba369f70d1a4484b39039b72d81797262a71",
+        "bytes": 310355
+      },
+      {
+        "file": "support-build.jsonl",
+        "sha256": "ab3577c0ef5c18cd3dc50368d3a78eba51cd48bf35afaad329d325147a53552e",
+        "bytes": 305839
+      }
+    ],
+    "classification_verified": "matches appear only in full-input file paths or Cargo artifact filenames, not credentials"
+  },
+  "entries": [
+    {
+      "path": "archive-exclusions.json",
+      "bytes": 1324,
+      "sha256": "d91426a9d29f860ca0dcc2295a4950264ca12da43795388a156a2b95c2f8a809"
+    },
+    {
+      "path": "baseline-gap.json",
+      "bytes": 745,
+      "sha256": "99d595a5a56b3fe8fe69401907136e909e47eefa37d866a5094f0cd0c03adb59"
+    },
+    {
+      "path": "dev-build.log",
+      "bytes": 11736,
+      "sha256": "e57155c9134ca85f1db83e7bb5c7f2415ffa98c11afdea175dc4b7b7db595549"
+    },
+    {
+      "path": "dev-npm.log",
+      "bytes": 26,
+      "sha256": "14d54a6a86362f4babc07f775f10bbf4119a08255e5e4e3690692d959316adf8"
+    },
+    {
+      "path": "final-binding.json",
+      "bytes": 5488,
+      "sha256": "a4a0a64e124d3e4df74cabe124e4b52044fe31bd2e27b7724020b2990570da80"
+    },
+    {
+      "path": "final-controller.log",
+      "bytes": 894,
+      "sha256": "64e416bfb51d02b622a6c19f482699b22f1bf5e4ca922f5eaaaf9d822ecc7b50"
+    },
+    {
+      "path": "full-controller.log",
+      "bytes": 829,
+      "sha256": "b4a5d06538879198c33b822c25104f29d3232ab683329cd7c67747aee5471760"
+    },
+    {
+      "path": "full-final-check-report.md",
+      "bytes": 1850,
+      "sha256": "bb5126aab45ebc0c38364563395ffcdb51df25f71a7229e3a6ebb235ec0423dc"
+    },
+    {
+      "path": "full-final-receipt.json",
+      "bytes": 856,
+      "sha256": "5fa2894ba5a15a8a85a305259e817c57e841316fbd505baff123d6b6b196902b"
+    },
+    {
+      "path": "full-final.log",
+      "bytes": 321848,
+      "sha256": "8c5a3f48e55d8f9e16a7ba7d5ec89ef8129565ad4ef481b58056289ab1cfa804"
+    },
+    {
+      "path": "matrix-dev-01/matrix.json",
+      "bytes": 249643,
+      "sha256": "0131074028f4b739e64ee34067aca8dad963d9bc15ec133f4387bc8c5c556bd6"
+    },
+    {
+      "path": "matrix-dev-01.log",
+      "bytes": 1100,
+      "sha256": "e9bd1a835db6d46658e3eab29a3a5a29ac1eccc1c1cd4e1dbd8dd348e422c330"
+    },
+    {
+      "path": "matrix-dev-02/isolation-probe.log",
+      "bytes": 565,
+      "sha256": "f912a351fd95a7c751579ae13fc3b9c0071c65498fd453921638eb5cc842be47"
+    },
+    {
+      "path": "matrix-dev-02/matrix.json",
+      "bytes": 249643,
+      "sha256": "85d856978f3a02c8a0790df1b28cc50571daa1278d2f9fdcb077c339ab349ef8"
+    },
+    {
+      "path": "matrix-dev-02.log",
+      "bytes": 1100,
+      "sha256": "6b1d9c4d255846afdbcadfd1a33927c6914561f1eec3d8fc23d439635974c3a1"
+    },
+    {
+      "path": "matrix-dev-03/B-old-nonempty-serve.log",
+      "bytes": 1886,
+      "sha256": "0949ad8f47e11881c5c369165d9568b0e14bfc21d05d8369cb6b7bcb17a9b9a0"
+    },
+    {
+      "path": "matrix-dev-03/isolation-probe.log",
+      "bytes": 108,
+      "sha256": "11d8541172c2d8aeee4afe3f3c9e2bc8c8027041548af349fc51dff29c221df2"
+    },
+    {
+      "path": "matrix-dev-03/matrix.json",
+      "bytes": 251042,
+      "sha256": "c8fae4e6ae14b56986244f254592f9d899b94d3e098986c18333a8e4071cf0ae"
+    },
+    {
+      "path": "matrix-dev-03.log",
+      "bytes": 1157,
+      "sha256": "837fdbbd045668b664431b02212146e3346d4190579bc839b09f2d91a89d19a6"
+    },
+    {
+      "path": "matrix-dev-04/B-old-nonempty-serve.log",
+      "bytes": 1886,
+      "sha256": "7d4917e0cfbd08589af3e709ae4f69eb96cdd36bbb40d4f0d4bf220605081a7d"
+    },
+    {
+      "path": "matrix-dev-04/isolation-probe.log",
+      "bytes": 108,
+      "sha256": "11d8541172c2d8aeee4afe3f3c9e2bc8c8027041548af349fc51dff29c221df2"
+    },
+    {
+      "path": "matrix-dev-04/matrix.json",
+      "bytes": 251037,
+      "sha256": "f467403d2a2cd5f7045d7f160ca28c17417f8364b6d66e8f61cd3141c878c34e"
+    },
+    {
+      "path": "matrix-dev-04.log",
+      "bytes": 1141,
+      "sha256": "19bdc849dd02f000ece0e7da98ad72aadceccaad5d0c3dd2d37ff8419f96c6e0"
+    },
+    {
+      "path": "matrix-dev-05/B-old-nonempty-serve.log",
+      "bytes": 3695,
+      "sha256": "87ad72d524430ad6f680434c2d01c5fe9d890b7901064f564caf31c4af675cfc"
+    },
+    {
+      "path": "matrix-dev-05/isolation-probe.log",
+      "bytes": 108,
+      "sha256": "11d8541172c2d8aeee4afe3f3c9e2bc8c8027041548af349fc51dff29c221df2"
+    },
+    {
+      "path": "matrix-dev-05/matrix.json",
+      "bytes": 251716,
+      "sha256": "d9c41867d1157a8693b5b1d90aaba1308463ba9bb8c039181e3df7c909876df3"
+    },
+    {
+      "path": "matrix-dev-05.log",
+      "bytes": 1061,
+      "sha256": "39726e53badfe34159f79b46b9ee8cb43b75b41ba440ee1d7549edea5c98f121"
+    },
+    {
+      "path": "matrix-dev-06/B-old-nonempty-serve.log",
+      "bytes": 8899,
+      "sha256": "8e6e4d77e12f84ca13bccfd0cb4e3d8af7c24c176f0f51eb7ed67a533c5eac4e"
+    },
+    {
+      "path": "matrix-dev-06/isolation-probe.log",
+      "bytes": 108,
+      "sha256": "11d8541172c2d8aeee4afe3f3c9e2bc8c8027041548af349fc51dff29c221df2"
+    },
+    {
+      "path": "matrix-dev-06/matrix.json",
+      "bytes": 254755,
+      "sha256": "81a4caa6c0a9a621c16f78f470c72931b37bbce6bd7738f0cdf429f14018d178"
+    },
+    {
+      "path": "matrix-dev-06.log",
+      "bytes": 1095,
+      "sha256": "294ad5ac6864585f09cad1caa1047f0ef721aa4dadb6fdddfa5a1b97d8294320"
+    },
+    {
+      "path": "matrix-dev-07/B-old-nonempty-serve.log",
+      "bytes": 8899,
+      "sha256": "4797db1a06d6caa34f0964bde8fced3d3c29ad5ecb32244fa664d2be7db92c53"
+    },
+    {
+      "path": "matrix-dev-07/isolation-probe.log",
+      "bytes": 108,
+      "sha256": "11d8541172c2d8aeee4afe3f3c9e2bc8c8027041548af349fc51dff29c221df2"
+    },
+    {
+      "path": "matrix-dev-07/matrix.json",
+      "bytes": 254755,
+      "sha256": "5773b40e38aecac8f5b91b571ed8f424d0c63ef919984dcb93e6edd2a8211603"
+    },
+    {
+      "path": "matrix-dev-07.log",
+      "bytes": 1095,
+      "sha256": "273749cc51deb4172c96b4d75084955bb0714dda2bf4bd1149312cec855b2a26"
+    },
+    {
+      "path": "matrix-dev-08/B-old-nonempty-serve.log",
+      "bytes": 9635,
+      "sha256": "4f5e0d3768f0da3ed5ef81457ff74e09ff80a02c9ecf2b406e8a8a83eff57f3c"
+    },
+    {
+      "path": "matrix-dev-08/isolation-probe.log",
+      "bytes": 108,
+      "sha256": "11d8541172c2d8aeee4afe3f3c9e2bc8c8027041548af349fc51dff29c221df2"
+    },
+    {
+      "path": "matrix-dev-08/matrix.json",
+      "bytes": 254755,
+      "sha256": "f6838e0df434f3d4d664b4bd9e5d6e4c1226cac69972f49e25bea2461689736f"
+    },
+    {
+      "path": "matrix-dev-08.log",
+      "bytes": 1095,
+      "sha256": "273749cc51deb4172c96b4d75084955bb0714dda2bf4bd1149312cec855b2a26"
+    },
+    {
+      "path": "matrix-dev-09/A-restarted-serve.log",
+      "bytes": 1886,
+      "sha256": "4127f1ae791a5161e135674029e0e6e8924f8210d365e4afb9ff07d820d42d59"
+    },
+    {
+      "path": "matrix-dev-09/B-old-nonempty-serve.log",
+      "bytes": 9635,
+      "sha256": "5a75d4fab9c9cdb23ed838aab6abdbc43b577dda6539c02e2ccafacae0944d88"
+    },
+    {
+      "path": "matrix-dev-09/B-upgraded-serve.log",
+      "bytes": 6617,
+      "sha256": "2855883ba2d4fc501727c61ae028393f9bf5935f27bfcf53700c26a29319b9b1"
+    },
+    {
+      "path": "matrix-dev-09/C-key2-serve.log",
+      "bytes": 6945,
+      "sha256": "d96cc94c328d592a6686d77b125610fac37b629655a8b4c4aadafad29b17cdb8"
+    },
+    {
+      "path": "matrix-dev-09/D-backup-source-serve.log",
+      "bytes": 1886,
+      "sha256": "8d4ce3c843a3e01c46e5e9e14cd0e3b9d2f3200e20a473e70c8b7248282be74f"
+    },
+    {
+      "path": "matrix-dev-09/D-restore-host-serve.log",
+      "bytes": 1886,
+      "sha256": "24a5965b9edb2bc88ab0bfe533267392bc1e0046e9455228fef6ddc6c4fcd99a"
+    },
+    {
+      "path": "matrix-dev-09/D-restored-serving-serve.log",
+      "bytes": 1886,
+      "sha256": "39fd6fd3e580dfd671009c482b4954eba6ea7edd2c6488d3a6c0ebbf54455455"
+    },
+    {
+      "path": "matrix-dev-09/expiry-GC-serve.log",
+      "bytes": 4442,
+      "sha256": "874b63c750a0906cf4440ba3f60c55816bed9372e4bf1c0abdea6b1b38afbae0"
+    },
+    {
+      "path": "matrix-dev-09/expiry-restarted-serve.log",
+      "bytes": 1886,
+      "sha256": "d60ec97919c3c6f8ada08ef3bd5e8f753cc18f2c9df17c8c77459c9792074f67"
+    },
+    {
+      "path": "matrix-dev-09/isolation-probe.log",
+      "bytes": 108,
+      "sha256": "11d8541172c2d8aeee4afe3f3c9e2bc8c8027041548af349fc51dff29c221df2"
+    },
+    {
+      "path": "matrix-dev-09/matrix.json",
+      "bytes": 423656,
+      "sha256": "1ff403de92777d4e4be61aa05188e16054e3af2b60607e6c30a85c31facfc8ec"
+    },
+    {
+      "path": "matrix-dev-09/operator-job-185632759cf3a40e.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-09/operator-job-2c349a242e0a7bee.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-09/operator-job-413c4ff096fd8dfc.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-09/operator-job-5c7923e53aa5a430.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-09/operator-job-6b305d3e253ba481.log",
+      "bytes": 144,
+      "sha256": "db921700c284b8365ec07cd56f53566e84cba899b0f33f5e8c7a7c2bf9bd39de"
+    },
+    {
+      "path": "matrix-dev-09/operator-job-6f76c485e230ae15.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-09/operator-job-cdd4d3298a36b3df.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-09/operator-job-d0d9f674f6a3b232.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-09/operator-job-dac9eae3c9997e99.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-09.log",
+      "bytes": 244,
+      "sha256": "af69516ff8d9dd4e072b63f2d1faa5687b0cdb87e98f7a02c0929d70b34d5335"
+    },
+    {
+      "path": "matrix-dev-10/A-restarted-serve.log",
+      "bytes": 1886,
+      "sha256": "1f1233968b551a036c4a00ffb53f52d74f317fac7fa441304d7620d83ebcdbaa"
+    },
+    {
+      "path": "matrix-dev-10/B-old-nonempty-serve.log",
+      "bytes": 11379,
+      "sha256": "ad13532f322dbdd1df396718686ef13a950ec5251bb34b054f0224e0d9d93be9"
+    },
+    {
+      "path": "matrix-dev-10/B-upgraded-serve.log",
+      "bytes": 6617,
+      "sha256": "4e039c288302e1c5aa7dcb18463893c4b62e39f62ab2b04807d3e2a042464205"
+    },
+    {
+      "path": "matrix-dev-10/C-key2-serve.log",
+      "bytes": 6945,
+      "sha256": "23f1e2bf5a5172197c8cf291b0f915391b01b7c76e159867a1cd9865a1bcc530"
+    },
+    {
+      "path": "matrix-dev-10/D-backup-source-serve.log",
+      "bytes": 1886,
+      "sha256": "91218fad5072c7e847751dcfff2dacd0edc10fefd7ace94004fe6f8a9f7a2d2c"
+    },
+    {
+      "path": "matrix-dev-10/D-restore-host-serve.log",
+      "bytes": 1886,
+      "sha256": "c348bc748fa0471401df2967d01c1820f6007e3f16c6d9973a8fa110a4927db8"
+    },
+    {
+      "path": "matrix-dev-10/D-restored-serving-serve.log",
+      "bytes": 1886,
+      "sha256": "f51315e31f01494591b4f6cc716786c8f10659f553095374314cd841f66e69a3"
+    },
+    {
+      "path": "matrix-dev-10/expiry-GC-serve.log",
+      "bytes": 4442,
+      "sha256": "aa730af9d4e273175f805361a56c5f1c39cddaffdef248cab7499fee7789513e"
+    },
+    {
+      "path": "matrix-dev-10/expiry-restarted-serve.log",
+      "bytes": 1886,
+      "sha256": "a56886ea4b328dc5f262aa0c08a2088bf16fcc4c7d935d446be15fa82c9d7ad9"
+    },
+    {
+      "path": "matrix-dev-10/isolation-probe.log",
+      "bytes": 108,
+      "sha256": "11d8541172c2d8aeee4afe3f3c9e2bc8c8027041548af349fc51dff29c221df2"
+    },
+    {
+      "path": "matrix-dev-10/matrix.json",
+      "bytes": 458140,
+      "sha256": "700a853b2ed035187de6fa6d7e7e0ff1dcc5e5bd4ff25acf4dcd8668c6fc668e"
+    },
+    {
+      "path": "matrix-dev-10/operator-job-20cb771d61f5c46a.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-10/operator-job-251fe6246c5b138e.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-10/operator-job-3dda64ec276765c4.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-10/operator-job-57e2b68cadeae949.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-10/operator-job-790767d3b039e981.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-10/operator-job-9990352e1453fa58.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-10/operator-job-a993d54e9527816a.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-10/operator-job-ba28ff1eed86caf0.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-10/operator-job-c8fcd27449593efc.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-10/operator-job-cea866dc4ab57e5c.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-10/operator-job-d46597f5051f5657.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-10/operator-job-e6876ba7ce107efd.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-10/operator-job-e8029406b1b3c6a3.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-10/operator-job-e9177939a44abe2d.log",
+      "bytes": 144,
+      "sha256": "a6f29875f76e50944e9bfafc1144597b88fb36d5027824aebe4b73fbd5403aed"
+    },
+    {
+      "path": "matrix-dev-10/operator-job-eca07896c84a282f.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-10/operator-job-f269c00ed4c4e502.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-10/operator-job-f338050d425035e4.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-10.log",
+      "bytes": 244,
+      "sha256": "1d441eca12d544c44ad893fb15050427e8b3347a1d09cd85c044bb2731e93b78"
+    },
+    {
+      "path": "matrix-dev-11/B-old-nonempty-serve.log",
+      "bytes": 1886,
+      "sha256": "ed5d597d420da9eb6e2d653bac1426813558ba10be82d1d7204e6a45987550f4"
+    },
+    {
+      "path": "matrix-dev-11/TLS-untrusted-ca-serve.log",
+      "bytes": 3699,
+      "sha256": "3b327db031616efd2be9e8161fda0743f761406e0bf0ffef270658cddec16d6d"
+    },
+    {
+      "path": "matrix-dev-11/isolation-probe.log",
+      "bytes": 108,
+      "sha256": "11d8541172c2d8aeee4afe3f3c9e2bc8c8027041548af349fc51dff29c221df2"
+    },
+    {
+      "path": "matrix-dev-11/matrix.json",
+      "bytes": 252546,
+      "sha256": "528113811594b8925df2a48bfbccbcdee671bdca8918ac3321705f1bf9002acc"
+    },
+    {
+      "path": "matrix-dev-11.log",
+      "bytes": 1110,
+      "sha256": "236da228ee29b8150335f9eee572adb297f24511ecb87eeab05e517ea3afd825"
+    },
+    {
+      "path": "matrix-dev-12/A-restarted-serve.log",
+      "bytes": 1886,
+      "sha256": "7d0e1d3f93c971901595106c96adc75dc6348069a6d87b9bb0c85318eadf294e"
+    },
+    {
+      "path": "matrix-dev-12/B-old-after-TLS-negative-serve.log",
+      "bytes": 11379,
+      "sha256": "3dd09a191e854daf19cdd4471de374808e3a867bcf0c20b3d61f723d6dd16418"
+    },
+    {
+      "path": "matrix-dev-12/B-old-nonempty-serve.log",
+      "bytes": 1886,
+      "sha256": "779f169226c13c93f416c47e17c96a91dc7bcb72a64efbda685f9cf971c5f294"
+    },
+    {
+      "path": "matrix-dev-12/B-upgraded-serve.log",
+      "bytes": 6617,
+      "sha256": "2a86e0a01d01de5ab1b87ab541983481f5bd8a2193b04775ccd1dba8aaef8102"
+    },
+    {
+      "path": "matrix-dev-12/C-key2-serve.log",
+      "bytes": 6945,
+      "sha256": "a9e9145e99b2cd847bd5dc9c4a3a53a84c227512f8a35fd46d8753465c96bbb1"
+    },
+    {
+      "path": "matrix-dev-12/D-backup-source-serve.log",
+      "bytes": 1886,
+      "sha256": "3c070fbd07749103ec9aeddc967a878fd7a025de07ab4164ca709e3cce9c690e"
+    },
+    {
+      "path": "matrix-dev-12/D-restore-host-serve.log",
+      "bytes": 1886,
+      "sha256": "2ad9b0153f6b2db52deab9c9f9a5f7b01c44b5f41c34a4ff52a089027b08911b"
+    },
+    {
+      "path": "matrix-dev-12/D-restored-serving-serve.log",
+      "bytes": 1886,
+      "sha256": "ba691ecbba26969a513d07749c70c9e139e2ed62aafe9b3180c0e20c5156a3e5"
+    },
+    {
+      "path": "matrix-dev-12/TLS-untrusted-ca-serve.log",
+      "bytes": 3699,
+      "sha256": "79f084378a2e9cc8b694aa66696fe8514bfcb92e7cbaf078d3421d0f2faee3a1"
+    },
+    {
+      "path": "matrix-dev-12/TLS-wrong-hostname-serve.log",
+      "bytes": 3699,
+      "sha256": "2efcc81df042b2bcef3068eaaf0674d81faf2e715fc6b6a7cf65f6d5c13d3973"
+    },
+    {
+      "path": "matrix-dev-12/expiry-GC-serve.log",
+      "bytes": 4442,
+      "sha256": "2df2e3412dfa70e9910299fc13d3cf5a99f00e527c2b105167088160e3eae5b0"
+    },
+    {
+      "path": "matrix-dev-12/expiry-restarted-serve.log",
+      "bytes": 1886,
+      "sha256": "a6dae733eb5e9745eb804c2e0b525cd31d58c7aba6684aaf6b08ce6624ea3a38"
+    },
+    {
+      "path": "matrix-dev-12/isolation-probe.log",
+      "bytes": 108,
+      "sha256": "11d8541172c2d8aeee4afe3f3c9e2bc8c8027041548af349fc51dff29c221df2"
+    },
+    {
+      "path": "matrix-dev-12/matrix.json",
+      "bytes": 491581,
+      "sha256": "bff3fb7bec07bb74caffb7c09761449f627e929c05993def658b377a980f316e"
+    },
+    {
+      "path": "matrix-dev-12/operator-job-1178b4df22bb1711.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-12/operator-job-1229290779a0f022.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-12/operator-job-15f5007d3002532e.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-12/operator-job-253a4e97a99cd53d.log",
+      "bytes": 144,
+      "sha256": "a6f29875f76e50944e9bfafc1144597b88fb36d5027824aebe4b73fbd5403aed"
+    },
+    {
+      "path": "matrix-dev-12/operator-job-26eb4f748051a74e.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-12/operator-job-2f273ee8445d9665.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-12/operator-job-51f93e8dcf0df554.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-12/operator-job-5cb874ed3e7caac2.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-12/operator-job-66c85c624ae1f842.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-12/operator-job-7d65f06ba582ec60.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-12/operator-job-811f360c031077d4.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-12/operator-job-82189e8b2282c546.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-12/operator-job-8fe017ef6543b721.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-12/operator-job-92d7b84a05b9bed6.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-12/operator-job-97623a20216c3b05.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-12/operator-job-d685d9680015e865.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-12/operator-job-f60807e2137dc4b5.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-12.log",
+      "bytes": 930,
+      "sha256": "fd4f496303c484b54645fd4ae295b7dba72ab4ff75540446a6cddb52dab91f3f"
+    },
+    {
+      "path": "matrix-dev-13/A-restarted-serve.log",
+      "bytes": 1886,
+      "sha256": "16df7f02947158846ba2fa8c46a0176b744e94aeadf53bead814cea4163b3232"
+    },
+    {
+      "path": "matrix-dev-13/B-old-after-TLS-negative-serve.log",
+      "bytes": 11379,
+      "sha256": "635760299c9708433e9b9817ca14e2a23743314db1faa3f4b68dfa15cc18fd37"
+    },
+    {
+      "path": "matrix-dev-13/B-old-nonempty-serve.log",
+      "bytes": 1886,
+      "sha256": "2e29ab69624f66c880949f2167e65f1300dad9ece39042b10be7e8fd6f87e9c2"
+    },
+    {
+      "path": "matrix-dev-13/B-upgraded-serve.log",
+      "bytes": 6617,
+      "sha256": "b6360175b198f1170fe830cefeb5a6ba99e4d6b23ede5e7067ad4cd715bdaa79"
+    },
+    {
+      "path": "matrix-dev-13/C-key2-serve.log",
+      "bytes": 6945,
+      "sha256": "da3f8a5231accb57cd5e7fe0448ec94aad2ac7fdd07c01a5c814ee7f705cbae1"
+    },
+    {
+      "path": "matrix-dev-13/C-live-writer-faults-serve.log",
+      "bytes": 6984,
+      "sha256": "5d8484f894debe568c7d6b8b2e05457f45e9c399f9880593082839f97a6c9650"
+    },
+    {
+      "path": "matrix-dev-13/D-backup-source-serve.log",
+      "bytes": 1886,
+      "sha256": "b69d4c67b781cd77f131510b537e8346ce40e9c46148ed17cbfd452ff8d16766"
+    },
+    {
+      "path": "matrix-dev-13/D-restore-host-serve.log",
+      "bytes": 1886,
+      "sha256": "e06b89fe8d7a0f200f9e78dc1bb1cbc76b3fbf764c10de86259aa75fd9675b43"
+    },
+    {
+      "path": "matrix-dev-13/D-restored-serving-serve.log",
+      "bytes": 1886,
+      "sha256": "38cefd1a1942aaacb673279cf97d0817b533d108e3390eb9a721bff25d84916f"
+    },
+    {
+      "path": "matrix-dev-13/TLS-untrusted-ca-serve.log",
+      "bytes": 3699,
+      "sha256": "4fc00dcb6bced5697d345d671e29480524520c2385249193544aec1a4d91940b"
+    },
+    {
+      "path": "matrix-dev-13/TLS-wrong-hostname-serve.log",
+      "bytes": 3699,
+      "sha256": "024e24eaf5fa3c05ec230bb88f222f8e57c263620471406efd7a03bfb8b9032b"
+    },
+    {
+      "path": "matrix-dev-13/expiry-GC-serve.log",
+      "bytes": 4442,
+      "sha256": "6b79781af2dac03a502cddbc58d2c1f65ad228cc638b51c16dd45ae33d6d5bea"
+    },
+    {
+      "path": "matrix-dev-13/expiry-restarted-serve.log",
+      "bytes": 1886,
+      "sha256": "f68ad6864b56aca43089b23898564649c5869524d729d2ee06598dd90ef75885"
+    },
+    {
+      "path": "matrix-dev-13/isolation-probe.log",
+      "bytes": 108,
+      "sha256": "11d8541172c2d8aeee4afe3f3c9e2bc8c8027041548af349fc51dff29c221df2"
+    },
+    {
+      "path": "matrix-dev-13/matrix.json",
+      "bytes": 515659,
+      "sha256": "28abf21c1b5318504b83ec05edd5a591a368b8d8ce15eb2597174a78c5ebfc29"
+    },
+    {
+      "path": "matrix-dev-13/operator-job-0a5fd47b1489cedd.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-13/operator-job-0e2c95feaf3701a4.log",
+      "bytes": 144,
+      "sha256": "a6f29875f76e50944e9bfafc1144597b88fb36d5027824aebe4b73fbd5403aed"
+    },
+    {
+      "path": "matrix-dev-13/operator-job-2dbd0efaa2e98f89.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-13/operator-job-2febacefd0266fc3.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-13/operator-job-31b305179cb1a136.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-13/operator-job-5f9de270b4eb97f8.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-13/operator-job-726b8ffeb75bcfb6.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-13/operator-job-8c2a068e580be668.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-13/operator-job-921f5dfb3120826a.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-13/operator-job-98ce8ecb963beb01.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-13/operator-job-a52c2d01dfce7af7.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-13/operator-job-aea84b698b2828f6.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-13/operator-job-de47f13dc28ee071.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-13/operator-job-e0f3d7c314e5c358.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-13/operator-job-f5f183d795bdab89.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-13/operator-job-fb4e0ddb9798e943.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-13/operator-job-fd5ebd9efcf7221a.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-13.log",
+      "bytes": 244,
+      "sha256": "9b6bfc617c4b4c98161ac0f4b4ae37e43ed790fddf11a59a8bf74d567dcd609c"
+    },
+    {
+      "path": "matrix-dev-14/A-restarted-serve.log",
+      "bytes": 1886,
+      "sha256": "df7076a2019df303f55ba53647dde989b38cc41b872b5e390fccbc95eed26d8f"
+    },
+    {
+      "path": "matrix-dev-14/B-old-after-TLS-negative-serve.log",
+      "bytes": 11379,
+      "sha256": "47a1bfd31a456df005fe467a346fbca73bf4344d1a80e46d6b73ccb23b25f55a"
+    },
+    {
+      "path": "matrix-dev-14/B-old-nonempty-serve.log",
+      "bytes": 1886,
+      "sha256": "0f78acce1b40dcf35cb3adffdcfbdb5241aa3b0128794f3388f9858a9106545a"
+    },
+    {
+      "path": "matrix-dev-14/B-upgraded-serve.log",
+      "bytes": 6617,
+      "sha256": "68b025fa8b0826c12b772251605b5c9b86f6b203bea880e188275d22b3cb77e5"
+    },
+    {
+      "path": "matrix-dev-14/C-key2-serve.log",
+      "bytes": 6945,
+      "sha256": "3f80dfb868fd4da2c66cdf3a8ec490c7fe704feb74c10d309154d3967299c726"
+    },
+    {
+      "path": "matrix-dev-14/C-live-writer-faults-serve.log",
+      "bytes": 6984,
+      "sha256": "f2abd5e959556cf0baf5c572fc7fd071510c9951a5522b8af82e7ffd4665e7a6"
+    },
+    {
+      "path": "matrix-dev-14/D-backup-source-serve.log",
+      "bytes": 1886,
+      "sha256": "542ecd3ae047935150934a766917abfb9c491ad52c5db7a740baebd083e9bc0b"
+    },
+    {
+      "path": "matrix-dev-14/D-restore-host-serve.log",
+      "bytes": 1886,
+      "sha256": "a28f6003ee4c407a618498ce5ca52a625b2228bdae0f46a43519b175468194ce"
+    },
+    {
+      "path": "matrix-dev-14/D-restored-serving-serve.log",
+      "bytes": 1886,
+      "sha256": "f7750627c1438a20845e4a03eb73e045596487ed56a8af1297b3cc90ac554964"
+    },
+    {
+      "path": "matrix-dev-14/TLS-untrusted-ca-serve.log",
+      "bytes": 3699,
+      "sha256": "50e28bc222f5dbe40b6d2fb1e7f2a353b4cb62dbdaf580227e22a6600e183685"
+    },
+    {
+      "path": "matrix-dev-14/TLS-wrong-hostname-serve.log",
+      "bytes": 3699,
+      "sha256": "8fd5e6ba097cc04dec49df05a9d4a4ea197a8452a6fbeb8821012dab3a3b67f4"
+    },
+    {
+      "path": "matrix-dev-14/expiry-GC-serve.log",
+      "bytes": 4442,
+      "sha256": "ffd4c9f50f35b42e17044a6fa1ec3bab95cd3ca36a3734d42eebfa815f80abbc"
+    },
+    {
+      "path": "matrix-dev-14/expiry-restarted-serve.log",
+      "bytes": 1886,
+      "sha256": "76cc2e323a3844a5f1c6e6372de2332fd1ac8f265608bcc57c09b5c501c9b71d"
+    },
+    {
+      "path": "matrix-dev-14/isolation-probe.log",
+      "bytes": 108,
+      "sha256": "11d8541172c2d8aeee4afe3f3c9e2bc8c8027041548af349fc51dff29c221df2"
+    },
+    {
+      "path": "matrix-dev-14/matrix.json",
+      "bytes": 550447,
+      "sha256": "8976fac350ff29d3953ca936ddcaa2255fd22c4ebcf2410b4bd88d79eeb93d78"
+    },
+    {
+      "path": "matrix-dev-14/operator-job-2744219b382162cc.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-14/operator-job-285a2583c3eeb5ba.log",
+      "bytes": 144,
+      "sha256": "a6f29875f76e50944e9bfafc1144597b88fb36d5027824aebe4b73fbd5403aed"
+    },
+    {
+      "path": "matrix-dev-14/operator-job-49a5122ed248deb1.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-14/operator-job-4bd6e2530bf5e7bb.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-14/operator-job-50537d9cf216d8c3.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-14/operator-job-6398fc905f88478a.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-14/operator-job-64d138ff836702cd.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-14/operator-job-7b62e1228f9d9665.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-14/operator-job-7ee13baa52ffea56.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-14/operator-job-81d08fd16d3c5004.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-14/operator-job-8939017e2a06bc86.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-14/operator-job-978bd3adccd60524.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-14/operator-job-9cd5a9e3a9812977.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-14/operator-job-a65dea5ccaced9f9.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-14/operator-job-b856a3482e1be31f.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-14/operator-job-c8fcc3a9b4012f32.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-14/operator-job-eff4ee454e678c97.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-14.log",
+      "bytes": 244,
+      "sha256": "b22f1cd9c3c78d3098e42aff85f06235799af8df55295e5ede5aef9d1f026c92"
+    },
+    {
+      "path": "matrix-dev-15/A-restarted-serve.log",
+      "bytes": 1886,
+      "sha256": "8d14c606f545a6ad76601adc9740c1893092e67bbfa8ba4a82583d600124e95d"
+    },
+    {
+      "path": "matrix-dev-15/B-old-after-TLS-negative-serve.log",
+      "bytes": 11379,
+      "sha256": "bb9bf19d95b3f0a529b5b3c4c4ee504ebf224c458af0a827dcf5c411770b175f"
+    },
+    {
+      "path": "matrix-dev-15/B-old-nonempty-serve.log",
+      "bytes": 1886,
+      "sha256": "e4f4008714b50f804de30eb9375d24fb971394ac325ab1ed6284796c33a1f971"
+    },
+    {
+      "path": "matrix-dev-15/B-upgraded-serve.log",
+      "bytes": 6617,
+      "sha256": "28a5eb5146982197c0536c501dc21130b0d65e38c1581b7c8a8ab70786c2ceba"
+    },
+    {
+      "path": "matrix-dev-15/C-key2-serve.log",
+      "bytes": 6945,
+      "sha256": "d022d1b8b5260e63a03dd502a6f143811faccd0e347c73cbbd4ba8a7ecc08cbe"
+    },
+    {
+      "path": "matrix-dev-15/C-live-writer-faults-serve.log",
+      "bytes": 6984,
+      "sha256": "9ea0cb7c647ecf5fa206f43cae57be7ab7ab36cf83bf988f3548a10d2c8cfc8b"
+    },
+    {
+      "path": "matrix-dev-15/D-backup-source-serve.log",
+      "bytes": 1886,
+      "sha256": "456a4fe6534c573f58a8a6bcdfdf3f58474d2b709f84f3375617f3c60b844ff2"
+    },
+    {
+      "path": "matrix-dev-15/D-restore-host-serve.log",
+      "bytes": 1886,
+      "sha256": "2ffd4d62c17ff968b7494ba84c0954262f42243c8c5a1fe2cdb2d7995794614c"
+    },
+    {
+      "path": "matrix-dev-15/D-restored-serving-serve.log",
+      "bytes": 1886,
+      "sha256": "bd55b04ec970591e61fa48263134b41ff1bf0d3cc1d19cecca506237619f2194"
+    },
+    {
+      "path": "matrix-dev-15/TLS-untrusted-ca-serve.log",
+      "bytes": 3699,
+      "sha256": "033040f53fa465e259ac9f7532408e00e0b5c5b6e91d9356bba0fdd986605f68"
+    },
+    {
+      "path": "matrix-dev-15/TLS-wrong-hostname-serve.log",
+      "bytes": 3699,
+      "sha256": "3de7aad1ba7b1aea878dbded19970117492ade0882886f16db7662632ad5e21c"
+    },
+    {
+      "path": "matrix-dev-15/expiry-GC-serve.log",
+      "bytes": 4442,
+      "sha256": "adceacda4b76e9e485f9e682d6f132f44a5555c8a4961f6c7cc53d7b0e6376de"
+    },
+    {
+      "path": "matrix-dev-15/expiry-restarted-serve.log",
+      "bytes": 1886,
+      "sha256": "d45bb2c9ac5481957be6a2b503180397bba99a623e9067c41ea8c3ca7d4104b1"
+    },
+    {
+      "path": "matrix-dev-15/isolation-probe.log",
+      "bytes": 108,
+      "sha256": "11d8541172c2d8aeee4afe3f3c9e2bc8c8027041548af349fc51dff29c221df2"
+    },
+    {
+      "path": "matrix-dev-15/matrix.json",
+      "bytes": 550468,
+      "sha256": "c6024a58ad5c55509655958971a54121fc8942ee43693274fa57eb20495bc715"
+    },
+    {
+      "path": "matrix-dev-15/operator-job-182cfd2a9071a778.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-15/operator-job-1f74b5235707bfb1.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-15/operator-job-27ec7469c185bda4.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-15/operator-job-3af19d614a849f32.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-15/operator-job-3c4b1c9669a5fc17.log",
+      "bytes": 144,
+      "sha256": "a6f29875f76e50944e9bfafc1144597b88fb36d5027824aebe4b73fbd5403aed"
+    },
+    {
+      "path": "matrix-dev-15/operator-job-5d62b3ad6c28d79c.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-15/operator-job-674f0afe58680408.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-15/operator-job-6f5760ba0fda2456.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-15/operator-job-8e7c6e80f2a46b9e.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-15/operator-job-9eb16347b14a5b84.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-15/operator-job-a58ec5f0fd509cb4.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-15/operator-job-a59a4551f8f1caf4.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-15/operator-job-b59086ec3023e311.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-15/operator-job-d5ce5e3c1260b359.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-15/operator-job-dbfe92b32575a2d4.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-dev-15/operator-job-f069de33a4dc0285.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-15/operator-job-ffb14ed57a88c6f7.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-dev-15.log",
+      "bytes": 244,
+      "sha256": "d797552190a8241290b59525f870ffc1e81fd9d57b7d506b4ff3c8471a72cd88"
+    },
+    {
+      "path": "matrix-final/A-restarted-serve.log",
+      "bytes": 1886,
+      "sha256": "52b38b812bfefd737b4eb9fea22245f9ccb98c8f345a813db5eb659afbf1274b"
+    },
+    {
+      "path": "matrix-final/B-old-after-TLS-negative-serve.log",
+      "bytes": 11379,
+      "sha256": "55e660ca5495b3f747185d67a05fd301ae593326e6876acab230c5708a9744fb"
+    },
+    {
+      "path": "matrix-final/B-old-nonempty-serve.log",
+      "bytes": 1886,
+      "sha256": "fe0ac8208404a2062569ad35c5c33e890bba6b4bbfc51a3677fa9dacbe3a5c06"
+    },
+    {
+      "path": "matrix-final/B-upgraded-serve.log",
+      "bytes": 6617,
+      "sha256": "3ec34b0416b8d21e08b66eebab688b7b4b93fb1f4ec82e1a2ace8af20d544845"
+    },
+    {
+      "path": "matrix-final/C-key2-serve.log",
+      "bytes": 6945,
+      "sha256": "d7c9f7707fa32912b297a71ec14512c0a688e91eafa4410d1cb8fb3bab0afe45"
+    },
+    {
+      "path": "matrix-final/C-live-writer-faults-serve.log",
+      "bytes": 6984,
+      "sha256": "db506c57874b6265930867e87f3bcc9151f21a8b8b06a0d55c76e17ebcd49b74"
+    },
+    {
+      "path": "matrix-final/D-backup-source-serve.log",
+      "bytes": 1886,
+      "sha256": "8216a0d27ce4c14baafc5bc53bdf90d1f9e103dac0cb795d00f78f62e849b4e1"
+    },
+    {
+      "path": "matrix-final/D-restore-host-serve.log",
+      "bytes": 1886,
+      "sha256": "38da9fc2dfa3fd4dc24a765325b3e14a4a087fe10faafca6dab16ba0e7f01ae6"
+    },
+    {
+      "path": "matrix-final/D-restored-serving-serve.log",
+      "bytes": 1886,
+      "sha256": "b52f7bc468a4428f960dfefff367666e1bbc57379e15a18bb5c1e142dfc8980e"
+    },
+    {
+      "path": "matrix-final/TLS-untrusted-ca-serve.log",
+      "bytes": 3699,
+      "sha256": "0b33990dd48a6797b7b7bd64f605de64e6f93d022ba090b24001a34ae5c2d9f9"
+    },
+    {
+      "path": "matrix-final/TLS-wrong-hostname-serve.log",
+      "bytes": 3699,
+      "sha256": "dab188e23e23dda9d5de6c7a1bc2485eb715b5b09ff6c73ae0960e9e2e45a00a"
+    },
+    {
+      "path": "matrix-final/expiry-GC-serve.log",
+      "bytes": 4442,
+      "sha256": "b54740422a362ba1caf0000c38315b4799903df11676c6038a8219d21dd50b8d"
+    },
+    {
+      "path": "matrix-final/expiry-restarted-serve.log",
+      "bytes": 1886,
+      "sha256": "9b3f650cd4f44a63d4063c5b5afb5b3105bfb6c597de86745e0a41032ff13466"
+    },
+    {
+      "path": "matrix-final/isolation-probe.log",
+      "bytes": 108,
+      "sha256": "11d8541172c2d8aeee4afe3f3c9e2bc8c8027041548af349fc51dff29c221df2"
+    },
+    {
+      "path": "matrix-final/matrix.json",
+      "bytes": 548775,
+      "sha256": "737493cdd0a54376770002e85b8849b05309c31d1e76277370bf79db36cea347"
+    },
+    {
+      "path": "matrix-final/operator-job-4eae5d5b41acdcfc.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-final/operator-job-6360d57fd0619f81.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-final/operator-job-665f849f34ff9268.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-final/operator-job-66c91cf170b37912.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-final/operator-job-88711edba7ad53f3.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-final/operator-job-8d82a87fa6489779.log",
+      "bytes": 144,
+      "sha256": "db921700c284b8365ec07cd56f53566e84cba899b0f33f5e8c7a7c2bf9bd39de"
+    },
+    {
+      "path": "matrix-final/operator-job-9d4109783ccf7464.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-final/operator-job-a3df69e2ebb2000b.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-final/operator-job-a52eb8c6833f5736.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-final/operator-job-a7ec12bb034678d4.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-final/operator-job-aba2851d6b84b0b3.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-final/operator-job-b013f620b0151edc.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-final/operator-job-cd9cea9d648edea4.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-final/operator-job-d9f6377c727e15eb.log",
+      "bytes": 144,
+      "sha256": "bd272971e347b9bea070ea5d6b9bc518f0f42f9b04e9e1213f77fdfdac22c739"
+    },
+    {
+      "path": "matrix-final/operator-job-e1b58f8942741ed5.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-final/operator-job-f63c846f0452ba8d.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-final/operator-job-fb31317f75bd49d2.log",
+      "bytes": 144,
+      "sha256": "f9c706eedfea85a670c131686a81f75242b5acefccd3ea607d1a467ac017232d"
+    },
+    {
+      "path": "matrix-final.log",
+      "bytes": 243,
+      "sha256": "f635993dd744a89c8c69038156a268e9804a6f77ad9b7f8c4252d22fd5878ac3"
+    },
+    {
+      "path": "preservation.json",
+      "bytes": 343,
+      "sha256": "cf76603c86e607e813d7e174aedac03b244960bef0d262027a73ba9040fa0670"
+    },
+    {
+      "path": "review-initial.md",
+      "bytes": 946,
+      "sha256": "1f8f9c4ec61fa418a9a1ff108833a60f3968bd031338492873a26762b96e43c1"
+    },
+    {
+      "path": "review-oracle-green.json",
+      "bytes": 641,
+      "sha256": "66618dcec7804cdf3107f8f5689e99bac1fa5b4896f5c9f9d48289dcdfd39056"
+    },
+    {
+      "path": "review-oracle-red.json",
+      "bytes": 652,
+      "sha256": "6d87747a04eb4cf5f387dda659bc659842dd81ef8b117b1d1cf0170bf632d0e9"
+    },
+    {
+      "path": "review-spec-final.md",
+      "bytes": 1432,
+      "sha256": "1f90c82ccc9af3be423a1da0c9f24dbbe92613f848bcf5e092106ff92bb125a0"
+    },
+    {
+      "path": "review-standards-final.md",
+      "bytes": 1637,
+      "sha256": "bae81cb79679eaf4fdc368383db797c78f385e651dd19d22bead43d2a60e1345"
+    },
+    {
+      "path": "schema35-build-final.log",
+      "bytes": 72,
+      "sha256": "3dbebdfe57c58e155ac8a657a434094c1504a64a2cee500df8a6e14e483660d2"
+    },
+    {
+      "path": "schema35-build.log",
+      "bytes": 11616,
+      "sha256": "3fcd2b004d82e5e2628df73e056e012bb1eb0ce524f6ac6aed8db397a59a823d"
+    },
+    {
+      "path": "schema35-npm.log",
+      "bytes": 26,
+      "sha256": "14d54a6a86362f4babc07f775f10bbf4119a08255e5e4e3690692d959316adf8"
+    },
+    {
+      "path": "serve-build.log",
+      "bytes": 72,
+      "sha256": "45f75b19e5718ce74d75d27dc949e2b0cc21908a1e53dca4d31c24e03ebe8e09"
+    },
+    {
+      "path": "support-build-final.log",
+      "bytes": 1631,
+      "sha256": "d845237dcc36f6cb24766d2ae19f2b5212b8c2a38a3e7d7552684bf2312e423b"
+    },
+    {
+      "path": "support-build.log",
+      "bytes": 1775,
+      "sha256": "68865d0d19f4e22608ecc7e2dbbb3f99c811d2440555a31fe948a3f151a184d8"
+    },
+    {
+      "path": "validation-overlay.json",
+      "bytes": 3520,
+      "sha256": "551df3fd98ff91db6cf17bfd6fdad14b20efebfcddce13b89b58ac3a6120fca0"
+    }
+  ]
+}

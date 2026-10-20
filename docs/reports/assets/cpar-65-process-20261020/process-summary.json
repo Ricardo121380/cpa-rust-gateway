@@ -1,0 +1,822 @@
+{
+  "status": "PASS_BOUNDED_PROCESS_RECOVERY",
+  "checks": 823,
+  "failed_checks": 0,
+  "processes": [
+    {
+      "label": "B-old-nonempty",
+      "binary": "schema35",
+      "binary_sha256": "7c14f0754b7108868cef79a2f91145ce9e00875c130ec4111a719fb213d8ff41",
+      "pid": 58052,
+      "argv": [
+        "serve",
+        "--state-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/state",
+        "--credential-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/credentials",
+        "--master-key-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/keys",
+        "--active-master-key-version",
+        "1",
+        "--data-listen",
+        "127.0.0.1:54840",
+        "--management-listen",
+        "127.0.0.1:54839",
+        "--background-provider-tasks",
+        "disabled"
+      ],
+      "state": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/state",
+      "active_key": 1,
+      "ready": true,
+      "schema": 35,
+      "exit_code": 0,
+      "reaped": true
+    },
+    {
+      "label": "TLS-untrusted-ca",
+      "binary": "schema35",
+      "binary_sha256": "7c14f0754b7108868cef79a2f91145ce9e00875c130ec4111a719fb213d8ff41",
+      "pid": 58057,
+      "argv": [
+        "serve",
+        "--state-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/state",
+        "--credential-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/credentials",
+        "--master-key-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/keys",
+        "--active-master-key-version",
+        "1",
+        "--data-listen",
+        "127.0.0.1:54840",
+        "--management-listen",
+        "127.0.0.1:54839",
+        "--background-provider-tasks",
+        "disabled"
+      ],
+      "state": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/state",
+      "active_key": 1,
+      "ready": true,
+      "schema": 35,
+      "exit_code": 0,
+      "reaped": true
+    },
+    {
+      "label": "TLS-wrong-hostname",
+      "binary": "schema35",
+      "binary_sha256": "7c14f0754b7108868cef79a2f91145ce9e00875c130ec4111a719fb213d8ff41",
+      "pid": 58061,
+      "argv": [
+        "serve",
+        "--state-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/state",
+        "--credential-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/credentials",
+        "--master-key-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/keys",
+        "--active-master-key-version",
+        "1",
+        "--data-listen",
+        "127.0.0.1:54840",
+        "--management-listen",
+        "127.0.0.1:54839",
+        "--background-provider-tasks",
+        "disabled"
+      ],
+      "state": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/state",
+      "active_key": 1,
+      "ready": true,
+      "schema": 35,
+      "exit_code": 0,
+      "reaped": true
+    },
+    {
+      "label": "B-old-after-TLS-negative",
+      "binary": "schema35",
+      "binary_sha256": "7c14f0754b7108868cef79a2f91145ce9e00875c130ec4111a719fb213d8ff41",
+      "pid": 58078,
+      "argv": [
+        "serve",
+        "--state-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/state",
+        "--credential-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/credentials",
+        "--master-key-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/keys",
+        "--active-master-key-version",
+        "1",
+        "--data-listen",
+        "127.0.0.1:54840",
+        "--management-listen",
+        "127.0.0.1:54839",
+        "--background-provider-tasks",
+        "disabled"
+      ],
+      "state": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/state",
+      "active_key": 1,
+      "ready": true,
+      "schema": 35,
+      "exit_code": 0,
+      "reaped": true
+    },
+    {
+      "label": "B-upgraded",
+      "binary": "current",
+      "binary_sha256": "8ec06f330f099f4111c74e15c149cda9155c03d640985ed930ac55e37d7a076f",
+      "pid": 58123,
+      "argv": [
+        "serve",
+        "--state-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/state",
+        "--credential-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/credentials",
+        "--master-key-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/keys",
+        "--active-master-key-version",
+        "1",
+        "--data-listen",
+        "127.0.0.1:54840",
+        "--management-listen",
+        "127.0.0.1:54839",
+        "--background-provider-tasks",
+        "disabled"
+      ],
+      "state": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/state",
+      "active_key": 1,
+      "ready": true,
+      "schema": 36,
+      "exit_code": 0,
+      "reaped": true
+    },
+    {
+      "label": "A-restarted",
+      "binary": "current",
+      "binary_sha256": "8ec06f330f099f4111c74e15c149cda9155c03d640985ed930ac55e37d7a076f",
+      "pid": 58139,
+      "argv": [
+        "serve",
+        "--state-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/state",
+        "--credential-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/credentials",
+        "--master-key-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/keys",
+        "--active-master-key-version",
+        "1",
+        "--data-listen",
+        "127.0.0.1:54840",
+        "--management-listen",
+        "127.0.0.1:54839",
+        "--background-provider-tasks",
+        "disabled"
+      ],
+      "state": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/state",
+      "active_key": 1,
+      "ready": true,
+      "schema": 36,
+      "exit_code": 0,
+      "reaped": true
+    },
+    {
+      "label": "C-key2",
+      "binary": "current",
+      "binary_sha256": "8ec06f330f099f4111c74e15c149cda9155c03d640985ed930ac55e37d7a076f",
+      "pid": 58171,
+      "argv": [
+        "serve",
+        "--state-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/state",
+        "--credential-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/credentials",
+        "--master-key-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/keys",
+        "--active-master-key-version",
+        "2",
+        "--data-listen",
+        "127.0.0.1:54840",
+        "--management-listen",
+        "127.0.0.1:54839",
+        "--background-provider-tasks",
+        "disabled"
+      ],
+      "state": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/state",
+      "active_key": 2,
+      "ready": true,
+      "schema": 36,
+      "exit_code": 0,
+      "reaped": true
+    },
+    {
+      "label": "C-live-writer-faults",
+      "binary": "current",
+      "binary_sha256": "8ec06f330f099f4111c74e15c149cda9155c03d640985ed930ac55e37d7a076f",
+      "pid": 58244,
+      "argv": [
+        "serve",
+        "--state-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/state",
+        "--credential-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/credentials",
+        "--master-key-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/keys",
+        "--active-master-key-version",
+        "2",
+        "--data-listen",
+        "127.0.0.1:54840",
+        "--management-listen",
+        "127.0.0.1:54839",
+        "--background-provider-tasks",
+        "disabled"
+      ],
+      "state": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/state",
+      "active_key": 2,
+      "ready": true,
+      "schema": 36,
+      "exit_code": 0,
+      "reaped": true
+    },
+    {
+      "label": "expiry-GC",
+      "binary": "current",
+      "binary_sha256": "8ec06f330f099f4111c74e15c149cda9155c03d640985ed930ac55e37d7a076f",
+      "pid": 58249,
+      "argv": [
+        "serve",
+        "--state-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/state",
+        "--credential-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/credentials",
+        "--master-key-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/keys",
+        "--active-master-key-version",
+        "2",
+        "--data-listen",
+        "127.0.0.1:54840",
+        "--management-listen",
+        "127.0.0.1:54839",
+        "--background-provider-tasks",
+        "disabled"
+      ],
+      "state": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/state",
+      "active_key": 2,
+      "ready": true,
+      "schema": 36,
+      "exit_code": 0,
+      "reaped": true
+    },
+    {
+      "label": "expiry-restarted",
+      "binary": "current",
+      "binary_sha256": "8ec06f330f099f4111c74e15c149cda9155c03d640985ed930ac55e37d7a076f",
+      "pid": 58258,
+      "argv": [
+        "serve",
+        "--state-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/state",
+        "--credential-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/credentials",
+        "--master-key-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/keys",
+        "--active-master-key-version",
+        "2",
+        "--data-listen",
+        "127.0.0.1:54840",
+        "--management-listen",
+        "127.0.0.1:54839",
+        "--background-provider-tasks",
+        "disabled"
+      ],
+      "state": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/state",
+      "active_key": 2,
+      "ready": true,
+      "schema": 36,
+      "exit_code": 0,
+      "reaped": true
+    },
+    {
+      "label": "D-backup-source",
+      "binary": "current",
+      "binary_sha256": "8ec06f330f099f4111c74e15c149cda9155c03d640985ed930ac55e37d7a076f",
+      "pid": 58297,
+      "argv": [
+        "serve",
+        "--state-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/state",
+        "--credential-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/credentials",
+        "--master-key-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/keys",
+        "--active-master-key-version",
+        "2",
+        "--data-listen",
+        "127.0.0.1:54840",
+        "--management-listen",
+        "127.0.0.1:54839",
+        "--background-provider-tasks",
+        "disabled"
+      ],
+      "state": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/state",
+      "active_key": 2,
+      "ready": true,
+      "schema": 36,
+      "exit_code": 0,
+      "reaped": true
+    },
+    {
+      "label": "D-restore-host",
+      "binary": "current",
+      "binary_sha256": "8ec06f330f099f4111c74e15c149cda9155c03d640985ed930ac55e37d7a076f",
+      "pid": 58299,
+      "argv": [
+        "serve",
+        "--state-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/restore-host",
+        "--credential-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/credentials",
+        "--master-key-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/keys",
+        "--active-master-key-version",
+        "2",
+        "--data-listen",
+        "127.0.0.1:54840",
+        "--management-listen",
+        "127.0.0.1:54839",
+        "--background-provider-tasks",
+        "disabled"
+      ],
+      "state": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/restore-host",
+      "active_key": 2,
+      "ready": true,
+      "schema": 36,
+      "exit_code": 0,
+      "reaped": true
+    },
+    {
+      "label": "D-restored-serving",
+      "binary": "current",
+      "binary_sha256": "8ec06f330f099f4111c74e15c149cda9155c03d640985ed930ac55e37d7a076f",
+      "pid": 58301,
+      "argv": [
+        "serve",
+        "--state-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/restored-serving-state",
+        "--credential-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/restored-credentials",
+        "--master-key-dir",
+        "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/restored-keys",
+        "--active-master-key-version",
+        "2",
+        "--data-listen",
+        "127.0.0.1:54840",
+        "--management-listen",
+        "127.0.0.1:54839",
+        "--background-provider-tasks",
+        "disabled"
+      ],
+      "state": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/restored-serving-state",
+      "active_key": 2,
+      "ready": true,
+      "schema": 36,
+      "exit_code": 0,
+      "reaped": true
+    }
+  ],
+  "distinct_pids": 13,
+  "all_reaped_exit0": true,
+  "receiver_accepts": 14,
+  "receiver_HTTP_requests": 11,
+  "TLS_negative_receipts": [
+    {
+      "condition": "untrusted-ca",
+      "request": "p1-request-b1d16c9c0653f659f8bfbb03b53f2629-0",
+      "attempt": "attempt:45:p1-request-b1d16c9c0653f659f8bfbb03b53f2629-0:1",
+      "accepts_delta": 1,
+      "receives_delta": 0,
+      "status": 503,
+      "public_sha256": "07427cf4a5eeb67cb921c92a0407127820b448cff60ee9ef132a0f5d37583e78",
+      "Usage": 0,
+      "ledger": 0,
+      "cost": "UNKNOWN"
+    },
+    {
+      "condition": "wrong-hostname",
+      "request": "p1-request-3f3ef01bd8b0e0b0e6f7a61bdd4b2cf0-0",
+      "attempt": "attempt:45:p1-request-3f3ef01bd8b0e0b0e6f7a61bdd4b2cf0-0:1",
+      "accepts_delta": 1,
+      "receives_delta": 0,
+      "status": 503,
+      "public_sha256": "07427cf4a5eeb67cb921c92a0407127820b448cff60ee9ef132a0f5d37583e78",
+      "Usage": 0,
+      "ledger": 0,
+      "cost": "UNKNOWN"
+    }
+  ],
+  "event_counts": {
+    "attempt": 13,
+    "request": 13,
+    "request_finished": 13,
+    "usage": 10
+  },
+  "ledger": {
+    "rows": 10,
+    "input_tokens": 200,
+    "output_tokens": 70,
+    "priced_rows": 0,
+    "provider_cost": "UNKNOWN"
+  },
+  "native_live_by_key": [
+    [
+      1,
+      1
+    ],
+    [
+      2,
+      2
+    ]
+  ],
+  "summary_rows_by_key_nullciphertext": [
+    [
+      1,
+      0,
+      1
+    ],
+    [
+      1,
+      1,
+      1
+    ],
+    [
+      2,
+      0,
+      2
+    ]
+  ],
+  "metering_receipts": [
+    {
+      "kind": "ordinary",
+      "request": "p1-request-d4043e1bec074e8fe14e016e4a9e4b27-0",
+      "attempt": "attempt:45:p1-request-d4043e1bec074e8fe14e016e4a9e4b27-0:1",
+      "stream": false,
+      "owner": "owner",
+      "public_status": 200,
+      "public_sha256": "014989215b878708eb059cd6a1f19ecc476481980fc37299c4bfa107a00e22d9",
+      "receiver_ordinal": 1,
+      "Request": 1,
+      "Attempt": 1,
+      "Usage": 1,
+      "ledger": 1,
+      "source_ids": [
+        "usage-attempt:492ec2c0859ecce380b13c88fb4aa9fb161ff6b721f72399104afb5058085de3"
+      ],
+      "ledger_rows": [
+        {
+          "source_event_id": "usage-attempt:492ec2c0859ecce380b13c88fb4aa9fb161ff6b721f72399104afb5058085de3",
+          "input_tokens": 20,
+          "output_tokens": 7,
+          "reasoning_tokens": null,
+          "cached_tokens": 0,
+          "cache_read_tokens": null,
+          "cache_creation_tokens": null,
+          "cost_microunits": null,
+          "cost_confidence": "unpriced"
+        }
+      ],
+      "cost": "UNKNOWN",
+      "generated_through": "public_HTTP_production_serve"
+    },
+    {
+      "kind": "usage",
+      "request": "p1-request-d4043e1bec074e8fe14e016e4a9e4b27-1",
+      "attempt": "attempt:45:p1-request-d4043e1bec074e8fe14e016e4a9e4b27-1:1",
+      "stream": false,
+      "owner": "owner",
+      "public_status": 502,
+      "public_sha256": "4e984090e574e7d25894bdbfe3e874dcc3cf098889a9c0983406de75ea690b6c",
+      "receiver_ordinal": 2,
+      "Request": 1,
+      "Attempt": 1,
+      "Usage": 1,
+      "ledger": 1,
+      "source_ids": [
+        "usage-attempt:d66fc3cb02a4b867e53428d8408daeca69527bc6ebd07ffe102366d0ea163909"
+      ],
+      "ledger_rows": [
+        {
+          "source_event_id": "usage-attempt:d66fc3cb02a4b867e53428d8408daeca69527bc6ebd07ffe102366d0ea163909",
+          "input_tokens": 20,
+          "output_tokens": 7,
+          "reasoning_tokens": 3,
+          "cached_tokens": 0,
+          "cache_read_tokens": null,
+          "cache_creation_tokens": null,
+          "cost_microunits": null,
+          "cost_confidence": "unpriced"
+        }
+      ],
+      "cost": "UNKNOWN",
+      "generated_through": "public_HTTP_production_serve"
+    },
+    {
+      "kind": "usage",
+      "request": "p1-request-d4043e1bec074e8fe14e016e4a9e4b27-2",
+      "attempt": "attempt:45:p1-request-d4043e1bec074e8fe14e016e4a9e4b27-2:1",
+      "stream": true,
+      "owner": "owner",
+      "public_status": 200,
+      "public_sha256": "27c2237af49c766d71bd2403d4d109e51d8e394c5f51b65b963e68ddfb411c6d",
+      "receiver_ordinal": 3,
+      "Request": 1,
+      "Attempt": 1,
+      "Usage": 1,
+      "ledger": 1,
+      "source_ids": [
+        "usage-attempt:915203bde2f4ad80dc1531b87036ad87512a25671448335fe189cd41f141ed37"
+      ],
+      "ledger_rows": [
+        {
+          "source_event_id": "usage-attempt:915203bde2f4ad80dc1531b87036ad87512a25671448335fe189cd41f141ed37",
+          "input_tokens": 20,
+          "output_tokens": 7,
+          "reasoning_tokens": 3,
+          "cached_tokens": 0,
+          "cache_read_tokens": null,
+          "cache_creation_tokens": null,
+          "cost_microunits": null,
+          "cost_confidence": "unpriced"
+        }
+      ],
+      "cost": "UNKNOWN",
+      "generated_through": "public_HTTP_production_serve"
+    },
+    {
+      "kind": "incomplete",
+      "request": "p1-request-d4043e1bec074e8fe14e016e4a9e4b27-3",
+      "attempt": "attempt:45:p1-request-d4043e1bec074e8fe14e016e4a9e4b27-3:1",
+      "stream": true,
+      "owner": "owner",
+      "public_status": 200,
+      "public_sha256": "f1ca9eb4fe300a046e755dca27d365ce3c8194aa06a15b8485b29d25f2762422",
+      "receiver_ordinal": 4,
+      "Request": 1,
+      "Attempt": 1,
+      "Usage": 0,
+      "ledger": 0,
+      "source_ids": [],
+      "ledger_rows": [],
+      "cost": "UNKNOWN",
+      "generated_through": "public_HTTP_production_serve"
+    },
+    {
+      "kind": "summary",
+      "request": "p1-request-df1ec3219e186420f0bcfa1821bf4e78-0",
+      "attempt": "attempt:45:p1-request-df1ec3219e186420f0bcfa1821bf4e78-0:1",
+      "stream": false,
+      "owner": "owner",
+      "public_status": 200,
+      "public_sha256": "cd3f93fbfdafb2c61f36454e7ad0c3daa104144a25c79bb3949a6e57c48eb2b4",
+      "receiver_ordinal": 5,
+      "Request": 1,
+      "Attempt": 1,
+      "Usage": 1,
+      "ledger": 1,
+      "source_ids": [
+        "usage-attempt:7eefa38fe0fb3b2b66af3b315144b1645c2982c77c1e9964534e5e924e7a3b6a"
+      ],
+      "ledger_rows": [
+        {
+          "source_event_id": "usage-attempt:7eefa38fe0fb3b2b66af3b315144b1645c2982c77c1e9964534e5e924e7a3b6a",
+          "input_tokens": 20,
+          "output_tokens": 7,
+          "reasoning_tokens": null,
+          "cached_tokens": 0,
+          "cache_read_tokens": null,
+          "cache_creation_tokens": null,
+          "cost_microunits": null,
+          "cost_confidence": "unpriced"
+        }
+      ],
+      "cost": "UNKNOWN",
+      "generated_through": "public_HTTP_production_serve"
+    },
+    {
+      "kind": "summary",
+      "request": "p1-request-df1ec3219e186420f0bcfa1821bf4e78-1",
+      "attempt": "attempt:45:p1-request-df1ec3219e186420f0bcfa1821bf4e78-1:1",
+      "stream": true,
+      "owner": "owner",
+      "public_status": 200,
+      "public_sha256": "6954048cc546c021d5f4d9596c5cbe4b4f042a40da1b7a464fdc43100f1c1001",
+      "receiver_ordinal": 6,
+      "Request": 1,
+      "Attempt": 1,
+      "Usage": 1,
+      "ledger": 1,
+      "source_ids": [
+        "usage-attempt:94e2c15384d868341e7733ddad34c0f581c093713876992ea6d37b6a0d2fd733"
+      ],
+      "ledger_rows": [
+        {
+          "source_event_id": "usage-attempt:94e2c15384d868341e7733ddad34c0f581c093713876992ea6d37b6a0d2fd733",
+          "input_tokens": 20,
+          "output_tokens": 7,
+          "reasoning_tokens": null,
+          "cached_tokens": 0,
+          "cache_read_tokens": null,
+          "cache_creation_tokens": null,
+          "cost_microunits": null,
+          "cost_confidence": "unpriced"
+        }
+      ],
+      "cost": "UNKNOWN",
+      "generated_through": "public_HTTP_production_serve"
+    },
+    {
+      "kind": "usage",
+      "request": "p1-request-6d9ae5567ad9b83238e7ff6bbe0a0fd7-0",
+      "attempt": "attempt:45:p1-request-6d9ae5567ad9b83238e7ff6bbe0a0fd7-0:1",
+      "stream": false,
+      "owner": "owner",
+      "public_status": 502,
+      "public_sha256": "4e984090e574e7d25894bdbfe3e874dcc3cf098889a9c0983406de75ea690b6c",
+      "receiver_ordinal": 7,
+      "Request": 1,
+      "Attempt": 1,
+      "Usage": 1,
+      "ledger": 1,
+      "source_ids": [
+        "usage-attempt:906f28d572fb5f9b7b7bcfb3c31cde38dfbed75d03aaae73e878b4ec0f4b229a"
+      ],
+      "ledger_rows": [
+        {
+          "source_event_id": "usage-attempt:906f28d572fb5f9b7b7bcfb3c31cde38dfbed75d03aaae73e878b4ec0f4b229a",
+          "input_tokens": 20,
+          "output_tokens": 7,
+          "reasoning_tokens": 3,
+          "cached_tokens": 0,
+          "cache_read_tokens": null,
+          "cache_creation_tokens": null,
+          "cost_microunits": null,
+          "cost_confidence": "unpriced"
+        }
+      ],
+      "cost": "UNKNOWN",
+      "generated_through": "public_HTTP_production_serve"
+    },
+    {
+      "kind": "summary",
+      "request": "p1-request-6d9ae5567ad9b83238e7ff6bbe0a0fd7-1",
+      "attempt": "attempt:45:p1-request-6d9ae5567ad9b83238e7ff6bbe0a0fd7-1:1",
+      "stream": false,
+      "owner": "owner",
+      "public_status": 200,
+      "public_sha256": "f1839b434263d552a3cf5817b09e6a0d8d1a41e6e8b3d13d919e008debc10392",
+      "receiver_ordinal": 8,
+      "Request": 1,
+      "Attempt": 1,
+      "Usage": 1,
+      "ledger": 1,
+      "source_ids": [
+        "usage-attempt:884b12e8192fe63b15da5a46dc8ba012bc27fb5708b4f752f4904cc12e67056c"
+      ],
+      "ledger_rows": [
+        {
+          "source_event_id": "usage-attempt:884b12e8192fe63b15da5a46dc8ba012bc27fb5708b4f752f4904cc12e67056c",
+          "input_tokens": 20,
+          "output_tokens": 7,
+          "reasoning_tokens": null,
+          "cached_tokens": 0,
+          "cache_read_tokens": null,
+          "cache_creation_tokens": null,
+          "cost_microunits": null,
+          "cost_confidence": "unpriced"
+        }
+      ],
+      "cost": "UNKNOWN",
+      "generated_through": "public_HTTP_production_serve"
+    },
+    {
+      "kind": "ordinary",
+      "request": "p1-request-8aa732d7ac8923fe57ff85311ab81e69-0",
+      "attempt": "attempt:45:p1-request-8aa732d7ac8923fe57ff85311ab81e69-0:1",
+      "stream": false,
+      "owner": "owner",
+      "public_status": 200,
+      "public_sha256": "79b5aac72d9880138c7645b4730ddcda3671b57b1ff86975333a811a94a415a6",
+      "receiver_ordinal": 11,
+      "Request": 1,
+      "Attempt": 1,
+      "Usage": 1,
+      "ledger": 1,
+      "source_ids": [
+        "usage-attempt:d6d94b77e05f63716f3414ce39ddfe398926e006b5b5faebc2cf78aae4e01274"
+      ],
+      "ledger_rows": [
+        {
+          "source_event_id": "usage-attempt:d6d94b77e05f63716f3414ce39ddfe398926e006b5b5faebc2cf78aae4e01274",
+          "input_tokens": 20,
+          "output_tokens": 7,
+          "reasoning_tokens": null,
+          "cached_tokens": 0,
+          "cache_read_tokens": null,
+          "cache_creation_tokens": null,
+          "cost_microunits": null,
+          "cost_confidence": "unpriced"
+        }
+      ],
+      "cost": "UNKNOWN",
+      "generated_through": "public_HTTP_production_serve"
+    }
+  ],
+  "write_failure_receipts": [
+    {
+      "kind": "usage",
+      "request": "p1-request-6cf521e65c5b2c40bd253066f49cd48e-0",
+      "attempt": "attempt:45:p1-request-6cf521e65c5b2c40bd253066f49cd48e-0:1",
+      "owner": "owner",
+      "stream": false,
+      "public_status": 503,
+      "key_version": 2,
+      "receiver_ordinal": 9
+    },
+    {
+      "kind": "summary",
+      "request": "p1-request-6cf521e65c5b2c40bd253066f49cd48e-1",
+      "attempt": "attempt:45:p1-request-6cf521e65c5b2c40bd253066f49cd48e-1:1",
+      "owner": "owner",
+      "stream": false,
+      "public_status": 503,
+      "key_version": 2,
+      "receiver_ordinal": 10
+    }
+  ],
+  "restoration": {
+    "source_state": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/state",
+    "management_target": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/restore-host/restore-target.sqlite3",
+    "adopted_control_database": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/restored-serving-state/control.sqlite3",
+    "replacement": false
+  },
+  "compatibility": [
+    {
+      "schema": 35,
+      "binary": "schema35",
+      "native_usage": "PASS",
+      "summary": "UNSUPPORTED_COMMAND"
+    },
+    {
+      "schema": 36,
+      "reader": "schema35",
+      "result": "REJECTED"
+    },
+    {
+      "schema": 36,
+      "reader": "current",
+      "native_usage": "PASS",
+      "summary": "PASS"
+    },
+    {
+      "schema": 34,
+      "reader": "current",
+      "result": "CONTRACT_ONLY_NOT_RUN"
+    }
+  ],
+  "backup": {
+    "sha256": "22e0ac4dc6347a6129137521972e9a6e8c5663c7c939680a0de73b3444b714d4",
+    "bytes": 802869,
+    "backup_key_sha256": "733e88c1723982f3ad194ec0b3f26c1ab8462134d623d51f9ca51364a5ad02c1",
+    "master_keys": {
+      "1": "a1c1f4f07139c15cce0f2aabb3dc420682d2c90594d1c7260564f2a7c0c3a932",
+      "2": "99504caa2634196ad99a6482fd358aebacf162386ad28472e8908a40bfea15ca"
+    }
+  },
+  "fault_fixtures": [
+    {
+      "kind": "direct_SQL_ciphertext_swap",
+      "evidence": "usage",
+      "database": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/swapped-usage.sqlite3"
+    },
+    {
+      "kind": "direct_SQL_ciphertext_swap",
+      "evidence": "summary",
+      "database": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar65-hc58rnle/swapped-summary.sqlite3"
+    },
+    {
+      "kind": "direct_SQL_transient_insert_trigger",
+      "table": "native_usage_evidence"
+    },
+    {
+      "kind": "direct_SQL_transient_insert_trigger",
+      "table": "messages_summary_evidence"
+    },
+    {
+      "kind": "direct_SQL_retention_clock_fixture",
+      "times": [
+        0,
+        1
+      ],
+      "attempts": [
+        "attempt:45:p1-request-d4043e1bec074e8fe14e016e4a9e4b27-1:1",
+        "attempt:45:p1-request-df1ec3219e186420f0bcfa1821bf4e78-0:1"
+      ]
+    }
+  ]
+}

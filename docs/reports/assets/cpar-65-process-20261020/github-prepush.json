@@ -1,0 +1,145 @@
+{
+  "scope": "read-only prepush baseline",
+  "remote_heads": {
+    "refs/heads/develop": "c39bc07b1d53f831199f21cc5ae5062c987670b2",
+    "refs/heads/feature/64-claude-code-messages": "370604297a956047fda4d02c78ca3b0f7fc8cbd5",
+    "refs/heads/main": "c6a981b0f9eda09b0a2e58df11d272adf14f9552"
+  },
+  "new_feature_absent": true,
+  "issues": [
+    {
+      "issue": 61,
+      "shared_fields": {
+        "number": true,
+        "title": true,
+        "body": true,
+        "labels": true,
+        "comments": true,
+        "state": true,
+        "assignees": true
+      },
+      "initial_only_fields": [
+        "url"
+      ],
+      "prepush_only_fields": []
+    },
+    {
+      "issue": 63,
+      "shared_fields": {
+        "number": true,
+        "title": true,
+        "body": true,
+        "labels": true,
+        "comments": true,
+        "state": true,
+        "assignees": true
+      },
+      "initial_only_fields": [
+        "url"
+      ],
+      "prepush_only_fields": []
+    },
+    {
+      "issue": 64,
+      "shared_fields": {
+        "number": true,
+        "title": true,
+        "body": true,
+        "labels": true,
+        "comments": true,
+        "state": true,
+        "assignees": true
+      },
+      "initial_only_fields": [
+        "url"
+      ],
+      "prepush_only_fields": []
+    },
+    {
+      "issue": 65,
+      "shared_fields": {
+        "number": true,
+        "title": true,
+        "body": true,
+        "labels": true,
+        "comments": true,
+        "state": true,
+        "assignees": true
+      },
+      "initial_only_fields": [
+        "url"
+      ],
+      "prepush_only_fields": []
+    }
+  ],
+  "native_dependencies": {
+    "61": {
+      "blocked_by": [
+        {
+          "number": 59,
+          "state": "closed"
+        },
+        {
+          "number": 60,
+          "state": "closed"
+        }
+      ],
+      "blocking": [
+        {
+          "number": 62,
+          "state": "open"
+        },
+        {
+          "number": 63,
+          "state": "open"
+        }
+      ]
+    },
+    "63": {
+      "blocked_by": [
+        {
+          "number": 61,
+          "state": "open"
+        }
+      ],
+      "blocking": [
+        {
+          "number": 64,
+          "state": "open"
+        },
+        {
+          "number": 65,
+          "state": "open"
+        }
+      ]
+    },
+    "64": {
+      "blocked_by": [
+        {
+          "number": 63,
+          "state": "open"
+        }
+      ],
+      "blocking": [
+        {
+          "number": 66,
+          "state": "open"
+        }
+      ]
+    },
+    "65": {
+      "blocked_by": [
+        {
+          "number": 63,
+          "state": "open"
+        }
+      ],
+      "blocking": [
+        {
+          "number": 66,
+          "state": "open"
+        }
+      ]
+    }
+  }
+}

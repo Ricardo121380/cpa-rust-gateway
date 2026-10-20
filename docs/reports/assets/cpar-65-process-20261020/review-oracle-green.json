@@ -1,0 +1,21 @@
+{
+  "result": "PASS_ALL_MUTANTS_REJECTED",
+  "driver_sha256": "df14f68579434ee3badec53e412310387445336852eae04608edc255c13e5aa3",
+  "cases": [
+    {
+      "mutation": "changed_text",
+      "new_oracle_rejected": true,
+      "rejection": "summary full received content identity hierarchy and order"
+    },
+    {
+      "mutation": "reversed_parts",
+      "new_oracle_rejected": true,
+      "rejection": "summary full received content identity hierarchy and order"
+    },
+    {
+      "mutation": "wrong_response_id",
+      "new_oracle_rejected": true,
+      "rejection": "summary full received content identity hierarchy and order"
+    }
+  ]
+}

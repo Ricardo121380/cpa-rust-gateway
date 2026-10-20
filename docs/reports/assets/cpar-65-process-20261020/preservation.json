@@ -1,0 +1,18 @@
+{
+  "main": {
+    "files_checked": 90,
+    "changed": [],
+    "head_unchanged": true,
+    "branch_unchanged": true,
+    "index_empty": true,
+    "status_equal": true
+  },
+  "cpar64": {
+    "files_checked": 16,
+    "changed": [],
+    "head_unchanged": true,
+    "branch_unchanged": true,
+    "index_empty": true,
+    "status_equal": true
+  }
+}
