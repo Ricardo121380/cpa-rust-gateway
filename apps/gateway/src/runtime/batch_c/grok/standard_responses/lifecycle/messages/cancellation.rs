@@ -244,6 +244,7 @@ async fn public_build_messages_eof_idle_and_total_deadlines_fail_once_without_re
                 .to_request(),
         )
         .await;
+        assert_eq!(reply.status(), StatusCode::OK, "headers already committed");
         let id = reply
             .headers()
             .get("x-request-id")
@@ -251,9 +252,13 @@ async fn public_build_messages_eof_idle_and_total_deadlines_fail_once_without_re
             .to_str()?
             .to_owned();
         let bytes = test::read_body(reply).await;
+        assert!(std::str::from_utf8(&bytes)?.contains("cancel-63"));
         failures::assert_failed(&bytes)?;
         assert_eq!(peer.received.lock().map_err(|_| "receiver")?.len(), 1);
         assert!(wait_until(|| active_leases(&fixture) == 0).await);
+        if matches!(end, PeerEnd::Hold | PeerEnd::Heartbeats) {
+            assert!(wait_until(|| peer.closed.load(Ordering::SeqCst) == 1).await);
+        }
         let record = retained(&recording.database, &id)?;
         assert_eq!(
             record.evidence.completeness(),
@@ -261,11 +266,41 @@ async fn public_build_messages_eof_idle_and_total_deadlines_fail_once_without_re
         );
         drop(app);
         let database = recording.finish(&fixture, 0).await?;
+        let rows = SqliteEventStore::open_read_only(&database)?.list_events()?;
+        for count in [
+            rows.iter()
+                .filter(|r| matches!(r.event(), GatewayEvent::Request(_)))
+                .count(),
+            rows.iter()
+                .filter(|r| matches!(r.event(), GatewayEvent::Attempt(_)))
+                .count(),
+        ] {
+            assert_eq!(count, 1);
+        }
         assert!(
-            !SqliteEventStore::open_read_only(database)?
-                .list_events()?
+            !rows
                 .iter()
                 .any(|r| matches!(r.event(), GatewayEvent::Usage(_)))
+        );
+        let finished: Vec<_> = rows
+            .iter()
+            .filter_map(|r| match r.event() {
+                GatewayEvent::RequestFinished(v) => Some(v),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(finished.len(), 1);
+        assert_eq!(finished[0].outcome, gateway_core::RequestOutcome::Failed);
+        assert!(finished[0].first_content_ms.is_some());
+        let worker = crate::billing_worker::BillingWorker::start(
+            database.clone(),
+            Arc::new(gateway_control::billing_processing::BillingProcessingMonitor::default()),
+        );
+        worker.stop().await.map_err(|()| "billing")?;
+        assert!(
+            SqliteBillingLedger::open_read_only(&database)?
+                .list_bounded(10)?
+                .is_empty()
         );
     }
     Ok(())

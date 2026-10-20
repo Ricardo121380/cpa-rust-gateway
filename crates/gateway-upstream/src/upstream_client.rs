@@ -568,6 +568,9 @@ fn build_client(
         .map(|address| SocketAddr::new(*address, 0))
         .collect::<Vec<_>>();
     let mut builder = Client::builder()
+        // Each cache entry has one admitted scheme and never follows redirects. An HTTP
+        // client cannot use TLS roots; loading the native store only spends its total budget.
+        .tls_built_in_native_certs(target.scheme() == crate::EgressScheme::Https)
         .no_proxy()
         .no_hickory_dns()
         .redirect(RedirectPolicy::none())
@@ -1107,6 +1110,46 @@ mod tests {
         assert_egress_unavailable(&idle_error);
         assert!(started.elapsed() < Duration::from_secs(1));
         assert!(response.next_chunk().await.is_err());
+        let _joined = server.await;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn cold_http_client_delivers_partial_body_before_short_total_expires()
+    -> Result<(), Box<dyn Error>> {
+        let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+        let port = listener.local_addr()?.port();
+        let server = spawn_slow_body_peer(
+            listener,
+            b"abcdefghijklmnopqrstuvwxyz",
+            Duration::from_millis(25),
+        );
+        let pool = pool()?;
+        assert_eq!(pool.clients.entry_count(), 0, "the first send must be cold");
+        let profile = profile(
+            UpstreamTimeouts::try_new(
+                Duration::from_millis(500),
+                Duration::from_millis(500),
+                Duration::from_millis(200),
+                Duration::from_millis(500),
+            )?,
+            UpstreamProxy::Direct,
+        )?;
+        let mut response = pool
+            .send(request(admitted_target(port)?)?, &profile)
+            .await?;
+        assert_eq!(response.status(), 200);
+        let first = response
+            .next_chunk()
+            .await?
+            .ok_or_else(|| io::Error::other("cold HTTP response has no partial body"))?;
+        assert!(first.starts_with(b"a"));
+        let error = body_bytes(&mut response).await.err().ok_or_else(|| {
+            io::Error::other("short total unexpectedly delivered the complete body")
+        })?;
+        assert_egress_unavailable(&error);
+        assert!(response.next_chunk().await.is_err());
+        drop(response);
         let _joined = server.await;
         Ok(())
     }
