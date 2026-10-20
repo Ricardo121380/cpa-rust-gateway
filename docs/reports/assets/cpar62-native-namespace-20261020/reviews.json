@@ -1,0 +1,48 @@
+{
+  "standards_initial": {
+    "sender": "/root/namespace_standards_review",
+    "state": "complete",
+    "verdict": "PASS",
+    "source": "2a25f325dbfc69a4a5e869398fb93b430d258430",
+    "scope": "All 30 owned implementation paths against bbe3a53f9163fc55f6eb699a12983fee0c350210; pre-existing overlay used only as applicable rules",
+    "findings": [],
+    "summary": "No actionable documented standards or code-smell findings. Pure protocol edge remains acyclic/core-independent; owned cfg(test) qualification; terminal validation and Usage precede executable completion; fallback cannot flatten namespace. Reviewer did not execute tests or claim Full/actual CLI."
+  },
+  "spec_initial": {
+    "sender": "/root/namespace_spec_review",
+    "state": "complete",
+    "source": "2a25f325dbfc69a4a5e869398fb93b430d258430",
+    "verdict": "P1",
+    "finding": "Optional result.name without any namespace could bypass uses_namespaces-based runtime and Build qualification, allowing unqualified normal Build and generic Responses forwarding.",
+    "evidence": [
+      "crates/gateway-router/src/protocol_transform.rs:700",
+      "crates/protocol-openai-responses/src/tool_set.rs:207",
+      "apps/gateway/src/runtime.rs:4649",
+      "crates/provider-grok/src/build_responses.rs:350"
+    ],
+    "dynamic_confirmation": "spec-name-qualification-red.log: public expected400 actually200",
+    "resolution_commit": "5e62cb99291a2444282b4f25f3a49fb404a5287e"
+  },
+  "spec_fix": {
+    "sender": "/root/namespace_spec_fix_review",
+    "state": "complete",
+    "source": "5e62cb99291a2444282b4f25f3a49fb404a5287e",
+    "verdict": "PASS",
+    "scope": "9-file P1 fix relative to 2a25f325; combine with initial complete Spec review, not a second new full review",
+    "findings": [],
+    "summary": "requires_tool_identity_qualification detects result.name presence including null independently of namespace. Runtime still requires owned qualification + actual Build adapter + Responses source/target + Canonical/CanonicalBridge before generic dispatch; builder independently reuses predicate. Legacy flat without new members unchanged. Public RED/GREEN logs inspected; no rerun by reviewer."
+  },
+  "standards_fix": {
+    "sender": "/root/namespace_standards_fix_review",
+    "state": "complete",
+    "verdict": "PASS",
+    "source": "5e62cb99291a2444282b4f25f3a49fb404a5287e",
+    "scope": "9-file fix relative to 2a25f325; combined with initial full increment review",
+    "findings": [],
+    "summary": "No actionable standards violations or material design smells. Predicate uses presence including null; production qualification remains false; no new dependency/core edge/test entry. Decoder predicate and public HTTP tests exercise distinct boundaries. ADR/BC updated. git diff --check passed. Full not run by reviewer.",
+    "standard_sources": [
+      "docs/crate-boundaries.md:32",
+      "docs/quality-gates.md:18"
+    ]
+  }
+}

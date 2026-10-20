@@ -1,0 +1,274 @@
+{
+  "source_head": "5e62cb99291a2444282b4f25f3a49fb404a5287e",
+  "source_tree": "a2853d180df9825ab3fe148b44f55a55c09fca44",
+  "input_manifest_sha256": "ee02b9be75df6c07d81dcf409c564e735139676f5515c3896e3944bcde9ee083",
+  "source_inputs_unchanged": true,
+  "source_input_count": 7019,
+  "with_overlay": true,
+  "overlay_count": 18,
+  "full_final": {
+    "exit": 0,
+    "status": "PASS",
+    "steps": [
+      {
+        "label": "Shell syntax",
+        "duration_s": 0,
+        "result": "PASS"
+      },
+      {
+        "label": "CI workflow",
+        "duration_s": 1,
+        "result": "PASS"
+      },
+      {
+        "label": "Release artifact workflow",
+        "duration_s": 0,
+        "result": "PASS"
+      },
+      {
+        "label": "CI change classifier",
+        "duration_s": 0,
+        "result": "PASS"
+      },
+      {
+        "label": "Plan state",
+        "duration_s": 0,
+        "result": "PASS"
+      },
+      {
+        "label": "Plan state guard",
+        "duration_s": 1,
+        "result": "PASS"
+      },
+      {
+        "label": "Canary thresholds",
+        "duration_s": 0,
+        "result": "PASS"
+      },
+      {
+        "label": "Caddy split",
+        "duration_s": 0,
+        "result": "PASS"
+      },
+      {
+        "label": "Caddy split guard",
+        "duration_s": 2,
+        "result": "PASS"
+      },
+      {
+        "label": "Management SPA dependencies",
+        "duration_s": 3,
+        "result": "PASS"
+      },
+      {
+        "label": "Benchmark baseline comparator",
+        "duration_s": 1,
+        "result": "PASS"
+      },
+      {
+        "label": "Soak runner argument guard",
+        "duration_s": 29,
+        "result": "PASS"
+      },
+      {
+        "label": "Soak receipt checker",
+        "duration_s": 0,
+        "result": "PASS"
+      },
+      {
+        "label": "Quality installer cache behavior",
+        "duration_s": 1,
+        "result": "PASS"
+      },
+      {
+        "label": "Release artifact verifier",
+        "duration_s": 12,
+        "result": "PASS"
+      },
+      {
+        "label": "P12 systemd unit",
+        "duration_s": 0,
+        "result": "PASS"
+      },
+      {
+        "label": "P12 OpenAI differential graph",
+        "duration_s": 0,
+        "result": "PASS"
+      },
+      {
+        "label": "P12 OpenAI differential classifier",
+        "duration_s": 1,
+        "result": "PASS"
+      },
+      {
+        "label": "P12 OpenClaw migration dry-run",
+        "duration_s": 0,
+        "result": "PASS"
+      },
+      {
+        "label": "P12 G1 production graph",
+        "duration_s": 1,
+        "result": "PASS"
+      },
+      {
+        "label": "P12 G1 live harness",
+        "duration_s": 0,
+        "result": "PASS"
+      },
+      {
+        "label": "P12 G1 Chat SSE classifier",
+        "duration_s": 0,
+        "result": "PASS"
+      },
+      {
+        "label": "P12 G1 Responses JSON classifier",
+        "duration_s": 0,
+        "result": "PASS"
+      },
+      {
+        "label": "P12 G1 Messages SSE classifier",
+        "duration_s": 0,
+        "result": "PASS"
+      },
+      {
+        "label": "P12 grok2api memory export",
+        "duration_s": 0,
+        "result": "PASS"
+      },
+      {
+        "label": "P12 Autoreg Console memory export",
+        "duration_s": 0,
+        "result": "PASS"
+      },
+      {
+        "label": "P12 production observer",
+        "duration_s": 0,
+        "result": "PASS"
+      },
+      {
+        "label": "P12 Grok CPAR curl E2E harness",
+        "duration_s": 0,
+        "result": "PASS"
+      },
+      {
+        "label": "CPAR new-build acceptance oracle",
+        "duration_s": 7,
+        "result": "PASS"
+      },
+      {
+        "label": "Management SPA",
+        "duration_s": 7,
+        "result": "PASS"
+      },
+      {
+        "label": "Rust format",
+        "duration_s": 2,
+        "result": "PASS"
+      },
+      {
+        "label": "Clippy",
+        "duration_s": 22,
+        "result": "PASS"
+      },
+      {
+        "label": "Rust tests",
+        "duration_s": 286,
+        "result": "PASS"
+      },
+      {
+        "label": "P12 serve envelope",
+        "duration_s": 26,
+        "result": "PASS"
+      },
+      {
+        "label": "Agent multi-turn and stream regression",
+        "duration_s": 8,
+        "result": "PASS"
+      },
+      {
+        "label": "Source policy",
+        "duration_s": 0,
+        "result": "PASS"
+      },
+      {
+        "label": "Secret scanner test",
+        "duration_s": 1,
+        "result": "PASS"
+      },
+      {
+        "label": "Crate boundaries",
+        "duration_s": 1,
+        "result": "PASS"
+      },
+      {
+        "label": "Document links",
+        "duration_s": 0,
+        "result": "PASS"
+      },
+      {
+        "label": "Contract tests",
+        "duration_s": 1,
+        "result": "PASS"
+      },
+      {
+        "label": "Tracked secret scan",
+        "duration_s": 134,
+        "result": "PASS"
+      },
+      {
+        "label": "Git whitespace",
+        "duration_s": 1,
+        "result": "PASS"
+      },
+      {
+        "label": "Quality tool versions",
+        "duration_s": 0,
+        "result": "PASS"
+      },
+      {
+        "label": "Dependency policy",
+        "duration_s": 3,
+        "result": "PASS"
+      },
+      {
+        "label": "RustSec audit",
+        "duration_s": 4,
+        "result": "PASS"
+      }
+    ],
+    "pass_count": 45,
+    "start": "2026-10-20T12:37:27Z",
+    "finish": "2026-10-20T12:46:42Z",
+    "duration_s": 555.0,
+    "rust": {
+      "passed": 1587,
+      "failed": 0,
+      "ignored": 16,
+      "suites": 129
+    }
+  },
+  "full_first": {
+    "status": "FAIL",
+    "exit": 101,
+    "stage": "Rust tests",
+    "gateway": {
+      "passed": 260,
+      "failed": 1,
+      "ignored": 4
+    },
+    "test": "public_build_upstream_eof_idle_and_total_timeout_fail_once_without_resend",
+    "actual_http": 503,
+    "expected_http": 200,
+    "root_cause": "UNKNOWN",
+    "same_binary_targeted_rerun": "PASS 1/0/0, 7.58s; no assertions/timeouts/source changes",
+    "source_changed_for_rerun": false
+  },
+  "targeted_namespace": {
+    "status": "PASS",
+    "passed": 7,
+    "failed": 0,
+    "ignored": 0,
+    "duration_s": 61.61
+  },
+  "actual_cli_status": "Codex FAIL/BLOCKED expected; Pi bounded standard/failure/cancel separately retained; outer exit1 does not invalidate correctly separated observation"
+}

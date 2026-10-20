@@ -1,0 +1,35 @@
+{
+  "source_head": "5e62cb99291a2444282b4f25f3a49fb404a5287e",
+  "source_tree": "a2853d180df9825ab3fe148b44f55a55c09fca44",
+  "validation_worktree": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-namespace-20261020-5e62cb99291a",
+  "record_set_sha256": "ee02b9be75df6c07d81dcf409c564e735139676f5515c3896e3944bcde9ee083",
+  "record_count": 7019,
+  "overlay_count": 18,
+  "overlay_manifest": "validation-overlay-binding.json",
+  "source_manifest_files": [
+    "full-source-before.json.gz",
+    "full-source-after.json.gz"
+  ],
+  "source_inputs_before_after_equal": true,
+  "own_manifest_lock": {
+    "Cargo.toml": "1b1a37ce8d8fcafa51d379ffae2ff33fff091c5a48c0f3458e47b99c12b22355",
+    "Cargo.lock": "ee3d735f0f7aa364f3f4675e75a87751c8ad3784f0788ac244c4d391ce479cce",
+    "apps/gateway/Cargo.toml": "c0271c2ad72a8fcbdd419f12914d5c1db949531870e1cc142db0462c582d1108",
+    "crates/gateway-router/Cargo.toml": "c8f6c55ef56752473c08546db9fb599274f0d7578d60ff50d3cb982ade76b047",
+    "crates/provider-grok/Cargo.toml": "1968502b1ee6e2221f02226b01b47295f33281eec6bce5f1a7434de9dd58d303",
+    "rust-toolchain.toml": "8e390d6a0838315f972690f46ef8bae8b7ecc9ee6c1ed70140ef852869c2482e",
+    "web/prism/package-lock.json": "0ed3bda6fa6ee996408383bcad93d9c959cfe862fff11bbe005d0e8b061a3b4f"
+  },
+  "controlled_test_binary": {
+    "source_head": "5e62cb99291a2444282b4f25f3a49fb404a5287e",
+    "binary": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-native-namespace-20261020/target-full/debug/deps/gateway-8e1e81d2ce6d7d0d",
+    "sha256": "3fb9c1badad8f28ce42fcd0109fc2dbc66d09c0e652c121cdcafb6dac24e69c2",
+    "source_manifest": "full-source-before.json",
+    "full_first": "FAIL; preserved",
+    "targeted_existing_timeout": "PASS unchanged binary, 1/0/0 in 7.58s; failure cause UNKNOWN"
+  },
+  "actual_cli_test_binary_sha256": "14032689a6c3dd22f5ae5984534d34715d3d8d189ec7aed489f5d1836b21d316",
+  "qualification": "LOCAL_CONTROLLED only; BUILD_ACTIVATION_BLOCKED",
+  "full_scope": "Immutable candidate plus individually bound pre-existing documentation/rule overlays; not a bare product tree Full",
+  "closeout_rule": "Following commit may add report/evidence only; no software input change after this Full"
+}

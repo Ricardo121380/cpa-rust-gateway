@@ -1,0 +1,458 @@
+{
+  "source_head": "5e62cb99291a2444282b4f25f3a49fb404a5287e",
+  "test_binary_sha256": "14032689a6c3dd22f5ae5984534d34715d3d8d189ec7aed489f5d1836b21d316",
+  "versions": {
+    "codex": "codex-cli 0.161.0",
+    "pi-shell": "0.84.3",
+    "pi-declared-bin": "0.84.3",
+    "node": "v26.8.2"
+  },
+  "sdk_packages": {
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/package.json": {
+      "name": "@earendil-works/pi-coding-agent",
+      "version": "0.84.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai/package.json": {
+      "name": "@earendil-works/pi-ai",
+      "version": "0.84.3"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/openai/package.json": {
+      "name": "openai",
+      "version": "6.40.0"
+    }
+  },
+  "codex_native": {
+    "entry": "/opt/homebrew/lib/node_modules/@openai/codex/bin/codex.js",
+    "platform": "darwin",
+    "arch": "arm64",
+    "platformPackage": null,
+    "native": "/opt/homebrew/lib/node_modules/@openai/codex/vendor/aarch64-apple-darwin/bin/codex",
+    "sha256": "12ac11d2c7eee27cfae34393986d7b7c9ed0dea537cb749831cdd7033893e6de",
+    "mode": 493,
+    "derivation": "launcher findCodexExecutable() optional-package resolution with fallback; fixed paths exist"
+  },
+  "native_matches_installed_manifest": true,
+  "run": {
+    "command": [
+      "/usr/bin/sandbox-exec",
+      "-f",
+      "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-namespace-actual-20261020-5e62cb99291a-final/isolated.sb",
+      "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-native-namespace-20261020/target-full/debug/deps/gateway-6e770dcab36cc471",
+      "actual_cli_public_build_qualification",
+      "--ignored",
+      "--nocapture"
+    ],
+    "exit": 0,
+    "runner_status": "FAIL",
+    "require_prompt_release": false,
+    "cancellation": {
+      "abort_to_release_upper_bound_ms": 13,
+      "alive_after_observation": {
+        "observed_at_ms": 1792499775282,
+        "pid": 50654,
+        "rpc_alive": true
+      },
+      "cli_alive_at_abort": true,
+      "cli_kept_alive": true,
+      "cli_pid": 50654,
+      "eventually_released_before_server_stop": true,
+      "lease_before_abort": {
+        "lease": 1,
+        "observed_at_ms": 1792499775248
+      },
+      "leases_after_first_second": 0,
+      "leases_at_observation_end": 0,
+      "observation_end_at_ms": 1792499775272,
+      "peer_close_at_observation_end": 1,
+      "release_observed_at_ms": 1792499775272,
+      "released_within_first_second": true,
+      "rpc_timeline": {
+        "abort_sent_at_ms": 1792499775259,
+        "delta_at_ms": 1792499775245,
+        "pid": 50654,
+        "rpc_aborted_at_ms": 1792499775267,
+        "rpc_alive": true
+      },
+      "total_observation_ms": 0
+    },
+    "tcp_observer": false,
+    "require_codex_success": true,
+    "codex_success_gate": {
+      "status": "FAIL",
+      "checks": {
+        "cli_exit_zero": false,
+        "answer_tool_task_and_follow_up": false,
+        "five_incremental_public_responses": false,
+        "independent_receives_and_exact_accounting": false,
+        "two_correlated_tool_results": false,
+        "actual_tool_file_result": false
+      }
+    },
+    "installs_unchanged": true,
+    "claim": "local controlled independent preparation; #62 remains blocked"
+  },
+  "outer_exit": 1,
+  "scenarios": {
+    "codex-standard": {
+      "observation": {
+        "accounting": {
+          "attempts": 0,
+          "client_requests": 1,
+          "cost": "UNKNOWN",
+          "finished": 1,
+          "ledger": 0,
+          "lineage": [],
+          "outcome": "Failed",
+          "requests_including_negative_probe": 1,
+          "usage": 0
+        },
+        "client": "codex",
+        "public": [
+          {
+            "client_usable": false,
+            "http": 400
+          }
+        ],
+        "received": 0,
+        "released_before_server_stop": true,
+        "released_within_one_second": true,
+        "scenario": "standard",
+        "success_metadata_retention": "BLOCKED_BY_61"
+      },
+      "client_exit": 1,
+      "shutdown_exit": null,
+      "turn_outcomes": null,
+      "ingress_statuses": [
+        400
+      ],
+      "independent_receiver_count": 0,
+      "loaded_module_count": 1,
+      "loaded_openai_responses_sdk": false,
+      "isolation": {
+        "exit": 0,
+        "stdout": "[{\"host\": \"192.0.2.1\", \"errno\": 1}, {\"host\": \"2001:db8::1\", \"errno\": 1}, {\"outside_write_errno\": 1}, {\"real_home_read_errno\": 1}]\n",
+        "stderr": ""
+      },
+      "original_field_shape": {
+        "tool_shapes": [
+          {
+            "type": "function",
+            "name": "exec_command",
+            "external_web_access": null
+          },
+          {
+            "type": "function",
+            "name": "write_stdin",
+            "external_web_access": null
+          },
+          {
+            "type": "function",
+            "name": "request_user_input",
+            "external_web_access": null
+          },
+          {
+            "type": "function",
+            "name": "view_image",
+            "external_web_access": null
+          },
+          {
+            "type": "namespace",
+            "name": "multi_agent_v1",
+            "external_web_access": null
+          },
+          {
+            "type": "function",
+            "name": "get_goal",
+            "external_web_access": null
+          },
+          {
+            "type": "function",
+            "name": "create_goal",
+            "external_web_access": null
+          },
+          {
+            "type": "function",
+            "name": "update_goal",
+            "external_web_access": null
+          },
+          {
+            "type": "web_search",
+            "name": null,
+            "external_web_access": false
+          }
+        ],
+        "root_field_names": [
+          "client_metadata",
+          "include",
+          "input",
+          "instructions",
+          "model",
+          "parallel_tool_calls",
+          "prompt_cache_key",
+          "reasoning",
+          "store",
+          "stream",
+          "tool_choice",
+          "tools"
+        ],
+        "parallel_tool_calls": true,
+        "tool_choice": "auto",
+        "reasoning": {
+          "summary": "auto"
+        },
+        "client_metadata_keys": [
+          "root_turn_id",
+          "session_id",
+          "thread_id",
+          "turn_id",
+          "x-codex-installation-id",
+          "x-codex-turn-metadata",
+          "x-codex-window-id"
+        ]
+      }
+    },
+    "pi-standard": {
+      "observation": {
+        "accounting": {
+          "attempts": 5,
+          "client_requests": 5,
+          "cost": "UNKNOWN",
+          "finished": 6,
+          "ledger": 5,
+          "lineage": [
+            {
+              "attempt_id": "attempt:45:p1-request-dda5299dd995449da0c656a7567026fe-0:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-dda5299dd995449da0c656a7567026fe-0",
+              "source_event_id": "usage-attempt:3f1164ecb27b3b4c3681d7cf81e12f1ffc391e35ea5daba3229770ed1cd583a2"
+            },
+            {
+              "attempt_id": "attempt:45:p1-request-dda5299dd995449da0c656a7567026fe-1:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-dda5299dd995449da0c656a7567026fe-1",
+              "source_event_id": "usage-attempt:088032a4ba06cec1db76e7d5d09f0539bbef74c8b46948b8ecf8c5520bf915ab"
+            },
+            {
+              "attempt_id": "attempt:45:p1-request-dda5299dd995449da0c656a7567026fe-2:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-dda5299dd995449da0c656a7567026fe-2",
+              "source_event_id": "usage-attempt:2d84cbad28f4efe1154703a5c3923358764700302bbfc8cf684bef9dafa9d6be"
+            },
+            {
+              "attempt_id": "attempt:45:p1-request-dda5299dd995449da0c656a7567026fe-3:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-dda5299dd995449da0c656a7567026fe-3",
+              "source_event_id": "usage-attempt:f63b199ef1fbb334576445f4302b6288c4e5185179fb5a9dd913e6dec4fe7d88"
+            },
+            {
+              "attempt_id": "attempt:45:p1-request-dda5299dd995449da0c656a7567026fe-4:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-dda5299dd995449da0c656a7567026fe-4",
+              "source_event_id": "usage-attempt:99570f053040744f15f15302037366224ae3c6d11357323e963d7ac7bb17d7a0"
+            }
+          ],
+          "outcome": "Succeeded",
+          "requests_including_negative_probe": 6,
+          "usage": 5
+        },
+        "client": "pi",
+        "public": [
+          {
+            "chunks": 24,
+            "completed": 1,
+            "failed": 0,
+            "http": 200
+          },
+          {
+            "chunks": 20,
+            "completed": 1,
+            "failed": 0,
+            "http": 200
+          },
+          {
+            "chunks": 39,
+            "completed": 1,
+            "failed": 0,
+            "http": 200
+          },
+          {
+            "chunks": 21,
+            "completed": 1,
+            "failed": 0,
+            "http": 200
+          },
+          {
+            "chunks": 21,
+            "completed": 1,
+            "failed": 0,
+            "http": 200
+          }
+        ],
+        "received": 5,
+        "released_before_server_stop": true,
+        "released_within_one_second": true,
+        "scenario": "standard",
+        "success_metadata_retention": "BLOCKED_BY_61"
+      },
+      "client_exit": null,
+      "shutdown_exit": 143,
+      "turn_outcomes": [
+        "stop",
+        "stop",
+        "stop"
+      ],
+      "ingress_statuses": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "independent_receiver_count": 5,
+      "loaded_module_count": 1176,
+      "loaded_openai_responses_sdk": false,
+      "isolation": {
+        "exit": 0,
+        "stdout": "[{\"host\": \"192.0.2.1\", \"errno\": 1}, {\"host\": \"2001:db8::1\", \"errno\": 1}, {\"outside_write_errno\": 1}, {\"real_home_read_errno\": 1}]\n",
+        "stderr": ""
+      },
+      "tool_file_result": "42\n"
+    },
+    "pi-failure": {
+      "observation": {
+        "accounting": {
+          "attempts": 1,
+          "client_requests": 1,
+          "cost": "UNKNOWN",
+          "finished": 1,
+          "ledger": 1,
+          "lineage": [
+            {
+              "attempt_id": "attempt:45:p1-request-c6d68d7ef1e8a198e9d92208f79f3599-0:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-c6d68d7ef1e8a198e9d92208f79f3599-0",
+              "source_event_id": "usage-attempt:4d338b2c5a75129162a9a8838c2af43f2802a9b6152206fcea849b7099408619"
+            }
+          ],
+          "outcome": "Failed",
+          "requests_including_negative_probe": 1,
+          "usage": 1
+        },
+        "client": "pi",
+        "public": [
+          {
+            "chunks": 6,
+            "completed": 0,
+            "failed": 1,
+            "http": 200
+          }
+        ],
+        "received": 1,
+        "released_before_server_stop": true,
+        "released_within_one_second": true,
+        "scenario": "failure",
+        "success_metadata_retention": "BLOCKED_BY_61"
+      },
+      "client_exit": null,
+      "shutdown_exit": 143,
+      "turn_outcomes": [
+        "error"
+      ],
+      "ingress_statuses": [
+        200
+      ],
+      "independent_receiver_count": 1,
+      "loaded_module_count": 242,
+      "loaded_openai_responses_sdk": false,
+      "isolation": {
+        "exit": 0,
+        "stdout": "[{\"host\": \"192.0.2.1\", \"errno\": 1}, {\"host\": \"2001:db8::1\", \"errno\": 1}, {\"outside_write_errno\": 1}, {\"real_home_read_errno\": 1}]\n",
+        "stderr": ""
+      },
+      "displayed_failure_usage": [
+        {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        }
+      ]
+    },
+    "pi-cancel": {
+      "observation": {
+        "accounting": {
+          "attempts": 1,
+          "client_requests": 1,
+          "cost": "UNKNOWN",
+          "finished": 1,
+          "ledger": 0,
+          "lineage": [],
+          "outcome": "Cancelled",
+          "requests_including_negative_probe": 1,
+          "usage": 0
+        },
+        "client": "pi",
+        "public": [
+          {
+            "chunks": 5,
+            "completed": 0,
+            "failed": 0,
+            "http": 200
+          }
+        ],
+        "received": 1,
+        "released_before_server_stop": true,
+        "released_within_one_second": true,
+        "scenario": "cancel",
+        "success_metadata_retention": "BLOCKED_BY_61"
+      },
+      "client_exit": null,
+      "shutdown_exit": 143,
+      "turn_outcomes": [
+        "aborted"
+      ],
+      "ingress_statuses": [
+        200
+      ],
+      "independent_receiver_count": 1,
+      "loaded_module_count": 302,
+      "loaded_openai_responses_sdk": false,
+      "isolation": {
+        "exit": 0,
+        "stdout": "[{\"host\": \"192.0.2.1\", \"errno\": 1}, {\"host\": \"2001:db8::1\", \"errno\": 1}, {\"outside_write_errno\": 1}, {\"real_home_read_errno\": 1}]\n",
+        "stderr": ""
+      }
+    }
+  },
+  "pi_entry_identities": {
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js": {
+      "mode": 493,
+      "sha256": "1c3a5094b54aae9ae98c66516ce8c6578140363d081471ca7e91f9cb8c23dc8a"
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/dist/cli.js": {
+      "mode": 493,
+      "sha256": "840d1e8e689ed9e4937bcb00b9a810e02a8567d9afb10a47097f11ca93ea1521"
+    }
+  },
+  "sdk_inventory_limit": "Installed openai 6.40.0 inventory is frozen; no separately loaded external openai/responses ESM module was observed. The actual PATH Pi entry and observed module hashes identify this RPC run; an embedded SDK version is not inferred from installed package metadata. The declared bundled CLI was separately invoked only for --version.",
+  "pi_observed_api_modules": {
+    "file:///opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai/dist/api/openai-responses.lazy.js": {
+      "mode": 420,
+      "sha256": "ff6755b78f76a83ab50aee5603eb8f5efd8b9608be449a535847d49c0be0f0ca"
+    }
+  }
+}
