@@ -1,0 +1,27 @@
+{
+  "original_worktrees": [
+    {
+      "tag": "main",
+      "root": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "files_checked": 90,
+      "mismatches": [],
+      "head_unchanged": true,
+      "branch_unchanged": true,
+      "index_empty": true
+    },
+    {
+      "tag": "63",
+      "root": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar63-build-messages-summary-20261019",
+      "files_checked": 16,
+      "mismatches": [],
+      "head_unchanged": true,
+      "branch_unchanged": true,
+      "index_empty": true
+    }
+  ],
+  "product_existing_overlay_files": 16,
+  "product_overlay_matches": true,
+  "validated_code_and_manifest_inputs": 393,
+  "product_inputs_match_validation": true,
+  "no_reset_clean_stash_or_broad_stage": true
+}

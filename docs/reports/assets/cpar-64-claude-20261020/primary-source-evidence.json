@@ -1,0 +1,27 @@
+{
+  "kind": "primary-source paraphrases; raw HTTP403 receipts separate; no whole-page reproduction",
+  "web_extraction_sha256": "ef610f012b3e2c1c871ed12f3a3579403790e55a95d2eb0cf6690879a8adf08c",
+  "sources": [
+    {
+      "url": "https://code.claude.com/docs/en/env-vars",
+      "supports": "CLAUDE_CODE_TMPDIR redirects internal temp files; CLAUDE_CONFIG_DIR separates settings/history; this config is not the OS isolation proof."
+    },
+    {
+      "url": "https://code.claude.com/docs/en/cli-reference",
+      "supports": "--bare and print/stream-json are supported CLI controls. They select the tested CLI profile without modifying the executable."
+    },
+    {
+      "url": "https://platform.claude.com/docs/en/build-with-claude/thinking-steering-and-cost",
+      "supports": "Adaptive thinking lets Claude decide whether and how much to think. This does not establish a fixed Build equivalent."
+    },
+    {
+      "url": "https://platform.claude.com/docs/en/build-with-claude/effort",
+      "supports": "Anthropic effort controls output text, tool calls and thinking; a same-named reasoning effort elsewhere is not automatically equivalent."
+    },
+    {
+      "url": "https://platform.claude.com/docs/en/build-with-claude/context-editing",
+      "supports": "clear_thinking_20251015 keep=all preserves thinking turns. The cited Anthropic behavior is not fixed Build profile evidence."
+    }
+  ],
+  "inference": "No accurate cross-protocol admission is granted from these Anthropic-only sources; existing fail-closed contract remains."
+}

@@ -70,7 +70,7 @@ payload 与收到的字节一致；重复 JSON member 的回归证明观察器�
 
 | 实际字段/行为 | 当前证据、契约与结论 |
 | --- | --- |
-| `model: grok-4.5` | public / selected native 配置均字面同名；实际请求被预拒绝，没有 native returned model 可验证 |
+| `model: grok-4.5` | public / 主候选 upstream 配置均字面同名；实际请求被预拒绝，没有已选择 Attempt 或 native returned model 可验证 |
 | `max_tokens: 32000` | 现有精确映射由独立 JSON/SSE 公共探针验证为 `max_output_tokens:32000`；不代表整个 CLI 请求可执行 |
 | `thinking: {type:adaptive,display:updates}` | 第一次请求原样出现；无既有准确 Build 映射，BLOCKED |
 | `thinking: {type:adaptive}` | 客户端收到 400 后自行去掉 display 的第二次请求；仍拒绝，未由 harness 删字段 |
@@ -116,10 +116,82 @@ Claude 退出码 1，输出 `subtype:success` 同时 `is_error:true` 与 api_err
 开发定向：`standard_responses::lifecycle` 为 23 passed / 0 failed / 2 ignored；其中新增三个非 ignored
 公共测试覆盖实际字段的独立 JSON/SSE 预拒绝、32000/指定工具/串行精确映射，以及原字节/query/多值头/重复
 JSON 拒绝的观察器回归。它们是合成协议探针，没有删除实际 CLI 请求字段以冒充兼容。
-实际 CLI 另用显式 `--diagnostic` 运行，观测 oracle PASS、compatibility BLOCKED。
+早期实际 CLI 用显式 `--diagnostic` 运行，观测 oracle PASS、compatibility BLOCKED。最终运行没有使用
+`--diagnostic`：外层退出码 **1**（兼容 BLOCKED），内层 ignored 观测测试退出码 **0**，
+`client_success:false`。诊断正常退出和 Rust 测试通过都没有升级成客户端兼容成功。
 
-最终固定源码、独立 overlay Full、Standards/Spec、归档与保留核验将在收尾证据中记录。
-默认 Full 不启用 ignored 的实际 CLI 验收；overlay Full、真实 CLI、远端 CI、真实 Provider 和发布分别评价。
+最终产品源码为 `6edb8085f9e850edc55e68d382ed97acbc54a0c5`，tree
+`b12794e209bac5d7616151ef9a9143fae8b7fb60`。独立验证树在该提交上叠加原有 16 文件 overlay，
+得到本地验证提交 `ad40a2e5f7f8ed05fd21917aabb329e617fac32b`，tree
+`12c162ec4a30e0a8079f32ed46b6fd92889f88df`。验证目录为
+`/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar64-claude-20261020-06f779f24434`；
+target 为 `/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar64-20261020/target-full-06f779f24434`。
+目录名保留首次候选的短 SHA，但最终身份以上述提交、tree 和 manifest 为准。target 只在相同验证目录与
+manifest 路径中复用，没有从其他工作树移入带旧 `CARGO_MANIFEST_DIR` 的可执行文件。
+
+| 验证类别 | 最终证据与边界 |
+| --- | --- |
+| 独立 overlay Full | **PASS 45/45**；Rust **1575 passed / 0 failed / 15 ignored**，127 组；441.166 秒 |
+| 最终实际 CLI（默认忽略，另行 opt-in） | 观测 **PASS_BOUNDED**，兼容/工具闭环 **BLOCKED**；实际客户端文件、配置、393 个源码/manifest/lock/driver 输入与 Full 候选一致 |
+| Standards | **PASS**；独立初审及 identity 小增量补审均为 0 硬违规、0 Fowler 项；审查本身为静态只读 |
+| Spec | **PARTIAL_BLOCKED**；未确认新增 bug / scope creep；完整工具、摘要与活客户端取消 AC 仍未满足 |
+| 无既有 overlay 的纯产品树 Full | **NOT_RUN**；不能把 overlay Full 推广为纯提交 Full |
+| 远端 CI / 真实 Provider / 发布 / 部署 | **NOT_RUN**；没有主动触发远端工作流或连接真实账号 |
+
+Full 前后逐一复核 6980 个验证输入的字节、模式、symlink，差异为零，验证树保持 clean。
+`Cargo.lock` SHA-256 为 `ee3d735f0f7aa364f3f4675e75a87751c8ad3784f0788ac244c4d391ce479cce`。
+最终实际运行的 393 项输入又与 Full manifest 和产品工作树分别核对，无差异。实际 opt-in 与 Full 的
+gateway 测试可执行文件因 Cargo feature 组合不同而分别记录 SHA，不声称二者是同一个二进制。
+后续收尾提交仅增加报告和证据，不改变这些执行输入，也不声称对新增证据 metadata 重新执行了 Full。
+
+首轮 Full 在旧候选 `06f779f24434f7de95426b05f33484a1c4e33a15` + overlay
+（验证提交 `d28d25f3d7cd84eed8de77a3fcda5d046be0d8f9`）**FAIL**：一项既有断连测试在取消之前，
+没有在原 1 秒启动窗口内观察到 lease=1 且 receiver=1。失败日志完整保留；相同原二进制单测重跑
+通过（FIN 释放观测 7ms），未改变断言、超时或等待窗口，原失败原因 **UNKNOWN**。
+最终 Full 的通过不抹去这条历史失败，也不据此宣称找到或修复了生产取消根因。
+
+为导出逐项回执，又在最终 Full 的同一固定源码与原测试二进制上执行三个指定协议回归：
+20 条 exact-owner 原生摘要授权读回、4 组 Request/Attempt/Usage/账本/独立 receiver 一致性矩阵、
+JSON/SSE 各一条 32000/named/serial 精确控制探针，以及 Messages 公共 FIN/RST 释放回归均通过。
+4 组各 5 请求是该合成矩阵自身的证据；实际 Claude 的独立计数仍为 2 个公共请求、0 个上游接收。
+这些协议测试的 `actual_client:false` 明确保留，不替代实际工具执行、隐藏摘要续轮或活客户端取消证明。
+#63 的 summary 例外继续仅适用于 Grok Build + Messages + CanonicalBridge；Responses、Passthrough exact、
+其他 Provider/reasoning 与未知字段未新增例外。
+
+## 可复现入口与证据
+
+在本工作树运行下列命令会重新冻结当前安装文件、证明 OS 隔离，再执行单独的实际 CLI 观测。
+`--output` 必须是尚不存在的 OS 临时目录；若入口已更新，记录并使用更新后的实际身份，不降级。
+当前客户端的预期结果是外层非零退出与 `run.json` 中兼容 BLOCKED。
+
+```sh
+python3 /Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar64-claude-code-messages-20261020/scripts/acceptance/cpar64-claude.py \
+  --output /private/tmp/cpar64-reproduce-new \
+  --target-dir /Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar64-reproduce-target
+```
+
+若只需复核拒绝观测 oracle，可显式加 `--diagnostic`；它不验收成功工具闭环。独立验证 Full 使用
+`CARGO_TARGET_DIR=<上述独立 target> CHECK_REPORT_PATH=<独立报告路径> scripts/check.sh full`，
+源码、规则 overlay 与工具环境必须先按 manifest 核对；不将该命令解释为允许缺规则的工作树跳过检查。
+
+- [源码、393 个执行输入和 16 个 overlay 的身份](assets/cpar-64-claude-20261020/source-manifest.json)
+- [最终实际客户端配置、原始请求摘要与计数](assets/cpar-64-claude-20261020/actual-cli.json)
+- [协议摘要读回、计量及精确控制回执](assets/cpar-64-claude-20261020/controlled-regression.json)
+- [最终 Full 核验](assets/cpar-64-claude-20261020/full-final-receipt.json)与[45 步报告](assets/cpar-64-claude-20261020/full-final-check-report.md)
+- [Standards](assets/cpar-64-claude-20261020/review-standards.md)及[Spec](assets/cpar-64-claude-20261020/review-spec.md)独立评审
+- [原工作区保留核验](assets/cpar-64-claude-20261020/preservation.json)及[一方语义依据](assets/cpar-64-claude-20261020/primary-source-evidence.json)
+- [158 成员原始 RED / 观测 / 失败 / Full 归档](assets/cpar-64-claude-20261020/verification-logs.tar.gz)与[逐成员 SHA-256 索引](assets/cpar-64-claude-20261020/archive-index.json)
+
+归档包括原样请求/响应 `.bin`、必要协议头观测、隔离负例、客户端 stdout/stderr、生产路径计数与
+初次/最终 Full 日志。认证值、用户配置/会话、二进制、密钥/数据库、临时 HOME/cache/work 及整页文档
+提取不发布。完整源码路径和 Cargo artifact 清单保留本地，以 digest 登记；发布 393 项执行输入和
+精确 overlay 身份。归档解压成员使用项目原 secret regex 与禁止路径规则逐一检查，再回读比对全部字节
+和 SHA-256；158 项均通过。原主仓库 90 个脏文件及 #63 的 16 个脏文件字节、模式、symlink、HEAD、
+分支和空 index 均保持；本轮产品提交不包含原 16 文件 overlay。
+
+证据 metadata 增量完成后，文档链接（1230 文件）、契约测试引用（250 项）、计划状态、canary/Caddy
+约束、owned staged secret scan 和 diff whitespace 静态检查均通过；393 个执行输入再次核对一致。
+没有为纯报告增量重复 Full，也没有新增远端或真实 Provider 验收结论。
 
 ## 最小剩余工作
 

@@ -1,0 +1,109 @@
+{
+  "product_head": "6edb8085f9e850edc55e68d382ed97acbc54a0c5",
+  "validation_head": "ad40a2e5f7f8ed05fd21917aabb329e617fac32b",
+  "validation_tree": "12c162ec4a30e0a8079f32ed46b6fd92889f88df",
+  "source_input_count": 393,
+  "source_input_sha256": "4d2d3186d9e88dcdd8292adfa6011c210fd69109ebadc2dcd33aacfbfc149859",
+  "source_inputs_match_full": true,
+  "client_identity": {
+    "entry": "/Users/huangrui/.local/bin/claude",
+    "link": "/Users/huangrui/.local/share/claude/versions/2.1.302",
+    "actual": "/Users/huangrui/.local/share/claude/versions/2.1.302",
+    "sha256": "5262ce9de86243fed0d21edc39b271555d56780d0112e2b194439fe1c6662d37",
+    "mode": 493,
+    "architecture": "/Users/huangrui/.local/share/claude/versions/2.1.302: Mach-O 64-bit executable arm64",
+    "frozen": "/private/tmp/cpar64-final-source-20261020/claude",
+    "source_unchanged": true,
+    "frozen_unchanged": true
+  },
+  "version": "2.1.302 (Claude Code)",
+  "identity_network": "DENY_ALL",
+  "requests": [
+    {
+      "method": "POST",
+      "path_query": "/v1/messages?beta=true",
+      "status": 400,
+      "max_tokens": 32000,
+      "thinking": {
+        "display": "updates",
+        "type": "adaptive"
+      },
+      "output_config": {
+        "effort": "high"
+      },
+      "context_management": {
+        "edits": [
+          {
+            "keep": "all",
+            "type": "clear_thinking_20251015"
+          }
+        ]
+      },
+      "metadata_keys": [
+        "user_id"
+      ],
+      "tool_names": [
+        "Bash",
+        "Read"
+      ],
+      "request_sha256": "769e33fcd176af6eceb27cd1b111f326ec0cb18e8dfbe8462baa77c1b89990ce",
+      "response_sha256": "ebc252ab9d916009581fc701459beaf0632f840cdad82e1f1af360cf19106ca4"
+    },
+    {
+      "method": "POST",
+      "path_query": "/v1/messages?beta=true",
+      "status": 400,
+      "max_tokens": 32000,
+      "thinking": {
+        "type": "adaptive"
+      },
+      "output_config": {
+        "effort": "high"
+      },
+      "context_management": {
+        "edits": [
+          {
+            "keep": "all",
+            "type": "clear_thinking_20251015"
+          }
+        ]
+      },
+      "metadata_keys": [
+        "user_id"
+      ],
+      "tool_names": [
+        "Bash",
+        "Read"
+      ],
+      "request_sha256": "dfae0cd972ee69b5c8e0214e6c6fa67d15c2bd3e9a3b9fe5ffac0745c0d58562",
+      "response_sha256": "ebc252ab9d916009581fc701459beaf0632f840cdad82e1f1af360cf19106ca4"
+    }
+  ],
+  "observation": {
+    "accounting": {
+      "attempts": 0,
+      "cost": "UNKNOWN",
+      "failed_requests": 2,
+      "ledger": 0,
+      "requests": 2,
+      "summaries": 0,
+      "usage": 0
+    },
+    "active_leases": 0,
+    "actual_inflight_cancellation": "BLOCKED_NO_DELTA_OR_LEASE",
+    "actual_summary_readback": "BLOCKED_NO_ATTEMPT",
+    "actual_tool_execution": "BLOCKED_BEFORE_FIRST_RESPONSE",
+    "compatibility": "BLOCKED",
+    "cost": "UNKNOWN",
+    "count_tokens": "NOT_OBSERVED",
+    "head_probe": "NOT_OBSERVED",
+    "independent_receives": 0,
+    "independent_tcp_accepts": 0,
+    "lease_release_transition": "NOT_OBSERVED_NO_LEASE",
+    "no_lease_leak_before_cleanup": true,
+    "public_requests": 2,
+    "title": "NOT_OBSERVED"
+  },
+  "actual_cli_success": "BLOCKED",
+  "native_usage_and_cost": "UNKNOWN"
+}

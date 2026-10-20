@@ -1,0 +1,29 @@
+{
+  "full": {
+    "exit": 0,
+    "elapsed_seconds": 441.165722625,
+    "started_epoch": 1792463804.388305,
+    "finished_epoch": 1792464245.553601,
+    "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar64-claude-20261020-06f779f24434",
+    "head": "ad40a2e5f7f8ed05fd21917aabb329e617fac32b",
+    "tree": "12c162ec4a30e0a8079f32ed46b6fd92889f88df",
+    "target": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar64-20261020/target-full-06f779f24434",
+    "report": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar64-20261020/full-check-report.md",
+    "command": [
+      "scripts/check.sh",
+      "full"
+    ]
+  },
+  "steps": 45,
+  "step_pass": 45,
+  "rust_groups": 127,
+  "rust_passed": 1575,
+  "rust_failed": 0,
+  "rust_ignored": 15,
+  "verified_input_files": 6980,
+  "input_mismatches": [],
+  "worktree_clean": true,
+  "cargo_lock_sha256": "ee3d735f0f7aa364f3f4675e75a87751c8ad3784f0788ac244c4d391ce479cce",
+  "log_sha256": "88579ae6f82d3f9c005099e951d0f3fe21860d9254df3be2eb29fbd785e1ad16",
+  "report_sha256": "6d75510e973cb4f354f9f66ae3c228dadff79a827ee59fa3efe07a0efa474e53"
+}
