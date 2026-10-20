@@ -146,3 +146,5 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0114 Confirmed Build summary for standard Messages](ADR-0114-confirmed-build-messages-summary.md) — `#63 / #58 T02/T03/T05–T11`（Accepted；限定 CanonicalBridge 交付、schema 36 独立摘要密文与确认、授权 reader；实际客户端与真实 Provider 单列）。
 
 - [ADR-0115 Native namespaced function identity](ADR-0115-native-namespaced-function-identity.md) — `#62 C1-C3` (Accepted bounded local implementation; fixed Build activation remains blocked).
+
+- [ADR-0116 Local Codex request metadata diagnostics](ADR-0116-local-codex-request-metadata-diagnostics.md) — `#62 C4 only` (Accepted new D1-A Codex subset; schema37 Request evidence, local consumption only; original Codex and namespace activation remain blocked).

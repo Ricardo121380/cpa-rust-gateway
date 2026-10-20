@@ -229,8 +229,14 @@ pub struct DecodedCompactRequest {
 /// Returns `ClientRequestError/Request` for malformed, ambiguous, or unsupported request data.
 /// Fields that do not yet have a canonical meaning are retained under explicit raw extensions;
 /// they are never silently discarded.
+#[allow(
+    clippy::too_many_lines,
+    reason = "one decode boundary retains raw local metadata alongside validated standard controls"
+)]
 pub fn decode_request(input: &str) -> Result<DecodedResponsesRequest, GatewayError> {
     reject_duplicate_json_names(input)?;
+    let raw_root: RawExtensions =
+        serde_json::from_str(input).map_err(|_| client_request_error())?;
     let value: Value = serde_json::from_str(input).map_err(|_| client_request_error())?;
     let root = object(&value)?;
     reject_unimplemented_execution_controls(root)?;
@@ -301,9 +307,15 @@ pub fn decode_request(input: &str) -> Result<DecodedResponsesRequest, GatewayErr
             "prompt_cache_retention",
             "store",
             "previous_response_id",
+            "client_metadata",
         ],
         "openai.responses.",
     )?;
+    if let Some(raw) = raw_root.get("client_metadata") {
+        extensions
+            .try_insert(gateway_core::CODEX_CLIENT_METADATA, raw.clone())
+            .map_err(|_| client_request_error())?;
+    }
     if let Some(raw) = summary_only {
         extensions
             .try_insert("openai.responses.reasoning", raw)

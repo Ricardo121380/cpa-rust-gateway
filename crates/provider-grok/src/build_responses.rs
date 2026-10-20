@@ -749,6 +749,11 @@ fn insert_root_extensions(
         let Some(name) = name.strip_prefix(OPENAI_RESPONSES_EXTENSION_PREFIX) else {
             return Err(provider_protocol_error());
         };
+        if name == "client_metadata" {
+            // Only a qualified, durably confirmed local ingress may consume C4. An
+            // unconsumed extension must never become Build body or tracking material.
+            return Err(provider_protocol_error());
+        }
         if name == "tools" && !root.contains_key(name) {
             let tools = protocol_openai_responses::ResponsesToolSet::decode(raw)
                 .map_err(|_| provider_protocol_error())?;

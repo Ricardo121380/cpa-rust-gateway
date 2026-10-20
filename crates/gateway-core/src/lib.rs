@@ -14,6 +14,7 @@ mod messages_summary;
 mod native_usage;
 mod raw_extension;
 mod request_context;
+mod request_metadata;
 mod retry_gate;
 mod thinking;
 mod token_count;
@@ -57,6 +58,9 @@ pub use messages_summary::{
 pub use native_usage::{MAX_NATIVE_USAGE_BYTES, NativeUsageEvidence, NativeUsageSource};
 pub use raw_extension::{RawExtensionError, RawExtensions, RawJson};
 pub use request_context::RequestContext;
+pub use request_metadata::{
+    CODEX_CLIENT_METADATA, MAX_REQUEST_METADATA_BYTES, RequestMetadataEvidence,
+};
 pub use retry_gate::{TransparentRetryGate, TransparentRetryGateFuture};
 pub use thinking::{InvalidThinkingEffort, Thinking, ThinkingEffort};
 pub use token_count::ExactInputTokenCount;

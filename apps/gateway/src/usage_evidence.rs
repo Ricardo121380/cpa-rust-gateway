@@ -3,6 +3,7 @@ use gateway_core::{AttemptId, ClientKeyId, RequestId};
 use gateway_store::{
     messages_summary::SqliteMessagesSummaryReader,
     native_usage::SqliteNativeUsageReader,
+    request_metadata::SqliteRequestMetadataReader,
     secret_store::{KeyVersion, MasterKeyRing, SecretStore},
 };
 use rustix::fs::{Mode, OFlags, openat};
@@ -15,11 +16,25 @@ pub(crate) struct Command {
     active: u32,
     owner: ClientKeyId,
     request: RequestId,
-    attempt: AttemptId,
+    attempt: Option<AttemptId>,
     output: String,
 }
 pub(crate) fn parse(arguments: Vec<String>) -> Result<Command, super::CliError> {
+    parse_kind(arguments, true)
+}
+pub(crate) fn parse_request_metadata(arguments: Vec<String>) -> Result<Command, super::CliError> {
+    parse_kind(arguments, false)
+}
+fn parse_kind(arguments: Vec<String>, require_attempt: bool) -> Result<Command, super::CliError> {
     let mut options = super::parse_options(arguments)?;
+    let attempt = options
+        .remove("--attempt-id")
+        .map(AttemptId::try_new)
+        .transpose()
+        .map_err(|_| super::CliError::InvalidValue("--attempt-id"))?;
+    if require_attempt && attempt.is_none() {
+        return Err(super::CliError::MissingOption("--attempt-id"));
+    }
     let mut take = |name| super::required_option(&mut options, name);
     let command = Command {
         database: take("--db")?,
@@ -31,8 +46,7 @@ pub(crate) fn parse(arguments: Vec<String>) -> Result<Command, super::CliError> 
             .map_err(|_| super::CliError::InvalidValue("--client-key-id"))?,
         request: RequestId::try_new(take("--request-id")?)
             .map_err(|_| super::CliError::InvalidValue("--request-id"))?,
-        attempt: AttemptId::try_new(take("--attempt-id")?)
-            .map_err(|_| super::CliError::InvalidValue("--attempt-id"))?,
+        attempt,
         output: take("--output")?,
     };
     if !options.is_empty() {
@@ -42,14 +56,25 @@ pub(crate) fn parse(arguments: Vec<String>) -> Result<Command, super::CliError> 
 }
 
 pub(crate) fn run(command: &Command) -> Result<(), ()> {
-    run_kind(command, false)
+    run_kind(command, Kind::Usage)
 }
 
 pub(crate) fn run_messages_summary(command: &Command) -> Result<(), ()> {
-    run_kind(command, true)
+    run_kind(command, Kind::Summary)
 }
 
-fn run_kind(command: &Command, summary: bool) -> Result<(), ()> {
+pub(crate) fn run_request_metadata(command: &Command) -> Result<(), ()> {
+    run_kind(command, Kind::RequestMetadata)
+}
+
+#[derive(Clone, Copy)]
+enum Kind {
+    Usage,
+    Summary,
+    RequestMetadata,
+}
+
+fn run_kind(command: &Command, kind: Kind) -> Result<(), ()> {
     let key = KeyVersion::try_new(command.active).map_err(|_| ())?;
     let secrets = SecretStore::new(
         MasterKeyRing::load_from_directory(&command.key_directory, key).map_err(|_| ())?,
@@ -58,10 +83,28 @@ fn run_kind(command: &Command, summary: bool) -> Result<(), ()> {
         .duration_since(std::time::UNIX_EPOCH)
         .map_err(|_| ())?;
     let now = i64::try_from(now.as_millis()).map_err(|_| ())?;
-    let record = if summary {
+    let record = if matches!(kind, Kind::RequestMetadata) {
+        SqliteRequestMetadataReader::open(&command.database, secrets)
+            .map_err(|_| ())?
+            .get_owned(
+                &command.owner,
+                &command.request,
+                command.attempt.as_ref(),
+                now,
+            )
+            .map_err(|_| ())?
+            .map(serde_json::to_value)
+            .transpose()
+            .map_err(|_| ())?
+    } else if matches!(kind, Kind::Summary) {
         SqliteMessagesSummaryReader::open(&command.database, secrets)
             .map_err(|_| ())?
-            .get_owned(&command.owner, &command.request, &command.attempt, now)
+            .get_owned(
+                &command.owner,
+                &command.request,
+                command.attempt.as_ref().ok_or(())?,
+                now,
+            )
             .map_err(|_| ())?
             .map(serde_json::to_value)
             .transpose()
@@ -69,7 +112,12 @@ fn run_kind(command: &Command, summary: bool) -> Result<(), ()> {
     } else {
         SqliteNativeUsageReader::open(&command.database, secrets)
             .map_err(|_| ())?
-            .get_owned(&command.owner, &command.request, &command.attempt, now)
+            .get_owned(
+                &command.owner,
+                &command.request,
+                command.attempt.as_ref().ok_or(())?,
+                now,
+            )
             .map_err(|_| ())?
             .map(serde_json::to_value)
             .transpose()

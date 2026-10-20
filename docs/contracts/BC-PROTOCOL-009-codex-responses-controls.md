@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | PARTIAL; summary-only and C1-C3 local implementation; BUILD_ACTIVATION_BLOCKED |
+| Status | PARTIAL; summary-only, C1-C3 local implementation and C4 local diagnostics; namespace BUILD_ACTIVATION_BLOCKED |
 | Task | #62; parent #58 T01/T02/T03/T08/T10 |
 | ADR | [ADR-0113](../adr/ADR-0113-responses-summary-without-effort.md), [ADR-0115](../adr/ADR-0115-native-namespaced-function-identity.md) |
 | Profile | Fixed Build 1.0.50; unchanged endpoint, model binding and capability declarations |
@@ -42,7 +42,7 @@ that gap. #61 cost remains NOT_ADMITTED; no cost re-research or additional metad
 | --- | --- | --- | --- |
 | summary-only reasoning | A sole supported summary selector, with effort **absent**. Retain the complete object in `openai.responses.reasoning`; typed `thinking` is absent. | Responses target only; existing Reasoning capability required in every mode. Revalidate and emit the same object, with no effort added. | Preserve validated native summary and ordered history under existing ownership rules. This does not invent reasoning body, ciphertext or effective effort. |
 | namespace/function C1-C3 | Closed function-only groups use the ordered `openai.responses.tools` envelope and `ResponsesToolSet`; typed flat declarations remain unchanged. Group descriptions, child schema/strict and complete `(namespace?,name)` identity are retained; call_id correlates results. | Normal Build activation remains blocked before lease/send. This includes result `name` alone, whether null or string, without any namespace field. Only owned local test assembly grants field qualification; transport injection alone does not. auto/none/required, actual ParallelTools capability and serial enforcement use the complete set. No namespaced forced selector is invented. | Native JSON/SSE and explicit history preserve identity/order. Results retain independent absent/null/string name/namespace members and confirm supplied values. Complete arguments and item/terminal confirmation precede executable completion; invalid/unknown/conflicting shapes fail without retry. |
-| client_metadata | Codex-owned string map. Observed keys: root_turn_id, session_id, thread_id, turn_id, x-codex-installation-id, x-codex-turn-metadata, x-codex-window-id. The last metadata blob remains a JSON **string**. Root decoder retains the entire field under `openai.responses.client_metadata`. | The executable admitted set for Build is empty: router rejects every shape before acquisition/send. No unknown-root whitelist, silent deletion, standard-metadata renaming, or translation into Build tracking headers. | No response echo, storage/search semantics or Build interpretation is promised. Client-supplied identities never grant authentication, owner or route authority. |
+| client_metadata C4 | Closed seven-key string map and reviewed 20-member inner JSON string; exact bounds, absence/empty/type rules in [BC-PROTOCOL-010](BC-PROTOCOL-010-local-codex-client-metadata.md). | New D1-A Codex-only local receipt under ADR-0116: authenticated standard HTTP Responses, actual Build/Responses/Canonical or CanonicalBridge candidate scope, committed Request evidence before execution. Consumed locally, never Build body/header/model input. Other adapters/modes reject. | Complete encrypted RequestMetadataEvidence, exact-owner authorized readback and only actual Attempt associations. No Codex server tracking/history ingestion/approval processing or native-consumption equivalence. Unknown/unclassified members reject. |
 | web_search | Provider-executed hosted tool, including explicit cache-only control; not a client function. No qualified Canonical search contract is implemented. | Reject declarations before send, whether external access is false, true or absent. Do not remove the declaration/constraint, fabricate a result, or infer qualification from Codex. | Search-call output item ID, phase events, search/open/find actions, sources, URL citations and related Usage need a joint fixed-profile contract before admission. |
 
 ### Summary-only strictness and collisions
@@ -69,7 +69,7 @@ remain blocked. Normal assembly retains declaration/history and serial/parallel 
 
 ## Persistence, upgrade and recovery
 
-No Canonical struct, effort field, schema 35, stored payload version 1, AAD, key or TTL changes.
+For summary-only and C1-C3, no Canonical struct, effort field, stored payload version 1, AAD, key or TTL changes. C4 separately adds schema37 Request metadata evidence under ADR-0116; older Usage/summary readers remain supported by the new binary, while old binaries reject the new schema.
 The extension envelope is already part of encrypted stored requests. A frozen old effort-bearing
 Canonical JSON shape retains exact serialization; both it and the new extension form reopen with
 exact-owner isolation and idempotent replay after key rotation. This is a storage-boundary test,
@@ -111,9 +111,7 @@ Real Grok, other client forms, remote CI, release and deployment remain separate
 ## C1-C3 controlled namespace implementation
 
 The exact representation, bounds, qualification seam, argument/terminal completion barrier and
-existing-envelope persistence rules are in ADR-0115. This slice leaves C4 client_metadata, C5
-web_search (including external_web_access:false), C6 non-assistant input IDs and #61 blocked.
-D1 local request-metadata consumption and D2 Claude configuration are not implemented.
+existing-envelope persistence rules are in ADR-0115. C1-C3 does not authorize C4; the later ADR-0116 independently implements only D1-A Codex C4 local receipt. C5 web_search (including external_web_access:false), C6 non-assistant input IDs, #61 and D2 Claude configuration remain blocked or unimplemented. Namespace production activation stays BUILD_ACTIVATION_BLOCKED.
 
 ## Corresponding tests
 

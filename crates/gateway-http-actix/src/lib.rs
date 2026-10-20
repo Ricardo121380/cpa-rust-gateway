@@ -2066,43 +2066,67 @@ async fn responses(
         Arc::clone(&state.event_sink),
         request_start,
     );
-    let admission = usage_observer
-        .event_sink
-        .emit_confirmed(GatewayEvent::Request(
-            RequestEvent::new(
-                request_id.clone(),
-                client_key_id.clone(),
-                access_group_id,
-                GatewayProtocol::OpenAiResponses,
-                requested_model,
-                public_model.clone(),
-                route_alias,
-                decoded.mode == ResponseMode::Streaming,
-            )
-            .with_started_at_ms(request_start.1),
+    let (sender, stream) = bounded_canonical_stream(state.stream_capacity);
+    let retry_gate: Arc<dyn TransparentRetryGate> = Arc::new(stream.control());
+    let PreparedResponsesExecution {
+        mut execution,
+        mode,
+        canonical_request_for_store,
+        lineage_recorder,
+    } = prepare_responses_execution(
+        context,
+        &decoded,
+        body,
+        route,
+        retry_gate,
+        owned_continuation,
+        false,
+    );
+    let metadata = state.executor.prepare_request_metadata(&mut execution);
+    let request_event = RequestEvent::new(
+        request_id.clone(),
+        client_key_id.clone(),
+        access_group_id,
+        GatewayProtocol::OpenAiResponses,
+        requested_model,
+        public_model.clone(),
+        route_alias,
+        decoded.mode == ResponseMode::Streaming,
+    )
+    .with_started_at_ms(request_start.1);
+    let admission = match &metadata {
+        Ok(Some(evidence)) => {
+            usage_observer
+                .event_sink
+                .emit_request_metadata_confirmed(request_event, evidence.clone())
+                .await
+        }
+        _ => {
+            usage_observer
+                .event_sink
+                .emit_confirmed(GatewayEvent::Request(request_event))
+                .await
+        }
+    };
+    let admission_result = if matches!(&metadata, Ok(Some(_)))
+        && admission != gateway_core::EventEmission::Persisted
+    {
+        Err(GatewayError::new(
+            GatewayErrorCode::RecordingUnavailable,
+            ErrorScope::Internal,
         ))
-        .await;
-    if let Err(error) = admission.into_result() {
+    } else {
+        admission.into_result()
+    };
+    if let Err(error) = admission_result {
+        usage_observer.fail(&error);
+        return pre_header_error(&error);
+    }
+    if let Err(error) = metadata {
         usage_observer.fail(&error);
         return pre_header_error(&error);
     }
     let response = async {
-        let (sender, stream) = bounded_canonical_stream(state.stream_capacity);
-        let retry_gate: Arc<dyn TransparentRetryGate> = Arc::new(stream.control());
-        let PreparedResponsesExecution {
-            execution,
-            mode,
-            canonical_request_for_store,
-            lineage_recorder,
-        } = prepare_responses_execution(
-            context,
-            &decoded,
-            body,
-            route,
-            retry_gate,
-            owned_continuation,
-            false,
-        );
         if let Err(error) = execution.request().validate_tool_history() {
             usage_observer.fail(&error);
             return pre_header_error(&error);

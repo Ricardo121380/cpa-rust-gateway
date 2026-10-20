@@ -1066,6 +1066,14 @@ impl P12FanoutEventSink {
 }
 
 impl GatewayEventSink for P12FanoutEventSink {
+    fn emit_request_metadata_confirmed(
+        &self,
+        request: gateway_core::RequestEvent,
+        evidence: gateway_core::RequestMetadataEvidence,
+    ) -> gateway_core::EventEmissionFuture<'_> {
+        self.queue
+            .emit_request_metadata_confirmed(request, evidence)
+    }
     fn emit_summary_evidence_confirmed(
         &self,
         attempt: gateway_core::AttemptEvent,
@@ -1920,6 +1928,64 @@ impl ManagementChannelPinFacade for P12ChannelPinFacade {
 }
 
 impl ResponsesExecutor for P12RoutedResponsesExecutor {
+    fn prepare_request_metadata(
+        &self,
+        execution: &mut ResponsesExecution,
+    ) -> Result<Option<gateway_core::RequestMetadataEvidence>, GatewayError> {
+        if execution
+            .request()
+            .extensions
+            .get(gateway_core::CODEX_CLIENT_METADATA)
+            .is_none()
+        {
+            return Ok(None);
+        }
+        let rejected =
+            || GatewayError::new(GatewayErrorCode::ClientRequestError, ErrorScope::Request);
+        if !self.snapshot_is_current()
+            || execution.context().client_key_id().is_none()
+            || execution.client_protocol() != ProtocolFormat::OpenAiResponses
+            || execution.client_transport() != ResponsesClientTransport::Http
+        {
+            return Err(rejected());
+        }
+        let snapshot = execution
+            .route_snapshot()
+            .cloned()
+            .unwrap_or_else(|| self.registry.load());
+        let route = snapshot
+            .route(execution.route_id().ok_or_else(rejected)?)
+            .ok_or_else(rejected)?;
+        let candidates: Vec<_> = route
+            .candidates()
+            .iter()
+            .filter(|candidate| {
+                execution
+                    .exact_upstream_model()
+                    .is_none_or(|model| candidate.upstream_model() == model)
+            })
+            .collect();
+        if candidates.is_empty()
+            || candidates.iter().any(|candidate| {
+                candidate.protocol_format() != Some(ProtocolFormat::OpenAiResponses)
+                    || !matches!(
+                        candidate.transform_mode(),
+                        gateway_router::SnapshotTransformMode::Canonical
+                            | gateway_router::SnapshotTransformMode::CanonicalBridge
+                    )
+                    || !self
+                        .endpoints
+                        .get(candidate.endpoint_id())
+                        .is_some_and(|runtime| {
+                            matches!(runtime.adapter, EndpointAdapter::GrokBuildResponses)
+                        })
+            })
+        {
+            return Err(rejected());
+        }
+        execution.take_request_metadata()
+    }
+
     fn supports_stored_response_lineage(&self) -> bool {
         true
     }

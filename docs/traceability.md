@@ -283,3 +283,7 @@ summary/body及模型关系未实施；标准与协商消费者资格分列，#4
 BC-ROUTER-004 and BC-PROVIDER-003 to the ordered native tool-set view, Build field qualification
 barrier and public controlled namespace tests. This local software slice does not complete #62,
 activate fixed Build namespaces, admit C4/C5/C6/#61 or change GitHub dependencies.
+
+## #62 C4 local Request metadata diagnostics
+
+[ADR-0116](adr/ADR-0116-local-codex-request-metadata-diagnostics.md) and [BC-PROTOCOL-010](contracts/BC-PROTOCOL-010-local-codex-client-metadata.md) record the new D1-A Codex-only final-receiver decision. RequestMetadataEvidence is independent of Usage/summary, with schema37 confirmation, exact-owner local reader and expiry receipts. This does not grant namespace activation, C5/C6, Claude metadata/D2, #61, original-client compatibility or #62 completion.

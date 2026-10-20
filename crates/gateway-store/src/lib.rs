@@ -20,6 +20,8 @@ pub mod event_store;
 pub mod messages_summary;
 /// Private Attempt-scoped native Usage and its authorized read-only diagnostic boundary.
 pub mod native_usage;
+/// Request-only encrypted client metadata and authorized local diagnostics.
+pub mod request_metadata;
 pub mod secret_store;
 /// Client-key-owned, AEAD-sealed Canonical Responses with bounded TTL and garbage collection.
 pub mod stored_response;
@@ -63,7 +65,7 @@ const NATIVE_ACCOUNT_MANAGEMENT_SCHEMA_VERSION: i64 = 26;
 const REQUEST_TERMINAL_SCHEMA_VERSION: i64 = 27;
 
 /// Current durable control-plane schema.
-pub const CURRENT_SCHEMA_VERSION: i64 = 36;
+pub const CURRENT_SCHEMA_VERSION: i64 = 37;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -252,6 +254,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 36,
         up: include_str!("../migrations/0036_messages_summary_evidence.up.sql"),
         down: include_str!("../migrations/0036_messages_summary_evidence.down.sql"),
+    },
+    Migration {
+        version: 37,
+        up: include_str!("../migrations/0037_request_metadata_evidence.up.sql"),
+        down: include_str!("../migrations/0037_request_metadata_evidence.down.sql"),
     },
 ];
 
@@ -789,6 +796,7 @@ mod tests {
                 "native_account_management_events",
                 "native_usage_evidence",
                 "public_models",
+                "request_metadata_evidence",
                 "route_candidates",
                 "routing_price_policies",
                 "stored_response_compactions",

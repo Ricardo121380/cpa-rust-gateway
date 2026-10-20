@@ -47,6 +47,28 @@ struct Events(
     Mutex<Option<Arc<dyn GatewayEventSink>>>,
 );
 impl GatewayEventSink for Events {
+    fn emit_request_metadata_confirmed(
+        &self,
+        request: gateway_core::RequestEvent,
+        evidence: gateway_core::RequestMetadataEvidence,
+    ) -> gateway_core::EventEmissionFuture<'_> {
+        Box::pin(async move {
+            let sink = self.1.lock().ok().and_then(|sink| sink.clone());
+            let result = match sink {
+                Some(sink) => {
+                    sink.emit_request_metadata_confirmed(request.clone(), evidence)
+                        .await
+                }
+                None => EventEmission::PersistenceUnavailable,
+            };
+            if result == EventEmission::Persisted
+                && let Ok(mut events) = self.0.lock()
+            {
+                events.push(GatewayEvent::Request(request));
+            }
+            result
+        })
+    }
     fn emit_summary_evidence_confirmed(
         &self,
         attempt: gateway_core::AttemptEvent,

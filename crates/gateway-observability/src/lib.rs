@@ -238,6 +238,7 @@ impl BoundedEventQueue {
         receipt: Option<oneshot::Sender<EventEmission>>,
         native_usage: Option<gateway_core::NativeUsageEvidence>,
         native_summary: Option<gateway_core::MessagesSummaryEvidence>,
+        request_metadata: Option<gateway_core::RequestMetadataEvidence>,
     ) -> EventEmission {
         let required = event.priority() == GatewayEventPriority::Required;
         let sender = if required {
@@ -252,6 +253,7 @@ impl BoundedEventQueue {
             event,
             native_usage,
             native_summary,
+            request_metadata,
             receipt,
             health: self.health.clone(),
             required,
@@ -285,8 +287,15 @@ impl BoundedEventQueue {
 }
 
 impl GatewayEventSink for BoundedEventQueue {
+    fn emit_request_metadata_confirmed(
+        &self,
+        request: gateway_core::RequestEvent,
+        evidence: gateway_core::RequestMetadataEvidence,
+    ) -> EventEmissionFuture<'_> {
+        self.confirm_private(GatewayEvent::Request(request), None, None, Some(evidence))
+    }
     fn try_emit(&self, event: GatewayEvent) -> EventEmission {
-        self.enqueue(event, None, None, None)
+        self.enqueue(event, None, None, None, None)
     }
 
     fn emit_confirmed(&self, event: GatewayEvent) -> EventEmissionFuture<'_> {
@@ -301,7 +310,7 @@ impl GatewayEventSink for BoundedEventQueue {
                 return EventEmission::PersistenceUnavailable;
             }
             let (send, receive) = oneshot::channel();
-            let result = self.enqueue(event, Some(send), None, None);
+            let result = self.enqueue(event, Some(send), None, None, None);
             if result != EventEmission::Enqueued {
                 return result;
             }
@@ -321,7 +330,7 @@ impl GatewayEventSink for BoundedEventQueue {
         event: gateway_core::UsageEvent,
         evidence: gateway_core::NativeUsageEvidence,
     ) -> EventEmissionFuture<'_> {
-        self.confirm_private(GatewayEvent::Usage(event), Some(evidence), None)
+        self.confirm_private(GatewayEvent::Usage(event), Some(evidence), None, None)
     }
 
     fn emit_summary_evidence_confirmed(
@@ -329,7 +338,7 @@ impl GatewayEventSink for BoundedEventQueue {
         attempt: gateway_core::AttemptEvent,
         evidence: gateway_core::MessagesSummaryEvidence,
     ) -> EventEmissionFuture<'_> {
-        self.confirm_private(GatewayEvent::Attempt(attempt), None, Some(evidence))
+        self.confirm_private(GatewayEvent::Attempt(attempt), None, Some(evidence), None)
     }
 }
 
@@ -339,13 +348,17 @@ impl BoundedEventQueue {
         event: GatewayEvent,
         usage: Option<gateway_core::NativeUsageEvidence>,
         summary: Option<gateway_core::MessagesSummaryEvidence>,
+        metadata: Option<gateway_core::RequestMetadataEvidence>,
     ) -> EventEmissionFuture<'_> {
         Box::pin(async move {
-            if !self.health.writer_attached.load(Ordering::Acquire) {
+            if !self.health.writer_attached.load(Ordering::Acquire)
+                || (matches!(event, GatewayEvent::Request(_))
+                    && self.health.state.load(Ordering::Acquire) >= 2)
+            {
                 return EventEmission::PersistenceUnavailable;
             }
             let (send, receive) = oneshot::channel();
-            let result = self.enqueue(event, Some(send), usage, summary);
+            let result = self.enqueue(event, Some(send), usage, summary, metadata);
             if result != EventEmission::Enqueued {
                 return result;
             }
@@ -401,6 +414,8 @@ pub struct QueuedEvent {
     pub native_usage: Option<gateway_core::NativeUsageEvidence>,
     /// Independent summary payload. The Attempt event is an idempotent transaction anchor.
     pub native_summary: Option<gateway_core::MessagesSummaryEvidence>,
+    /// Request-only private companion, never ordinary telemetry or quarantine.
+    pub request_metadata: Option<gateway_core::RequestMetadataEvidence>,
     receipt: Option<oneshot::Sender<EventEmission>>,
     health: Arc<RecordingHealth>,
     required: bool,
@@ -489,6 +504,14 @@ impl RequestEventSink {
     }
 }
 impl GatewayEventSink for RequestEventSink {
+    fn emit_request_metadata_confirmed(
+        &self,
+        request: gateway_core::RequestEvent,
+        evidence: gateway_core::RequestMetadataEvidence,
+    ) -> EventEmissionFuture<'_> {
+        self.inner
+            .emit_request_metadata_confirmed(request, evidence)
+    }
     fn emit_usage_evidence_confirmed(
         &self,
         event: gateway_core::UsageEvent,

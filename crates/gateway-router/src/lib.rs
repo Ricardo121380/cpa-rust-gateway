@@ -286,6 +286,37 @@ impl ResponsesExecution {
         &self.request
     }
 
+    /// Consumes only the reviewed local diagnostic field after composition qualification.
+    /// The caller must confirm the returned evidence before executing this handoff.
+    ///
+    /// # Errors
+    /// Rejects invalid C4 shapes without changing the execution request.
+    pub fn take_request_metadata(
+        &mut self,
+    ) -> Result<Option<gateway_core::RequestMetadataEvidence>, GatewayError> {
+        let Some(raw) = self
+            .request
+            .extensions
+            .get(gateway_core::CODEX_CLIENT_METADATA)
+        else {
+            return Ok(None);
+        };
+        let evidence = gateway_core::RequestMetadataEvidence::try_new(raw.get().to_owned())?;
+        let mut remaining = gateway_core::RawExtensions::default();
+        for (name, value) in self.request.extensions.iter() {
+            if name != gateway_core::CODEX_CLIENT_METADATA {
+                remaining.try_insert(name, value.clone()).map_err(|_| {
+                    GatewayError::new(
+                        gateway_core::GatewayErrorCode::ClientRequestError,
+                        gateway_core::ErrorScope::Request,
+                    )
+                })?;
+            }
+        }
+        self.request.extensions = remaining;
+        Ok(Some(evidence))
+    }
+
     /// Carries the ingress-resolved public identity separately from the original alias.
     #[must_use]
     pub fn with_admitted_public_model(mut self, model: String) -> Self {
@@ -456,6 +487,28 @@ impl fmt::Debug for ResponsesExecution {
 /// P1 deliberately has no catalog lookup, retry policy, credential selection, or route snapshot.
 /// A later router implementation can add those internals while preserving this core-only surface.
 pub trait ResponsesExecutor: Send + Sync {
+    /// Qualifies local Request metadata consumption before admission, without lease or I/O.
+    /// Unsupported compositions keep the original request and fail closed.
+    ///
+    /// # Errors
+    /// Rejects fields without an explicit adapter/protocol/mode local-consumer contract.
+    fn prepare_request_metadata(
+        &self,
+        execution: &mut ResponsesExecution,
+    ) -> Result<Option<gateway_core::RequestMetadataEvidence>, GatewayError> {
+        if execution
+            .request()
+            .extensions
+            .get(gateway_core::CODEX_CLIENT_METADATA)
+            .is_some()
+        {
+            return Err(GatewayError::new(
+                gateway_core::GatewayErrorCode::ClientRequestError,
+                gateway_core::ErrorScope::Request,
+            ));
+        }
+        Ok(None)
+    }
     /// Returns whether this executor can publish exact successful-attempt lineage for local store.
     #[must_use]
     fn supports_stored_response_lineage(&self) -> bool {

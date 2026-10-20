@@ -60,9 +60,20 @@ fn output(round: usize) -> Value {
 }
 
 fn wire(round: usize, streaming: bool) -> Result<String, Box<dyn Error>> {
-    let items = output(round);
+    wire_output(
+        &output(round),
+        &format!("namespace-response-{round}"),
+        streaming,
+    )
+}
+
+pub(super) fn wire_output(
+    items: &Value,
+    id: &str,
+    streaming: bool,
+) -> Result<String, Box<dyn Error>> {
     let mut terminal = response();
-    terminal["id"] = json!(format!("namespace-response-{round}"));
+    terminal["id"] = json!(id);
     terminal["output"] = items.clone();
     if !streaming {
         return Ok(terminal.to_string());
@@ -126,7 +137,10 @@ fn wire(round: usize, streaming: bool) -> Result<String, Box<dyn Error>> {
     Ok(wire + &frame("response.completed", &terminal))
 }
 
-fn transport(peer: &ModelPeer, size: usize) -> Result<Arc<dyn GrokBuildTransport>, Box<dyn Error>> {
+pub(super) fn transport(
+    peer: &ModelPeer,
+    size: usize,
+) -> Result<Arc<dyn GrokBuildTransport>, Box<dyn Error>> {
     let url = reqwest::Url::parse(&peer.url)?;
     let port = url.port().ok_or("owned port")?;
     let policy = EgressPolicy::try_new(EgressPolicyInput {
@@ -158,7 +172,9 @@ fn transport(peer: &ModelPeer, size: usize) -> Result<Arc<dyn GrokBuildTransport
     }))
 }
 
-fn listener(fixture: &Fixture) -> Result<(String, actix_web::dev::ServerHandle), Box<dyn Error>> {
+pub(super) fn listener(
+    fixture: &Fixture,
+) -> Result<(String, actix_web::dev::ServerHandle), Box<dyn Error>> {
     let listener = std::net::TcpListener::bind("127.0.0.1:0")?;
     let address = listener.local_addr()?;
     let state = fixture.state.clone();
@@ -177,7 +193,7 @@ fn listener(fixture: &Fixture) -> Result<(String, actix_web::dev::ServerHandle),
     Ok((format!("http://{address}/v1/responses"), handle))
 }
 
-async fn request(
+pub(super) async fn request(
     fixture: &Fixture,
     url: &str,
     body: &Value,
@@ -196,7 +212,7 @@ async fn request(
     Ok((status, reply.bytes().await?.to_vec()))
 }
 
-fn terminal(bytes: &[u8], streaming: bool) -> Result<Value, Box<dyn Error>> {
+pub(super) fn terminal(bytes: &[u8], streaming: bool) -> Result<Value, Box<dyn Error>> {
     if !streaming {
         return Ok(serde_json::from_slice(bytes)?);
     }
@@ -309,7 +325,7 @@ fn append_history(history: &mut Vec<Value>, reply: &Value, round: usize) -> Test
     Ok(())
 }
 
-fn assert_history(sent: &Value, history: &[Value]) {
+pub(super) fn assert_history(sent: &Value, history: &[Value]) {
     if let Some(text) = sent.as_str() {
         assert_eq!(history.len(), 1);
         assert_eq!(text, history[0]["content"]);
@@ -323,7 +339,7 @@ fn assert_history(sent: &Value, history: &[Value]) {
     assert_eq!(sent, &json!(expected));
 }
 
-async fn assert_recorded(database: &std::path::Path, count: usize) -> TestResult {
+pub(super) async fn assert_recorded(database: &std::path::Path, count: usize) -> TestResult {
     let rows = SqliteEventStore::open_read_only(database)?.list_events()?;
     for kind in ["request", "attempt", "usage", "finished"] {
         assert_eq!(

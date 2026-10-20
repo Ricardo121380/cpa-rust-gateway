@@ -78,6 +78,15 @@ pub type EventEmissionFuture<'a> = Pin<Box<dyn Future<Output = EventEmission> + 
 
 /// Secret-safe event port; production confirmations await the background writer.
 pub trait GatewayEventSink: Send + Sync {
+    /// Commits the original authenticated Request and its private metadata in one bounded slot.
+    /// Queue-only or unsupported embeddings cannot acknowledge this evidence.
+    fn emit_request_metadata_confirmed(
+        &self,
+        _request: RequestEvent,
+        _evidence: crate::RequestMetadataEvidence,
+    ) -> EventEmissionFuture<'_> {
+        Box::pin(async { EventEmission::PersistenceUnavailable })
+    }
     /// Confirms private Messages summary on an already confirmed Attempt. Its replay is only a
     /// transaction anchor, never a new Attempt observation. Queue admission cannot confirm it.
     fn emit_summary_evidence_confirmed(

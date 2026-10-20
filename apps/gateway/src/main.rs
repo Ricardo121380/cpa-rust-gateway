@@ -86,6 +86,9 @@ fn execute(command: GatewayCommand) -> Result<(), CliError> {
         GatewayCommand::UsageEvidence(command) => {
             usage_evidence::run(&command).map_err(|()| CliError::UsageEvidence)
         }
+        GatewayCommand::RequestMetadataEvidence(command) => {
+            usage_evidence::run_request_metadata(&command).map_err(|()| CliError::UsageEvidence)
+        }
         GatewayCommand::MessagesSummaryEvidence(command) => {
             usage_evidence::run_messages_summary(&command).map_err(|()| CliError::UsageEvidence)
         }
@@ -231,6 +234,7 @@ fn execute_grok_admin(command: &AdminCommand) -> Result<bool, CliError> {
 }
 
 enum GatewayCommand {
+    RequestMetadataEvidence(usage_evidence::Command),
     MessagesSummaryEvidence(usage_evidence::Command),
     UsageEvidence(usage_evidence::Command),
     Admin(AdminCommand),
@@ -331,6 +335,8 @@ fn parse_command(arguments: Vec<String>) -> Result<GatewayCommand, CliError> {
     let mut arguments = arguments.into_iter();
     let top_level = arguments.next().ok_or(CliError::Usage)?;
     match top_level.as_str() {
+        "request-metadata-evidence" => usage_evidence::parse_request_metadata(arguments.collect())
+            .map(GatewayCommand::RequestMetadataEvidence),
         "messages-summary-evidence" => {
             usage_evidence::parse(arguments.collect()).map(GatewayCommand::MessagesSummaryEvidence)
         }
@@ -494,6 +500,9 @@ fn parse_i64_option(value: &str, option: &'static str) -> Result<i64, CliError> 
 }
 
 fn print_usage() {
+    println!(
+        "Private request diagnostic: gateway request-metadata-evidence --db <path> --master-key-dir <directory> --active-master-key-version <version> --client-key-id <owner> --request-id <id> [--attempt-id <actual-id>] --output <new-file-in-private-0700-directory>"
+    );
     println!(
         "Private diagnostic: gateway <usage-evidence|messages-summary-evidence> --db <path> --master-key-dir <directory> --active-master-key-version <version> --client-key-id <owner> --request-id <id> --attempt-id <id> --output <new-file-in-private-0700-directory>"
     );

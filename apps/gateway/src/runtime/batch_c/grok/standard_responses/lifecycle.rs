@@ -8,6 +8,7 @@ use gateway_upstream::{
 use std::num::NonZeroUsize;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 mod cli;
+mod client_metadata;
 mod disconnect;
 mod messages;
 mod namespaces;
@@ -20,7 +21,7 @@ struct SocketPeer {
     task: tokio::task::JoinHandle<std::io::Result<()>>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 enum PeerEnd {
     AwaitHeaders,
     Hold,
@@ -206,7 +207,10 @@ impl GrokBuildTransport for SocketTransport {
             let handoff = UpstreamHttpRequest::try_new(
                 self.target.clone(),
                 UpstreamHttpMethod::Post,
-                [("content-type".to_owned(), "application/json".to_owned())],
+                request
+                    .headers()
+                    .into_iter()
+                    .map(|(name, value)| (name.to_owned(), value.to_owned())),
                 request.body().to_vec(),
             )
             .map_err(|_| internal_error())?;
@@ -408,6 +412,7 @@ struct Recording {
     database: std::path::PathBuf,
     receipt: Option<Arc<HeldReceipt>>,
     writer: tokio::task::JoinHandle<gateway_store::event_store::EventWriterMetrics>,
+    metrics: gateway_store::event_store::EventWriterMetricsHandle,
 }
 
 impl Recording {
@@ -442,11 +447,13 @@ impl Recording {
         } else {
             writer
         };
+        let metrics = writer.metrics_handle();
         let writer = tokio::spawn(writer.run());
         Ok(Self {
             database,
             receipt,
             writer,
+            metrics,
         })
     }
 
@@ -837,8 +844,25 @@ async fn public_build_upstream_eof_idle_and_total_timeout_fail_once_without_rese
         let reply=test::call_service(&app,test::TestRequest::post().uri("/v1/responses")
             .insert_header(("authorization",format!("Bearer {}",fixture.key)))
             .set_json(json!({"model":"p12-test-model","input":"bounded upstream failure","stream":true})).to_request()).await;
-        assert_eq!(reply.status(), StatusCode::OK, "headers already committed");
+        let status = reply.status();
         let bytes = tokio::time::timeout(Duration::from_secs(5), test::read_body(reply)).await?;
+        if status != StatusCode::OK {
+            // Keep the original status/deadline oracles. Record the safe failing boundary,
+            // including independent receive and durable events, before fixture cleanup.
+            let rows = SqliteEventStore::open_read_only(&recording.database)?.list_events()?;
+            println!(
+                "CPAR62_TIMEOUT_FAILURE {}",
+                json!({
+                    "case":format!("{end:?}"),"status":status.as_u16(),
+                    "public_error":serde_json::from_slice::<Value>(&bytes)?,
+                    "received":peer.received.lock().map_err(|_|"receiver")?.len(),
+                    "active_leases":active_leases(&fixture),
+                    "writer":format!("{:?}",recording.metrics.snapshot()),
+                    "events":rows.iter().map(gateway_store::event_store::StoredGatewayEvent::event).collect::<Vec<_>>()
+                })
+            );
+        }
+        assert_eq!(status, StatusCode::OK, "headers already committed");
         let wire = std::str::from_utf8(&bytes)?;
         let frames = public_frames(&bytes)?;
         assert!(wire.contains("partial-61"));

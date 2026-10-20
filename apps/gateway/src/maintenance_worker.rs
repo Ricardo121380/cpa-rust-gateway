@@ -32,12 +32,15 @@ impl MaintenanceWorker {
                     let native_usage =
                         gateway_store::native_usage::purge_expired(&connection, now_ms)
                             .map_err(|_| ())?;
-                    Ok::<_, ()>((responses, compactions, native_usage))
+                    let request_metadata =
+                        gateway_store::request_metadata::purge_expired(&connection, now_ms)
+                            .map_err(|_| ())?;
+                    Ok::<_, ()>((responses, compactions, native_usage, request_metadata))
                 })
                 .await;
-                if let Ok(Ok((responses, compactions, native_usage))) = result {
-                    if responses + compactions + native_usage > 0 {
-                        tracing::info!(target: "stored_data_maintenance", responses, compactions, native_usage, "expired stored data removed");
+                if let Ok(Ok((responses, compactions, native_usage, request_metadata))) = result {
+                    if responses + compactions + native_usage + request_metadata > 0 {
+                        tracing::info!(target: "stored_data_maintenance", responses, compactions, native_usage, request_metadata, "expired stored data removed");
                     }
                 } else {
                     tracing::warn!(target: "stored_data_maintenance", "stored data maintenance unavailable");
