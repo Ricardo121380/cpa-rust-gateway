@@ -4,23 +4,30 @@ use actix_web::middleware::from_fn;
 mod http;
 mod oracles;
 mod peer;
-use http::{assert_presend_rejections, capture};
+use http::assert_presend_rejections;
+pub(super) use http::capture;
 use oracles::{assert_accounting, assert_history, assert_public};
 use peer::scripted_peer;
 
 #[derive(Default)]
-struct Captured {
-    path: String,
-    probe: bool,
-    request: Value,
-    headers: Value,
-    status: u16,
-    chunks: usize,
-    chunk_elapsed_ms: Vec<u128>,
+pub(super) struct Captured {
+    pub(super) path: String,
+    pub(super) method: String,
+    pub(super) uri: String,
+    pub(super) request_bytes: Vec<u8>,
+    pub(super) probe: bool,
+    pub(super) request: Value,
+    pub(super) headers: Value,
+    pub(super) response_headers: Value,
+    pub(super) status: u16,
+    pub(super) chunks: usize,
+    pub(super) chunk_elapsed_ms: Vec<u128>,
     started: Option<std::time::Instant>,
-    wire: Vec<u8>,
+    pub(super) wire: Vec<u8>,
+    pub(super) wire_truncated: bool,
+    pub(super) body_complete: bool,
 }
-type Ingress = Mutex<Vec<Captured>>;
+pub(super) type Ingress = Mutex<Vec<Captured>>;
 
 #[actix_web::test]
 #[ignore = "requires fixed local Codex/Pi installs and the macOS loopback-only runner"]

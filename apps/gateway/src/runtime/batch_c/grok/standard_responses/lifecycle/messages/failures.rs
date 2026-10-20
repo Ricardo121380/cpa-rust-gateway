@@ -6,7 +6,12 @@ fn body(streaming: bool) -> Value {
     "messages":[{"role":"user","content":"question"}]})
 }
 
-async fn refused(streaming: bool, wire: String, request: Value, received: usize) -> TestResult {
+pub(super) async fn refused(
+    streaming: bool,
+    wire: String,
+    request: Value,
+    received: usize,
+) -> TestResult {
     let peer = ModelPeer::start_wire(streaming, wire)?;
     let fixture = lifecycle_fixture(MessagesTransport::new(&peer, 7)?)?;
     let recording = Recording::start(&fixture, false)?;
@@ -31,6 +36,7 @@ async fn refused(streaming: bool, wire: String, request: Value, received: usize)
         peer.requests.lock().map_err(|_| "receiver")?.len(),
         received
     );
+    assert_eq!(peer.accepted.load(Ordering::SeqCst), received);
     if received == 0 {
         assert_eq!(
             status,

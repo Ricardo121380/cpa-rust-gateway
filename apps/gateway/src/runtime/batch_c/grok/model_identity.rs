@@ -11,6 +11,7 @@ use std::sync::atomic::AtomicBool;
 pub(super) struct ModelPeer {
     pub(super) url: String,
     pub(super) requests: Arc<Mutex<Vec<ModelRequest>>>,
+    pub(super) accepted: Arc<AtomicUsize>,
     stopping: Arc<AtomicBool>,
     pub(super) delivered: Arc<AtomicUsize>,
     pub(super) reads_after_body: Arc<AtomicUsize>,
@@ -20,6 +21,7 @@ pub(super) struct ModelPeer {
 pub(super) struct ModelRequest {
     pub(super) body: Value,
     pub(super) model_override: String,
+    pub(super) wire: Vec<u8>,
 }
 
 impl ModelPeer {
@@ -59,6 +61,8 @@ impl ModelPeer {
         let url = format!("http://{}/responses", listener.local_addr()?);
         let requests = Arc::new(Mutex::new(Vec::new()));
         let received = requests.clone();
+        let accepted = Arc::new(AtomicUsize::new(0));
+        let accepts = accepted.clone();
         let stopping = Arc::new(AtomicBool::new(false));
         let stop = stopping.clone();
         let thread = std::thread::spawn(move || {
@@ -72,6 +76,7 @@ impl ModelPeer {
                     }
                     Err(_) => break,
                 };
+                accepts.fetch_add(1, Ordering::SeqCst);
                 let _ = socket.set_nonblocking(false);
                 let _ = socket.set_read_timeout(Some(Duration::from_secs(5)));
                 let mut input = Vec::new();
@@ -91,6 +96,7 @@ impl ModelPeer {
                         if input.len() >= end + 4 + length {
                             if let Ok(mut records) = received.lock() {
                                 records.push(ModelRequest {
+                                    wire: input[..end + 4 + length].to_vec(),
                                     body: serde_json::from_slice(&input[end + 4..end + 4 + length])
                                         .unwrap_or_else(|_| json!({"invalid_synthetic_request":true,"length":length})),
                                     model_override: headers.lines().find_map(|line| line.strip_prefix("x-grok-model-override: ")).unwrap_or("").trim().to_owned(),
@@ -117,6 +123,7 @@ impl ModelPeer {
         Ok(Self {
             url,
             requests,
+            accepted,
             stopping,
             delivered: Arc::new(AtomicUsize::new(0)),
             reads_after_body: Arc::new(AtomicUsize::new(0)),

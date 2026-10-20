@@ -11,7 +11,7 @@ use std::{
     pin::Pin,
     task::{Context, Poll},
 };
-pub(super) struct CaptureBody<B> {
+pub(in super::super) struct CaptureBody<B> {
     inner: Pin<Box<B>>,
     records: web::Data<Ingress>,
     index: usize,
@@ -37,13 +37,20 @@ impl<B: MessageBody> MessageBody for CaptureBody<B> {
             }
             if row.wire.len() + bytes.len() <= 8 * 1024 * 1024 {
                 row.wire.extend_from_slice(bytes);
+            } else {
+                row.wire_truncated = true;
             }
+        }
+        if matches!(result, Poll::Ready(None))
+            && let Ok(mut rows) = this.records.lock()
+        {
+            rows[this.index].body_complete = true;
         }
         result
     }
 }
 
-pub(super) async fn capture<B: MessageBody>(
+pub(in super::super) async fn capture<B: MessageBody>(
     mut request: ServiceRequest,
     next: Next<B>,
 ) -> Result<ServiceResponse<CaptureBody<B>>, actix_web::Error> {
@@ -59,7 +66,8 @@ pub(super) async fn capture<B: MessageBody>(
     }
     let body = serde_json::from_slice::<Value>(&bytes).unwrap_or(Value::Null);
     let path = request.path().to_owned();
-    let probe = request.headers().contains_key("x-cpar62-probe");
+    let probe = request.headers().contains_key("x-cpar62-probe")
+        || request.headers().contains_key("x-cpar64-probe");
     let mut headers = serde_json::Map::new();
     for name in [
         "user-agent",
@@ -67,13 +75,35 @@ pub(super) async fn capture<B: MessageBody>(
         "content-type",
         "content-encoding",
         "openai-beta",
+        "anthropic-version",
+        "anthropic-beta",
+        "anthropic-dangerous-direct-browser-access",
+        "x-app",
         "x-stainless-lang",
         "x-stainless-package-version",
+        "x-stainless-retry-count",
+        "x-stainless-runtime",
+        "x-stainless-runtime-version",
     ] {
-        if let Some(value) = request.headers().get(name).and_then(|v| v.to_str().ok()) {
-            headers.insert(name.into(), json!(value));
+        let values: Vec<_> = request
+            .headers()
+            .get_all(name)
+            .map(|v| v.as_bytes().to_vec())
+            .collect();
+        if !values.is_empty() {
+            headers.insert(name.into(), json!(values));
         }
     }
+    // Authentication values never enter even synthetic receipts.
+    for name in ["authorization", "x-api-key"] {
+        headers.insert(
+            format!("{name}_count"),
+            json!(request.headers().get_all(name).count()),
+        );
+    }
+    let method = request.method().to_string();
+    let uri = request.uri().to_string();
+    let request_bytes = bytes.clone();
     // A passive, test-only observer restores the exact bytes, including field presence/order.
     request.set_payload(web::Bytes::from(bytes).into());
     let records = request
@@ -88,6 +118,9 @@ pub(super) async fn capture<B: MessageBody>(
         rows.push(Captured {
             started: Some(std::time::Instant::now()),
             path,
+            method,
+            uri,
+            request_bytes,
             probe,
             request: body,
             headers: Value::Object(headers),
@@ -96,10 +129,23 @@ pub(super) async fn capture<B: MessageBody>(
         index
     };
     let reply = next.call(request).await?;
-    records
-        .lock()
-        .map_err(|_| actix_web::error::ErrorInternalServerError("capture"))?[index]
-        .status = reply.status().as_u16();
+    {
+        let mut rows = records
+            .lock()
+            .map_err(|_| actix_web::error::ErrorInternalServerError("capture"))?;
+        rows[index].status = reply.status().as_u16();
+        rows[index].response_headers = json!(
+            reply
+                .headers()
+                .iter()
+                .filter(|(name, _)| matches!(
+                    name.as_str(),
+                    "content-type" | "x-request-id" | "request-id"
+                ))
+                .map(|(name, value)| (name.as_str(), value.as_bytes().to_vec()))
+                .collect::<Vec<_>>()
+        );
+    }
     Ok(reply.map_body(move |_, body| CaptureBody {
         inner: Box::pin(body),
         records,

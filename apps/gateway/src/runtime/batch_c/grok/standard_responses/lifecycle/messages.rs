@@ -2,6 +2,7 @@
 use super::*;
 use gateway_store::messages_summary::{MessagesSummaryRecord, SqliteMessagesSummaryReader};
 mod cancellation;
+mod claude;
 mod failures;
 mod policy;
 mod tool_rounds;
