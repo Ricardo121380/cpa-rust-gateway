@@ -1,0 +1,27 @@
+{
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-c4-full-20261021-67db3304b901",
+  "command": [
+    "./scripts/check.sh",
+    "full"
+  ],
+  "head": "67db3304b901b5c8308c7b4fed99dd4e926e66ed",
+  "tree": "d3d747d521fd39d45e60a85516e44f7ab6200e8c",
+  "explicit_environment": {
+    "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/target-full-final",
+    "CHECK_REPORT_PATH": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/final-full-v2-check.md"
+  },
+  "test_environment": {
+    "RUST_TEST_THREADS": null,
+    "RUSTFLAGS": null,
+    "CARGO_BUILD_JOBS": null,
+    "CARGO_PROFILE_TEST_OPT_LEVEL": null,
+    "CPAR62_STAGE_TRACE": null
+  },
+  "fresh_target": true,
+  "own_manifest_sha256": "1b1a37ce8d8fcafa51d379ffae2ff33fff091c5a48c0f3458e47b99c12b22355",
+  "own_lock_sha256": "ee3d735f0f7aa364f3f4675e75a87751c8ad3784f0788ac244c4d391ce479cce",
+  "source_manifest_sha256": "86c8d6c88eebac76d47cd84685c5b0966cd0bc3fc8328e85fa936dd478d7289e",
+  "overlay_count": 18,
+  "source_records": 7079,
+  "preceding_full": "final-full.json: FAIL at C4 fixture create_dir; preserved separately"
+}

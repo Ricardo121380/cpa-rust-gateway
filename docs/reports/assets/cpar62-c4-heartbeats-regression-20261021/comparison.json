@@ -1,0 +1,444 @@
+{
+  "trials": [
+    {
+      "command": [
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-client-metadata-20261020/eof-failure/final-full-gateway-failed"
+      ],
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-client-metadata-20261020-32ece7f4bd4e",
+      "binary_sha256": "6b969388341b73776d04867e32924dda70631bdc509e0e5bfd4bc1bda9ab9f9b",
+      "environment_overrides": {
+        "RUST_TEST_THREADS": null,
+        "RUSTFLAGS": null,
+        "CARGO_BUILD_JOBS": null,
+        "CARGO_PROFILE_TEST_OPT_LEVEL": null,
+        "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-client-metadata-20261020/target-full",
+        "CHECK_REPORT_PATH": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/original-unused-check-report.md",
+        "RUST_LOG": "warn"
+      },
+      "cpu_count": 10,
+      "limit_seconds": 360,
+      "returncode": 0,
+      "elapsed_seconds": 103.66788154199999,
+      "test_results": [
+        "test result: ok. 270 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 103.64s"
+      ],
+      "log_sha256": "ecfd8f63f5be771fac56a23cb4132946ceffb27c165d3669fd09fa3d4c439493"
+    },
+    {
+      "command": [
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-client-metadata-20261020/eof-failure/final-full-gateway-failed",
+        "runtime::batch_c::grok::standard_responses::lifecycle::public_build_upstream_eof_idle_and_total_timeout_fail_once_without_resend",
+        "--exact",
+        "--nocapture"
+      ],
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-client-metadata-20261020-32ece7f4bd4e",
+      "binary_sha256": "6b969388341b73776d04867e32924dda70631bdc509e0e5bfd4bc1bda9ab9f9b",
+      "environment_overrides": {
+        "RUST_TEST_THREADS": null,
+        "RUSTFLAGS": null,
+        "CARGO_BUILD_JOBS": null,
+        "CARGO_PROFILE_TEST_OPT_LEVEL": null,
+        "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-client-metadata-20261020/target-full",
+        "CHECK_REPORT_PATH": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/original-unused-check-report.md",
+        "RUST_LOG": "warn"
+      },
+      "cpu_count": 10,
+      "limit_seconds": 360,
+      "returncode": 0,
+      "elapsed_seconds": 1.689560207999989,
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 273 filtered out; finished in 1.66s"
+      ],
+      "log_sha256": "d581aaa084b384929b9703aaf5d27541ab1cb352c2da175bb272a1ce66240b67"
+    },
+    {
+      "name": "diagnostic-default-concurrency",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-c4-diagnostic-20261021",
+      "command": [
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/target-diagnostic/debug/deps/gateway-6e770dcab36cc471",
+        "--nocapture"
+      ],
+      "limit_seconds": 360,
+      "start_utc": "2026-10-20T16:40:01.291239+00:00",
+      "environment": {
+        "CARGO_TARGET_DIR": null,
+        "CHECK_REPORT_PATH": null,
+        "RUST_TEST_THREADS": null,
+        "CARGO_BUILD_JOBS": null,
+        "RUSTFLAGS": null,
+        "CARGO_PROFILE_TEST_OPT_LEVEL": null,
+        "RUST_LOG": "warn",
+        "CPAR62_STAGE_TRACE": "1"
+      },
+      "cpu_count": 10,
+      "pid": 84711,
+      "returncode": 0,
+      "elapsed_seconds": 104.43688875,
+      "test_results": [
+        "test result: ok. 270 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 103.27s"
+      ],
+      "log_sha256": "3f1c0a8ee37e3e1552838424c81e8907e07271138c03cf14318ac6738a0bf807"
+    },
+    {
+      "name": "diagnostic-stress-1",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-c4-diagnostic-20261021",
+      "command": [
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/diagnostic-baseline-gateway",
+        "--nocapture"
+      ],
+      "limit_seconds": 360,
+      "start_utc": "2026-10-20T16:41:57.552155+00:00",
+      "environment": {
+        "CARGO_TARGET_DIR": null,
+        "CHECK_REPORT_PATH": null,
+        "RUST_TEST_THREADS": null,
+        "CARGO_BUILD_JOBS": null,
+        "RUSTFLAGS": null,
+        "CARGO_PROFILE_TEST_OPT_LEVEL": null,
+        "RUST_LOG": "warn",
+        "CPAR62_STAGE_TRACE": "1"
+      },
+      "cpu_count": 10,
+      "pid": 84845,
+      "returncode": 101,
+      "elapsed_seconds": 106.66569262499999,
+      "test_results": [
+        "test result: FAILED. 269 passed; 1 failed; 4 ignored; 0 measured; 0 filtered out; finished in 104.81s"
+      ],
+      "log_sha256": "716dc77ac93334d3addbab0c789feda37b827ae9037f9691081890b24f290765"
+    },
+    {
+      "name": "diagnostic-stress-2",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-c4-diagnostic-20261021",
+      "command": [
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/diagnostic-baseline-gateway",
+        "--nocapture"
+      ],
+      "limit_seconds": 360,
+      "start_utc": "2026-10-20T16:41:57.552172+00:00",
+      "environment": {
+        "CARGO_TARGET_DIR": null,
+        "CHECK_REPORT_PATH": null,
+        "RUST_TEST_THREADS": null,
+        "CARGO_BUILD_JOBS": null,
+        "RUSTFLAGS": null,
+        "CARGO_PROFILE_TEST_OPT_LEVEL": null,
+        "RUST_LOG": "warn",
+        "CPAR62_STAGE_TRACE": "1"
+      },
+      "cpu_count": 10,
+      "pid": 84844,
+      "returncode": 101,
+      "elapsed_seconds": 106.797161875,
+      "test_results": [
+        "test result: FAILED. 267 passed; 3 failed; 4 ignored; 0 measured; 0 filtered out; finished in 104.93s"
+      ],
+      "log_sha256": "f17f4a80d84a61daa58c5dca58f99b735311ea469928724d75c7886143a01f68"
+    },
+    {
+      "name": "native-roots-control-stress-1",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-c4-diagnostic-20261021",
+      "command": [
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/native-roots-control-gateway",
+        "--nocapture"
+      ],
+      "limit_seconds": 360,
+      "start_utc": "2026-10-20T16:44:56.406904+00:00",
+      "environment": {
+        "CARGO_TARGET_DIR": null,
+        "CHECK_REPORT_PATH": null,
+        "RUST_TEST_THREADS": null,
+        "CARGO_BUILD_JOBS": null,
+        "RUSTFLAGS": null,
+        "CARGO_PROFILE_TEST_OPT_LEVEL": null,
+        "RUST_LOG": "warn",
+        "CPAR62_STAGE_TRACE": "1"
+      },
+      "cpu_count": 10,
+      "pid": 87509,
+      "returncode": 0,
+      "elapsed_seconds": 103.405740375,
+      "test_results": [
+        "test result: ok. 270 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 101.58s"
+      ],
+      "log_sha256": "1ef13acf0021e7c8472cadafb975fcea50a2647ff33649996ca2617e6589acbb"
+    },
+    {
+      "name": "native-roots-control-stress-2",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-c4-diagnostic-20261021",
+      "command": [
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/native-roots-control-gateway",
+        "--nocapture"
+      ],
+      "limit_seconds": 360,
+      "start_utc": "2026-10-20T16:44:56.406901+00:00",
+      "environment": {
+        "CARGO_TARGET_DIR": null,
+        "CHECK_REPORT_PATH": null,
+        "RUST_TEST_THREADS": null,
+        "CARGO_BUILD_JOBS": null,
+        "RUSTFLAGS": null,
+        "CARGO_PROFILE_TEST_OPT_LEVEL": null,
+        "RUST_LOG": "warn",
+        "CPAR62_STAGE_TRACE": "1"
+      },
+      "cpu_count": 10,
+      "pid": 87508,
+      "returncode": 0,
+      "elapsed_seconds": 103.051629542,
+      "test_results": [
+        "test result: ok. 270 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 101.22s"
+      ],
+      "log_sha256": "1729503fc8693b1e2bcee12778e8349fdb08920343f6a57021f9f3492126e4b1"
+    },
+    {
+      "name": "candidate-stress-1",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020",
+      "command": [
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/candidate-gateway",
+        "--nocapture"
+      ],
+      "limit_seconds": 360,
+      "start_utc": "2026-10-20T16:52:28.019423+00:00",
+      "environment": {
+        "CARGO_TARGET_DIR": null,
+        "CHECK_REPORT_PATH": null,
+        "RUST_TEST_THREADS": null,
+        "CARGO_BUILD_JOBS": null,
+        "RUSTFLAGS": null,
+        "CARGO_PROFILE_TEST_OPT_LEVEL": null,
+        "RUST_LOG": "warn",
+        "CPAR62_STAGE_TRACE": null
+      },
+      "cpu_count": 10,
+      "pid": 5682,
+      "returncode": 0,
+      "elapsed_seconds": 95.58612233299999,
+      "test_results": [
+        "test result: ok. 270 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 94.36s"
+      ],
+      "log_sha256": "73eafa599e1fac0c1d872656e6149abe8f17b0c74388b0cb1c6516334abc736c"
+    },
+    {
+      "name": "candidate-stress-2",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020",
+      "command": [
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/candidate-gateway",
+        "--nocapture"
+      ],
+      "limit_seconds": 360,
+      "start_utc": "2026-10-20T16:52:28.019540+00:00",
+      "environment": {
+        "CARGO_TARGET_DIR": null,
+        "CHECK_REPORT_PATH": null,
+        "RUST_TEST_THREADS": null,
+        "CARGO_BUILD_JOBS": null,
+        "RUSTFLAGS": null,
+        "CARGO_PROFILE_TEST_OPT_LEVEL": null,
+        "RUST_LOG": "warn",
+        "CPAR62_STAGE_TRACE": null
+      },
+      "cpu_count": 10,
+      "pid": 5683,
+      "returncode": 0,
+      "elapsed_seconds": 96.28048908299999,
+      "test_results": [
+        "test result: ok. 270 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 95.04s"
+      ],
+      "log_sha256": "fcd0a7fc781772ffed6c79f8da62492b998b92e4da68d729c6498bcd65deefbb"
+    },
+    {
+      "name": "focused-upstream",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway-upstream",
+        "--all-features",
+        "upstream_client::tests",
+        "--",
+        "--nocapture"
+      ],
+      "limit_seconds": 600,
+      "start_utc": "2026-10-20T16:47:18.793667+00:00",
+      "environment": {
+        "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/target-diagnostic",
+        "CHECK_REPORT_PATH": null,
+        "RUST_TEST_THREADS": null,
+        "CARGO_BUILD_JOBS": null,
+        "RUSTFLAGS": null,
+        "CARGO_PROFILE_TEST_OPT_LEVEL": null,
+        "RUST_LOG": "warn",
+        "CPAR62_STAGE_TRACE": null
+      },
+      "cpu_count": 10,
+      "pid": 304,
+      "returncode": 0,
+      "elapsed_seconds": 38.171560541,
+      "test_results": [
+        "test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 29 filtered out; finished in 2.82s"
+      ],
+      "log_sha256": "a935f05ce4882d010b9490958ffa3973714aa69b59b98ee19bc880127419bece"
+    },
+    {
+      "name": "focused-lifecycle",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "--bin",
+        "gateway",
+        "--all-features",
+        "runtime::batch_c::grok::standard_responses::lifecycle",
+        "--",
+        "--nocapture"
+      ],
+      "limit_seconds": 600,
+      "start_utc": "2026-10-20T16:48:07.446222+00:00",
+      "environment": {
+        "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/target-diagnostic",
+        "CHECK_REPORT_PATH": null,
+        "RUST_TEST_THREADS": null,
+        "CARGO_BUILD_JOBS": null,
+        "RUSTFLAGS": null,
+        "CARGO_PROFILE_TEST_OPT_LEVEL": null,
+        "RUST_LOG": "warn",
+        "CPAR62_STAGE_TRACE": null
+      },
+      "cpu_count": 10,
+      "pid": 2582,
+      "returncode": 0,
+      "elapsed_seconds": 67.614450917,
+      "test_results": [
+        "test result: ok. 38 passed; 0 failed; 2 ignored; 0 measured; 234 filtered out; finished in 42.11s"
+      ],
+      "log_sha256": "c4b3dd1a15ee0b3963066172c117c354a61d23c0374e51ce515c99c21e7f51c0"
+    },
+    {
+      "name": "focused-c4-persistence",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "--test",
+        "cpar62_request_metadata",
+        "--all-features",
+        "--",
+        "--nocapture"
+      ],
+      "limit_seconds": 600,
+      "start_utc": "2026-10-20T16:49:29.303932+00:00",
+      "environment": {
+        "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/target-diagnostic",
+        "CHECK_REPORT_PATH": null,
+        "RUST_TEST_THREADS": null,
+        "CARGO_BUILD_JOBS": null,
+        "RUSTFLAGS": null,
+        "CARGO_PROFILE_TEST_OPT_LEVEL": null,
+        "RUST_LOG": "warn",
+        "CPAR62_STAGE_TRACE": null
+      },
+      "cpu_count": 10,
+      "pid": 2706,
+      "returncode": 0,
+      "elapsed_seconds": 8.156717834,
+      "test_results": [
+        "test result: ok. 5 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 2.01s"
+      ],
+      "log_sha256": "1d04d723c988d673eadcfae6683ed946c9aa74f7b8d9ea24c58b81fe620e2b04"
+    },
+    {
+      "name": "focused-clippy",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "gateway-upstream",
+        "-p",
+        "gateway",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "limit_seconds": 600,
+      "start_utc": "2026-10-20T16:49:37.514792+00:00",
+      "environment": {
+        "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/target-diagnostic",
+        "CHECK_REPORT_PATH": null,
+        "RUST_TEST_THREADS": null,
+        "CARGO_BUILD_JOBS": null,
+        "RUSTFLAGS": null,
+        "CARGO_PROFILE_TEST_OPT_LEVEL": null,
+        "RUST_LOG": "warn",
+        "CPAR62_STAGE_TRACE": null
+      },
+      "cpu_count": 10,
+      "pid": 2726,
+      "returncode": 0,
+      "elapsed_seconds": 42.968980040999995,
+      "test_results": [],
+      "log_sha256": "4ad63880ba6adb6235c7266b499a27ea720e68cb0a10589f3bad5325f6ee6820"
+    },
+    {
+      "name": "first-event-fresh-control",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-c4-diagnostic-20261021",
+      "command": [
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/target-stage-fresh/debug/deps/gateway-6e770dcab36cc471",
+        "eof_idle_and_total",
+        "--nocapture"
+      ],
+      "limit_seconds": 60,
+      "start_utc": "2026-10-20T16:56:02.595140+00:00",
+      "environment": {
+        "CARGO_TARGET_DIR": null,
+        "CHECK_REPORT_PATH": null,
+        "RUST_TEST_THREADS": null,
+        "CARGO_BUILD_JOBS": null,
+        "RUSTFLAGS": null,
+        "CARGO_PROFILE_TEST_OPT_LEVEL": null,
+        "RUST_LOG": "warn",
+        "CPAR62_STAGE_TRACE": "1"
+      },
+      "cpu_count": 10,
+      "pid": 8831,
+      "returncode": 0,
+      "elapsed_seconds": 2.811015042,
+      "test_results": [
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 272 filtered out; finished in 1.66s"
+      ],
+      "log_sha256": "5cbb9b899bf93bab53267b69c5865b01312c0d161b5344129b2960a57376e75b"
+    }
+  ],
+  "cause_status": "CONFIRMED_FOR_REPRODUCED_CONTROLLED_STRESS",
+  "historical_full_cause": "INFERRED_NOT_STAGE_VERIFIED",
+  "historical_messages_cause": "UNKNOWN",
+  "default_original_replay": "PASS_NO_REPRODUCTION_THIS_TRIAL",
+  "pressure_difference": "two complete default-concurrent gateway harnesses simultaneously; one extra harness vs historical recorded command",
+  "stage_metric_sources": [
+    "diagnostic-default-concurrency-stages.json",
+    "diagnostic-stress-1-stages.json",
+    "diagnostic-stress-2-stages.json",
+    "native-roots-control-stress-1-stages.json",
+    "native-roots-control-stress-2-stages.json",
+    "first-event-fresh-control-stages.json"
+  ],
+  "no_claims": [
+    "zero network bytes",
+    "zero side effects",
+    "zero Provider cost",
+    "C4-independent production root cause",
+    "public TCP listener qualification for Actix test-service timeout tests"
+  ]
+}

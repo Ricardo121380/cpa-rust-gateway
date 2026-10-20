@@ -1,0 +1,13 @@
+{
+  "head": "67db3304b901b5c8308c7b4fed99dd4e926e66ed",
+  "tree": "d3d747d521fd39d45e60a85516e44f7ab6200e8c",
+  "source": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020",
+  "validation_source": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-c4-full-20261021-67db3304b901",
+  "owned_files": {
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/messages/cancellation.rs": "af3f1dd6b33871a2af3c0fbabb8c2cd138d03e2e364f0ebf29f06049becd1cd6",
+    "apps/gateway/tests/cpar62_request_metadata.rs": "fc26b0a768e469aca7f5f12b8c2e1a9f07e54f78f2b6b2f87234239c762f10ab",
+    "crates/gateway-upstream/src/upstream_client.rs": "d0d3b9f3f175ac7a16fbc48eb54dc2b97dfcf6efb0ea8cf4b63927c67f31896c"
+  },
+  "preceding_transport_candidate": "3722c2c3c6e660a0598d926bf2a02e40e74cecf7",
+  "last_change": "C4 fixture directory uniqueness only; no transport behavior changed"
+}

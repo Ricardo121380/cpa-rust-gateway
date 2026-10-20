@@ -1,0 +1,18 @@
+{
+  "archive_sha256": "3455c4e75eee7b65ef894ad81a451ba5d4b2947d8ef4636471f078d62ec89b05",
+  "archive_members": 117,
+  "members_verified": true,
+  "forbidden_paths": 0,
+  "unreviewed_secret_matches": 0,
+  "exact_line_exceptions": 4,
+  "exception_basis": "same reviewed historical tracked task filename, unchanged line and Git blob; no regex change",
+  "secret_regex_sha256": "b3d5c8767cdc3f22d8c59cbdb48fd4b980cb16bc7558fb83a7da2c6da1f423c0",
+  "excluded": [
+    "executables",
+    "target directories",
+    "databases and keys",
+    "inherited-inputs.tar.gz",
+    "inherited-diff.txt",
+    "raw GitHub comments and client configuration"
+  ]
+}

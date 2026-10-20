@@ -1,0 +1,12 @@
+{
+  "base": "189735ea3c281d770be6ad7ec159a5bfbdf7e2f8",
+  "inherited_verified": 18,
+  "files": {
+    "crates/gateway-upstream/src/upstream_client.rs": "d0d3b9f3f175ac7a16fbc48eb54dc2b97dfcf6efb0ea8cf4b63927c67f31896c",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/messages/cancellation.rs": "af3f1dd6b33871a2af3c0fbabb8c2cd138d03e2e364f0ebf29f06049becd1cd6"
+  },
+  "staged": [
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/messages/cancellation.rs",
+    "crates/gateway-upstream/src/upstream_client.rs"
+  ]
+}

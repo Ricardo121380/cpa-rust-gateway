@@ -1,0 +1,143 @@
+{
+  "first_full": {
+    "head": "3722c2c3c6e660a0598d926bf2a02e40e74cecf7",
+    "overall": "FAIL",
+    "gateway_main": "270 passed; 4 ignored",
+    "c4_integration": "4 passed; 1 failed; 1 ignored",
+    "error": "AlreadyExists before storage assertions",
+    "later_steps": "12 NOT_RUN",
+    "source_inputs_equal_before_after": true
+  },
+  "clock_probe": {
+    "samples": 80000,
+    "unique_timestamps": 2493,
+    "duplicate_timestamps": 77507,
+    "threads": 8,
+    "pid_is_common": true
+  },
+  "replays_and_regression": [
+    {
+      "name": "c4-first-full-binary-default",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-c4-full-20261021-3722c2c3c6e6",
+      "command": [
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/first-full-c4-failed"
+      ],
+      "limit_seconds": 30,
+      "start_utc": "2026-10-20T17:04:03.485880+00:00",
+      "environment": {
+        "CARGO_TARGET_DIR": null,
+        "CHECK_REPORT_PATH": null,
+        "RUST_TEST_THREADS": null,
+        "CARGO_BUILD_JOBS": null,
+        "RUSTFLAGS": null,
+        "CARGO_PROFILE_TEST_OPT_LEVEL": null,
+        "RUST_LOG": "warn",
+        "CPAR62_STAGE_TRACE": null
+      },
+      "cpu_count": 10,
+      "pid": 18375,
+      "returncode": 0,
+      "elapsed_seconds": 2.969609292,
+      "log_sha256": "930e03a4ffeb580a15b10e4c1d37f1b5aec360a559e0f6730b484416d99a0ccc"
+    },
+    {
+      "name": "c4-first-full-binary-filtered",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-c4-full-20261021-3722c2c3c6e6",
+      "command": [
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/first-full-c4-failed",
+        "request_metadata_missing_writer_and_confirmation_timeout_fail_closed",
+        "--exact",
+        "--nocapture"
+      ],
+      "limit_seconds": 30,
+      "start_utc": "2026-10-20T17:04:06.502604+00:00",
+      "environment": {
+        "CARGO_TARGET_DIR": null,
+        "CHECK_REPORT_PATH": null,
+        "RUST_TEST_THREADS": null,
+        "CARGO_BUILD_JOBS": null,
+        "RUSTFLAGS": null,
+        "CARGO_PROFILE_TEST_OPT_LEVEL": null,
+        "RUST_LOG": "warn",
+        "CPAR62_STAGE_TRACE": null
+      },
+      "cpu_count": 10,
+      "pid": 18404,
+      "returncode": 0,
+      "elapsed_seconds": 2.056756666,
+      "log_sha256": "e9449094911aac504e96f7f55daca940f147bfbaa4d6b33f982bbda665d16197"
+    },
+    {
+      "name": "c4-directory-collision-red",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "--test",
+        "cpar62_request_metadata",
+        "--all-features",
+        "request_metadata_fixture_directories_do_not_collide_at_the_same_timestamp",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "limit_seconds": 900,
+      "start_utc": "2026-10-20T17:05:13.926946+00:00",
+      "environment": {
+        "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/target-focused-c4-fixture",
+        "CHECK_REPORT_PATH": null,
+        "RUST_TEST_THREADS": null,
+        "CARGO_BUILD_JOBS": null,
+        "RUSTFLAGS": null,
+        "CARGO_PROFILE_TEST_OPT_LEVEL": null,
+        "RUST_LOG": "warn",
+        "CPAR62_STAGE_TRACE": null
+      },
+      "cpu_count": 10,
+      "pid": 18441,
+      "returncode": 101,
+      "elapsed_seconds": 57.977512458,
+      "log_sha256": "921ffa632f9b5b2ffe263bb0e064549ff119ba1eafc7189d177d6a200e4d782a"
+    },
+    {
+      "name": "c4-directory-collision-green",
+      "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "--test",
+        "cpar62_request_metadata",
+        "--all-features",
+        "--",
+        "--nocapture"
+      ],
+      "limit_seconds": 180,
+      "start_utc": "2026-10-20T17:06:35.490890+00:00",
+      "environment": {
+        "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/target-focused-c4-fixture",
+        "CHECK_REPORT_PATH": null,
+        "RUST_TEST_THREADS": null,
+        "CARGO_BUILD_JOBS": null,
+        "RUSTFLAGS": null,
+        "CARGO_PROFILE_TEST_OPT_LEVEL": null,
+        "RUST_LOG": "warn",
+        "CPAR62_STAGE_TRACE": null
+      },
+      "cpu_count": 10,
+      "pid": 21481,
+      "returncode": 0,
+      "elapsed_seconds": 3.319378542,
+      "log_sha256": "185392a28864648dd8b4237bc17736d471c255d32598aa8122c7efc813e3b231"
+    }
+  ],
+  "fix_commit": "67db3304b901b5c8308c7b4fed99dd4e926e66ed",
+  "fix_scope": "only the C4 integration fixture Directory helper and same-timestamp real-directory regression",
+  "known_boundary": "Historical failure did not preserve the exact conflicting path/owner. Repeated-clock filename insufficiency and physical create_dir collision are dynamically proved; no statement about production persistence timeout follows.",
+  "production_crypto_queue_deadline_changes": false
+}

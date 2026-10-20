@@ -1,0 +1,66 @@
+{
+  "base": "189735ea3c281d770be6ad7ec159a5bfbdf7e2f8",
+  "files": {
+    "crates/gateway-upstream/src/upstream_client.rs": "4c7f9670ea1c25ea1495756cb299cf6027bd918a79cdcb23fd46d575e484c40c",
+    "crates/provider-grok/src/inference.rs": "8ea459c1c6b8977ca4c4855d9982e8b574f3e1c34f8321665bfea5aa4e036333",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle.rs": "255b4fab885d81c065cb8f3cd371ac539cc26b086469e7a14ecf9d443c8ff1f3",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/messages/cancellation.rs": "536506c44bc01dbfeb59858b0e068ddb568e93202121b2cf70e567574e1f8f76",
+    "Cargo.toml": "1b1a37ce8d8fcafa51d379ffae2ff33fff091c5a48c0f3458e47b99c12b22355",
+    "Cargo.lock": "ee3d735f0f7aa364f3f4675e75a87751c8ad3784f0788ac244c4d391ce479cce"
+  },
+  "binary": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/target-stage-fresh/debug/deps/gateway-6e770dcab36cc471",
+  "binary_sha256": "ea3e427d9dc992574a4a986ab52b857e053a87c780687184b8f3cdefde787678",
+  "fresh_target": true,
+  "scope": "filtered stage sequence only; not default/full concurrent evidence",
+  "supersedes_partial_supplement": "first-event-stage-binding.json",
+  "summary": [
+    {
+      "protocol": "Responses",
+      "case": "Truncate",
+      "cold_build_ms": 0.08275,
+      "first_sse_to_public_headers_ms": 0.367917
+    },
+    {
+      "protocol": "Messages",
+      "case": "Truncate",
+      "cold_build_ms": 0.058375,
+      "first_sse_to_public_headers_ms": 0.065666
+    },
+    {
+      "protocol": "Responses",
+      "case": "Eof",
+      "cold_build_ms": 0.064292,
+      "first_sse_to_public_headers_ms": 0.074292
+    },
+    {
+      "protocol": "Messages",
+      "case": "Eof",
+      "cold_build_ms": 0.063792,
+      "first_sse_to_public_headers_ms": 0.064083
+    },
+    {
+      "protocol": "Responses",
+      "case": "Hold",
+      "cold_build_ms": 0.05125,
+      "first_sse_to_public_headers_ms": 0.071459
+    },
+    {
+      "protocol": "Messages",
+      "case": "Hold",
+      "cold_build_ms": 0.046292,
+      "first_sse_to_public_headers_ms": 0.05525
+    },
+    {
+      "protocol": "Responses",
+      "case": "Heartbeats",
+      "cold_build_ms": 0.052791,
+      "first_sse_to_public_headers_ms": 0.068583
+    },
+    {
+      "protocol": "Messages",
+      "case": "Heartbeats",
+      "cold_build_ms": 0.053333,
+      "first_sse_to_public_headers_ms": 0.053542
+    }
+  ]
+}

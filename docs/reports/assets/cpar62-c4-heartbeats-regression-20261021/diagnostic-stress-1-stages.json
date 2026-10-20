@@ -1,0 +1,684 @@
+{
+  "log": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/diagnostic-stress-1.log",
+  "log_sha256": "716dc77ac93334d3addbab0c789feda37b827ae9037f9691081890b24f290765",
+  "cases": [
+    {
+      "protocol": "Messages",
+      "case": "Truncate",
+      "idle_ms": 3000,
+      "total_ms": 5000,
+      "case_line": 130,
+      "stages": [
+        {
+          "line": 136,
+          "time_ns": 3030587368132625,
+          "stage": "pool_send_enter"
+        },
+        {
+          "line": 137,
+          "time_ns": 3030587368167916,
+          "stage": "send_enter_total_deadline_established"
+        },
+        {
+          "line": 138,
+          "time_ns": 3030587368236833,
+          "stage": "client_cache_miss_build_begin"
+        },
+        {
+          "line": 139,
+          "time_ns": 3030587640720958,
+          "stage": "client_build_end"
+        },
+        {
+          "line": 140,
+          "time_ns": 3030587640799458,
+          "stage": "execute_begin"
+        },
+        {
+          "line": 141,
+          "time_ns": 3030587641133291,
+          "stage": "accept"
+        },
+        {
+          "line": 142,
+          "time_ns": 3030587641256916,
+          "stage": "request_bytes_arrived"
+        },
+        {
+          "line": 143,
+          "time_ns": 3030587641315583,
+          "stage": "complete_request_read"
+        },
+        {
+          "line": 144,
+          "time_ns": 3030587641349500,
+          "stage": "headers_written"
+        },
+        {
+          "line": 145,
+          "time_ns": 3030587641381375,
+          "stage": "first_sse_segment_written"
+        },
+        {
+          "line": 146,
+          "time_ns": 3030587641492791,
+          "stage": "upstream_response_headers"
+        },
+        {
+          "line": 147,
+          "time_ns": 3030587641521875,
+          "stage": "pool_send_headers_returned"
+        },
+        {
+          "line": 148,
+          "time_ns": 3030587643289875,
+          "stage": "transport_body_chunk"
+        },
+        {
+          "line": 149,
+          "time_ns": 3030587643561708,
+          "stage": "messages_public_headers_formed"
+        },
+        {
+          "line": 151,
+          "time_ns": 3030587643951875,
+          "stage": "transport_body_end_or_error"
+        }
+      ],
+      "client_build_ms": 272.484125,
+      "execute_to_headers_ms": 0.693333,
+      "send_to_body_terminal_ms": 275.783959
+    },
+    {
+      "protocol": "Messages",
+      "case": "Eof",
+      "idle_ms": 3000,
+      "total_ms": 5000,
+      "case_line": 152,
+      "stages": [
+        {
+          "line": 157,
+          "time_ns": 3030588684589583,
+          "stage": "pool_send_enter"
+        },
+        {
+          "line": 158,
+          "time_ns": 3030588684694458,
+          "stage": "send_enter_total_deadline_established"
+        },
+        {
+          "line": 159,
+          "time_ns": 3030588684788083,
+          "stage": "client_cache_miss_build_begin"
+        },
+        {
+          "line": 162,
+          "time_ns": 3030589284672833,
+          "stage": "client_build_end"
+        },
+        {
+          "line": 163,
+          "time_ns": 3030589284830458,
+          "stage": "execute_begin"
+        },
+        {
+          "line": 164,
+          "time_ns": 3030589285295666,
+          "stage": "accept"
+        },
+        {
+          "line": 165,
+          "time_ns": 3030589285429708,
+          "stage": "request_bytes_arrived"
+        },
+        {
+          "line": 166,
+          "time_ns": 3030589285484625,
+          "stage": "complete_request_read"
+        },
+        {
+          "line": 167,
+          "time_ns": 3030589285517458,
+          "stage": "headers_written"
+        },
+        {
+          "line": 168,
+          "time_ns": 3030589285546041,
+          "stage": "first_sse_segment_written"
+        },
+        {
+          "line": 169,
+          "time_ns": 3030589285754875,
+          "stage": "upstream_response_headers"
+        },
+        {
+          "line": 170,
+          "time_ns": 3030589285785833,
+          "stage": "pool_send_headers_returned"
+        },
+        {
+          "line": 171,
+          "time_ns": 3030589286410208,
+          "stage": "transport_body_chunk"
+        },
+        {
+          "line": 172,
+          "time_ns": 3030589286662833,
+          "stage": "messages_public_headers_formed"
+        },
+        {
+          "line": 174,
+          "time_ns": 3030589286819208,
+          "stage": "transport_body_end_or_error"
+        }
+      ],
+      "client_build_ms": 599.88475,
+      "execute_to_headers_ms": 0.924417,
+      "send_to_body_terminal_ms": 602.12475
+    },
+    {
+      "protocol": "Messages",
+      "case": "Hold",
+      "idle_ms": 250,
+      "total_ms": 3000,
+      "case_line": 175,
+      "stages": [
+        {
+          "line": 181,
+          "time_ns": 3030590032213458,
+          "stage": "pool_send_enter"
+        },
+        {
+          "line": 182,
+          "time_ns": 3030590032248791,
+          "stage": "send_enter_total_deadline_established"
+        },
+        {
+          "line": 183,
+          "time_ns": 3030590032297166,
+          "stage": "client_cache_miss_build_begin"
+        },
+        {
+          "line": 188,
+          "time_ns": 3030590572767333,
+          "stage": "client_build_end"
+        },
+        {
+          "line": 189,
+          "time_ns": 3030590572844041,
+          "stage": "execute_begin"
+        },
+        {
+          "line": 190,
+          "time_ns": 3030590573253625,
+          "stage": "accept"
+        },
+        {
+          "line": 191,
+          "time_ns": 3030590573516333,
+          "stage": "request_bytes_arrived"
+        },
+        {
+          "line": 192,
+          "time_ns": 3030590573605458,
+          "stage": "complete_request_read"
+        },
+        {
+          "line": 193,
+          "time_ns": 3030590573642125,
+          "stage": "headers_written"
+        },
+        {
+          "line": 194,
+          "time_ns": 3030590573673541,
+          "stage": "first_sse_segment_written"
+        },
+        {
+          "line": 195,
+          "time_ns": 3030590573806166,
+          "stage": "upstream_response_headers"
+        },
+        {
+          "line": 196,
+          "time_ns": 3030590573840833,
+          "stage": "pool_send_headers_returned"
+        },
+        {
+          "line": 197,
+          "time_ns": 3030590574888333,
+          "stage": "transport_body_chunk"
+        },
+        {
+          "line": 198,
+          "time_ns": 3030590575341291,
+          "stage": "messages_public_headers_formed"
+        },
+        {
+          "line": 201,
+          "time_ns": 3030590828905833,
+          "stage": "transport_body_end_or_error"
+        }
+      ],
+      "client_build_ms": 540.470167,
+      "execute_to_headers_ms": 0.962125,
+      "send_to_body_terminal_ms": 796.657042
+    },
+    {
+      "protocol": "Messages",
+      "case": "Heartbeats",
+      "idle_ms": 200,
+      "total_ms": 500,
+      "case_line": 202,
+      "stages": [
+        {
+          "line": 206,
+          "time_ns": 3030591814678875,
+          "stage": "pool_send_enter"
+        },
+        {
+          "line": 207,
+          "time_ns": 3030591814764958,
+          "stage": "send_enter_total_deadline_established"
+        },
+        {
+          "line": 208,
+          "time_ns": 3030591814868250,
+          "stage": "client_cache_miss_build_begin"
+        },
+        {
+          "line": 209,
+          "time_ns": 3030592223676958,
+          "stage": "client_build_end"
+        },
+        {
+          "line": 210,
+          "time_ns": 3030592223862833,
+          "stage": "execute_begin"
+        },
+        {
+          "line": 211,
+          "time_ns": 3030592224395083,
+          "stage": "accept"
+        },
+        {
+          "line": 212,
+          "time_ns": 3030592224585916,
+          "stage": "request_bytes_arrived"
+        },
+        {
+          "line": 213,
+          "time_ns": 3030592224709333,
+          "stage": "complete_request_read"
+        },
+        {
+          "line": 214,
+          "time_ns": 3030592224791125,
+          "stage": "headers_written"
+        },
+        {
+          "line": 215,
+          "time_ns": 3030592224869416,
+          "stage": "first_sse_segment_written"
+        },
+        {
+          "line": 216,
+          "time_ns": 3030592225199625,
+          "stage": "upstream_response_headers"
+        },
+        {
+          "line": 217,
+          "time_ns": 3030592225285000,
+          "stage": "pool_send_headers_returned"
+        },
+        {
+          "line": 218,
+          "time_ns": 3030592226984916,
+          "stage": "transport_body_chunk"
+        },
+        {
+          "line": 219,
+          "time_ns": 3030592227252416,
+          "stage": "messages_public_headers_formed"
+        },
+        {
+          "line": 221,
+          "time_ns": 3030592253006875,
+          "stage": "transport_body_chunk"
+        },
+        {
+          "line": 222,
+          "time_ns": 3030592281284083,
+          "stage": "transport_body_chunk"
+        },
+        {
+          "line": 223,
+          "time_ns": 3030592308644875,
+          "stage": "transport_body_chunk"
+        },
+        {
+          "line": 224,
+          "time_ns": 3030592317405625,
+          "stage": "transport_body_end_or_error"
+        }
+      ],
+      "client_build_ms": 408.808708,
+      "execute_to_headers_ms": 1.336792,
+      "send_to_body_terminal_ms": 502.640667
+    },
+    {
+      "protocol": "Responses",
+      "case": "Truncate",
+      "idle_ms": 2000,
+      "total_ms": 10000,
+      "case_line": 313,
+      "stages": [
+        {
+          "line": 316,
+          "time_ns": 3030609018659166,
+          "stage": "pool_send_enter"
+        },
+        {
+          "line": 317,
+          "time_ns": 3030609018693166,
+          "stage": "send_enter_total_deadline_established"
+        },
+        {
+          "line": 318,
+          "time_ns": 3030609018739166,
+          "stage": "client_cache_miss_build_begin"
+        },
+        {
+          "line": 322,
+          "time_ns": 3030609618192250,
+          "stage": "client_build_end"
+        },
+        {
+          "line": 323,
+          "time_ns": 3030609618286625,
+          "stage": "execute_begin"
+        },
+        {
+          "line": 324,
+          "time_ns": 3030609618599750,
+          "stage": "accept"
+        },
+        {
+          "line": 325,
+          "time_ns": 3030609618718000,
+          "stage": "request_bytes_arrived"
+        },
+        {
+          "line": 326,
+          "time_ns": 3030609618768416,
+          "stage": "complete_request_read"
+        },
+        {
+          "line": 327,
+          "time_ns": 3030609618799375,
+          "stage": "headers_written"
+        },
+        {
+          "line": 328,
+          "time_ns": 3030609618828041,
+          "stage": "first_sse_segment_written"
+        },
+        {
+          "line": 329,
+          "time_ns": 3030609618931083,
+          "stage": "upstream_response_headers"
+        },
+        {
+          "line": 330,
+          "time_ns": 3030609618959041,
+          "stage": "pool_send_headers_returned"
+        },
+        {
+          "line": 331,
+          "time_ns": 3030609619591250,
+          "stage": "transport_body_chunk"
+        },
+        {
+          "line": 332,
+          "time_ns": 3030609619773416,
+          "stage": "public_headers_formed"
+        },
+        {
+          "line": 333,
+          "time_ns": 3030609619907708,
+          "stage": "transport_body_end_or_error"
+        }
+      ],
+      "client_build_ms": 599.453084,
+      "execute_to_headers_ms": 0.644458,
+      "send_to_public_headers_ms": 601.08025,
+      "send_to_body_terminal_ms": 601.214542
+    },
+    {
+      "protocol": "Responses",
+      "case": "Eof",
+      "idle_ms": 2000,
+      "total_ms": 10000,
+      "case_line": 334,
+      "stages": [
+        {
+          "line": 337,
+          "time_ns": 3030610255953958,
+          "stage": "pool_send_enter"
+        },
+        {
+          "line": 338,
+          "time_ns": 3030610256045541,
+          "stage": "send_enter_total_deadline_established"
+        },
+        {
+          "line": 339,
+          "time_ns": 3030610256136166,
+          "stage": "client_cache_miss_build_begin"
+        },
+        {
+          "line": 342,
+          "time_ns": 3030610773150166,
+          "stage": "client_build_end"
+        },
+        {
+          "line": 343,
+          "time_ns": 3030610773228583,
+          "stage": "execute_begin"
+        },
+        {
+          "line": 344,
+          "time_ns": 3030610773665166,
+          "stage": "accept"
+        },
+        {
+          "line": 345,
+          "time_ns": 3030610773780250,
+          "stage": "request_bytes_arrived"
+        },
+        {
+          "line": 346,
+          "time_ns": 3030610773955291,
+          "stage": "complete_request_read"
+        },
+        {
+          "line": 347,
+          "time_ns": 3030610774107875,
+          "stage": "headers_written"
+        },
+        {
+          "line": 348,
+          "time_ns": 3030610774144416,
+          "stage": "first_sse_segment_written"
+        },
+        {
+          "line": 349,
+          "time_ns": 3030610774285500,
+          "stage": "upstream_response_headers"
+        },
+        {
+          "line": 350,
+          "time_ns": 3030610774313833,
+          "stage": "pool_send_headers_returned"
+        },
+        {
+          "line": 351,
+          "time_ns": 3030610774875541,
+          "stage": "transport_body_chunk"
+        },
+        {
+          "line": 352,
+          "time_ns": 3030610775059500,
+          "stage": "public_headers_formed"
+        },
+        {
+          "line": 353,
+          "time_ns": 3030610775165208,
+          "stage": "transport_body_end_or_error"
+        }
+      ],
+      "client_build_ms": 517.014,
+      "execute_to_headers_ms": 1.056917,
+      "send_to_public_headers_ms": 519.013959,
+      "send_to_body_terminal_ms": 519.119667
+    },
+    {
+      "protocol": "Responses",
+      "case": "Hold",
+      "idle_ms": 200,
+      "total_ms": 10000,
+      "case_line": 354,
+      "stages": [
+        {
+          "line": 359,
+          "time_ns": 3030611556546458,
+          "stage": "pool_send_enter"
+        },
+        {
+          "line": 360,
+          "time_ns": 3030611556629166,
+          "stage": "send_enter_total_deadline_established"
+        },
+        {
+          "line": 361,
+          "time_ns": 3030611556748500,
+          "stage": "client_cache_miss_build_begin"
+        },
+        {
+          "line": 363,
+          "time_ns": 3030612211326958,
+          "stage": "client_build_end"
+        },
+        {
+          "line": 364,
+          "time_ns": 3030612211404666,
+          "stage": "execute_begin"
+        },
+        {
+          "line": 365,
+          "time_ns": 3030612211797125,
+          "stage": "accept"
+        },
+        {
+          "line": 366,
+          "time_ns": 3030612211907958,
+          "stage": "request_bytes_arrived"
+        },
+        {
+          "line": 367,
+          "time_ns": 3030612212000291,
+          "stage": "complete_request_read"
+        },
+        {
+          "line": 368,
+          "time_ns": 3030612212034458,
+          "stage": "headers_written"
+        },
+        {
+          "line": 369,
+          "time_ns": 3030612212063000,
+          "stage": "first_sse_segment_written"
+        },
+        {
+          "line": 370,
+          "time_ns": 3030612212178166,
+          "stage": "upstream_response_headers"
+        },
+        {
+          "line": 371,
+          "time_ns": 3030612212207250,
+          "stage": "pool_send_headers_returned"
+        },
+        {
+          "line": 372,
+          "time_ns": 3030612212779625,
+          "stage": "transport_body_chunk"
+        },
+        {
+          "line": 373,
+          "time_ns": 3030612212957833,
+          "stage": "public_headers_formed"
+        },
+        {
+          "line": 375,
+          "time_ns": 3030612416054500,
+          "stage": "transport_body_end_or_error"
+        }
+      ],
+      "client_build_ms": 654.578458,
+      "execute_to_headers_ms": 0.7735,
+      "send_to_public_headers_ms": 656.328667,
+      "send_to_body_terminal_ms": 859.425334
+    },
+    {
+      "protocol": "Responses",
+      "case": "Heartbeats",
+      "idle_ms": 200,
+      "total_ms": 500,
+      "case_line": 376,
+      "stages": [
+        {
+          "line": 380,
+          "time_ns": 3030613180293958,
+          "stage": "pool_send_enter"
+        },
+        {
+          "line": 381,
+          "time_ns": 3030613180327916,
+          "stage": "send_enter_total_deadline_established"
+        },
+        {
+          "line": 382,
+          "time_ns": 3030613180359958,
+          "stage": "client_cache_miss_build_begin"
+        },
+        {
+          "line": 384,
+          "time_ns": 3030613946345958,
+          "stage": "client_build_end"
+        },
+        {
+          "line": 385,
+          "time_ns": 3030613946517458,
+          "stage": "total_exhausted_before_execute"
+        },
+        {
+          "line": 386,
+          "time_ns": 3030613947567708,
+          "stage": "public_headers_formed"
+        }
+      ],
+      "client_build_ms": 765.986,
+      "send_to_public_headers_ms": 767.239792
+    }
+  ],
+  "results": [
+    {
+      "line": 387,
+      "text": "CPAR62_TIMEOUT_FAILURE {\"active_leases\":0,\"case\":\"Heartbeats\",\"events\":[{\"request\":{\"access_group_id\":\"p12-runtime-group\",\"client_key_id\":\"p12-runtime-client-key\",\"protocol\":\"openai_responses\",\"public_model\":\"grok-4.5\",\"request_id\":\"p1-request-d41c442e2fed1c0da55c870c94b541b5-0\",\"requested_model\":\"p12-test-model\",\"route_alias\":\"p12-test-model\",\"started_at_ms\":1792514571369,\"streaming\":true}},{\"attempt\":{\"attempt_id\":\"attempt:45:p1-request-d41c442e2fed1c0da55c870c94b541b5-0:1\",\"attempt_number\":1,\"credential_id\":\"grok-dd1a16f80e9bc2a33f26976e035f9dbb\",\"ended_at_ms\":1792514572139,\"endpoint_id\":\"p12-krill-endpoint\",\"outcome\":{\"failed\":{\"code\":\"EgressUnavailable\",\"scope\":\"egress\"}},\"request_id\":\"p1-request-d41c442e2fed1c0da55c870c94b541b5-0\",\"retry_decision\":\"retry_eligible\",\"route_candidate_id\":\"p12-runtime-candidate\",\"route_id\":\"p12-runtime-route\",\"started_at_ms\":1792514571372,\"upstream_id\":\"p12-runtime-upstream\",\"upstream_model\":\"grok-4.5\"}}],\"public_error\":{\"error\":{\"code\":\"EgressUnavailable\",\"message\":\"the egress path is unavailable\",\"param\":null,\"type\":\"server_error\"}},\"received\":0,\"status\":503,\"writer\":\"EventWriterMetrics { required_events_committed: 2, rows_inserted: 2, diagnostics_not_persisted: 0, sqlite_write_failures: 0, required_events_quarantined: 0, pending_required: 0 }\"}"
+    },
+    {
+      "line": 864,
+      "text": "test result: FAILED. 269 passed; 1 failed; 4 ignored; 0 measured; 0 filtered out; finished in 104.81s"
+    }
+  ]
+}

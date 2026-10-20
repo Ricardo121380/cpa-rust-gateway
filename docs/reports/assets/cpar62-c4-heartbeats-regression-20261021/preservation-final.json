@@ -1,0 +1,268 @@
+{
+  "head_before_report_commit": "67db3304b901b5c8308c7b4fed99dd4e926e66ed",
+  "inherited_count": 18,
+  "content_mode_symlink_uid_gid_equal": true,
+  "inherited_diff_sha256": "cd8f848112ede1904a354eb09e0ee93ade84820705a37a395c8b48da86580ca8",
+  "inherited_diff_byte_equal": true,
+  "historical_files_verified": 42,
+  "historical_all_equal": true,
+  "historical_files": [
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/cpar-62-client-metadata-20261020.md",
+      "sha256": "282325769c8531539e9615a92476c516feb512f78d239292ad0f1c353f9c2d11",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/actual-cleanup.json",
+      "sha256": "5b4bdffbc8362901d296c7057829a5c63fb2f8bb5dc7835d18fb0692f2d2a4a8",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/actual-cli/client-identity.json",
+      "sha256": "2f13010dad83d5029f00b096b32e7f838faf100df596e7c3d713a655c89d20e2",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/actual-cli/codex-standard/isolation.json",
+      "sha256": "2e85a74d7d83a53e158196f38d098d1fcb79658f3774a439336a1d4ed9a3d512",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/actual-cli/codex-standard/observations.json",
+      "sha256": "bba29dae9b051b21a54710948ac056bd56e0dddcd1f6975016169e0f6e8176e3",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/actual-cli/installed-files.json.gz",
+      "sha256": "3137abae151b090bfd6e62f5d4026de463a3cd4e2c22bfc79f36a3f9d2b2b8df",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/actual-cli/pi-cancel/cancel-diagnostic.json",
+      "sha256": "0190167d317cffb27e042e12819f764b19899e41ad9027d419f6449fe2f2c9f4",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/actual-cli/pi-cancel/isolation.json",
+      "sha256": "2e85a74d7d83a53e158196f38d098d1fcb79658f3774a439336a1d4ed9a3d512",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/actual-cli/pi-cancel/observations.json",
+      "sha256": "468a97e0107426a49c94dc15663306070248baa391b0be9b314c9c6069aa441d",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/actual-cli/pi-failure/isolation.json",
+      "sha256": "2e85a74d7d83a53e158196f38d098d1fcb79658f3774a439336a1d4ed9a3d512",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/actual-cli/pi-failure/observations.json",
+      "sha256": "5adaea9ff45eaecf39cecdeb8037f36ce96be14ff971d039c449a53208eb8fa9",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/actual-cli/pi-standard/isolation.json",
+      "sha256": "2e85a74d7d83a53e158196f38d098d1fcb79658f3774a439336a1d4ed9a3d512",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/actual-cli/pi-standard/observations.json",
+      "sha256": "b55a2e9d800e10b278a76de0aedf069a53b1dfc227c6de55dbf6ff07f9415c8a",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/actual-cli/qualification.log.gz",
+      "sha256": "11ff24939e55fbe5557a94e8359ba059b3323b3aa4fa3fa7764dc550a0e6bb52",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/actual-cli/run.json",
+      "sha256": "566b2c9ff7c681bbad1f93ab5fa36fc10fea7d159f532c08efff6954d25aa77f",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/actual-cli-invocation.json",
+      "sha256": "68ab56f403e7f1f975a7c52ab86e7eee582ccf592c9de2e9e9c504a0c426824b",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/actual-client-projection.json",
+      "sha256": "4937ee3bf78365fc688c9e62c888f6d8e216a3f5cd0ba965e64713e0bd522e5a",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/archive-members.json",
+      "sha256": "0cfe2b9b45a311ce7500ed2716fc95d6b7623460f3b9b0d4255c879f2ad9ceb0",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/artifact-scan-exceptions.json",
+      "sha256": "74dcb1147d5c6a3237c3b2ebdd83e902d44a031b5dcb076ed88a63baf391a4f9",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/artifact-scan.json",
+      "sha256": "8a95db3bde8d4bfb559d97495a3484d615d0dc9ff3ea66ad24ee356d0c5d8a3a",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/candidate.json",
+      "sha256": "090c0435f382461bcf048e94d791b4be8323f92633c37d6e4777ba4179fc74b2",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/development-evidence.tar.gz",
+      "sha256": "c13ea6ebabd5497675e721c6dc81ac88a72c1706d0784866e2b3c87121e3c775",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/full-check.md",
+      "sha256": "55063e438edd18d3849f2eb19dc1af8523397e3322f3d2b7a6d8a4a5e256135b",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/full-environment.json",
+      "sha256": "26156cef23a4b0b069c1885ce58c60e71d51ba5a3bc21547e9577c45128220f9",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/full-remainder-check.md",
+      "sha256": "7f0c7290e26faaedd94d5aa42c0cf90855ef2b0ed08b1e311501409c5bd3833e",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/full-remainder.log.gz",
+      "sha256": "1a84bd8b8c64c69707301d0f016e591c3a962374614c14d0975d79e3217e0287",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/full-repeat-check.md",
+      "sha256": "b7863ec2dae335bcad032d8d8c8ef1658e13d6d4e36fd1ecae1654f40f89adae",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/full-repeat.log.gz",
+      "sha256": "2894b8b64d3cf7122251ae0e4303f3697bb2ff84cc19660a45ffc660ec2855fc",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/full.log.gz",
+      "sha256": "731aa26d1b6cd81452298e3347919060b29461f24c1d258d0a6f9e638aff0c05",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/gateway-integration-final.log.gz",
+      "sha256": "abf88a4a1ee6a11c59a8e8ac5b893395d72904cd480a05ae50903764f13b4fe3",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/green-public-final-immutable.log.gz",
+      "sha256": "bf38844ac2efcf6bf875f4c5a6922b06471c1e5c8be206331355c7bc70d72c3f",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/owned-staging.json",
+      "sha256": "92cdda6624734e7f12054daaa59b41ee1a33f39df28850ef46e2f9194817fca8",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/preservation-final.json",
+      "sha256": "80e44f677161395c00f5cc4fb2f94eaab1b6bf5ac6c309590670d10ed7908b2f",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/remaining-checks.json",
+      "sha256": "9d43359830fba916e68ae75cc06c20e4d04e806b870019ea4ff37257dd652836",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/remaining-workspace-tests.log.gz",
+      "sha256": "022b6db771ae4916938704eca306e0883b5b9d57aab8b8a3f9a5547ce091747b",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/review-final.md",
+      "sha256": "a9ddbd4e50ddccc33c0924af085927b1e7368bb32b5a004824ea2481ba8cfcd1",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/review-initial.md",
+      "sha256": "4f377022a91b2d8defc7342e2e74d43ca10d17904846b65f50587f33bc2bdefe",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/run-summary.json",
+      "sha256": "95f3d0cb90e6f81ff34feba79f73f012c6523c053b5ceb405216f6389c04ff87",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/source-binding.json",
+      "sha256": "a75884a24e0ff637fcbc1030cfc9f2be8ed274b42c781311bd135ce8f0dacb66",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/source-inputs-before.json.gz",
+      "sha256": "0800ce194131d6970f7cd35da68d38865c8e379029ac20c1b7e55accfd70a8f4",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar62-client-metadata-20261020/validation-overlay-binding.json",
+      "sha256": "06c8b7ed0d70c347a28b4676d6628dda7ce6fd4fdc74b8d55ee889a32a02695d",
+      "mode": "0o644",
+      "symlink": null
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-client-metadata-20261020/eof-failure/final-full-gateway-failed",
+      "sha256": "6b969388341b73776d04867e32924dda70631bdc509e0e5bfd4bc1bda9ab9f9b",
+      "mode": "0o755",
+      "symlink": null
+    }
+  ],
+  "index_empty_before_report_staging": true,
+  "owned_source_commits": [
+    "3722c2c3c6e660a0598d926bf2a02e40e74cecf7",
+    "67db3304b901b5c8308c7b4fed99dd4e926e66ed"
+  ]
+}

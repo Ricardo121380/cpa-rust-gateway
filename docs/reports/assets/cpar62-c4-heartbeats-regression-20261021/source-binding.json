@@ -1,0 +1,29 @@
+{
+  "code_commit": "67db3304b901b5c8308c7b4fed99dd4e926e66ed",
+  "code_tree": "d3d747d521fd39d45e60a85516e44f7ab6200e8c",
+  "source_records": 7079,
+  "source_before_sha256": "86c8d6c88eebac76d47cd84685c5b0966cd0bc3fc8328e85fa936dd478d7289e",
+  "source_after_sha256": "86c8d6c88eebac76d47cd84685c5b0966cd0bc3fc8328e85fa936dd478d7289e",
+  "all_equal": true,
+  "full_result": "PASS",
+  "full_steps": 45,
+  "overlay_count": 18,
+  "full_is_overlay_validation": true,
+  "binaries": [
+    {
+      "original": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/target-full-final/debug/deps/gateway-8e1e81d2ce6d7d0d",
+      "preserved": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/final-full-gateway",
+      "sha256": "81bec2360ddef823cda2c80b7909898074dfaeb628d8ddb117230aadc8655f41",
+      "bytes": 153164392,
+      "stage_probe_constant_present": false
+    },
+    {
+      "original": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/target-full-final/debug/deps/cpar62_request_metadata-c9b86e39f1310746",
+      "preserved": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c4-regression-20261021/final-full-c4-tests",
+      "sha256": "41d58ebfa9cc96505182bd4f8ce55a68d9d15d4c95d43e7a842c79379ff23353",
+      "bytes": 10947656,
+      "stage_probe_constant_present": false
+    }
+  ],
+  "historical_fulls_and_first_new_full_remain_FAIL": true
+}

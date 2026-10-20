@@ -1,0 +1,34 @@
+[
+  {
+    "artifact": "source-inputs-after-first-full.json",
+    "line": 16094,
+    "line_sha256": "b9c32a495eb0dabed5365a76582330e214794181c645eb843cba1092fb3bbfdd",
+    "tracked_blob": "f7190812a1e63745f4dac5146ffa52f68d8a1bde",
+    "tracked_file_sha256": "b82221e495697680a5be0cb8d8253605795d6a7a53ae86a319b8feae8db1f247",
+    "reason": "Reviewed historical tracked task filename. The sk prefix occurs only as the suffix of the word task; not a credential. Exact line hash only; original artifact unchanged."
+  },
+  {
+    "artifact": "source-inputs-before.json",
+    "line": 16094,
+    "line_sha256": "b9c32a495eb0dabed5365a76582330e214794181c645eb843cba1092fb3bbfdd",
+    "tracked_blob": "f7190812a1e63745f4dac5146ffa52f68d8a1bde",
+    "tracked_file_sha256": "b82221e495697680a5be0cb8d8253605795d6a7a53ae86a319b8feae8db1f247",
+    "reason": "Reviewed historical tracked task filename. The sk prefix occurs only as the suffix of the word task; not a credential. Exact line hash only; original artifact unchanged."
+  },
+  {
+    "artifact": "source-inputs-final-after.json",
+    "line": 16094,
+    "line_sha256": "b9c32a495eb0dabed5365a76582330e214794181c645eb843cba1092fb3bbfdd",
+    "tracked_blob": "f7190812a1e63745f4dac5146ffa52f68d8a1bde",
+    "tracked_file_sha256": "b82221e495697680a5be0cb8d8253605795d6a7a53ae86a319b8feae8db1f247",
+    "reason": "Reviewed historical tracked task filename. The sk prefix occurs only as the suffix of the word task; not a credential. Exact line hash only; original artifact unchanged."
+  },
+  {
+    "artifact": "source-inputs-final-before.json",
+    "line": 16094,
+    "line_sha256": "b9c32a495eb0dabed5365a76582330e214794181c645eb843cba1092fb3bbfdd",
+    "tracked_blob": "f7190812a1e63745f4dac5146ffa52f68d8a1bde",
+    "tracked_file_sha256": "b82221e495697680a5be0cb8d8253605795d6a7a53ae86a319b8feae8db1f247",
+    "reason": "Reviewed historical tracked task filename. The sk prefix occurs only as the suffix of the word task; not a credential. Exact line hash only; original artifact unchanged."
+  }
+]
