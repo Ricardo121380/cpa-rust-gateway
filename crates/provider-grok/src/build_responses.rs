@@ -347,7 +347,9 @@ impl GrokBuildResponsesRequestBuilder {
         owner: Option<&crate::GrokBuildReasoningOwner>,
         namespaces_qualified: bool,
     ) -> Result<GrokBuildResponsesOutboundRequest, GatewayError> {
-        if protocol_openai_responses::uses_namespaces(request) && !namespaces_qualified {
+        if protocol_openai_responses::requires_tool_identity_qualification(request)
+            && !namespaces_qualified
+        {
             return Err(GatewayError::new(
                 GatewayErrorCode::ClientRequestError,
                 ErrorScope::Request,

@@ -4646,7 +4646,7 @@ impl EndpointAttemptDriver {
         candidate: &SnapshotRouteCandidate,
         target: ProtocolFormat,
     ) -> Result<(), ProtocolTransformRejection> {
-        if protocol_openai_responses::uses_namespaces(&self.request) {
+        if protocol_openai_responses::requires_tool_identity_qualification(&self.request) {
             #[cfg(not(test))]
             let qualified = false;
             #[cfg(test)]

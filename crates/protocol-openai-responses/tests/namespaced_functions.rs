@@ -6,6 +6,31 @@ use serde_json::{Value, json};
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
 #[test]
+fn result_name_without_namespace_requires_qualification_including_null() -> TestResult {
+    for name in [None, Some(Value::Null), Some(json!("lookup"))] {
+        let mut result = json!({"type":"function_call_output","call_id":"c","output":"41"});
+        if let Some(value) = &name {
+            result["name"] = value.clone();
+        }
+        let request = decode_request(
+            &json!({"model":"test","tools":[
+                {"type":"function","name":"lookup","parameters":{}}
+            ],"input":[
+                {"type":"function_call","call_id":"c","name":"lookup","arguments":"{}"},result
+            ]})
+            .to_string(),
+        )?
+        .request;
+        assert!(!protocol_openai_responses::uses_namespaces(&request));
+        assert_eq!(
+            protocol_openai_responses::requires_tool_identity_qualification(&request),
+            name.is_some()
+        );
+    }
+    Ok(())
+}
+
+#[test]
 fn namespaced_semantic_call_without_native_identity_envelope_cannot_flatten() -> TestResult {
     use gateway_core::{
         CanonicalEvent, CanonicalResponse, MessageEnd, MessageRole, MessageStart, ResponseEnd,

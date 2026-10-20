@@ -64,6 +64,9 @@ actual adapter/target/mode is qualified. There is currently no production source
 qualification: **BUILD_ACTIVATION_BLOCKED**. Headers, User-Agent, request JSON, configuration,
 existing capability bits and transport injection alone cannot qualify it. Non-Build adapters,
 bridges, exact passthrough and other targets do not inherit namespace admission.
+This family includes optional result `name` even when no namespace occurs anywhere in the
+request; both explicit null and string require qualification. Legacy results with neither
+identity extension retain their existing flat-function behavior.
 
 The owning gateway tests explicitly set a private `cfg(test)` composition field alongside an
 owned local transport. The dependency crate exposes its local-only adapter constructor through

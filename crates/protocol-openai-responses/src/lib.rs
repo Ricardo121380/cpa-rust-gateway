@@ -22,7 +22,8 @@ pub use native_output::{
 };
 pub use tool_set::{
     FunctionIdentity, RESPONSES_TOOLS, ResponsesToolSet,
-    optional_member as optional_tool_identity_member, uses_namespaces, validate_identity_history,
+    optional_member as optional_tool_identity_member, requires_tool_identity_qualification,
+    uses_namespaces, validate_identity_history,
 };
 
 use gateway_core::{

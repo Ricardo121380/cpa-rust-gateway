@@ -394,3 +394,41 @@ async fn result_presence(streaming: bool) -> TestResult {
     server.stop(false).await;
     Ok(())
 }
+
+#[actix_web::test]
+async fn public_build_namespace_result_name_alone_still_requires_field_qualification() -> TestResult
+{
+    for streaming in [false, true] {
+        for qualified in [false, true] {
+            let peer = ModelPeer::start_wire(streaming, wire(1, streaming)?)?;
+            let fixture = lifecycle_fixture_qualified(transport(&peer, 7)?, qualified)?;
+            let (url, server) = listener(&fixture)?;
+            for name in [Value::Null, json!("lookup")] {
+                let mut body = base(streaming);
+                body["tools"] = json!([declarations()[0]]);
+                body["input"] = json!([
+                    {"type":"function_call","call_id":"flat-history","name":"lookup","arguments":"{}"},
+                    {"type":"function_call_output","call_id":"flat-history","name":name,"output":"41"}
+                ]);
+                let (status, bytes) = request(&fixture, &url, &body).await?;
+                assert_eq!(status, if qualified { 200 } else { 400 });
+                if qualified {
+                    terminal(&bytes, streaming)?;
+                    let sent = peer.requests.lock().map_err(|_| "receiver")?;
+                    assert_eq!(sent.last().ok_or("sent")?.body["input"], body["input"]);
+                } else {
+                    assert_eq!(peer.accepted.load(Ordering::SeqCst), 0);
+                    assert_eq!(peer.requests.lock().map_err(|_| "receiver")?.len(), 0);
+                    assert_eq!(fixture.events.attempts()?, 0);
+                }
+                assert_eq!(active_leases(&fixture), 0);
+                println!(
+                    "CPAR62_NAMESPACE_NEGATIVE {}",
+                    json!({"label":"result-name-without-namespace","name":name,"streaming":streaming,"qualified":qualified,"status":status,"receiver_count":peer.accepted.load(Ordering::SeqCst)})
+                );
+            }
+            server.stop(false).await;
+        }
+    }
+    Ok(())
+}

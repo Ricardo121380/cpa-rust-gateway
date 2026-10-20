@@ -217,6 +217,20 @@ pub fn uses_namespaces(request: &CanonicalRequest) -> bool {
             })
 }
 
+/// Whether any C1–C3 native tool identity member requires adapter/target/mode qualification.
+/// Result `name` is newly admitted independently of `namespace`, including explicit null.
+#[must_use]
+pub fn requires_tool_identity_qualification(request: &CanonicalRequest) -> bool {
+    uses_namespaces(request)
+        || request
+            .messages
+            .iter()
+            .flat_map(|m| &m.content)
+            .any(|part| {
+                matches!(part, MessageContent::ToolResult(v) if v.extensions.get("name").is_some())
+            })
+}
+
 /// Validates an optional result identity member without conflating absence, null and value.
 ///
 /// # Errors

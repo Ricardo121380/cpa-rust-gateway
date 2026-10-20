@@ -216,7 +216,8 @@ identity, group descriptions and schema/strict without changing core fields or s
 Call ID remains correlation only. Supplied result identities confirm their call and retain
 independent missing/null/value presence. Native argument/item/terminal checks precede executable
 completion. The normal fixed Build assembly remains unqualified and refuses before send; only
-owned local tests can inject field qualification. Existing capability, model, lease, Usage,
+owned local tests can inject field qualification. Optional result `name` requires this gate even
+without any namespace member; null is retained and cannot bypass qualification. Existing capability, model, lease, Usage,
 summary, error, cancellation and ownership boundaries remain. No C4/C5/C6 or cost admission.
 
 ## Corresponding tests
@@ -224,3 +225,4 @@ summary, error, cancellation and ownership boundaries remain. No C4/C5/C6 or cos
 - `public_build_namespace_json_and_fragmented_sse_keep_two_related_cycles`
 - `public_build_namespace_invalid_requests_and_unqualified_assembly_send_zero`
 - `public_build_namespace_sse_identity_conflicts_never_complete_tools_or_retry`
+- `public_build_namespace_result_name_alone_still_requires_field_qualification`
