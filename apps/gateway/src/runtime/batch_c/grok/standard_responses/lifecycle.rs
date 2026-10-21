@@ -546,18 +546,39 @@ async fn public_build_disconnect_releases_upstream_before_pending_usage_receipt(
         drop(socket);
         let released = wait_until(|| peer.closed.load(Ordering::SeqCst) == 1).await;
         let leases = active_leases(&fixture);
-        receipt.release.notify_one();
-        // The body guard records cancellation asynchronously. Observe that durable outcome
-        // before abrupt test-server cleanup can discard its pending task under parallel load.
-        assert!(
-            wait_until(|| SqliteEventStore::open_read_only(&recording.database)
+        // Rejected Usage already closes upstream before waiting for its receipt, so peer
+        // close alone cannot prove the public body has observed FIN/RST. Hold the receipt
+        // until that body's independent cancellation outcome is durable; otherwise releasing
+        // it can race the rejection's Failed outcome against the intended cancellation probe.
+        let cancelled = wait_until(|| {
+            SqliteEventStore::open_read_only(&recording.database)
                 .and_then(|store| store.list_events())
-                .is_ok_and(|rows| rows.iter().any(
-                    |row| matches!(row.event(),GatewayEvent::RequestFinished(event)
+                .is_ok_and(|rows| {
+                    rows.iter().any(|row| {
+                        matches!(row.event(),GatewayEvent::RequestFinished(event)
                     if event.outcome==gateway_core::RequestOutcome::Cancelled)
-                )))
-            .await
-        );
+                    })
+                })
+        })
+        .await;
+        receipt.release.notify_one();
+        if !cancelled {
+            let rows = SqliteEventStore::open_read_only(&recording.database)?.list_events()?;
+            let outcomes: Vec<_> = rows
+                .iter()
+                .filter_map(|row| match row.event() {
+                    GatewayEvent::RequestFinished(event) => Some(format!("{:?}", event.outcome)),
+                    _ => None,
+                })
+                .collect();
+            println!(
+                "CPAR62_DISCONNECT_DIAGNOSTIC {}",
+                json!({
+                    "extra":extra,"reset":reset,"released":released,"leases":leases,"outcomes":outcomes
+                })
+            );
+        }
+        assert!(cancelled);
         server.stop(false).await;
         let database = recording.finish(&fixture, 0).await?;
         assert!(
