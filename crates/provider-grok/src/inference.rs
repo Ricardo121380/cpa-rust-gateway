@@ -253,6 +253,7 @@ impl GrokBuildTransport for GrokBuildUpstreamTransport {
 pub struct GrokBuildInferenceAdapter {
     namespaces_qualified: bool,
     web_search_qualified: bool,
+    input_message_ids_qualified: bool,
     provider_id: ProviderId,
     credential: GrokBuildCredential,
     upstream_model: String,
@@ -289,6 +290,7 @@ impl GrokBuildInferenceAdapter {
         Ok(Self {
             namespaces_qualified: false,
             web_search_qualified: false,
+            input_message_ids_qualified: false,
             provider_id,
             credential,
             upstream_model,
@@ -325,6 +327,14 @@ impl GrokBuildInferenceAdapter {
         self
     }
 
+    /// Qualifies C6 native input IDs only for an owning local controlled assembly.
+    #[cfg(feature = "controlled-test-support")]
+    #[must_use]
+    pub fn with_local_controlled_input_message_ids(mut self) -> Self {
+        self.input_message_ids_qualified = true;
+        self
+    }
+
     /// Adds authenticated stateless reasoning ownership for this selected attempt.
     #[must_use]
     pub fn with_reasoning_owner(mut self, owner: crate::GrokBuildReasoningOwner) -> Self {
@@ -356,6 +366,10 @@ impl fmt::Debug for GrokBuildInferenceAdapter {
             .debug_struct("GrokBuildInferenceAdapter")
             .field("local_controlled_namespaces", &self.namespaces_qualified)
             .field("local_controlled_web_search", &self.web_search_qualified)
+            .field(
+                "local_controlled_input_message_ids",
+                &self.input_message_ids_qualified,
+            )
             .field("model_binding", &self.model_binding.is_some())
             .field("reasoning_owner", &self.reasoning_owner.is_some())
             .field("provider_id", &self.provider_id)
@@ -398,6 +412,7 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
         let model_binding = self.model_binding.clone();
         let namespaces_qualified = self.namespaces_qualified;
         let web_search_qualified = self.web_search_qualified;
+        let input_message_ids_qualified = self.input_message_ids_qualified;
 
         Box::pin(async move {
             let binding = model_binding.map_or_else(
@@ -435,6 +450,7 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
                 reasoning_owner.as_ref(),
                 namespaces_qualified,
                 web_search_qualified,
+                input_message_ids_qualified,
             )?;
             let response = transport
                 .send_with_egress_attempt(outbound, egress_attempt.clone())

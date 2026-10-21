@@ -150,3 +150,5 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0116 Local Codex request metadata diagnostics](ADR-0116-local-codex-request-metadata-diagnostics.md) — `#62 C4 only` (Accepted new D1-A Codex subset; schema37 Request evidence, local consumption only; original Codex and namespace activation remain blocked).
 
 - [ADR-0117 Native hosted web search](ADR-0117-native-hosted-web-search.md) — `#62 C5` (Accepted bounded local protocol; independent Build activation remains blocked).
+
+- [ADR-0118 Native non-assistant input message IDs](ADR-0118-native-input-message-id.md) — `#62 C6` (Accepted bounded local compatibility contract; exact native forwarding and owned stored continuation; production activation remains blocked).

@@ -12,6 +12,7 @@ use std::{
 };
 
 mod annotations;
+pub mod input_message_ids;
 mod native_output;
 mod tool_set;
 mod upstream_response;

@@ -336,6 +336,7 @@ impl GrokBuildResponsesRequestBuilder {
             None,
             false,
             false,
+            false,
         )
     }
 
@@ -349,7 +350,19 @@ impl GrokBuildResponsesRequestBuilder {
         owner: Option<&crate::GrokBuildReasoningOwner>,
         namespaces_qualified: bool,
         web_search_qualified: bool,
+        input_message_ids_qualified: bool,
     ) -> Result<GrokBuildResponsesOutboundRequest, GatewayError> {
+        if protocol_openai_responses::input_message_ids::requires_qualification(request)
+            && !input_message_ids_qualified
+        {
+            return Err(GatewayError::new(
+                GatewayErrorCode::ClientRequestError,
+                ErrorScope::Request,
+            ));
+        }
+        for message in &request.messages {
+            protocol_openai_responses::input_message_ids::validate_message(message)?;
+        }
         if protocol_openai_responses::requires_tool_identity_qualification(request)
             && !namespaces_qualified
         {
@@ -2926,6 +2939,74 @@ const fn stream_truncated_error() -> GatewayError {
 
 const fn internal_error() -> GatewayError {
     GatewayError::new(GatewayErrorCode::InternalError, ErrorScope::Internal)
+}
+
+#[cfg(test)]
+mod input_message_id_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn build_input_message_ids_require_independent_qualification_and_exact_shape()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let credential = GrokBuildCredential::import_json(br#"{"access_token":"synthetic-access","refresh_token":"synthetic-refresh","expires_in":3600,"token_type":"Bearer"}"#, 0)?;
+        for role in ["developer", "user", "system"] {
+            let body = json!({"model":"grok-4.5","input":[{"role":role,"id":"C6-Original","content":"text"}]});
+            let decoded = protocol_openai_responses::decode_request(&body.to_string())?;
+            for (namespaces, search, ids) in [
+                (false, false, false),
+                (true, true, false),
+                (false, false, true),
+            ] {
+                let result = GrokBuildResponsesRequestBuilder::build_owned(
+                    &credential,
+                    "grok-4.5",
+                    &decoded.request,
+                    ResponseMode::NonStreaming,
+                    None,
+                    None,
+                    namespaces,
+                    search,
+                    ids,
+                );
+                if ids {
+                    let wire: Value = serde_json::from_slice(result?.body())?;
+                    assert_eq!(wire["input"][0]["id"], "C6-Original");
+                    assert_eq!(wire["input"][0]["role"], role);
+                } else {
+                    assert_eq!(
+                        result.err().ok_or("must reject")?.code(),
+                        GatewayErrorCode::ClientRequestError
+                    );
+                }
+            }
+            for (field, value) in [
+                ("id", Value::Null),
+                ("id", json!("")),
+                ("status", json!("completed")),
+                ("phase", json!("commentary")),
+            ] {
+                let mut invalid = body.clone();
+                invalid["input"][0][field] = value;
+                let decoded = protocol_openai_responses::decode_request(&invalid.to_string())?;
+                assert!(
+                    GrokBuildResponsesRequestBuilder::build_owned(
+                        &credential,
+                        "grok-4.5",
+                        &decoded.request,
+                        ResponseMode::NonStreaming,
+                        None,
+                        None,
+                        false,
+                        false,
+                        true
+                    )
+                    .is_err()
+                );
+            }
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]

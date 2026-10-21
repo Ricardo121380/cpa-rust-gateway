@@ -10,6 +10,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 mod cli;
 mod client_metadata;
 mod disconnect;
+mod input_message_ids;
 mod messages;
 mod namespaces;
 mod recording_faults;

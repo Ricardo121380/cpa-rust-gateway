@@ -131,3 +131,7 @@ existing-envelope persistence rules are in ADR-0115. C1-C3 does not authorize C4
 ## 2026-10-21 C5 local hosted-search successor
 
 [ADR-0117](../adr/ADR-0117-native-hosted-web-search.md) and [BC-PROTOCOL-011](BC-PROTOCOL-011-native-hosted-web-search.md) implement the bounded local C5 declaration, native JSON/SSE actions and phases, citations, and explicit history. This supersedes only the historical unimplemented local C5 statement above; fixed Build activation remains BUILD_ACTIVATION_BLOCKED. C1-C3 and D1-A C4 remain implemented predecessors. C6, ParallelTools, namespace activation, Claude controls and #61 are independent.
+
+## 2026-10-21 C6 local native input-ID successor
+
+[ADR-0118](../adr/ADR-0118-native-input-message-id.md) and [BC-PROTOCOL-012](BC-PROTOCOL-012-native-input-message-id.md) supersede only historical local C6 unimplemented statements above. The bounded compatibility contract preserves user/developer/system id at the controlled Build receiver and through explicit/owned stored history. It is not general POST-field or fixed-service qualification, and does not use C4 local consumption. Production BUILD_ACTIVATION_BLOCKED, actual ParallelTools, namespace/search activation and #61 remain independent.

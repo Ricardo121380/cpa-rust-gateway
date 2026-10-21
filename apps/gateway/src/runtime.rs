@@ -2101,6 +2101,23 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
             // then fails non-retryably after the lease was taken — a hard failure where the
             // filter would simply have chosen a different Candidate before the first byte.
             let admission_snapshot = route_snapshot.clone().unwrap_or_else(|| registry.load());
+            // C6 validates the fully expanded history on its pinned candidate before the
+            // continuation scheduler can classify an ineligible request as no credential.
+            if let Some(pin) = continuation_pin.as_ref()
+                && protocol_openai_responses::input_message_ids::requires_qualification(
+                    &driver.request,
+                )
+                && let Some(candidate) = admission_snapshot.route(&route_id).and_then(|route| {
+                    route
+                        .candidates()
+                        .iter()
+                        .find(|candidate| candidate.id() == pin.lineage().route_candidate_id())
+                })
+            {
+                driver.project_candidate(candidate).map_err(|_| {
+                    GatewayError::new(GatewayErrorCode::ClientRequestError, ErrorScope::Request)
+                })?;
+            }
             let is_candidate_eligible = |candidate: &SnapshotRouteCandidate| {
                 if generation_active
                     .as_ref()
@@ -4289,6 +4306,8 @@ struct P12TransportProfiles {
     #[cfg(test)]
     build_search_local_controlled: bool,
     #[cfg(test)]
+    build_input_message_ids_local_controlled: bool,
+    #[cfg(test)]
     console: Option<Arc<dyn provider_grok::GrokConsoleTransport>>,
     streaming: UpstreamTransportProfile,
     non_streaming: UpstreamTransportProfile,
@@ -4368,6 +4387,8 @@ impl P12TransportProfiles {
             #[cfg(test)]
             build_search_local_controlled: false,
             #[cfg(test)]
+            build_input_message_ids_local_controlled: false,
+            #[cfg(test)]
             console: None,
             streaming,
             non_streaming,
@@ -4391,6 +4412,25 @@ impl P12TransportProfiles {
             ResponsesResponseMode::Streaming => &self.streaming,
             ResponsesResponseMode::NonStreaming => &self.non_streaming,
         }
+    }
+
+    #[cfg(test)]
+    fn qualify_local_build_fields(
+        &self,
+        mut adapter: GrokBuildInferenceAdapter,
+    ) -> GrokBuildInferenceAdapter {
+        if self.build.is_some() {
+            if self.build_namespaces_local_controlled {
+                adapter = adapter.with_local_controlled_namespaces();
+            }
+            if self.build_search_local_controlled {
+                adapter = adapter.with_local_controlled_web_search();
+            }
+            if self.build_input_message_ids_local_controlled {
+                adapter = adapter.with_local_controlled_input_message_ids();
+            }
+        }
+        adapter
     }
 
     /// Returns the Web-specific profile, keeping non-Web providers on direct egress.
@@ -4710,7 +4750,7 @@ impl EndpointAttemptDriver {
         }
     }
 
-    fn validate_native_tool_candidate(
+    fn validate_native_field_candidate(
         &self,
         runtime: &EndpointRuntime,
         candidate: &SnapshotRouteCandidate,
@@ -4719,15 +4759,18 @@ impl EndpointAttemptDriver {
         let namespaces =
             protocol_openai_responses::requires_tool_identity_qualification(&self.request);
         let search = protocol_openai_responses::web_search::requires_qualification(&self.request);
-        if namespaces || search {
+        let input_ids =
+            protocol_openai_responses::input_message_ids::requires_qualification(&self.request);
+        if namespaces || search || input_ids {
             #[cfg(not(test))]
             let qualified = false;
             #[cfg(test)]
             let qualified = (!namespaces || runtime.transports.build_namespaces_local_controlled)
                 && (!search || runtime.transports.build_search_local_controlled)
+                && (!input_ids || runtime.transports.build_input_message_ids_local_controlled)
                 && runtime.transports.build.is_some();
             if !qualified
-                || search && self.client_transport != ResponsesClientTransport::Http
+                || (search || input_ids) && self.client_transport != ResponsesClientTransport::Http
                 || !matches!(runtime.adapter, EndpointAdapter::GrokBuildResponses)
                 || self.client_protocol != ProtocolFormat::OpenAiResponses
                 || target != ProtocolFormat::OpenAiResponses
@@ -4737,7 +4780,11 @@ impl EndpointAttemptDriver {
                         | gateway_router::SnapshotTransformMode::CanonicalBridge
                 )
             {
-                return Err(ProtocolTransformRejection::UnknownToolDefinitionExtensions);
+                return Err(if input_ids {
+                    ProtocolTransformRejection::UnknownMessageExtensions
+                } else {
+                    ProtocolTransformRejection::UnknownToolDefinitionExtensions
+                });
             }
         }
         Ok(())
@@ -4757,7 +4804,7 @@ impl EndpointAttemptDriver {
             .endpoints
             .get(candidate.endpoint_id())
             .ok_or(ProtocolTransformRejection::PairUnregistered)?;
-        self.validate_native_tool_candidate(runtime, candidate, target)?;
+        self.validate_native_field_candidate(runtime, candidate, target)?;
         if self.client_transport == ResponsesClientTransport::WebSocket
             && !candidate
                 .effective_capabilities()
@@ -5398,21 +5445,7 @@ impl EndpointAttemptDriver {
         .with_provider_egress_attempt(native_egress)
         .with_cache_identity_deriver(Arc::clone(&self.grok_build_cache_identity_deriver));
         #[cfg(test)]
-        let adapter = if runtime.transports.build_namespaces_local_controlled
-            && runtime.transports.build.is_some()
-        {
-            adapter.with_local_controlled_namespaces()
-        } else {
-            adapter
-        };
-        #[cfg(test)]
-        let adapter = if runtime.transports.build_search_local_controlled
-            && runtime.transports.build.is_some()
-        {
-            adapter.with_local_controlled_web_search()
-        } else {
-            adapter
-        };
+        let adapter = runtime.transports.qualify_local_build_fields(adapter);
         let adapter = if let (Some((codec, version, route)), Some(client)) =
             (&self.reasoning_binding, &self.client_key_id)
         {

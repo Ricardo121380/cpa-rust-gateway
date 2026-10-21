@@ -1,0 +1,116 @@
+[
+  {
+    "file": "codex-models.rs",
+    "url": "https://raw.githubusercontent.com/openai/codex/979011409de0a60b52f179721948e65531d26144/codex-rs/protocol/src/models.rs",
+    "final_url": "https://raw.githubusercontent.com/openai/codex/979011409de0a60b52f179721948e65531d26144/codex-rs/protocol/src/models.rs",
+    "retrieved_at": "2026-10-21T06:44:04.601678+00:00",
+    "revision": "979011409de0a60b52f179721948e65531d26144",
+    "last_modified": null,
+    "etag": "\"0948e0718ebefc213c21e1286061126907b3161675b850ec34f8d720359a197a\"",
+    "bytes": 159747,
+    "sha256": "59c29630f8351fdfdab51fc48e4b468e9749bbff4a043984c57470b49da7fe40",
+    "source_date": "2026-10-06T22:34:37Z"
+  },
+  {
+    "file": "codex-common.rs",
+    "url": "https://raw.githubusercontent.com/openai/codex/979011409de0a60b52f179721948e65531d26144/codex-rs/codex-api/src/common.rs",
+    "final_url": "https://raw.githubusercontent.com/openai/codex/979011409de0a60b52f179721948e65531d26144/codex-rs/codex-api/src/common.rs",
+    "retrieved_at": "2026-10-21T06:44:05.699103+00:00",
+    "revision": "979011409de0a60b52f179721948e65531d26144",
+    "last_modified": null,
+    "etag": "\"71ff3afe42bab974bca6085c8dda20443c3dd98742495d58633cb2c766f3144a\"",
+    "bytes": 14395,
+    "sha256": "052151729693439be83e0af587078d67275794b6db860bd6541c3470ab767244",
+    "source_date": "2026-10-06T22:34:37Z"
+  },
+  {
+    "file": "codex-responses.rs",
+    "url": "https://raw.githubusercontent.com/openai/codex/979011409de0a60b52f179721948e65531d26144/codex-rs/codex-api/src/endpoint/responses.rs",
+    "final_url": "https://raw.githubusercontent.com/openai/codex/979011409de0a60b52f179721948e65531d26144/codex-rs/codex-api/src/endpoint/responses.rs",
+    "retrieved_at": "2026-10-21T06:44:06.893539+00:00",
+    "revision": "979011409de0a60b52f179721948e65531d26144",
+    "last_modified": null,
+    "etag": "\"730f873fad5a92dd0a5add8531b8e147d0d804c11f4823ab1ef96708945b5ee4\"",
+    "bytes": 4961,
+    "sha256": "4f2fff3da4ca3ca9fcfa40ada8e98a0229af296094e03febb4d823f32ef932c8",
+    "source_date": "2026-10-06T22:34:37Z"
+  },
+  {
+    "file": "codex-commit.json",
+    "url": "https://api.github.com/repos/openai/codex/commits/979011409de0a60b52f179721948e65531d26144",
+    "final_url": "https://api.github.com/repos/openai/codex/commits/979011409de0a60b52f179721948e65531d26144",
+    "retrieved_at": "2026-10-21T06:44:08.221582+00:00",
+    "revision": "979011409de0a60b52f179721948e65531d26144",
+    "last_modified": "Tue, 06 Oct 2026 22:34:37 GMT",
+    "etag": "W/\"733270a09e557ca04aebdb0bd15accf37a7597424e98942334d98d71c327bf64\"",
+    "bytes": 18944,
+    "sha256": "e07ec291068e048e4f5e21c92004b4f205dbfd90910e579b02e50ffd0df4ef3b",
+    "source_date": "2026-10-06T22:34:37Z"
+  },
+  {
+    "file": "codex-tag.json",
+    "url": "https://api.github.com/repos/openai/codex/git/ref/tags/rust-v0.161.0",
+    "final_url": "https://api.github.com/repos/openai/codex/git/ref/tags/rust-v0.161.0",
+    "retrieved_at": "2026-10-21T06:44:09.282842+00:00",
+    "revision": "979011409de0a60b52f179721948e65531d26144",
+    "last_modified": "Wed, 21 Oct 2026 06:41:54 GMT",
+    "etag": "W/\"f004051cc9f39dc1aa0e38ddfa17415f3180d339d4ab60a3c1533950772886da\"",
+    "bytes": 343,
+    "sha256": "c7109f692dd99b362da194f9942c78796a42a5bee1491f892a0a3e91c76f5dc7",
+    "source_date": "2026-10-06T22:34:37Z"
+  },
+  {
+    "file": "build-history.rs",
+    "url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampling-types/src/conversation/responses.rs",
+    "final_url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampling-types/src/conversation/responses.rs",
+    "retrieved_at": "2026-10-21T06:44:10.430989+00:00",
+    "revision": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+    "last_modified": null,
+    "etag": "\"bde773c05f62ca523ff8c206260c73eb4ebe33d1f4c188d52aaeb77832a3f921\"",
+    "bytes": 14124,
+    "sha256": "0e7325bcdaf5fe140d1d4d1d8642c38138f37e8bee2f9ed8edd840d46315d483",
+    "source_date": "2026-09-29T16:57:09Z"
+  },
+  {
+    "file": "openai-create.md",
+    "url": "https://developers.openai.com/api/reference/resources/responses/methods/create.md",
+    "final_url": "https://developers.openai.com/api/reference/resources/responses/methods/create.md",
+    "retrieved_at": "2026-10-21T06:44:12.419111+00:00",
+    "revision": null,
+    "last_modified": "Wed, 21 Oct 2026 06:21:18 GMT",
+    "etag": null,
+    "bytes": 507870,
+    "sha256": "9c4d505259ac72b879a3697f4f606d4131989ae686d204078b7b22e5638794d0",
+    "source_date": null
+  },
+  {
+    "file": "openai-input-items.md",
+    "url": "https://developers.openai.com/api/reference/resources/responses/subresources/input_items/methods/list.md",
+    "final_url": "https://developers.openai.com/api/reference/resources/responses/subresources/input_items/methods/list.md",
+    "retrieved_at": "2026-10-21T06:44:14.040594+00:00",
+    "revision": null,
+    "last_modified": "Wed, 21 Oct 2026 06:44:13 GMT",
+    "etag": null,
+    "bytes": 125902,
+    "sha256": "1f58a68b72193fdfdf1053236a0117af5d613d5ec51cc2e20a90d0a4fa23281e",
+    "source_date": null
+  },
+  {
+    "file": "codex-annotated-tag.json",
+    "url": "https://api.github.com/repos/openai/codex/git/tags/7e21416b38834816c224ea0dfd135c3de94b2f15",
+    "revision": "7e21416b38834816c224ea0dfd135c3de94b2f15",
+    "source_date": "2026-10-06T22:34:38Z",
+    "retrieved_at": "2026-10-21T06:47:17.493942+00:00",
+    "bytes": 662,
+    "sha256": "8f91d8c41b13740c45c589da417ee49ce2ed9c5659eb4551f512f4a845c45cde"
+  },
+  {
+    "file": "build-commit.json",
+    "url": "https://api.github.com/repos/xai-org/grok-build/commits/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+    "revision": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+    "source_date": "2026-09-29T16:57:09Z",
+    "retrieved_at": "2026-10-21T07:02:29.067915+00:00",
+    "bytes": 564037,
+    "sha256": "ba8458628d06ef54776c58ae704e902c9daeaa6e56afa66496cd3cc908fe76c9"
+  }
+]

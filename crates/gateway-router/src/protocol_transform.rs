@@ -732,6 +732,10 @@ fn validate_target_message_extensions(
 ) -> Result<(), ProtocolTransformRejection> {
     if message.extensions.is_empty()
         || target == ProtocolFormat::OpenAiResponses
+            && matches!(message.role.0.as_str(), "user" | "developer" | "system")
+            && protocol_openai_responses::input_message_ids::validate_message(message).is_ok()
+            && message.extensions.get("id").is_some()
+        || target == ProtocolFormat::OpenAiResponses
             && message.role.0 == "assistant"
             && message.extensions.iter().all(|(key, raw)| {
                 let Ok(value) = serde_json::from_str::<Value>(raw.get()) else {
@@ -818,9 +822,7 @@ fn valid_anthropic_thinking_history(raw: &RawJson) -> bool {
 }
 
 fn valid_responses_item_id(value: &serde_json::Value) -> bool {
-    value.as_str().is_some_and(|id| {
-        !id.is_empty() && id.len() <= 512 && id.bytes().all(|byte| byte.is_ascii_graphic())
-    })
+    protocol_openai_responses::input_message_ids::valid_item_id(value)
 }
 
 fn validate_target_root_extensions(

@@ -291,3 +291,7 @@ activate fixed Build namespaces, admit C4/C5/C6/#61 or change GitHub dependencie
 ## #62 C5 native hosted web search
 
 [ADR-0117](adr/ADR-0117-native-hosted-web-search.md) and [BC-PROTOCOL-011](contracts/BC-PROTOCOL-011-native-hosted-web-search.md) define the local declaration, native JSON/SSE actions/phases, citations and explicit history slice. Fixed Build activation, original Codex, #61 and the three-client milestone remain independently blocked. No payload-v1 rewrite or production capability grant.
+
+## #62 C6 native non-assistant input message IDs
+
+[ADR-0118](adr/ADR-0118-native-input-message-id.md) and [BC-PROTOCOL-012](contracts/BC-PROTOCOL-012-native-input-message-id.md) bind the closed input-ID contract to controlled native forwarding, JSON/SSE tool history, explicit and owned stored continuation, cross-kind uniqueness and independent field qualification. Existing owner/lineage rules remain; fixed Build activation, actual Codex, #61 and whole #62 are separate. No schema or payload-v1 change.
