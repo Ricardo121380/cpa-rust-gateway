@@ -1,0 +1,18 @@
+{
+  "source_head": "60549c20f3762e8860ce7aed89400581550e5517",
+  "repository": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020",
+  "command": [
+    "python3",
+    "scripts/acceptance/cpar62-cli.py",
+    "--output",
+    "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c5-cli-6dyt8obw/run",
+    "--require-prompt-release",
+    "--require-codex-success"
+  ],
+  "output": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c5-cli-6dyt8obw/run",
+  "target": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c5-20261021/target-dev",
+  "started_utc": "2026-10-21T04:54:28.138161+00:00",
+  "script_unmodified": true,
+  "exit": 1,
+  "finished_utc": "2026-10-21T04:55:02.623157+00:00"
+}

@@ -1,0 +1,15 @@
+{
+  "before_lock_sha256": "0683853544445e678188e8c104bcdefaaaa644a6947eef4982e84611a3146ade",
+  "after_lock_sha256": "36564c0219707741d79ecb37d9fc4ee620ce2fe6801fdbe09b32fb4c8687c858",
+  "changed_packages": [
+    {
+      "name": "rustls-webpki",
+      "from": "0.103.15",
+      "to": "0.103.16"
+    }
+  ],
+  "package_count_unchanged": true,
+  "dependencies_unchanged": true,
+  "new_ignored_advisories": false,
+  "reason": "Required final Full: RUSTSEC-2026-0382"
+}

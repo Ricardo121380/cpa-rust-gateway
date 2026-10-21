@@ -1,0 +1,28 @@
+{
+  "candidate": "72464e7d1d4d716fad34affc154480288451477f",
+  "independent_agent": "/root/c5_dependency_verify",
+  "scope": "60549c20..72464e7d plus fixed advisory/patch and cold HTTP tree",
+  "standards": {
+    "exactly_one_package_version_checksum": true,
+    "other_dependencies_unchanged": true,
+    "manifests_gate_scripts_and_deny_policy_unchanged": true,
+    "advisory_ignores": []
+  },
+  "spec": {
+    "patch_matches_frozen_advisory_patched_range": true,
+    "C5_or_Build_activation_changes": false,
+    "cold_HTTP_tree_baseline_and_final": "7233bd293636803f2499c10939c286bbc1087430",
+    "timeouts_unchanged": true
+  },
+  "independent_evidence_gap": "Standalone cargo-audit stdout has no success line/exit field; agent correctly did not infer success.",
+  "primary_exit_receipt": {
+    "tool_session": 52183,
+    "audit_final_command_exit_code": 0,
+    "source": "Completion result from tools.write_stdin in this execution, not inferred from log silence."
+  },
+  "final_full": "Full3 independent step result recorded separately; no result inferred here",
+  "source_hashes": {
+    "rustsec-2026-0382.md": "525ad607d24f67fd22a20e70b28b3962a9039962340e3ad1f351c9611772e671",
+    "webpki-546.patch": "0a49a94bb94c8c629d4d35115adc11f847fb7d989670a4607057f10cf37e9a7b"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "reviewed_base": "e16e120267c52b6dfb196df2976ea79a88f6ffe0",
+  "reviewed_candidate": "c0196c242f2f0d709e87c4fdc4f86f71899d781f",
+  "scope": "29 explicitly owned paths; inherited dirty edits excluded; read-only static review",
+  "standards": {
+    "agent": "/root/c5_standards_review",
+    "hard_violations": 0,
+    "judgment_calls": 1,
+    "finding": "Duplicated Code: identical stage-transition predicate in native_output.rs and build_responses.rs",
+    "resolution": "Extract only pure valid_phase_transition in the existing web_search module; preserve local identity/sequence/terminal checks."
+  },
+  "spec": {
+    "agent": "/root/c5_spec_review",
+    "status": "PASS_STATIC_BOUNDED",
+    "actionable_findings": 0,
+    "pending_at_review": [
+      "independent final Full",
+      "actual Pi controlled regression"
+    ],
+    "scope_creep": false,
+    "issue62": "PARTIAL/BLOCKED"
+  },
+  "limitations": [
+    "Static review is not a test result or fixed-service qualification.",
+    "Shared predicate patch is reviewed directly by the primary agent and validated on the final candidate."
+  ]
+}

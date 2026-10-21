@@ -1,0 +1,39 @@
+{
+  "code_candidate": "60549c20f3762e8860ce7aed89400581550e5517",
+  "primary_review": "Read exact delta and full affected test; no production cancellation or observation changes.",
+  "standards": {
+    "hard_violations": 0,
+    "open_judgment_calls": 0,
+    "previous_duplicate_predicate": "RESOLVED by 0f451747",
+    "diagnostic": "closed synthetic booleans/RequestOutcome only; no credentials or payload logging"
+  },
+  "spec": {
+    "actionable_findings": 0,
+    "original_one_second_window": "UNCHANGED",
+    "Cancelled_assertion": "PRESERVED and observed before receipt release",
+    "lease_peer_and_exact_usage_assertions": "PRESERVED",
+    "cold_http_roots_and_timeouts": "UNCHANGED",
+    "fixed_Build_activation": "BLOCKED"
+  },
+  "dynamic_RED": {
+    "first_full": "full-1-failed.log",
+    "isolated": "disconnect-reproduction-1.log",
+    "instrumented": "disconnect-reproduction-2.log",
+    "observed": {
+      "extra": true,
+      "reset": true,
+      "released": true,
+      "leases": 0,
+      "outcomes": [
+        "Failed"
+      ]
+    }
+  },
+  "causal_fix": "Peer closure can precede public FIN/RST processing for rejected Usage. Hold receipt until public RequestFinished Cancelled is durable, then release it; no new sleeps or timeout.",
+  "green": "grok-regression-3.log: 76 passed / 0 failed / 3 ignored",
+  "read_only_scouts": {
+    "/root/c5_disconnect_map": "partial; failed glob prevented production trace; no conclusion used beyond verified test locations",
+    "/root/c5_usage_map": "complete static trace; qualified C5 barrier not entered by this request; unchanged production paths; race hypothesis dynamically confirmed by primary agent"
+  },
+  "historical_baseline_run": "NOT_RUN; no claim that a historical executable was reproduced"
+}

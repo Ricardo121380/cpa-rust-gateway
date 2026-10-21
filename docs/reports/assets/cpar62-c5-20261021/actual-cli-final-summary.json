@@ -1,0 +1,396 @@
+{
+  "source_head": "72464e7d1d4d716fad34affc154480288451477f",
+  "runner_script": "scripts/acceptance/cpar62-cli.py (unmodified)",
+  "raw_receipts_root": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c5-final-cli-9ohcqa_i/run",
+  "strict_driver_exit": 1,
+  "test_exit": 0,
+  "runner_status": "FAIL",
+  "codex_success_gate": {
+    "status": "FAIL",
+    "checks": {
+      "cli_exit_zero": false,
+      "answer_tool_task_and_follow_up": false,
+      "five_incremental_public_responses": false,
+      "independent_receives_and_exact_accounting": false,
+      "two_correlated_tool_results": false,
+      "actual_tool_file_result": false
+    }
+  },
+  "require_prompt_release": true,
+  "require_codex_success": true,
+  "installs_unchanged": true,
+  "versions": {
+    "codex": "codex-cli 0.161.0",
+    "pi-shell": "0.84.3",
+    "pi-declared-bin": "0.84.3",
+    "node": "v26.8.2"
+  },
+  "test_binary_sha256": "056bcf8c0662837a7c81157ac2cc359db1ab7054f16a322780306803875f016e",
+  "scenarios": {
+    "codex-standard": {
+      "observations": {
+        "accounting": {
+          "attempts": 0,
+          "client_requests": 1,
+          "cost": "UNKNOWN",
+          "finished": 1,
+          "ledger": 0,
+          "lineage": [],
+          "outcome": "Failed",
+          "requests_including_negative_probe": 1,
+          "usage": 0
+        },
+        "client": "codex",
+        "public": [
+          {
+            "client_usable": false,
+            "http": 400
+          }
+        ],
+        "received": 0,
+        "released_before_server_stop": true,
+        "released_within_one_second": true,
+        "scenario": "standard",
+        "success_metadata_retention": "BLOCKED_BY_61"
+      },
+      "client_exit": 1,
+      "shutdown_exit": null,
+      "turn_outcomes": null,
+      "isolation_probe_exit": 0
+    },
+    "pi-standard": {
+      "observations": {
+        "accounting": {
+          "attempts": 5,
+          "client_requests": 5,
+          "cost": "UNKNOWN",
+          "finished": 6,
+          "ledger": 5,
+          "lineage": [
+            {
+              "attempt_id": "attempt:45:p1-request-923abf8da0a6c38f36a51c43340f66d6-0:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-923abf8da0a6c38f36a51c43340f66d6-0",
+              "source_event_id": "usage-attempt:1e50516454157d0365a8c4d2d34c622f1c8dfc3743072c4f7ae43e14d7756822"
+            },
+            {
+              "attempt_id": "attempt:45:p1-request-923abf8da0a6c38f36a51c43340f66d6-1:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-923abf8da0a6c38f36a51c43340f66d6-1",
+              "source_event_id": "usage-attempt:ebfe7a5720b7807b1327d1dce332ccef142271d6daa19579532850b7100b218e"
+            },
+            {
+              "attempt_id": "attempt:45:p1-request-923abf8da0a6c38f36a51c43340f66d6-2:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-923abf8da0a6c38f36a51c43340f66d6-2",
+              "source_event_id": "usage-attempt:7bfc1d57471eb4d142325f7530ac3400ac5b762f842d47f15cff07118fa99b42"
+            },
+            {
+              "attempt_id": "attempt:45:p1-request-923abf8da0a6c38f36a51c43340f66d6-3:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-923abf8da0a6c38f36a51c43340f66d6-3",
+              "source_event_id": "usage-attempt:7d7f3c36cbe5b4fbaa974d9e7087cf352ec33f331987436aeee87ed95b670f59"
+            },
+            {
+              "attempt_id": "attempt:45:p1-request-923abf8da0a6c38f36a51c43340f66d6-4:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-923abf8da0a6c38f36a51c43340f66d6-4",
+              "source_event_id": "usage-attempt:657528e56810c005e898c6bf9b4937314c76f309777eae657cc4f4183918d442"
+            }
+          ],
+          "outcome": "Succeeded",
+          "requests_including_negative_probe": 6,
+          "usage": 5
+        },
+        "client": "pi",
+        "public": [
+          {
+            "chunks": 24,
+            "completed": 1,
+            "failed": 0,
+            "http": 200
+          },
+          {
+            "chunks": 20,
+            "completed": 1,
+            "failed": 0,
+            "http": 200
+          },
+          {
+            "chunks": 39,
+            "completed": 1,
+            "failed": 0,
+            "http": 200
+          },
+          {
+            "chunks": 21,
+            "completed": 1,
+            "failed": 0,
+            "http": 200
+          },
+          {
+            "chunks": 21,
+            "completed": 1,
+            "failed": 0,
+            "http": 200
+          }
+        ],
+        "received": 5,
+        "released_before_server_stop": true,
+        "released_within_one_second": true,
+        "scenario": "standard",
+        "success_metadata_retention": "BLOCKED_BY_61"
+      },
+      "client_exit": null,
+      "shutdown_exit": 143,
+      "turn_outcomes": [
+        "stop",
+        "stop",
+        "stop"
+      ],
+      "isolation_probe_exit": 0,
+      "client_display_usage": [
+        {
+          "input": 20,
+          "output": 7,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "reasoning": 0,
+          "totalTokens": 27,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        {
+          "input": 20,
+          "output": 7,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "reasoning": 0,
+          "totalTokens": 27,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        {
+          "input": 20,
+          "output": 7,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "reasoning": 0,
+          "totalTokens": 27,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        {
+          "input": 20,
+          "output": 7,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "reasoning": 0,
+          "totalTokens": 27,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        {
+          "input": 20,
+          "output": 7,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "reasoning": 0,
+          "totalTokens": 27,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        }
+      ]
+    },
+    "pi-failure": {
+      "observations": {
+        "accounting": {
+          "attempts": 1,
+          "client_requests": 1,
+          "cost": "UNKNOWN",
+          "finished": 1,
+          "ledger": 1,
+          "lineage": [
+            {
+              "attempt_id": "attempt:45:p1-request-edc56b701fd5a69ed29bb2d17d9ede9e-0:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-edc56b701fd5a69ed29bb2d17d9ede9e-0",
+              "source_event_id": "usage-attempt:797edf464944d568a4b62aaa46cbb1910c05d23ed0a658f036e205984bac4bb7"
+            }
+          ],
+          "outcome": "Failed",
+          "requests_including_negative_probe": 1,
+          "usage": 1
+        },
+        "client": "pi",
+        "public": [
+          {
+            "chunks": 6,
+            "completed": 0,
+            "failed": 1,
+            "http": 200
+          }
+        ],
+        "received": 1,
+        "released_before_server_stop": true,
+        "released_within_one_second": true,
+        "scenario": "failure",
+        "success_metadata_retention": "BLOCKED_BY_61"
+      },
+      "client_exit": null,
+      "shutdown_exit": 143,
+      "turn_outcomes": [
+        "error"
+      ],
+      "isolation_probe_exit": 0,
+      "client_display_usage": [
+        {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        }
+      ]
+    },
+    "pi-cancel": {
+      "observations": {
+        "accounting": {
+          "attempts": 1,
+          "client_requests": 1,
+          "cost": "UNKNOWN",
+          "finished": 1,
+          "ledger": 0,
+          "lineage": [],
+          "outcome": "Cancelled",
+          "requests_including_negative_probe": 1,
+          "usage": 0
+        },
+        "client": "pi",
+        "public": [
+          {
+            "chunks": 5,
+            "completed": 0,
+            "failed": 0,
+            "http": 200
+          }
+        ],
+        "received": 1,
+        "released_before_server_stop": true,
+        "released_within_one_second": true,
+        "scenario": "cancel",
+        "success_metadata_retention": "BLOCKED_BY_61"
+      },
+      "client_exit": null,
+      "shutdown_exit": 143,
+      "turn_outcomes": [
+        "aborted"
+      ],
+      "isolation_probe_exit": 0,
+      "client_display_usage": [
+        {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        }
+      ]
+    }
+  },
+  "cancellation": {
+    "abort_to_release_upper_bound_ms": 14,
+    "alive_after_observation": {
+      "observed_at_ms": 1792559399199,
+      "pid": 67389,
+      "rpc_alive": true
+    },
+    "cli_alive_at_abort": true,
+    "cli_kept_alive": true,
+    "cli_pid": 67389,
+    "eventually_released_before_server_stop": true,
+    "lease_before_abort": {
+      "lease": 1,
+      "observed_at_ms": 1792559399171
+    },
+    "leases_after_first_second": 0,
+    "leases_at_observation_end": 0,
+    "observation_end_at_ms": 1792559399197,
+    "peer_close_at_observation_end": 1,
+    "release_observed_at_ms": 1792559399197,
+    "released_within_first_second": true,
+    "rpc_timeline": {
+      "abort_sent_at_ms": 1792559399183,
+      "delta_at_ms": 1792559399168,
+      "pid": 67389,
+      "rpc_aborted_at_ms": 1792559399186,
+      "rpc_alive": true
+    },
+    "total_observation_ms": 0
+  },
+  "source_receipt_sha256": {
+    "codex-standard/observations.json": "bba29dae9b051b21a54710948ac056bd56e0dddcd1f6975016169e0f6e8176e3",
+    "codex-standard/client.json": "8e2e339cb7842ea95870179b9bffebf51b4b6e4fb9b2adcd1e09c5b400cc63b5",
+    "codex-standard/isolation.json": "2e85a74d7d83a53e158196f38d098d1fcb79658f3774a439336a1d4ed9a3d512",
+    "pi-standard/observations.json": "2e8442b6dcb6bd5059473ed10b33a56cddc6662d18fa1cb0e5c807faf32ac549",
+    "pi-standard/client.json": "63ae39510374efad77a9b2fcb0443d96cb84c56d97c593169717ba68ab2367f5",
+    "pi-standard/isolation.json": "2e85a74d7d83a53e158196f38d098d1fcb79658f3774a439336a1d4ed9a3d512",
+    "pi-failure/observations.json": "9a5e31f14ec361fe8bbc38b58e7a8099b4d9eb50f52a473480ad1240d55ff0d0",
+    "pi-failure/client.json": "93193194d785f273a601fe5a9d6f96b6db61233103871d0b063182056b455156",
+    "pi-failure/isolation.json": "2e85a74d7d83a53e158196f38d098d1fcb79658f3774a439336a1d4ed9a3d512",
+    "pi-cancel/observations.json": "468a97e0107426a49c94dc15663306070248baa391b0be9b314c9c6069aa441d",
+    "pi-cancel/client.json": "f96e36d2e65f0e1132d69b9317a283479b3704e955bd3fb24ba5472bafc50805",
+    "pi-cancel/isolation.json": "2e85a74d7d83a53e158196f38d098d1fcb79658f3774a439336a1d4ed9a3d512"
+  },
+  "qualification": "Pi PASS_BOUNDED_CONTROLLED; original Codex BLOCKED / strict success FAIL; real Provider NOT_RUN",
+  "limitations": [
+    "Pi failure display shows zero Usage while gateway records measured 20/7; no zero-use inference.",
+    "Pi displays zero prices; gateway/search cost UNKNOWN.",
+    "Original Codex all six success checks fail; HTTP400 is preparation only."
+  ]
+}

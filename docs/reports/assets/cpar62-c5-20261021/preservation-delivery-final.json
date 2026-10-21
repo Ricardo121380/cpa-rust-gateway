@@ -1,0 +1,224 @@
+{
+  "candidate": "72464e7d1d4d716fad34affc154480288451477f",
+  "original_input_count": 7103,
+  "inherited_count": 18,
+  "inherited": [
+    {
+      "path": "AGENTS.md",
+      "original_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+      "actual_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+      "inherited_bytes": "EXACT",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "owned_suffix_only": false
+    },
+    {
+      "path": "CONTEXT.md",
+      "original_sha256": "eaa545ede563d661387baff18ebd21e8acc3a9661000c4123eec6bf2d1779e21",
+      "actual_sha256": "eaa545ede563d661387baff18ebd21e8acc3a9661000c4123eec6bf2d1779e21",
+      "inherited_bytes": "EXACT",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "owned_suffix_only": false
+    },
+    {
+      "path": "README.md",
+      "original_sha256": "376de5be81e5b8ac7b0ad6ac25b4e186db18321a0cd89057d7432ef5524219f9",
+      "actual_sha256": "376de5be81e5b8ac7b0ad6ac25b4e186db18321a0cd89057d7432ef5524219f9",
+      "inherited_bytes": "EXACT",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "owned_suffix_only": false
+    },
+    {
+      "path": "README.zh-CN.md",
+      "original_sha256": "d5ae62085c88f4200b19f973b675b10fad63c0e86ed42178969ec869bfbe3b76",
+      "actual_sha256": "d5ae62085c88f4200b19f973b675b10fad63c0e86ed42178969ec869bfbe3b76",
+      "inherited_bytes": "EXACT",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "owned_suffix_only": false
+    },
+    {
+      "path": "docs/06-development-plan.md",
+      "original_sha256": "322ac4c20b44eedf1b3e7bdb3ed1bfc7b9e12c9cf2192b3b85ffe274061b3fe5",
+      "actual_sha256": "322ac4c20b44eedf1b3e7bdb3ed1bfc7b9e12c9cf2192b3b85ffe274061b3fe5",
+      "inherited_bytes": "EXACT",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "owned_suffix_only": false
+    },
+    {
+      "path": "docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md",
+      "original_sha256": "ad35d32a70725f9da6b412c0100e920eb52cd560f67faefbb9013b3ad1834bcb",
+      "actual_sha256": "ad35d32a70725f9da6b412c0100e920eb52cd560f67faefbb9013b3ad1834bcb",
+      "inherited_bytes": "EXACT",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "owned_suffix_only": false
+    },
+    {
+      "path": "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+      "original_sha256": "a426616e9a4cbb875e3eb081e40160357433817306ff045ed5de3c3797c39131",
+      "actual_sha256": "a426616e9a4cbb875e3eb081e40160357433817306ff045ed5de3c3797c39131",
+      "inherited_bytes": "EXACT",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "owned_suffix_only": false
+    },
+    {
+      "path": "docs/adr/ADR-0106-native-fidelity-profile.md",
+      "original_sha256": "8e770df75f08f2ce4c4471cfaa58365bc8e20715880dc7239e7d98438d530409",
+      "actual_sha256": "8e770df75f08f2ce4c4471cfaa58365bc8e20715880dc7239e7d98438d530409",
+      "inherited_bytes": "EXACT",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "owned_suffix_only": false
+    },
+    {
+      "path": "docs/adr/ADR-0107-standard-response-metadata-separation.md",
+      "original_sha256": "dad1f8391de1a6d82a0c280189346f1a065bc04ee84f88502859e766b485938e",
+      "actual_sha256": "dad1f8391de1a6d82a0c280189346f1a065bc04ee84f88502859e766b485938e",
+      "inherited_bytes": "EXACT",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "owned_suffix_only": false
+    },
+    {
+      "path": "docs/adr/ADR-0108-build-summary-standard-messages.md",
+      "original_sha256": "a8088457f16a6f60fbb13cd617594cb896f9c168a4dfe9122295602ade0f82ec",
+      "actual_sha256": "a8088457f16a6f60fbb13cd617594cb896f9c168a4dfe9122295602ade0f82ec",
+      "inherited_bytes": "EXACT",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "owned_suffix_only": false
+    },
+    {
+      "path": "docs/adr/README.md",
+      "original_sha256": "4962d3591417f722de5dabae34629a9899bc2b7ca8e8d39442a4dd77624c3301",
+      "actual_sha256": "d8863e794c04eff60557cbbfa0e20c3ff52acb8dba65c9d8455c82584458c09d",
+      "inherited_bytes": "EXACT",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "owned_suffix_only": true
+    },
+    {
+      "path": "docs/agents/domain.md",
+      "original_sha256": "143fbbb108382fe791a9a9a7b2f0c208d7a8b9a64f0250b3b172f1660c6f9b40",
+      "actual_sha256": "143fbbb108382fe791a9a9a7b2f0c208d7a8b9a64f0250b3b172f1660c6f9b40",
+      "inherited_bytes": "EXACT",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "owned_suffix_only": false
+    },
+    {
+      "path": "docs/agents/issue-tracker.md",
+      "original_sha256": "c95aff9dd13f35beb3646a2e01cf28559c1ceb0122e01515f354911385c312d0",
+      "actual_sha256": "c95aff9dd13f35beb3646a2e01cf28559c1ceb0122e01515f354911385c312d0",
+      "inherited_bytes": "EXACT",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "owned_suffix_only": false
+    },
+    {
+      "path": "docs/agents/triage-labels.md",
+      "original_sha256": "ef4786ebc27973fe8afd053bc91ff16038195c354f05d7456776ec6aeea2c721",
+      "actual_sha256": "ef4786ebc27973fe8afd053bc91ff16038195c354f05d7456776ec6aeea2c721",
+      "inherited_bytes": "EXACT",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "owned_suffix_only": false
+    },
+    {
+      "path": "docs/contracts/BC-PROTOCOL-009-codex-responses-controls.md",
+      "original_sha256": "6325d5699b7e3cb183aa27fbf5b2b8dddb28ff7df9d21b17676473272dcd1d14",
+      "actual_sha256": "675f45b57c8a22c289df8dc078252f28922f0e14a563f5780cf5e4493bdc7638",
+      "inherited_bytes": "EXACT",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "owned_suffix_only": true
+    },
+    {
+      "path": "docs/engineering-roadmap.md",
+      "original_sha256": "0babeedb83b7c2138ab7e540ef8be4c2b0a0831a0710a0e00f5a9f861f28777b",
+      "actual_sha256": "0babeedb83b7c2138ab7e540ef8be4c2b0a0831a0710a0e00f5a9f861f28777b",
+      "inherited_bytes": "EXACT",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "owned_suffix_only": false
+    },
+    {
+      "path": "docs/reports/cpar-62-64-client-field-plan-20261020.md",
+      "original_sha256": "26cb7b1a5af0ee25ed47f35ecac963433c9cd704830f181c9529f942571cac97",
+      "actual_sha256": "26cb7b1a5af0ee25ed47f35ecac963433c9cd704830f181c9529f942571cac97",
+      "inherited_bytes": "EXACT",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "owned_suffix_only": false
+    },
+    {
+      "path": "docs/traceability.md",
+      "original_sha256": "c84389859180286a74567449f90b08cb755fcc68bc16e652d2d87689e0113373",
+      "actual_sha256": "b3b0705a5ba51d254301116164181d716443f7b7057c09be741fcefcc9237e6d",
+      "inherited_bytes": "EXACT",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "owned_suffix_only": true
+    }
+  ],
+  "changed_initial_paths": [
+    "Cargo.lock",
+    "apps/gateway/src/runtime.rs",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle.rs",
+    "crates/gateway-router/src/protocol_transform.rs",
+    "crates/gateway-router/src/response_transform.rs",
+    "crates/gateway-router/src/tool_controls.rs",
+    "crates/gateway-store/src/stored_response.rs",
+    "crates/protocol-openai-responses/Cargo.toml",
+    "crates/protocol-openai-responses/src/annotations.rs",
+    "crates/protocol-openai-responses/src/lib.rs",
+    "crates/protocol-openai-responses/src/native_output.rs",
+    "crates/protocol-openai-responses/src/tool_set.rs",
+    "crates/provider-grok/src/build_responses.rs",
+    "crates/provider-grok/src/inference.rs",
+    "crates/provider-grok/src/native_response_semantics.rs",
+    "crates/provider-grok/src/owned_reasoning.rs",
+    "docs/adr/README.md",
+    "docs/contracts/BC-PROTOCOL-009-codex-responses-controls.md",
+    "docs/traceability.md",
+    "scripts/check-crate-boundaries.rb"
+  ],
+  "unrelated_or_historical_changes": [],
+  "new_source_paths_within_owned_set": [
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/search.rs",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/search/failures.rs",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/search/negatives.rs",
+    "crates/protocol-openai-responses/src/web_search.rs",
+    "docs/adr/ADR-0117-native-hosted-web-search.md",
+    "docs/contracts/BC-PROTOCOL-011-native-hosted-web-search.md",
+    "docs/reports/assets/cpar62-c5-20261021/baseline.json",
+    "docs/reports/assets/cpar62-c5-20261021/field-decisions.json",
+    "docs/reports/assets/cpar62-c5-20261021/source-manifest.json"
+  ],
+  "generated_evidence_scope": "docs/reports/assets/cpar62-c5-20261021; content allowlist/readback is evidence-manifest.json",
+  "index_empty_before_report": true,
+  "uncommitted_tracked_changes": "inherited inputs only"
+}

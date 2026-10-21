@@ -1,0 +1,162 @@
+{
+  "candidate": "60549c20f3762e8860ce7aed89400581550e5517",
+  "created_utc": "2026-10-21T04:52:52.661596+00:00",
+  "validation_worktree": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-c5-full-20261021-60549c20",
+  "independent_target": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c5-20261021/target-full-final-2",
+  "source_file_count_before": 7112,
+  "source_inventory_before_uncompressed_sha256": "707322c386b264489f74807f8e995287e6bcc466f778f1736d8ba5ae2cc0430b",
+  "candidate_manifest_lock_toolchain": [
+    {
+      "path": "Cargo.toml",
+      "sha256": "1b1a37ce8d8fcafa51d379ffae2ff33fff091c5a48c0f3458e47b99c12b22355",
+      "candidate_own_bytes_verified": true
+    },
+    {
+      "path": "Cargo.lock",
+      "sha256": "0683853544445e678188e8c104bcdefaaaa644a6947eef4982e84611a3146ade",
+      "candidate_own_bytes_verified": true
+    },
+    {
+      "path": "rust-toolchain.toml",
+      "sha256": "8e390d6a0838315f972690f46ef8bae8b7ecc9ee6c1ed70140ef852869c2482e",
+      "candidate_own_bytes_verified": true
+    }
+  ],
+  "overlay_count": 18,
+  "overlays": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+      "mode": 420,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "CONTEXT.md",
+      "sha256": "eaa545ede563d661387baff18ebd21e8acc3a9661000c4123eec6bf2d1779e21",
+      "mode": 420,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "README.md",
+      "sha256": "376de5be81e5b8ac7b0ad6ac25b4e186db18321a0cd89057d7432ef5524219f9",
+      "mode": 420,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "README.zh-CN.md",
+      "sha256": "d5ae62085c88f4200b19f973b675b10fad63c0e86ed42178969ec869bfbe3b76",
+      "mode": 420,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/06-development-plan.md",
+      "sha256": "322ac4c20b44eedf1b3e7bdb3ed1bfc7b9e12c9cf2192b3b85ffe274061b3fe5",
+      "mode": 420,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md",
+      "sha256": "ad35d32a70725f9da6b412c0100e920eb52cd560f67faefbb9013b3ad1834bcb",
+      "mode": 420,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+      "sha256": "a426616e9a4cbb875e3eb081e40160357433817306ff045ed5de3c3797c39131",
+      "mode": 420,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/adr/ADR-0106-native-fidelity-profile.md",
+      "sha256": "8e770df75f08f2ce4c4471cfaa58365bc8e20715880dc7239e7d98438d530409",
+      "mode": 420,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/adr/ADR-0107-standard-response-metadata-separation.md",
+      "sha256": "dad1f8391de1a6d82a0c280189346f1a065bc04ee84f88502859e766b485938e",
+      "mode": 420,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/adr/ADR-0108-build-summary-standard-messages.md",
+      "sha256": "a8088457f16a6f60fbb13cd617594cb896f9c168a4dfe9122295602ade0f82ec",
+      "mode": 420,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/adr/README.md",
+      "sha256": "d8863e794c04eff60557cbbfa0e20c3ff52acb8dba65c9d8455c82584458c09d",
+      "mode": 420,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/agents/domain.md",
+      "sha256": "143fbbb108382fe791a9a9a7b2f0c208d7a8b9a64f0250b3b172f1660c6f9b40",
+      "mode": 420,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/agents/issue-tracker.md",
+      "sha256": "c95aff9dd13f35beb3646a2e01cf28559c1ceb0122e01515f354911385c312d0",
+      "mode": 420,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/agents/triage-labels.md",
+      "sha256": "ef4786ebc27973fe8afd053bc91ff16038195c354f05d7456776ec6aeea2c721",
+      "mode": 420,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/contracts/BC-PROTOCOL-009-codex-responses-controls.md",
+      "sha256": "675f45b57c8a22c289df8dc078252f28922f0e14a563f5780cf5e4493bdc7638",
+      "mode": 420,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/engineering-roadmap.md",
+      "sha256": "0babeedb83b7c2138ab7e540ef8be4c2b0a0831a0710a0e00f5a9f861f28777b",
+      "mode": 420,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/reports/cpar-62-64-client-field-plan-20261020.md",
+      "sha256": "26cb7b1a5af0ee25ed47f35ecac963433c9cd704830f181c9529f942571cac97",
+      "mode": 420,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/traceability.md",
+      "sha256": "b3b0705a5ba51d254301116164181d716443f7b7057c09be741fcefcc9237e6d",
+      "mode": 420,
+      "uid": 501,
+      "gid": 20
+    }
+  ],
+  "environment": {
+    "RUST_TEST_THREADS": null,
+    "RUSTFLAGS": null,
+    "CARGO_BUILD_JOBS": null,
+    "CARGO_PROFILE_TEST_OPT_LEVEL": null
+  },
+  "command": "CHECK_REPORT_PATH=/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c5-20261021/full-2-check.md CARGO_TARGET_DIR=/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c5-20261021/target-full-final-2 ./scripts/check.sh full",
+  "code_frozen": true
+}

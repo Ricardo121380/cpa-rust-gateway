@@ -1,0 +1,27 @@
+{
+  "candidate": "72464e7d1d4d716fad34affc154480288451477f",
+  "result": "PASS",
+  "tests": 9,
+  "exit_code": 0,
+  "source_inputs_unchanged_after_public_receipts": true,
+  "source_input_count": 7112,
+  "inventory_uncompressed_sha256": "a4f6a17792dce91acd7df8efb00beae2120d536ccd8f624a65241f0665e6d527",
+  "binary": {
+    "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c5-20261021/target-full-final-3/debug/deps/gateway-b314458fd9b519fb",
+    "sha256": "9678f745575bded09584abd598fd4c614e72dc6558b47d3a9a8faffea44124fc"
+  },
+  "matches_Full_binary": false,
+  "command": "CARGO_TARGET_DIR=/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c5-20261021/target-full-final-3 cargo test --locked -p gateway --bin gateway --all-features runtime::batch_c::grok::standard_responses::lifecycle::search -- --nocapture",
+  "receipt_counts": {
+    "CPAR62_SEARCH_ROOT_STAT_SAMPLE": 2,
+    "CPAR62_SEARCH_REJECTION": 56,
+    "CPAR62_SEARCH_USAGE_BLOCKED": 4,
+    "CPAR62_SEARCH_TRANSPORT": 2,
+    "CPAR62_SEARCH_PRESEND": 168,
+    "CPAR62_SEARCH_CANCEL": 2,
+    "CPAR62_SEARCH_COEXIST": 2,
+    "CPAR62_SEARCH_RECEIPT": 4,
+    "CPAR62_SEARCH_MIXED_USAGE_FRAMES": 2
+  },
+  "no_profile_or_service_qualification_grant": true
+}

@@ -1,0 +1,27 @@
+{
+  "sources": [
+    {
+      "name": "rustsec-2026-0382.md",
+      "url": "https://raw.githubusercontent.com/RustSec/advisory-db/e6f94f3760d5e6c54c1b05f204002263bc025524/crates/rustls-webpki/RUSTSEC-2026-0382.md",
+      "revision": "e6f94f3760d5e6c54c1b05f204002263bc025524",
+      "recorded_utc": "2026-10-21T05:06:47.427916+00:00",
+      "file_retrieval_mtime_utc": "2026-10-21T05:06:47.427740+00:00",
+      "sha256": "525ad607d24f67fd22a20e70b28b3962a9039962340e3ad1f351c9611772e671",
+      "bytes": 829,
+      "scope": "Required supply-chain gate patch only; not hosted search or fixed Build qualification"
+    },
+    {
+      "name": "webpki-546.patch",
+      "url": "https://github.com/rustls/webpki/pull/546.patch",
+      "revision": "8ecdcc76f56b68fda67a6adf7976f5eed5006a4c",
+      "recorded_utc": "2026-10-21T05:06:47.428138+00:00",
+      "file_retrieval_mtime_utc": "2026-10-21T05:06:09.680851+00:00",
+      "sha256": "0a49a94bb94c8c629d4d35115adc11f847fb7d989670a4607057f10cf37e9a7b",
+      "bytes": 16239,
+      "scope": "Required supply-chain gate patch only; not hosted search or fixed Build qualification"
+    }
+  ],
+  "initial_merge_url_404": "Advisory ID assigned after merge: 5502ded... lacks final numbered path; resolved via path commit e6f94f...",
+  "required_gate_failure": "full-2.log: RUSTSEC-2026-0382; rustls-webpki 0.103.15",
+  "planned_delta": "rustls-webpki 0.103.15 -> 0.103.16 only; no ignores, TLS roots/timeout changes or broad updates"
+}

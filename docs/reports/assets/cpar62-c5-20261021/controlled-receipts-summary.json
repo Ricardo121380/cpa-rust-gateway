@@ -1,0 +1,2450 @@
+{
+  "code_candidate": "0f451747e3252a8e20fffaf7b98de50f041a3c7a",
+  "log": "search-suite-final.log",
+  "log_sha256": "5bfef1e668dc3ceae60b95080b3422d6997a6c0d097c9b0ac751397127d8f538",
+  "public_test_results": {
+    "passed": 9,
+    "failed": 0,
+    "ignored": 0
+  },
+  "receipt_counts": {
+    "CPAR62_SEARCH_ROOT_STAT_SAMPLE": 2,
+    "CPAR62_SEARCH_TRANSPORT": 2,
+    "CPAR62_SEARCH_REJECTION": 56,
+    "CPAR62_SEARCH_CANCEL": 2,
+    "CPAR62_SEARCH_USAGE_BLOCKED": 4,
+    "CPAR62_SEARCH_PRESEND": 168,
+    "CPAR62_SEARCH_RECEIPT": 4,
+    "CPAR62_SEARCH_COEXIST": 2,
+    "CPAR62_SEARCH_MIXED_USAGE_FRAMES": 2
+  },
+  "positive_receipts": [
+    {
+      "activation": "BUILD_ACTIVATION_BLOCKED",
+      "attempt_count": 3,
+      "cost": "UNKNOWN",
+      "fragment_bytes": 31,
+      "lease_after": 0,
+      "ledger_count": 3,
+      "public": [
+        {
+          "created_at": 1792557545,
+          "error": null,
+          "id": "response-61",
+          "incomplete_details": null,
+          "model": "grok-4.5",
+          "object": "response",
+          "output": [
+            {
+              "action": {
+                "queries": [
+                  "seed successor"
+                ],
+                "query": "seed successor",
+                "sources": [
+                  {
+                    "type": "url",
+                    "url": "https://example.invalid/seed"
+                  }
+                ],
+                "type": "search"
+              },
+              "id": "ws-search-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "type": "open_page",
+                "url": null
+              },
+              "id": "ws-open-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "pattern": "seed",
+                "type": "find_in_page",
+                "url": "https://example.invalid/seed"
+              },
+              "id": "ws-find-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "content": [
+                {
+                  "annotations": [
+                    {
+                      "end_index": 14,
+                      "start_index": 0,
+                      "title": "Seed reference",
+                      "type": "url_citation",
+                      "url": "https://example.invalid/seed"
+                    }
+                  ],
+                  "text": "The seed is 41.",
+                  "type": "output_text"
+                }
+              ],
+              "id": "answer-0",
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ],
+          "status": "completed",
+          "usage": {
+            "cpar_usage": {
+              "cache_creation_tokens": null,
+              "cache_read_tokens": null,
+              "cached_tokens": null,
+              "input_accounting": "inclusive",
+              "input_tokens": 20,
+              "output_tokens": 7,
+              "provenance": "measured",
+              "reasoning_tokens": null
+            },
+            "input_tokens": 20,
+            "output_tokens": 7,
+            "total_tokens": 27
+          }
+        },
+        {
+          "created_at": 1792557545,
+          "error": null,
+          "id": "response-61",
+          "incomplete_details": null,
+          "model": "grok-4.5",
+          "object": "response",
+          "output": [
+            {
+              "action": {
+                "queries": [],
+                "sources": [],
+                "type": "search"
+              },
+              "id": "ws-search-1",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "type": "open_page"
+              },
+              "id": "ws-open-1",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "pattern": "41",
+                "type": "find_in_page",
+                "url": null
+              },
+              "id": "ws-find-1",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "id": "ws-absent-1",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "content": [
+                {
+                  "annotations": [
+                    {
+                      "end_index": 14,
+                      "start_index": 0,
+                      "title": "",
+                      "type": "url_citation",
+                      "url": "https://example.invalid/seed"
+                    }
+                  ],
+                  "text": "The result is 42.",
+                  "type": "output_text"
+                }
+              ],
+              "id": "answer-1",
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ],
+          "status": "completed",
+          "usage": {
+            "cpar_usage": {
+              "cache_creation_tokens": null,
+              "cache_read_tokens": null,
+              "cached_tokens": null,
+              "input_accounting": "inclusive",
+              "input_tokens": 20,
+              "output_tokens": 7,
+              "provenance": "measured",
+              "reasoning_tokens": null
+            },
+            "input_tokens": 20,
+            "output_tokens": 7,
+            "total_tokens": 27
+          }
+        },
+        {
+          "created_at": 1792557545,
+          "error": null,
+          "id": "response-61",
+          "incomplete_details": null,
+          "model": "grok-4.5",
+          "object": "response",
+          "output": [
+            {
+              "content": [
+                {
+                  "annotations": [
+                    {
+                      "end_index": 14,
+                      "start_index": 0,
+                      "title": "Seed reference",
+                      "type": "url_citation",
+                      "url": "https://example.invalid/seed"
+                    }
+                  ],
+                  "text": "The seed was 41; its successor is 42.",
+                  "type": "output_text"
+                }
+              ],
+              "id": "answer-2",
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            }
+          ],
+          "status": "completed",
+          "usage": {
+            "cpar_usage": {
+              "cache_creation_tokens": null,
+              "cache_read_tokens": null,
+              "cached_tokens": null,
+              "input_accounting": "inclusive",
+              "input_tokens": 20,
+              "output_tokens": 7,
+              "provenance": "measured",
+              "reasoning_tokens": null
+            },
+            "input_tokens": 20,
+            "output_tokens": 7,
+            "total_tokens": 27
+          }
+        }
+      ],
+      "qualification": "LOCAL_CONTROLLED",
+      "receiver_count": 3,
+      "requests": [
+        {
+          "input": "Find the seed and cite it.",
+          "model": "grok-4.5",
+          "parallel_tool_calls": false,
+          "stream": false,
+          "tool_choice": "required",
+          "tools": [
+            {
+              "external_web_access": false,
+              "type": "web_search"
+            }
+          ]
+        },
+        {
+          "input": [
+            {
+              "content": [
+                {
+                  "text": "Find the seed and cite it.",
+                  "type": "input_text"
+                }
+              ],
+              "role": "user",
+              "type": "message"
+            },
+            {
+              "action": {
+                "queries": [
+                  "seed successor"
+                ],
+                "query": "seed successor",
+                "sources": [
+                  {
+                    "type": "url",
+                    "url": "https://example.invalid/seed"
+                  }
+                ],
+                "type": "search"
+              },
+              "id": "ws-search-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "type": "open_page",
+                "url": null
+              },
+              "id": "ws-open-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "pattern": "seed",
+                "type": "find_in_page",
+                "url": "https://example.invalid/seed"
+              },
+              "id": "ws-find-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "content": [
+                {
+                  "annotations": [
+                    {
+                      "end_index": 14,
+                      "start_index": 0,
+                      "title": "Seed reference",
+                      "type": "url_citation",
+                      "url": "https://example.invalid/seed"
+                    }
+                  ],
+                  "text": "The seed is 41.",
+                  "type": "output_text"
+                }
+              ],
+              "id": "answer-0",
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            },
+            {
+              "content": [
+                {
+                  "text": "Find the cached successor of that seed.",
+                  "type": "input_text"
+                }
+              ],
+              "role": "user",
+              "type": "message"
+            }
+          ],
+          "model": "grok-4.5",
+          "parallel_tool_calls": false,
+          "stream": false,
+          "tool_choice": "required",
+          "tools": [
+            {
+              "external_web_access": false,
+              "type": "web_search"
+            }
+          ]
+        },
+        {
+          "input": [
+            {
+              "content": [
+                {
+                  "text": "Find the seed and cite it.",
+                  "type": "input_text"
+                }
+              ],
+              "role": "user",
+              "type": "message"
+            },
+            {
+              "action": {
+                "queries": [
+                  "seed successor"
+                ],
+                "query": "seed successor",
+                "sources": [
+                  {
+                    "type": "url",
+                    "url": "https://example.invalid/seed"
+                  }
+                ],
+                "type": "search"
+              },
+              "id": "ws-search-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "type": "open_page",
+                "url": null
+              },
+              "id": "ws-open-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "pattern": "seed",
+                "type": "find_in_page",
+                "url": "https://example.invalid/seed"
+              },
+              "id": "ws-find-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "content": [
+                {
+                  "annotations": [
+                    {
+                      "end_index": 14,
+                      "start_index": 0,
+                      "title": "Seed reference",
+                      "type": "url_citation",
+                      "url": "https://example.invalid/seed"
+                    }
+                  ],
+                  "text": "The seed is 41.",
+                  "type": "output_text"
+                }
+              ],
+              "id": "answer-0",
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            },
+            {
+              "content": [
+                {
+                  "text": "Find the cached successor of that seed.",
+                  "type": "input_text"
+                }
+              ],
+              "role": "user",
+              "type": "message"
+            },
+            {
+              "action": {
+                "queries": [],
+                "sources": [],
+                "type": "search"
+              },
+              "id": "ws-search-1",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "type": "open_page"
+              },
+              "id": "ws-open-1",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "pattern": "41",
+                "type": "find_in_page",
+                "url": null
+              },
+              "id": "ws-find-1",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "id": "ws-absent-1",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "content": [
+                {
+                  "annotations": [
+                    {
+                      "end_index": 14,
+                      "start_index": 0,
+                      "title": "",
+                      "type": "url_citation",
+                      "url": "https://example.invalid/seed"
+                    }
+                  ],
+                  "text": "The result is 42.",
+                  "type": "output_text"
+                }
+              ],
+              "id": "answer-1",
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            },
+            {
+              "content": [
+                {
+                  "text": "What were both values?",
+                  "type": "input_text"
+                }
+              ],
+              "role": "user",
+              "type": "message"
+            }
+          ],
+          "model": "grok-4.5",
+          "parallel_tool_calls": false,
+          "stream": false,
+          "tool_choice": "none"
+        }
+      ],
+      "streaming": false,
+      "usage_count": 3
+    },
+    {
+      "activation": "BUILD_ACTIVATION_BLOCKED",
+      "attempt_count": 3,
+      "cost": "UNKNOWN",
+      "fragment_bytes": 1,
+      "lease_after": 0,
+      "ledger_count": 3,
+      "public": [
+        {
+          "phases": [
+            {
+              "item_id": "ws-search-0",
+              "output_index": 0,
+              "sequence_number": 4,
+              "type": "response.web_search_call.in_progress"
+            },
+            {
+              "item_id": "ws-search-0",
+              "output_index": 0,
+              "sequence_number": 5,
+              "type": "response.web_search_call.searching"
+            },
+            {
+              "item_id": "ws-search-0",
+              "output_index": 0,
+              "sequence_number": 6,
+              "type": "response.web_search_call.completed"
+            },
+            {
+              "item_id": "ws-open-0",
+              "output_index": 1,
+              "sequence_number": 8,
+              "type": "response.web_search_call.in_progress"
+            },
+            {
+              "item_id": "ws-open-0",
+              "output_index": 1,
+              "sequence_number": 9,
+              "type": "response.web_search_call.searching"
+            },
+            {
+              "item_id": "ws-open-0",
+              "output_index": 1,
+              "sequence_number": 10,
+              "type": "response.web_search_call.completed"
+            },
+            {
+              "item_id": "ws-find-0",
+              "output_index": 2,
+              "sequence_number": 12,
+              "type": "response.web_search_call.in_progress"
+            },
+            {
+              "item_id": "ws-find-0",
+              "output_index": 2,
+              "sequence_number": 13,
+              "type": "response.web_search_call.searching"
+            },
+            {
+              "item_id": "ws-find-0",
+              "output_index": 2,
+              "sequence_number": 14,
+              "type": "response.web_search_call.completed"
+            }
+          ],
+          "response": {
+            "created_at": 1792557546,
+            "error": null,
+            "id": "response-61",
+            "incomplete_details": null,
+            "model": "grok-4.5",
+            "object": "response",
+            "output": [
+              {
+                "action": {
+                  "queries": [
+                    "seed successor"
+                  ],
+                  "query": "seed successor",
+                  "sources": [
+                    {
+                      "type": "url",
+                      "url": "https://example.invalid/seed"
+                    }
+                  ],
+                  "type": "search"
+                },
+                "id": "ws-search-0",
+                "status": "completed",
+                "type": "web_search_call"
+              },
+              {
+                "action": {
+                  "type": "open_page",
+                  "url": null
+                },
+                "id": "ws-open-0",
+                "status": "completed",
+                "type": "web_search_call"
+              },
+              {
+                "action": {
+                  "pattern": "seed",
+                  "type": "find_in_page",
+                  "url": "https://example.invalid/seed"
+                },
+                "id": "ws-find-0",
+                "status": "completed",
+                "type": "web_search_call"
+              },
+              {
+                "content": [
+                  {
+                    "annotations": [
+                      {
+                        "end_index": 14,
+                        "start_index": 0,
+                        "title": "Seed reference",
+                        "type": "url_citation",
+                        "url": "https://example.invalid/seed"
+                      }
+                    ],
+                    "text": "The seed is 41.",
+                    "type": "output_text"
+                  }
+                ],
+                "id": "answer-0",
+                "role": "assistant",
+                "status": "completed",
+                "type": "message"
+              }
+            ],
+            "status": "completed",
+            "usage": {
+              "cpar_usage": {
+                "cache_creation_tokens": null,
+                "cache_read_tokens": null,
+                "cached_tokens": null,
+                "input_accounting": "inclusive",
+                "input_tokens": 20,
+                "output_tokens": 7,
+                "provenance": "measured",
+                "reasoning_tokens": null
+              },
+              "input_tokens": 20,
+              "output_tokens": 7,
+              "total_tokens": 27
+            }
+          },
+          "round": 0
+        },
+        {
+          "phases": [
+            {
+              "item_id": "ws-search-1",
+              "output_index": 0,
+              "sequence_number": 4,
+              "type": "response.web_search_call.in_progress"
+            },
+            {
+              "item_id": "ws-search-1",
+              "output_index": 0,
+              "sequence_number": 5,
+              "type": "response.web_search_call.searching"
+            },
+            {
+              "item_id": "ws-search-1",
+              "output_index": 0,
+              "sequence_number": 6,
+              "type": "response.web_search_call.completed"
+            },
+            {
+              "item_id": "ws-open-1",
+              "output_index": 1,
+              "sequence_number": 8,
+              "type": "response.web_search_call.in_progress"
+            },
+            {
+              "item_id": "ws-open-1",
+              "output_index": 1,
+              "sequence_number": 9,
+              "type": "response.web_search_call.searching"
+            },
+            {
+              "item_id": "ws-open-1",
+              "output_index": 1,
+              "sequence_number": 10,
+              "type": "response.web_search_call.completed"
+            },
+            {
+              "item_id": "ws-find-1",
+              "output_index": 2,
+              "sequence_number": 12,
+              "type": "response.web_search_call.in_progress"
+            },
+            {
+              "item_id": "ws-find-1",
+              "output_index": 2,
+              "sequence_number": 13,
+              "type": "response.web_search_call.searching"
+            },
+            {
+              "item_id": "ws-find-1",
+              "output_index": 2,
+              "sequence_number": 14,
+              "type": "response.web_search_call.completed"
+            }
+          ],
+          "response": {
+            "created_at": 1792557546,
+            "error": null,
+            "id": "response-61",
+            "incomplete_details": null,
+            "model": "grok-4.5",
+            "object": "response",
+            "output": [
+              {
+                "action": {
+                  "queries": [],
+                  "sources": [],
+                  "type": "search"
+                },
+                "id": "ws-search-1",
+                "status": "completed",
+                "type": "web_search_call"
+              },
+              {
+                "action": {
+                  "type": "open_page"
+                },
+                "id": "ws-open-1",
+                "status": "completed",
+                "type": "web_search_call"
+              },
+              {
+                "action": {
+                  "pattern": "41",
+                  "type": "find_in_page",
+                  "url": null
+                },
+                "id": "ws-find-1",
+                "status": "completed",
+                "type": "web_search_call"
+              },
+              {
+                "id": "ws-absent-1",
+                "status": "completed",
+                "type": "web_search_call"
+              },
+              {
+                "content": [
+                  {
+                    "annotations": [
+                      {
+                        "end_index": 14,
+                        "start_index": 0,
+                        "title": "",
+                        "type": "url_citation",
+                        "url": "https://example.invalid/seed"
+                      }
+                    ],
+                    "text": "The result is 42.",
+                    "type": "output_text"
+                  }
+                ],
+                "id": "answer-1",
+                "role": "assistant",
+                "status": "completed",
+                "type": "message"
+              }
+            ],
+            "status": "completed",
+            "usage": {
+              "cpar_usage": {
+                "cache_creation_tokens": null,
+                "cache_read_tokens": null,
+                "cached_tokens": null,
+                "input_accounting": "inclusive",
+                "input_tokens": 20,
+                "output_tokens": 7,
+                "provenance": "measured",
+                "reasoning_tokens": null
+              },
+              "input_tokens": 20,
+              "output_tokens": 7,
+              "total_tokens": 27
+            }
+          },
+          "round": 1
+        },
+        {
+          "phases": [],
+          "response": {
+            "created_at": 1792557547,
+            "error": null,
+            "id": "response-61",
+            "incomplete_details": null,
+            "model": "grok-4.5",
+            "object": "response",
+            "output": [
+              {
+                "content": [
+                  {
+                    "annotations": [
+                      {
+                        "end_index": 14,
+                        "start_index": 0,
+                        "title": "Seed reference",
+                        "type": "url_citation",
+                        "url": "https://example.invalid/seed"
+                      }
+                    ],
+                    "text": "The seed was 41; its successor is 42.",
+                    "type": "output_text"
+                  }
+                ],
+                "id": "answer-2",
+                "role": "assistant",
+                "status": "completed",
+                "type": "message"
+              }
+            ],
+            "status": "completed",
+            "usage": {
+              "cpar_usage": {
+                "cache_creation_tokens": null,
+                "cache_read_tokens": null,
+                "cached_tokens": null,
+                "input_accounting": "inclusive",
+                "input_tokens": 20,
+                "output_tokens": 7,
+                "provenance": "measured",
+                "reasoning_tokens": null
+              },
+              "input_tokens": 20,
+              "output_tokens": 7,
+              "total_tokens": 27
+            }
+          },
+          "round": 2
+        }
+      ],
+      "qualification": "LOCAL_CONTROLLED",
+      "receiver_count": 3,
+      "requests": [
+        {
+          "input": "Find the seed and cite it.",
+          "model": "grok-4.5",
+          "parallel_tool_calls": false,
+          "stream": true,
+          "tool_choice": "required",
+          "tools": [
+            {
+              "external_web_access": false,
+              "type": "web_search"
+            }
+          ]
+        },
+        {
+          "input": [
+            {
+              "content": [
+                {
+                  "text": "Find the seed and cite it.",
+                  "type": "input_text"
+                }
+              ],
+              "role": "user",
+              "type": "message"
+            },
+            {
+              "action": {
+                "queries": [
+                  "seed successor"
+                ],
+                "query": "seed successor",
+                "sources": [
+                  {
+                    "type": "url",
+                    "url": "https://example.invalid/seed"
+                  }
+                ],
+                "type": "search"
+              },
+              "id": "ws-search-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "type": "open_page",
+                "url": null
+              },
+              "id": "ws-open-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "pattern": "seed",
+                "type": "find_in_page",
+                "url": "https://example.invalid/seed"
+              },
+              "id": "ws-find-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "content": [
+                {
+                  "annotations": [
+                    {
+                      "end_index": 14,
+                      "start_index": 0,
+                      "title": "Seed reference",
+                      "type": "url_citation",
+                      "url": "https://example.invalid/seed"
+                    }
+                  ],
+                  "text": "The seed is 41.",
+                  "type": "output_text"
+                }
+              ],
+              "id": "answer-0",
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            },
+            {
+              "content": [
+                {
+                  "text": "Find the cached successor of that seed.",
+                  "type": "input_text"
+                }
+              ],
+              "role": "user",
+              "type": "message"
+            }
+          ],
+          "model": "grok-4.5",
+          "parallel_tool_calls": false,
+          "stream": true,
+          "tool_choice": "required",
+          "tools": [
+            {
+              "external_web_access": false,
+              "type": "web_search"
+            }
+          ]
+        },
+        {
+          "input": [
+            {
+              "content": [
+                {
+                  "text": "Find the seed and cite it.",
+                  "type": "input_text"
+                }
+              ],
+              "role": "user",
+              "type": "message"
+            },
+            {
+              "action": {
+                "queries": [
+                  "seed successor"
+                ],
+                "query": "seed successor",
+                "sources": [
+                  {
+                    "type": "url",
+                    "url": "https://example.invalid/seed"
+                  }
+                ],
+                "type": "search"
+              },
+              "id": "ws-search-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "type": "open_page",
+                "url": null
+              },
+              "id": "ws-open-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "pattern": "seed",
+                "type": "find_in_page",
+                "url": "https://example.invalid/seed"
+              },
+              "id": "ws-find-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "content": [
+                {
+                  "annotations": [
+                    {
+                      "end_index": 14,
+                      "start_index": 0,
+                      "title": "Seed reference",
+                      "type": "url_citation",
+                      "url": "https://example.invalid/seed"
+                    }
+                  ],
+                  "text": "The seed is 41.",
+                  "type": "output_text"
+                }
+              ],
+              "id": "answer-0",
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            },
+            {
+              "content": [
+                {
+                  "text": "Find the cached successor of that seed.",
+                  "type": "input_text"
+                }
+              ],
+              "role": "user",
+              "type": "message"
+            },
+            {
+              "action": {
+                "queries": [],
+                "sources": [],
+                "type": "search"
+              },
+              "id": "ws-search-1",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "type": "open_page"
+              },
+              "id": "ws-open-1",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "pattern": "41",
+                "type": "find_in_page",
+                "url": null
+              },
+              "id": "ws-find-1",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "id": "ws-absent-1",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "content": [
+                {
+                  "annotations": [
+                    {
+                      "end_index": 14,
+                      "start_index": 0,
+                      "title": "",
+                      "type": "url_citation",
+                      "url": "https://example.invalid/seed"
+                    }
+                  ],
+                  "text": "The result is 42.",
+                  "type": "output_text"
+                }
+              ],
+              "id": "answer-1",
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            },
+            {
+              "content": [
+                {
+                  "text": "What were both values?",
+                  "type": "input_text"
+                }
+              ],
+              "role": "user",
+              "type": "message"
+            }
+          ],
+          "model": "grok-4.5",
+          "parallel_tool_calls": false,
+          "stream": true,
+          "tool_choice": "none"
+        }
+      ],
+      "streaming": true,
+      "usage_count": 3
+    },
+    {
+      "activation": "BUILD_ACTIVATION_BLOCKED",
+      "attempt_count": 3,
+      "cost": "UNKNOWN",
+      "fragment_bytes": 7,
+      "lease_after": 0,
+      "ledger_count": 3,
+      "public": [
+        {
+          "phases": [
+            {
+              "item_id": "ws-search-0",
+              "output_index": 0,
+              "sequence_number": 4,
+              "type": "response.web_search_call.in_progress"
+            },
+            {
+              "item_id": "ws-search-0",
+              "output_index": 0,
+              "sequence_number": 5,
+              "type": "response.web_search_call.searching"
+            },
+            {
+              "item_id": "ws-search-0",
+              "output_index": 0,
+              "sequence_number": 6,
+              "type": "response.web_search_call.completed"
+            },
+            {
+              "item_id": "ws-open-0",
+              "output_index": 1,
+              "sequence_number": 8,
+              "type": "response.web_search_call.in_progress"
+            },
+            {
+              "item_id": "ws-open-0",
+              "output_index": 1,
+              "sequence_number": 9,
+              "type": "response.web_search_call.searching"
+            },
+            {
+              "item_id": "ws-open-0",
+              "output_index": 1,
+              "sequence_number": 10,
+              "type": "response.web_search_call.completed"
+            },
+            {
+              "item_id": "ws-find-0",
+              "output_index": 2,
+              "sequence_number": 12,
+              "type": "response.web_search_call.in_progress"
+            },
+            {
+              "item_id": "ws-find-0",
+              "output_index": 2,
+              "sequence_number": 13,
+              "type": "response.web_search_call.searching"
+            },
+            {
+              "item_id": "ws-find-0",
+              "output_index": 2,
+              "sequence_number": 14,
+              "type": "response.web_search_call.completed"
+            }
+          ],
+          "response": {
+            "created_at": 1792557547,
+            "error": null,
+            "id": "response-61",
+            "incomplete_details": null,
+            "model": "grok-4.5",
+            "object": "response",
+            "output": [
+              {
+                "action": {
+                  "queries": [
+                    "seed successor"
+                  ],
+                  "query": "seed successor",
+                  "sources": [
+                    {
+                      "type": "url",
+                      "url": "https://example.invalid/seed"
+                    }
+                  ],
+                  "type": "search"
+                },
+                "id": "ws-search-0",
+                "status": "completed",
+                "type": "web_search_call"
+              },
+              {
+                "action": {
+                  "type": "open_page",
+                  "url": null
+                },
+                "id": "ws-open-0",
+                "status": "completed",
+                "type": "web_search_call"
+              },
+              {
+                "action": {
+                  "pattern": "seed",
+                  "type": "find_in_page",
+                  "url": "https://example.invalid/seed"
+                },
+                "id": "ws-find-0",
+                "status": "completed",
+                "type": "web_search_call"
+              },
+              {
+                "content": [
+                  {
+                    "annotations": [
+                      {
+                        "end_index": 14,
+                        "start_index": 0,
+                        "title": "Seed reference",
+                        "type": "url_citation",
+                        "url": "https://example.invalid/seed"
+                      }
+                    ],
+                    "text": "The seed is 41.",
+                    "type": "output_text"
+                  }
+                ],
+                "id": "answer-0",
+                "role": "assistant",
+                "status": "completed",
+                "type": "message"
+              }
+            ],
+            "status": "completed",
+            "usage": {
+              "cpar_usage": {
+                "cache_creation_tokens": null,
+                "cache_read_tokens": null,
+                "cached_tokens": null,
+                "input_accounting": "inclusive",
+                "input_tokens": 20,
+                "output_tokens": 7,
+                "provenance": "measured",
+                "reasoning_tokens": null
+              },
+              "input_tokens": 20,
+              "output_tokens": 7,
+              "total_tokens": 27
+            }
+          },
+          "round": 0
+        },
+        {
+          "phases": [
+            {
+              "item_id": "ws-search-1",
+              "output_index": 0,
+              "sequence_number": 4,
+              "type": "response.web_search_call.in_progress"
+            },
+            {
+              "item_id": "ws-search-1",
+              "output_index": 0,
+              "sequence_number": 5,
+              "type": "response.web_search_call.searching"
+            },
+            {
+              "item_id": "ws-search-1",
+              "output_index": 0,
+              "sequence_number": 6,
+              "type": "response.web_search_call.completed"
+            },
+            {
+              "item_id": "ws-open-1",
+              "output_index": 1,
+              "sequence_number": 8,
+              "type": "response.web_search_call.in_progress"
+            },
+            {
+              "item_id": "ws-open-1",
+              "output_index": 1,
+              "sequence_number": 9,
+              "type": "response.web_search_call.searching"
+            },
+            {
+              "item_id": "ws-open-1",
+              "output_index": 1,
+              "sequence_number": 10,
+              "type": "response.web_search_call.completed"
+            },
+            {
+              "item_id": "ws-find-1",
+              "output_index": 2,
+              "sequence_number": 12,
+              "type": "response.web_search_call.in_progress"
+            },
+            {
+              "item_id": "ws-find-1",
+              "output_index": 2,
+              "sequence_number": 13,
+              "type": "response.web_search_call.searching"
+            },
+            {
+              "item_id": "ws-find-1",
+              "output_index": 2,
+              "sequence_number": 14,
+              "type": "response.web_search_call.completed"
+            }
+          ],
+          "response": {
+            "created_at": 1792557548,
+            "error": null,
+            "id": "response-61",
+            "incomplete_details": null,
+            "model": "grok-4.5",
+            "object": "response",
+            "output": [
+              {
+                "action": {
+                  "queries": [],
+                  "sources": [],
+                  "type": "search"
+                },
+                "id": "ws-search-1",
+                "status": "completed",
+                "type": "web_search_call"
+              },
+              {
+                "action": {
+                  "type": "open_page"
+                },
+                "id": "ws-open-1",
+                "status": "completed",
+                "type": "web_search_call"
+              },
+              {
+                "action": {
+                  "pattern": "41",
+                  "type": "find_in_page",
+                  "url": null
+                },
+                "id": "ws-find-1",
+                "status": "completed",
+                "type": "web_search_call"
+              },
+              {
+                "id": "ws-absent-1",
+                "status": "completed",
+                "type": "web_search_call"
+              },
+              {
+                "content": [
+                  {
+                    "annotations": [
+                      {
+                        "end_index": 14,
+                        "start_index": 0,
+                        "title": "",
+                        "type": "url_citation",
+                        "url": "https://example.invalid/seed"
+                      }
+                    ],
+                    "text": "The result is 42.",
+                    "type": "output_text"
+                  }
+                ],
+                "id": "answer-1",
+                "role": "assistant",
+                "status": "completed",
+                "type": "message"
+              }
+            ],
+            "status": "completed",
+            "usage": {
+              "cpar_usage": {
+                "cache_creation_tokens": null,
+                "cache_read_tokens": null,
+                "cached_tokens": null,
+                "input_accounting": "inclusive",
+                "input_tokens": 20,
+                "output_tokens": 7,
+                "provenance": "measured",
+                "reasoning_tokens": null
+              },
+              "input_tokens": 20,
+              "output_tokens": 7,
+              "total_tokens": 27
+            }
+          },
+          "round": 1
+        },
+        {
+          "phases": [],
+          "response": {
+            "created_at": 1792557548,
+            "error": null,
+            "id": "response-61",
+            "incomplete_details": null,
+            "model": "grok-4.5",
+            "object": "response",
+            "output": [
+              {
+                "content": [
+                  {
+                    "annotations": [
+                      {
+                        "end_index": 14,
+                        "start_index": 0,
+                        "title": "Seed reference",
+                        "type": "url_citation",
+                        "url": "https://example.invalid/seed"
+                      }
+                    ],
+                    "text": "The seed was 41; its successor is 42.",
+                    "type": "output_text"
+                  }
+                ],
+                "id": "answer-2",
+                "role": "assistant",
+                "status": "completed",
+                "type": "message"
+              }
+            ],
+            "status": "completed",
+            "usage": {
+              "cpar_usage": {
+                "cache_creation_tokens": null,
+                "cache_read_tokens": null,
+                "cached_tokens": null,
+                "input_accounting": "inclusive",
+                "input_tokens": 20,
+                "output_tokens": 7,
+                "provenance": "measured",
+                "reasoning_tokens": null
+              },
+              "input_tokens": 20,
+              "output_tokens": 7,
+              "total_tokens": 27
+            }
+          },
+          "round": 2
+        }
+      ],
+      "qualification": "LOCAL_CONTROLLED",
+      "receiver_count": 3,
+      "requests": [
+        {
+          "input": "Find the seed and cite it.",
+          "model": "grok-4.5",
+          "parallel_tool_calls": false,
+          "stream": true,
+          "tool_choice": "required",
+          "tools": [
+            {
+              "external_web_access": false,
+              "type": "web_search"
+            }
+          ]
+        },
+        {
+          "input": [
+            {
+              "content": [
+                {
+                  "text": "Find the seed and cite it.",
+                  "type": "input_text"
+                }
+              ],
+              "role": "user",
+              "type": "message"
+            },
+            {
+              "action": {
+                "queries": [
+                  "seed successor"
+                ],
+                "query": "seed successor",
+                "sources": [
+                  {
+                    "type": "url",
+                    "url": "https://example.invalid/seed"
+                  }
+                ],
+                "type": "search"
+              },
+              "id": "ws-search-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "type": "open_page",
+                "url": null
+              },
+              "id": "ws-open-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "pattern": "seed",
+                "type": "find_in_page",
+                "url": "https://example.invalid/seed"
+              },
+              "id": "ws-find-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "content": [
+                {
+                  "annotations": [
+                    {
+                      "end_index": 14,
+                      "start_index": 0,
+                      "title": "Seed reference",
+                      "type": "url_citation",
+                      "url": "https://example.invalid/seed"
+                    }
+                  ],
+                  "text": "The seed is 41.",
+                  "type": "output_text"
+                }
+              ],
+              "id": "answer-0",
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            },
+            {
+              "content": [
+                {
+                  "text": "Find the cached successor of that seed.",
+                  "type": "input_text"
+                }
+              ],
+              "role": "user",
+              "type": "message"
+            }
+          ],
+          "model": "grok-4.5",
+          "parallel_tool_calls": false,
+          "stream": true,
+          "tool_choice": "required",
+          "tools": [
+            {
+              "external_web_access": false,
+              "type": "web_search"
+            }
+          ]
+        },
+        {
+          "input": [
+            {
+              "content": [
+                {
+                  "text": "Find the seed and cite it.",
+                  "type": "input_text"
+                }
+              ],
+              "role": "user",
+              "type": "message"
+            },
+            {
+              "action": {
+                "queries": [
+                  "seed successor"
+                ],
+                "query": "seed successor",
+                "sources": [
+                  {
+                    "type": "url",
+                    "url": "https://example.invalid/seed"
+                  }
+                ],
+                "type": "search"
+              },
+              "id": "ws-search-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "type": "open_page",
+                "url": null
+              },
+              "id": "ws-open-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "pattern": "seed",
+                "type": "find_in_page",
+                "url": "https://example.invalid/seed"
+              },
+              "id": "ws-find-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "content": [
+                {
+                  "annotations": [
+                    {
+                      "end_index": 14,
+                      "start_index": 0,
+                      "title": "Seed reference",
+                      "type": "url_citation",
+                      "url": "https://example.invalid/seed"
+                    }
+                  ],
+                  "text": "The seed is 41.",
+                  "type": "output_text"
+                }
+              ],
+              "id": "answer-0",
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            },
+            {
+              "content": [
+                {
+                  "text": "Find the cached successor of that seed.",
+                  "type": "input_text"
+                }
+              ],
+              "role": "user",
+              "type": "message"
+            },
+            {
+              "action": {
+                "queries": [],
+                "sources": [],
+                "type": "search"
+              },
+              "id": "ws-search-1",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "type": "open_page"
+              },
+              "id": "ws-open-1",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "pattern": "41",
+                "type": "find_in_page",
+                "url": null
+              },
+              "id": "ws-find-1",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "id": "ws-absent-1",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "content": [
+                {
+                  "annotations": [
+                    {
+                      "end_index": 14,
+                      "start_index": 0,
+                      "title": "",
+                      "type": "url_citation",
+                      "url": "https://example.invalid/seed"
+                    }
+                  ],
+                  "text": "The result is 42.",
+                  "type": "output_text"
+                }
+              ],
+              "id": "answer-1",
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            },
+            {
+              "content": [
+                {
+                  "text": "What were both values?",
+                  "type": "input_text"
+                }
+              ],
+              "role": "user",
+              "type": "message"
+            }
+          ],
+          "model": "grok-4.5",
+          "parallel_tool_calls": false,
+          "stream": true,
+          "tool_choice": "none"
+        }
+      ],
+      "streaming": true,
+      "usage_count": 3
+    },
+    {
+      "activation": "BUILD_ACTIVATION_BLOCKED",
+      "attempt_count": 3,
+      "cost": "UNKNOWN",
+      "fragment_bytes": 31,
+      "lease_after": 0,
+      "ledger_count": 3,
+      "public": [
+        {
+          "phases": [
+            {
+              "item_id": "ws-search-0",
+              "output_index": 0,
+              "sequence_number": 4,
+              "type": "response.web_search_call.in_progress"
+            },
+            {
+              "item_id": "ws-search-0",
+              "output_index": 0,
+              "sequence_number": 5,
+              "type": "response.web_search_call.searching"
+            },
+            {
+              "item_id": "ws-search-0",
+              "output_index": 0,
+              "sequence_number": 6,
+              "type": "response.web_search_call.completed"
+            },
+            {
+              "item_id": "ws-open-0",
+              "output_index": 1,
+              "sequence_number": 8,
+              "type": "response.web_search_call.in_progress"
+            },
+            {
+              "item_id": "ws-open-0",
+              "output_index": 1,
+              "sequence_number": 9,
+              "type": "response.web_search_call.searching"
+            },
+            {
+              "item_id": "ws-open-0",
+              "output_index": 1,
+              "sequence_number": 10,
+              "type": "response.web_search_call.completed"
+            },
+            {
+              "item_id": "ws-find-0",
+              "output_index": 2,
+              "sequence_number": 12,
+              "type": "response.web_search_call.in_progress"
+            },
+            {
+              "item_id": "ws-find-0",
+              "output_index": 2,
+              "sequence_number": 13,
+              "type": "response.web_search_call.searching"
+            },
+            {
+              "item_id": "ws-find-0",
+              "output_index": 2,
+              "sequence_number": 14,
+              "type": "response.web_search_call.completed"
+            }
+          ],
+          "response": {
+            "created_at": 1792557548,
+            "error": null,
+            "id": "response-61",
+            "incomplete_details": null,
+            "model": "grok-4.5",
+            "object": "response",
+            "output": [
+              {
+                "action": {
+                  "queries": [
+                    "seed successor"
+                  ],
+                  "query": "seed successor",
+                  "sources": [
+                    {
+                      "type": "url",
+                      "url": "https://example.invalid/seed"
+                    }
+                  ],
+                  "type": "search"
+                },
+                "id": "ws-search-0",
+                "status": "completed",
+                "type": "web_search_call"
+              },
+              {
+                "action": {
+                  "type": "open_page",
+                  "url": null
+                },
+                "id": "ws-open-0",
+                "status": "completed",
+                "type": "web_search_call"
+              },
+              {
+                "action": {
+                  "pattern": "seed",
+                  "type": "find_in_page",
+                  "url": "https://example.invalid/seed"
+                },
+                "id": "ws-find-0",
+                "status": "completed",
+                "type": "web_search_call"
+              },
+              {
+                "content": [
+                  {
+                    "annotations": [
+                      {
+                        "end_index": 14,
+                        "start_index": 0,
+                        "title": "Seed reference",
+                        "type": "url_citation",
+                        "url": "https://example.invalid/seed"
+                      }
+                    ],
+                    "text": "The seed is 41.",
+                    "type": "output_text"
+                  }
+                ],
+                "id": "answer-0",
+                "role": "assistant",
+                "status": "completed",
+                "type": "message"
+              }
+            ],
+            "status": "completed",
+            "usage": {
+              "cpar_usage": {
+                "cache_creation_tokens": null,
+                "cache_read_tokens": null,
+                "cached_tokens": null,
+                "input_accounting": "inclusive",
+                "input_tokens": 20,
+                "output_tokens": 7,
+                "provenance": "measured",
+                "reasoning_tokens": null
+              },
+              "input_tokens": 20,
+              "output_tokens": 7,
+              "total_tokens": 27
+            }
+          },
+          "round": 0
+        },
+        {
+          "phases": [
+            {
+              "item_id": "ws-search-1",
+              "output_index": 0,
+              "sequence_number": 4,
+              "type": "response.web_search_call.in_progress"
+            },
+            {
+              "item_id": "ws-search-1",
+              "output_index": 0,
+              "sequence_number": 5,
+              "type": "response.web_search_call.searching"
+            },
+            {
+              "item_id": "ws-search-1",
+              "output_index": 0,
+              "sequence_number": 6,
+              "type": "response.web_search_call.completed"
+            },
+            {
+              "item_id": "ws-open-1",
+              "output_index": 1,
+              "sequence_number": 8,
+              "type": "response.web_search_call.in_progress"
+            },
+            {
+              "item_id": "ws-open-1",
+              "output_index": 1,
+              "sequence_number": 9,
+              "type": "response.web_search_call.searching"
+            },
+            {
+              "item_id": "ws-open-1",
+              "output_index": 1,
+              "sequence_number": 10,
+              "type": "response.web_search_call.completed"
+            },
+            {
+              "item_id": "ws-find-1",
+              "output_index": 2,
+              "sequence_number": 12,
+              "type": "response.web_search_call.in_progress"
+            },
+            {
+              "item_id": "ws-find-1",
+              "output_index": 2,
+              "sequence_number": 13,
+              "type": "response.web_search_call.searching"
+            },
+            {
+              "item_id": "ws-find-1",
+              "output_index": 2,
+              "sequence_number": 14,
+              "type": "response.web_search_call.completed"
+            }
+          ],
+          "response": {
+            "created_at": 1792557548,
+            "error": null,
+            "id": "response-61",
+            "incomplete_details": null,
+            "model": "grok-4.5",
+            "object": "response",
+            "output": [
+              {
+                "action": {
+                  "queries": [],
+                  "sources": [],
+                  "type": "search"
+                },
+                "id": "ws-search-1",
+                "status": "completed",
+                "type": "web_search_call"
+              },
+              {
+                "action": {
+                  "type": "open_page"
+                },
+                "id": "ws-open-1",
+                "status": "completed",
+                "type": "web_search_call"
+              },
+              {
+                "action": {
+                  "pattern": "41",
+                  "type": "find_in_page",
+                  "url": null
+                },
+                "id": "ws-find-1",
+                "status": "completed",
+                "type": "web_search_call"
+              },
+              {
+                "id": "ws-absent-1",
+                "status": "completed",
+                "type": "web_search_call"
+              },
+              {
+                "content": [
+                  {
+                    "annotations": [
+                      {
+                        "end_index": 14,
+                        "start_index": 0,
+                        "title": "",
+                        "type": "url_citation",
+                        "url": "https://example.invalid/seed"
+                      }
+                    ],
+                    "text": "The result is 42.",
+                    "type": "output_text"
+                  }
+                ],
+                "id": "answer-1",
+                "role": "assistant",
+                "status": "completed",
+                "type": "message"
+              }
+            ],
+            "status": "completed",
+            "usage": {
+              "cpar_usage": {
+                "cache_creation_tokens": null,
+                "cache_read_tokens": null,
+                "cached_tokens": null,
+                "input_accounting": "inclusive",
+                "input_tokens": 20,
+                "output_tokens": 7,
+                "provenance": "measured",
+                "reasoning_tokens": null
+              },
+              "input_tokens": 20,
+              "output_tokens": 7,
+              "total_tokens": 27
+            }
+          },
+          "round": 1
+        },
+        {
+          "phases": [],
+          "response": {
+            "created_at": 1792557548,
+            "error": null,
+            "id": "response-61",
+            "incomplete_details": null,
+            "model": "grok-4.5",
+            "object": "response",
+            "output": [
+              {
+                "content": [
+                  {
+                    "annotations": [
+                      {
+                        "end_index": 14,
+                        "start_index": 0,
+                        "title": "Seed reference",
+                        "type": "url_citation",
+                        "url": "https://example.invalid/seed"
+                      }
+                    ],
+                    "text": "The seed was 41; its successor is 42.",
+                    "type": "output_text"
+                  }
+                ],
+                "id": "answer-2",
+                "role": "assistant",
+                "status": "completed",
+                "type": "message"
+              }
+            ],
+            "status": "completed",
+            "usage": {
+              "cpar_usage": {
+                "cache_creation_tokens": null,
+                "cache_read_tokens": null,
+                "cached_tokens": null,
+                "input_accounting": "inclusive",
+                "input_tokens": 20,
+                "output_tokens": 7,
+                "provenance": "measured",
+                "reasoning_tokens": null
+              },
+              "input_tokens": 20,
+              "output_tokens": 7,
+              "total_tokens": 27
+            }
+          },
+          "round": 2
+        }
+      ],
+      "qualification": "LOCAL_CONTROLLED",
+      "receiver_count": 3,
+      "requests": [
+        {
+          "input": "Find the seed and cite it.",
+          "model": "grok-4.5",
+          "parallel_tool_calls": false,
+          "stream": true,
+          "tool_choice": "required",
+          "tools": [
+            {
+              "external_web_access": false,
+              "type": "web_search"
+            }
+          ]
+        },
+        {
+          "input": [
+            {
+              "content": [
+                {
+                  "text": "Find the seed and cite it.",
+                  "type": "input_text"
+                }
+              ],
+              "role": "user",
+              "type": "message"
+            },
+            {
+              "action": {
+                "queries": [
+                  "seed successor"
+                ],
+                "query": "seed successor",
+                "sources": [
+                  {
+                    "type": "url",
+                    "url": "https://example.invalid/seed"
+                  }
+                ],
+                "type": "search"
+              },
+              "id": "ws-search-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "type": "open_page",
+                "url": null
+              },
+              "id": "ws-open-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "pattern": "seed",
+                "type": "find_in_page",
+                "url": "https://example.invalid/seed"
+              },
+              "id": "ws-find-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "content": [
+                {
+                  "annotations": [
+                    {
+                      "end_index": 14,
+                      "start_index": 0,
+                      "title": "Seed reference",
+                      "type": "url_citation",
+                      "url": "https://example.invalid/seed"
+                    }
+                  ],
+                  "text": "The seed is 41.",
+                  "type": "output_text"
+                }
+              ],
+              "id": "answer-0",
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            },
+            {
+              "content": [
+                {
+                  "text": "Find the cached successor of that seed.",
+                  "type": "input_text"
+                }
+              ],
+              "role": "user",
+              "type": "message"
+            }
+          ],
+          "model": "grok-4.5",
+          "parallel_tool_calls": false,
+          "stream": true,
+          "tool_choice": "required",
+          "tools": [
+            {
+              "external_web_access": false,
+              "type": "web_search"
+            }
+          ]
+        },
+        {
+          "input": [
+            {
+              "content": [
+                {
+                  "text": "Find the seed and cite it.",
+                  "type": "input_text"
+                }
+              ],
+              "role": "user",
+              "type": "message"
+            },
+            {
+              "action": {
+                "queries": [
+                  "seed successor"
+                ],
+                "query": "seed successor",
+                "sources": [
+                  {
+                    "type": "url",
+                    "url": "https://example.invalid/seed"
+                  }
+                ],
+                "type": "search"
+              },
+              "id": "ws-search-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "type": "open_page",
+                "url": null
+              },
+              "id": "ws-open-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "pattern": "seed",
+                "type": "find_in_page",
+                "url": "https://example.invalid/seed"
+              },
+              "id": "ws-find-0",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "content": [
+                {
+                  "annotations": [
+                    {
+                      "end_index": 14,
+                      "start_index": 0,
+                      "title": "Seed reference",
+                      "type": "url_citation",
+                      "url": "https://example.invalid/seed"
+                    }
+                  ],
+                  "text": "The seed is 41.",
+                  "type": "output_text"
+                }
+              ],
+              "id": "answer-0",
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            },
+            {
+              "content": [
+                {
+                  "text": "Find the cached successor of that seed.",
+                  "type": "input_text"
+                }
+              ],
+              "role": "user",
+              "type": "message"
+            },
+            {
+              "action": {
+                "queries": [],
+                "sources": [],
+                "type": "search"
+              },
+              "id": "ws-search-1",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "type": "open_page"
+              },
+              "id": "ws-open-1",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "action": {
+                "pattern": "41",
+                "type": "find_in_page",
+                "url": null
+              },
+              "id": "ws-find-1",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "id": "ws-absent-1",
+              "status": "completed",
+              "type": "web_search_call"
+            },
+            {
+              "content": [
+                {
+                  "annotations": [
+                    {
+                      "end_index": 14,
+                      "start_index": 0,
+                      "title": "",
+                      "type": "url_citation",
+                      "url": "https://example.invalid/seed"
+                    }
+                  ],
+                  "text": "The result is 42.",
+                  "type": "output_text"
+                }
+              ],
+              "id": "answer-1",
+              "role": "assistant",
+              "status": "completed",
+              "type": "message"
+            },
+            {
+              "content": [
+                {
+                  "text": "What were both values?",
+                  "type": "input_text"
+                }
+              ],
+              "role": "user",
+              "type": "message"
+            }
+          ],
+          "model": "grok-4.5",
+          "parallel_tool_calls": false,
+          "stream": true,
+          "tool_choice": "none"
+        }
+      ],
+      "streaming": true,
+      "usage_count": 3
+    }
+  ],
+  "coexistence": [
+    {
+      "attempt_count": 3,
+      "lease_after": 0,
+      "receiver_count": 3,
+      "streaming": false
+    },
+    {
+      "attempt_count": 3,
+      "lease_after": 0,
+      "receiver_count": 3,
+      "streaming": true
+    }
+  ],
+  "cancellation": [
+    {
+      "cancelled_attempt_count": 1,
+      "cancelled_cost": "UNKNOWN",
+      "cancelled_receiver_count": 1,
+      "cancelled_usage": "UNKNOWN",
+      "explicit_reuse_receive_count": 2,
+      "incremental_observed": true,
+      "lease_after": 0,
+      "lease_before": 1,
+      "reset": false,
+      "upstream_closed_before_cleanup": 1
+    },
+    {
+      "cancelled_attempt_count": 1,
+      "cancelled_cost": "UNKNOWN",
+      "cancelled_receiver_count": 1,
+      "cancelled_usage": "UNKNOWN",
+      "explicit_reuse_receive_count": 2,
+      "incremental_observed": true,
+      "lease_after": 0,
+      "lease_before": 1,
+      "reset": true,
+      "upstream_closed_before_cleanup": 1
+    }
+  ],
+  "usage_rejection": [
+    {
+      "activation": "BLOCKED",
+      "attempt_count": 1,
+      "cost": "UNKNOWN",
+      "cost_in_usd_ticks": "NOT_ADMITTED",
+      "encrypted_readback": "EXACT",
+      "ledger_count": 1,
+      "raw_usage": "{ \"input_tokens\":20,\"output_tokens\":7,\"total_tokens\":27,\"web_search\":{\"num_requests\":1,\"unreviewed\":null} }",
+      "receiver_count": 1,
+      "streaming": false,
+      "usage_count": 1
+    },
+    {
+      "activation": "BLOCKED",
+      "attempt_count": 1,
+      "cost": "UNKNOWN",
+      "cost_in_usd_ticks": "NOT_ADMITTED",
+      "encrypted_readback": "EXACT",
+      "ledger_count": 1,
+      "raw_usage": "{ \"input_tokens\":20,\"output_tokens\":7,\"total_tokens\":27,\"cost_in_usd_ticks\":1 }",
+      "receiver_count": 1,
+      "streaming": false,
+      "usage_count": 1
+    },
+    {
+      "activation": "BLOCKED",
+      "attempt_count": 1,
+      "cost": "UNKNOWN",
+      "cost_in_usd_ticks": "NOT_ADMITTED",
+      "encrypted_readback": "EXACT",
+      "ledger_count": 1,
+      "raw_usage": "{ \"input_tokens\":20,\"output_tokens\":7,\"total_tokens\":27,\"web_search\":{\"num_requests\":1,\"unreviewed\":null} }",
+      "receiver_count": 1,
+      "streaming": true,
+      "usage_count": 1
+    },
+    {
+      "activation": "BLOCKED",
+      "attempt_count": 1,
+      "cost": "UNKNOWN",
+      "cost_in_usd_ticks": "NOT_ADMITTED",
+      "encrypted_readback": "EXACT",
+      "ledger_count": 1,
+      "raw_usage": "{ \"input_tokens\":20,\"output_tokens\":7,\"total_tokens\":27,\"cost_in_usd_ticks\":1 }",
+      "receiver_count": 1,
+      "streaming": true,
+      "usage_count": 1
+    }
+  ],
+  "transport_failure": [
+    {
+      "attempt_count": 1,
+      "cost": "UNKNOWN",
+      "end": "Truncate",
+      "lease_after": 0,
+      "receiver_count": 1,
+      "usage": "UNKNOWN"
+    },
+    {
+      "attempt_count": 1,
+      "cost": "UNKNOWN",
+      "end": "Eof",
+      "lease_after": 0,
+      "receiver_count": 1,
+      "usage": "UNKNOWN"
+    }
+  ],
+  "presend_all_receiver_and_attempt_zero": true,
+  "presend_distinct_labels": [
+    "byte-bound",
+    "cross-kind-history-id",
+    "dated",
+    "duplicate",
+    "extra",
+    "forced-search",
+    "input-history-duplicate",
+    "missing",
+    "mixed-history",
+    "namespace-child",
+    "nested-history",
+    "node-bound",
+    "null",
+    "number",
+    "other",
+    "parallel",
+    "preview",
+    "search-cannot-qualify-namespace",
+    "string",
+    "true",
+    "unfinished-history",
+    "valid-search-unqualified"
+  ]
+}

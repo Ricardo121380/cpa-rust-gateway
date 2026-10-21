@@ -1,0 +1,14 @@
+[
+  {
+    "log": "red-public.log",
+    "copied_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c5-20261021/red-public-observed-binary",
+    "sha256": "bc56ee6905af238230f5629cb5d9acc7cfd6ca44f660180b112c80389e534537",
+    "scope": "binary at retention time; original RED hash was not captured, so exact original binary identity UNKNOWN"
+  },
+  {
+    "log": "mixed-completion-red.log",
+    "copied_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c5-20261021/mixed-completion-red-observed-binary",
+    "sha256": "7025965a65e712c7b0b46d5cbf396386e5c8bc86225b015c14dc5269b17d4425",
+    "scope": "binary at retention time; original RED hash was not captured, so exact original binary identity UNKNOWN"
+  }
+]
