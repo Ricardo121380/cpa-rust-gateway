@@ -77,8 +77,8 @@ fn validate_blob(blob: &str, outer: &BTreeMap<&str, String>) -> Result<(), Gatew
             "request_kind" => value == "turn",
             "thread_source" => value == "user",
             "turn_trigger" => value == "exec",
-            "sandbox" => value == "seatbelt",
-            "sandbox_mode" => value == "workspace-write",
+            "sandbox" => value == "seatbelt" || value == "external",
+            "sandbox_mode" => value == "workspace-write" || value == "external-sandbox",
             "auto_review_enabled"
             | "node_repl_auto_review_required"
             | "node_repl_disabled"
@@ -100,6 +100,17 @@ fn validate_blob(blob: &str, outer: &BTreeMap<&str, String>) -> Result<(), Gatew
         {
             return Err(invalid());
         }
+    }
+    // The added external diagnostic selectors are admitted only as the observed pair.
+    // They remain untrusted statements and never grant execution or confinement authority.
+    let external = fields.get("sandbox").is_some_and(|raw| {
+        serde_json::from_str::<String>(raw.get()).is_ok_and(|value| value == "external")
+    });
+    let external_mode = fields.get("sandbox_mode").is_some_and(|raw| {
+        serde_json::from_str::<String>(raw.get()).is_ok_and(|value| value == "external-sandbox")
+    });
+    if external != external_mode {
+        return Err(invalid());
     }
     Ok(())
 }

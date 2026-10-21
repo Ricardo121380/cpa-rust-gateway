@@ -82,3 +82,7 @@ binary-only rollback or down migration is not operational recovery. Preserve a c
 snapshot, events/ledger/evidence/expiry receipts and every referenced external key, and validate
 the selected reader on an isolated restored copy. This ADR authorizes no Provider call, remote
 write, release, production restore or deployment.
+
+The original sandbox selector restriction is narrowly superseded by the authorized
+[ADR-0120](ADR-0120-bounded-codex-history-and-external-diagnostics.md) external diagnostic pair.
+All retention, recipient and authority boundaries above remain.

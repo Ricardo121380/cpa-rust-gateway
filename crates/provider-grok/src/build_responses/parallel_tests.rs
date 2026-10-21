@@ -120,6 +120,7 @@ fn build_parallel_requires_independent_qualification() -> TestResult {
                 false,
                 false,
                 qualified,
+                false,
             );
             if parallel == Some(true) && !qualified {
                 assert_eq!(

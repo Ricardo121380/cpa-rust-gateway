@@ -61,8 +61,8 @@ snapshot. Parsing validates it but never reserializes/replaces the original stri
 | request_kind | string, exactly turn | Declared request kind, not a CPAR operation |
 | thread_source | string, exactly user | Declared thread origin; no source/identity authority |
 | turn_trigger | string, exactly exec | Declared client trigger; no execution authorization |
-| sandbox | string, exactly seatbelt | Client-reported sandbox implementation; does not prove confinement |
-| sandbox_mode | string, exactly workspace-write | Client-reported mode; never applies CPAR sandbox policy |
+| sandbox | string, seatbelt or paired external | Client-reported sandbox implementation; does not prove confinement |
+| sandbox_mode | string, workspace-write or paired external-sandbox | Client-reported mode; never applies CPAR sandbox policy |
 | auto_review_enabled | boolean | Client-reported review state; never approval consent |
 | node_repl_auto_review_required | boolean | Client-reported approval requirement; never CPAR policy |
 | node_repl_disabled | boolean | Client-reported execution switch; never enables/disables CPAR tools |
@@ -76,6 +76,12 @@ sandbox values above were observed, not granted general upstream semantics. mode
 client extra metadata, not a proven model-selection source. history_ingest_requested, compaction,
 workspaces, tool_namespaces_info, parent/fork/subagent members and any unclassified key reject.
 Their absence in the observed snapshot does not prove other clients never send them.
+
+The authorized 2026-10-22 [ADR-0120](../adr/ADR-0120-bounded-codex-history-and-external-diagnostics.md)
+adds only the observed pair: sandbox=external requires sandbox_mode=external-sandbox and conversely.
+Original optional selectors remain. These values retain the same untrusted diagnostic meaning;
+they confer no policy, confinement proof, approval or Build qualification. Missing/mixed external
+pairs and all other values reject.
 
 ## Admission, persistence and isolation
 

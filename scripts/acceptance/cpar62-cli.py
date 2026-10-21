@@ -180,6 +180,7 @@ def codex_success_checks(root):
                 and result.get("id") == expected["result_id"] and "namespace" not in result and "name" not in result
     accounting = observations.get("accounting", {})
     joined = observations.get("correspondence", [])
+    public = observations.get("public", [])
     checks = {
         "cli_exit_zero": receipt["exit"] == 0,
         "answer_tool_task_and_follow_up": sum(row.get("method") == "turn/completed"
@@ -188,8 +189,12 @@ def codex_success_checks(root):
             and not any(row.get("type") in ("turn.failed", "error") or row.get("method") == "error"
                         for row in events),
         "five_incremental_public_responses": len(ingress) == 5
-            and all(row["status"] == 200 and row["chunks"] > 2 and row.get("body_complete") is True
-                    and row.get("wire_truncated") is False for row in ingress),
+            and all(row["status"] == 200 and row["chunks"] > 2
+                    and row.get("wire_truncated") is False for row in ingress)
+            # Codex closes its stream at the complete response.completed record. HTTP EOF
+            # polling is a separate observation, not the Responses semantic completion signal.
+            and len(public) == 5 and all(row.get("complete_terminal") is True
+                and row["completed"] == 1 and row["failed"] == 0 for row in public),
         "independent_receives_and_exact_accounting": len(upstream) == 5
             and all(accounting.get(name) == 5 for name in ("client_requests", "attempts", "usage", "ledger"))
             and len(joined) == 5 and all(len({row[key] for row in joined}) == 5
@@ -485,6 +490,7 @@ def client(name, scenario, directory, base):
             f'base_url = {json.dumps(base)}\n'
             'env_key = "CPAR62_TEST_KEY"\nwire_api = "responses"\n'
             'requires_openai_auth = false\n'
+            'request_max_retries = 0\nstream_max_retries = 0\n'
         )
         command = (["/opt/homebrew/bin/codex", "exec", "--skip-git-repo-check",
                     "--json", "--color", "never", "--sandbox", "workspace-write", prompt]

@@ -706,13 +706,17 @@ fn validate_target_content(
         MessageContent::ToolResult(result)
             if !(result.extensions.is_empty()
                 || target == ProtocolFormat::OpenAiResponses
-                    && result.extensions.iter().all(|(key, _)| {
-                        matches!(key, "name" | "namespace")
-                            && protocol_openai_responses::optional_tool_identity_member(
+                    && result.extensions.iter().all(|(key, raw)| match key {
+                        "id" => serde_json::from_str::<Value>(raw.get())
+                            .is_ok_and(|value| valid_responses_item_id(&value)),
+                        "name" | "namespace" => {
+                            protocol_openai_responses::optional_tool_identity_member(
                                 &result.extensions,
                                 key,
                             )
                             .is_ok()
+                        }
+                        _ => false,
                     })) =>
         {
             return Err(ProtocolTransformRejection::UnknownContentExtensions);

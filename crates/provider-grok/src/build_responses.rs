@@ -33,6 +33,9 @@ use crate::{
     strict_json::{could_be_empty_tool_arguments, parse_strict_json},
 };
 
+#[cfg(test)]
+mod codex_history_tests;
+
 /// Frozen Grok CLI chat-proxy base URL used by OAuth Build credentials.
 pub const GROK_BUILD_RESPONSES_BASE_URL: &str = "https://cli-chat-proxy.grok.com/v1";
 /// Fixed Responses path appended to [`GROK_BUILD_RESPONSES_BASE_URL`].
@@ -338,6 +341,7 @@ impl GrokBuildResponsesRequestBuilder {
             false,
             false,
             false,
+            false,
         )
     }
 
@@ -357,9 +361,15 @@ impl GrokBuildResponsesRequestBuilder {
         web_search_qualified: bool,
         input_message_ids_qualified: bool,
         parallel_tools_qualified: bool,
+        input_history_qualified: bool,
     ) -> Result<GrokBuildResponsesOutboundRequest, GatewayError> {
         let invalid =
             || GatewayError::new(GatewayErrorCode::ClientRequestError, ErrorScope::Request);
+        if protocol_openai_responses::input_history::requires_qualification(request)
+            && !input_history_qualified
+        {
+            return Err(invalid());
+        }
         if request
             .extensions
             .get("openai.responses.parallel_tool_calls")
@@ -613,7 +623,7 @@ fn encode_input(
                             .ok_or_else(provider_protocol_error)?
                             .entry("summary")
                             .or_insert_with(|| serde_json::json!([]));
-                    } else {
+                    } else if item.get("id").is_some() {
                         item = protocol_openai_responses::encode_reasoning_history(history)?;
                     }
                     input.push(item);
@@ -3009,6 +3019,7 @@ mod input_message_id_tests {
                     search,
                     ids,
                     false,
+                    false,
                 );
                 if ids {
                     let wire: Value = serde_json::from_slice(result?.body())?;
@@ -3041,6 +3052,7 @@ mod input_message_id_tests {
                         false,
                         false,
                         true,
+                        false,
                         false
                     )
                     .is_err()

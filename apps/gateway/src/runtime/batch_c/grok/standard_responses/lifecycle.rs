@@ -10,6 +10,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 mod cli;
 mod client_metadata;
 mod disconnect;
+mod input_history;
 mod input_message_ids;
 mod messages;
 mod namespaces;
@@ -31,6 +32,7 @@ enum PeerEnd {
     Hold,
     Truncate,
     Eof,
+    Failure,
     Heartbeats,
 }
 
@@ -68,14 +70,15 @@ impl SocketPeer {
                     }
                     continue;
                 }
-                // A later explicitly issued request proves that the same capacity is usable.
-                let body = if first {
+                // Capacity probes may complete a later request; failure fixtures never turn
+                // an unexpected client retry into a false successful response.
+                let body = if first || matches!(end, PeerEnd::Failure) {
                     bytes.clone()
                 } else {
                     complete_wire(None)
                 };
                 let length = body.len()
-                    + if first && !matches!(end, PeerEnd::Eof) {
+                    + if first && !matches!(end, PeerEnd::Eof | PeerEnd::Failure) {
                         64 * 1024
                     } else {
                         0
@@ -85,7 +88,7 @@ impl SocketPeer {
                 );
                 socket.write_all(head.as_bytes()).await?;
                 socket.write_all(body.as_bytes()).await?;
-                if !first || matches!(end, PeerEnd::Truncate | PeerEnd::Eof) {
+                if !first || matches!(end, PeerEnd::Truncate | PeerEnd::Eof | PeerEnd::Failure) {
                     continue;
                 }
                 // The first response remains incomplete at the HTTP layer. Only source drop

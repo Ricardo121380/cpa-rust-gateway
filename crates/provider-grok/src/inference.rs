@@ -259,6 +259,7 @@ pub struct GrokBuildInferenceAdapter {
     web_search_qualified: bool,
     input_message_ids_qualified: bool,
     parallel_tools_qualified: bool,
+    input_history_qualified: bool,
     provider_id: ProviderId,
     credential: GrokBuildCredential,
     upstream_model: String,
@@ -297,6 +298,7 @@ impl GrokBuildInferenceAdapter {
             web_search_qualified: false,
             input_message_ids_qualified: false,
             parallel_tools_qualified: false,
+            input_history_qualified: false,
             provider_id,
             credential,
             upstream_model,
@@ -349,6 +351,14 @@ impl GrokBuildInferenceAdapter {
         self
     }
 
+    /// Qualifies only the bounded Codex history shapes, independently of all other fields.
+    #[cfg(feature = "controlled-test-support")]
+    #[must_use]
+    pub fn with_local_controlled_input_history(mut self) -> Self {
+        self.input_history_qualified = true;
+        self
+    }
+
     /// Adds authenticated stateless reasoning ownership for this selected attempt.
     #[must_use]
     pub fn with_reasoning_owner(mut self, owner: crate::GrokBuildReasoningOwner) -> Self {
@@ -380,6 +390,10 @@ impl fmt::Debug for GrokBuildInferenceAdapter {
             .debug_struct("GrokBuildInferenceAdapter")
             .field("local_controlled_namespaces", &self.namespaces_qualified)
             .field("local_controlled_web_search", &self.web_search_qualified)
+            .field(
+                "local_controlled_input_history",
+                &self.input_history_qualified,
+            )
             .field(
                 "local_controlled_parallel_tools",
                 &self.parallel_tools_qualified,
@@ -432,6 +446,7 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
         let web_search_qualified = self.web_search_qualified;
         let input_message_ids_qualified = self.input_message_ids_qualified;
         let parallel_tools_qualified = self.parallel_tools_qualified;
+        let input_history_qualified = self.input_history_qualified;
 
         Box::pin(async move {
             let binding = model_binding.map_or_else(
@@ -471,6 +486,7 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
                 web_search_qualified,
                 input_message_ids_qualified,
                 parallel_tools_qualified,
+                input_history_qualified,
             )?;
             let response = transport
                 .send_with_egress_attempt(outbound, egress_attempt.clone())

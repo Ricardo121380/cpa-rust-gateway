@@ -90,7 +90,7 @@ pub fn is_owned_reasoning_token(value: &str) -> bool {
             })
 }
 
-/// Validated Responses reasoning syntax, including its original item identity.
+/// Validated Responses reasoning syntax, retaining its original identity presence.
 ///
 /// The wire item is retained intact so absent/empty summary and content remain distinct.
 /// Raw provider ciphertext is rejected. Gateway-owned tokens require runtime authentication
@@ -129,7 +129,7 @@ impl TryFrom<RawJson> for ReasoningHistory {
         #[serde(deny_unknown_fields)]
         struct Item {
             r#type: String,
-            id: String,
+            id: Option<String>,
             status: Option<String>,
             summary: Option<Vec<Part>>,
             content: Option<Vec<Part>>,
@@ -146,10 +146,19 @@ impl TryFrom<RawJson> for ReasoningHistory {
             return Err(INVALID);
         }
         let item: Item = serde_json::from_str(raw.get()).map_err(|_| INVALID)?;
+        let fields: serde_json::Value = serde_json::from_str(raw.get()).map_err(|_| INVALID)?;
         if item.r#type != "reasoning"
-            || item.id.is_empty()
-            || item.id.len() > 512
-            || !item.id.bytes().all(|byte| byte.is_ascii_graphic())
+            || fields.get("id").is_some() != item.id.is_some()
+            || item.id.as_deref().is_some_and(|id| {
+                id.is_empty() || id.len() > 512 || !id.bytes().all(|byte| byte.is_ascii_graphic())
+            })
+            // The independently qualified client history shape has no item identity or body.
+            // Preserve absent/null fields; never manufacture an identity or owned ciphertext.
+            || (item.id.is_none()
+                && (item.summary.is_none()
+                    || item.content.is_some()
+                    || item.encrypted_content.is_some()
+                    || item.status.is_some()))
             || item
                 .status
                 .as_deref()

@@ -169,11 +169,17 @@ pub fn validate_history(request: &CanonicalRequest) -> Result<(), GatewayError> 
                 let raw = match part {
                     MessageContent::Reasoning(v) => Some(v.raw()),
                     MessageContent::ToolCall(v) => v.extensions.get("id"),
+                    MessageContent::ToolResult(v) => v.extensions.get("id"),
                     _ => None,
                 };
                 if let Some(raw) = raw {
                     let value: Value =
                         serde_json::from_str(raw.get()).map_err(|_| client_request_error())?;
+                    if matches!(part, MessageContent::ToolResult(_))
+                        && !super::input_message_ids::valid_item_id(&value)
+                    {
+                        return Err(client_request_error());
+                    }
                     if let Some(id) = value
                         .as_str()
                         .or_else(|| value.get("id").and_then(Value::as_str))

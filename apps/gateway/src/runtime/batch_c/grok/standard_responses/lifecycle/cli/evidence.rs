@@ -218,7 +218,13 @@ fn metadata(
         diagnostic.ok_or("confirmed encrypted C4 evidence for this actual Request/Attempt")?;
     assert_eq!(&diagnostic.record.request, request);
     assert_eq!(diagnostic.record.evidence.raw_json(), raw.get());
-    assert_eq!(diagnostic.attempts, vec![attempt.clone()]);
+    // The C4 reader authenticates the canonical durable event. The event-store reader also
+    // hydrates its separate execution-identity companion, which is not serialized in that event.
+    assert!(attempt.execution_identity().is_some());
+    assert_eq!(
+        serde_json::to_value(&diagnostic.attempts)?,
+        serde_json::to_value([attempt])?
+    );
     assert!(
         reader
             .get_owned(

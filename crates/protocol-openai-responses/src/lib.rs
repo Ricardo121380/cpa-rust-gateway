@@ -12,6 +12,7 @@ use std::{
 };
 
 mod annotations;
+pub mod input_history;
 pub mod input_message_ids;
 mod native_output;
 mod tool_set;
@@ -76,14 +77,15 @@ pub fn decode_summary_only_reasoning(raw: &RawJson) -> Result<Value, GatewayErro
 ///
 /// # Errors
 ///
-/// Returns an internal error if validated history cannot be decoded.
+/// Returns an internal error for unidentified local-only history, owned ciphertext or an
+/// invalid representation. Only the independently qualified Build path can encode missing IDs.
 pub fn encode_reasoning_history(
     history: &gateway_core::ReasoningHistory,
 ) -> Result<Value, GatewayError> {
     let mut item: Value =
         serde_json::from_str(history.raw().get()).map_err(|_| internal_error())?;
     // Opaque Build tokens must be opened by their owning adapter, never serialized by a generic one.
-    if item.get("encrypted_content").is_some_and(|v| !v.is_null()) {
+    if item.get("id").is_none() || item.get("encrypted_content").is_some_and(|v| !v.is_null()) {
         return Err(internal_error());
     }
     let object = item.as_object_mut().ok_or_else(internal_error)?;

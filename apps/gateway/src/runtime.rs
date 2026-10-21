@@ -2108,6 +2108,8 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
                     &driver.request,
                 ) || protocol_openai_responses::requires_tool_identity_qualification(
                     &driver.request,
+                ) || protocol_openai_responses::input_history::requires_qualification(
+                    &driver.request,
                 ) || driver
                     .request
                     .extensions
@@ -4323,6 +4325,8 @@ struct P12TransportProfiles {
     #[cfg(test)]
     build_parallel_local_controlled: bool,
     #[cfg(test)]
+    build_input_history_local_controlled: bool,
+    #[cfg(test)]
     console: Option<Arc<dyn provider_grok::GrokConsoleTransport>>,
     streaming: UpstreamTransportProfile,
     non_streaming: UpstreamTransportProfile,
@@ -4406,6 +4410,8 @@ impl P12TransportProfiles {
             #[cfg(test)]
             build_parallel_local_controlled: false,
             #[cfg(test)]
+            build_input_history_local_controlled: false,
+            #[cfg(test)]
             console: None,
             streaming,
             non_streaming,
@@ -4448,6 +4454,9 @@ impl P12TransportProfiles {
             }
             if self.build_parallel_local_controlled {
                 adapter = adapter.with_local_controlled_parallel_tools();
+            }
+            if self.build_input_history_local_controlled {
+                adapter = adapter.with_local_controlled_input_history();
             }
         }
         adapter
@@ -4781,13 +4790,15 @@ impl EndpointAttemptDriver {
         let search = protocol_openai_responses::web_search::requires_qualification(&self.request);
         let input_ids =
             protocol_openai_responses::input_message_ids::requires_qualification(&self.request);
+        let input_history =
+            protocol_openai_responses::input_history::requires_qualification(&self.request);
         let parallel = matches!(runtime.adapter, EndpointAdapter::GrokBuildResponses)
             && gateway_router::ToolExecutionConstraints::from_request(
                 &self.request,
                 self.client_protocol,
             )?
             .requires_parallel_tools();
-        if namespaces || search || input_ids || parallel {
+        if namespaces || search || input_ids || parallel || input_history {
             #[cfg(not(test))]
             let qualified = false;
             #[cfg(test)]
@@ -4795,9 +4806,10 @@ impl EndpointAttemptDriver {
                 && (!search || runtime.transports.build_search_local_controlled)
                 && (!input_ids || runtime.transports.build_input_message_ids_local_controlled)
                 && (!parallel || runtime.transports.build_parallel_local_controlled)
+                && (!input_history || runtime.transports.build_input_history_local_controlled)
                 && runtime.transports.build.is_some();
             if !qualified
-                || (search || input_ids || parallel)
+                || (search || input_ids || parallel || input_history)
                     && self.client_transport != ResponsesClientTransport::Http
                 || !matches!(runtime.adapter, EndpointAdapter::GrokBuildResponses)
                 || self.client_protocol != ProtocolFormat::OpenAiResponses
@@ -4812,6 +4824,8 @@ impl EndpointAttemptDriver {
                     ProtocolTransformRejection::ParallelToolsUnsupported
                 } else if input_ids {
                     ProtocolTransformRejection::UnknownMessageExtensions
+                } else if input_history {
+                    ProtocolTransformRejection::UnknownContentExtensions
                 } else {
                     ProtocolTransformRejection::UnknownToolDefinitionExtensions
                 });

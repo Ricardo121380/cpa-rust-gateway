@@ -208,6 +208,7 @@ pub(super) fn assert_public(
             .iter()
             .filter(|v| v["type"] == "response.failed")
             .count();
+        assert!(frames.iter().all(|v| v["type"] != "error"));
         assert_eq!(
             (completed, failed),
             match scenario {
@@ -218,12 +219,21 @@ pub(super) fn assert_public(
         );
         if scenario == "standard" || scenario == "failure" {
             let terminal = frames.last().ok_or("terminal")?;
+            let (kind, status) = if scenario == "failure" {
+                ("response.failed", "failed")
+            } else {
+                ("response.completed", "completed")
+            };
+            assert_eq!(terminal["type"], kind);
+            assert_eq!(terminal["response"]["status"], status);
             assert_eq!(terminal["response"]["model"], "grok-4.5");
             assert_eq!(terminal["response"]["usage"]["input_tokens"], 20);
             assert_eq!(terminal["response"]["usage"]["output_tokens"], 7);
         }
         results.push(
-            json!({"http":row.status,"chunks":row.chunks,"completed":completed,"failed":failed}),
+            json!({"http":row.status,"chunks":row.chunks,"completed":completed,"failed":failed,
+                "complete_terminal":scenario == "standard" || scenario == "failure",
+                "http_body_eof_observed":row.body_complete}),
         );
     }
     Ok(json!(results))

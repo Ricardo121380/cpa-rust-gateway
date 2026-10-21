@@ -229,6 +229,9 @@ pub(crate) fn encode_responses_body(
     mode: ResponseMode,
     reasoning_efforts: &[&str],
 ) -> Result<Vec<u8>, GatewayError> {
+    if protocol_openai_responses::input_history::requires_qualification(request) {
+        return Err(client_request_error());
+    }
     if request.prompt_cache_key.is_some() || request.prompt_cache_retention.is_some() {
         return Err(client_request_error());
     }

@@ -55,7 +55,7 @@ async fn actual_cli_public_build_qualification() -> TestResult {
                 failed["error"] = json!({"code":"server_error","message":"synthetic #62 failure"});
                 SocketPeer::start(
                     partial_wire() + &frame("response.failed", &failed),
-                    PeerEnd::Eof,
+                    PeerEnd::Failure,
                 )?
             }
             "cancel" => SocketPeer::start(partial_wire(), PeerEnd::Hold)?,
@@ -71,6 +71,7 @@ async fn actual_cli_public_build_qualification() -> TestResult {
                 p.build_namespaces_local_controlled = true;
                 p.build_search_local_controlled = true;
                 p.build_input_message_ids_local_controlled = true;
+                p.build_input_history_local_controlled = true;
             })?
         } else {
             lifecycle_fixture(transport)?
