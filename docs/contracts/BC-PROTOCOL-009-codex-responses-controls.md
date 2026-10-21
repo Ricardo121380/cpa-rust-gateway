@@ -127,3 +127,7 @@ existing-envelope persistence rules are in ADR-0115. C1-C3 does not authorize C4
 - `namespaced_semantic_call_without_native_identity_envelope_cannot_flatten`
 - `result_name_without_namespace_requires_qualification_including_null`
 - `public_build_namespace_result_name_alone_still_requires_field_qualification`
+
+## 2026-10-21 C5 local hosted-search successor
+
+[ADR-0117](../adr/ADR-0117-native-hosted-web-search.md) and [BC-PROTOCOL-011](BC-PROTOCOL-011-native-hosted-web-search.md) implement the bounded local C5 declaration, native JSON/SSE actions and phases, citations, and explicit history. This supersedes only the historical unimplemented local C5 statement above; fixed Build activation remains BUILD_ACTIVATION_BLOCKED. C1-C3 and D1-A C4 remain implemented predecessors. C6, ParallelTools, namespace activation, Claude controls and #61 are independent.

@@ -148,3 +148,5 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0115 Native namespaced function identity](ADR-0115-native-namespaced-function-identity.md) — `#62 C1-C3` (Accepted bounded local implementation; fixed Build activation remains blocked).
 
 - [ADR-0116 Local Codex request metadata diagnostics](ADR-0116-local-codex-request-metadata-diagnostics.md) — `#62 C4 only` (Accepted new D1-A Codex subset; schema37 Request evidence, local consumption only; original Codex and namespace activation remain blocked).
+
+- [ADR-0117 Native hosted web search](ADR-0117-native-hosted-web-search.md) — `#62 C5` (Accepted bounded local protocol; independent Build activation remains blocked).

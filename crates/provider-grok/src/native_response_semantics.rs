@@ -47,6 +47,9 @@ pub(crate) fn validate_event(
         | "response.failed" => &["response"],
         "keepalive" => &[],
         "response.output_item.added" | "response.output_item.done" => &["item", "output_index"],
+        "response.web_search_call.in_progress"
+        | "response.web_search_call.searching"
+        | "response.web_search_call.completed" => &["item_id", "output_index"],
         "response.output_text.delta" => &[
             "item_id",
             "output_index",
@@ -288,7 +291,7 @@ pub(crate) fn validate_part(part: &Map<String, Value>) -> Result<(), GatewayErro
         Some("summary_text") => json!({"id":"part-validation","type":"reasoning","summary":[part]}),
         _ => return Err(protocol_error()),
     };
-    protocol_openai_responses::native_item_metadata(&item, true).map(|_| ())
+    protocol_openai_responses::native_item_metadata(&item, false).map(|_| ())
 }
 
 pub(crate) fn confirm_part_snapshots(

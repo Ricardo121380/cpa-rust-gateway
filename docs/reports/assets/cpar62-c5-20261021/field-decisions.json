@@ -1,0 +1,39 @@
+{
+  "scope": "#62 C5 only",
+  "declaration": {
+    "type": "web_search",
+    "external_web_access": false
+  },
+  "normal_production": "BUILD_ACTIVATION_BLOCKED",
+  "local_test_qualification": "independent cfg(test) composition plus owned transport; no namespace/ParallelTools grant",
+  "supported_actions": [
+    "search",
+    "open_page",
+    "find_in_page"
+  ],
+  "history": "completed native top-level items, exact presence; existing payload v1 envelope only",
+  "unsupported_declarations": [
+    "external_web_access true",
+    "external_web_access absent",
+    "external_web_access null or non-bool",
+    "extra declaration options",
+    "dated web_search type",
+    "preview",
+    "x_search",
+    "other undeveloped hosted tools"
+  ],
+  "usage": {
+    "known_standard_tokens": "EXACT",
+    "unreviewed_search_usage": "BLOCKED; exact failed Usage object encrypted on its actual Attempt",
+    "root_tool_usage": "BLOCKED; no new whole-response retention promise",
+    "cost_in_usd_ticks": "NOT_ADMITTED",
+    "provider_search_cost": "UNKNOWN"
+  },
+  "positive_fixture_source": "purpose-built controlled standard-schema fixture; not a provider sample with fields removed",
+  "build_public_revision": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+  "build_profile": "1.0.50",
+  "build_endpoint": "https://cli-chat-proxy.grok.com/v1/responses",
+  "source_release_service_mapping": "UNPROVEN",
+  "actual_codex": "separate blocked qualification",
+  "real_provider": "NOT_RUN"
+}

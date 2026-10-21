@@ -13,6 +13,7 @@ mod disconnect;
 mod messages;
 mod namespaces;
 mod recording_faults;
+mod search;
 
 struct SocketPeer {
     target: AdmittedEgressTarget,
@@ -377,6 +378,14 @@ fn lifecycle_fixture_qualified(
     transport: Arc<dyn GrokBuildTransport>,
     namespaces: bool,
 ) -> Result<Fixture, Box<dyn Error>> {
+    lifecycle_fixture_qualifications(transport, namespaces, false)
+}
+
+fn lifecycle_fixture_qualifications(
+    transport: Arc<dyn GrokBuildTransport>,
+    namespaces: bool,
+    search: bool,
+) -> Result<Fixture, Box<dyn Error>> {
     let (channel, secret) = native_channels()[0];
     fixture_with_configuration(
         channel,
@@ -402,6 +411,7 @@ fn lifecycle_fixture_qualified(
             let mut profiles = P12TransportProfiles::try_new()?;
             profiles.build = Some(transport);
             profiles.build_namespaces_local_controlled = namespaces;
+            profiles.build_search_local_controlled = search;
             endpoints.values_mut().next().ok_or("endpoint")?.transports = Arc::new(profiles);
             Ok(())
         },

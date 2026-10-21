@@ -20,6 +20,21 @@ pub fn validate(value: &Value) -> Result<(), GatewayError> {
     Ok(())
 }
 
+pub(crate) fn validate_text(value: &Value, text: &str) -> Result<(), GatewayError> {
+    validate(value)?;
+    let length = u64::try_from(text.chars().count()).map_err(|_| stream_protocol_error())?;
+    for annotation in value.as_array().ok_or_else(stream_protocol_error)? {
+        if annotation
+            .get("end_index")
+            .and_then(Value::as_u64)
+            .is_some_and(|end| end > length)
+        {
+            return Err(stream_protocol_error());
+        }
+    }
+    Ok(())
+}
+
 pub(crate) fn validate_one(value: &Value) -> Result<(), GatewayError> {
     let value = value.as_object().ok_or_else(stream_protocol_error)?;
     let fields: &[&str] = match value.get("type").and_then(Value::as_str) {
@@ -53,6 +68,14 @@ pub(crate) fn validate_one(value: &Value) -> Result<(), GatewayError> {
         .get("start_index")
         .zip(value.get("end_index"))
         .is_some_and(|(start, end)| start.as_u64() > end.as_u64())
+    {
+        return Err(stream_protocol_error());
+    }
+    if value.get("type").and_then(Value::as_str) == Some("url_citation")
+        && value
+            .get("url")
+            .and_then(Value::as_str)
+            .is_none_or(|url| !crate::web_search::valid_url(url))
     {
         return Err(stream_protocol_error());
     }

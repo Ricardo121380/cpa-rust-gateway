@@ -287,3 +287,7 @@ activate fixed Build namespaces, admit C4/C5/C6/#61 or change GitHub dependencie
 ## #62 C4 local Request metadata diagnostics
 
 [ADR-0116](adr/ADR-0116-local-codex-request-metadata-diagnostics.md) and [BC-PROTOCOL-010](contracts/BC-PROTOCOL-010-local-codex-client-metadata.md) record the new D1-A Codex-only final-receiver decision. RequestMetadataEvidence is independent of Usage/summary, with schema37 confirmation, exact-owner local reader and expiry receipts. This does not grant namespace activation, C5/C6, Claude metadata/D2, #61, original-client compatibility or #62 completion.
+
+## #62 C5 native hosted web search
+
+[ADR-0117](adr/ADR-0117-native-hosted-web-search.md) and [BC-PROTOCOL-011](contracts/BC-PROTOCOL-011-native-hosted-web-search.md) define the local declaration, native JSON/SSE actions/phases, citations and explicit history slice. Fixed Build activation, original Codex, #61 and the three-client milestone remain independently blocked. No payload-v1 rewrite or production capability grant.

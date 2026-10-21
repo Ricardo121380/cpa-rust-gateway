@@ -25,6 +25,7 @@ pub struct ProtocolResponseProjector {
     output_state: CanonicalEventState,
     tool_constraints: Option<ToolExecutionConstraints>,
     tool_count: usize,
+    hosted_count: usize,
 }
 
 impl ProtocolResponseProjector {
@@ -37,6 +38,7 @@ impl ProtocolResponseProjector {
             output_state: CanonicalEventState::default(),
             tool_constraints: None,
             tool_count: 0,
+            hosted_count: 0,
         }
     }
 
@@ -58,7 +60,25 @@ impl ProtocolResponseProjector {
         event: &CanonicalEvent,
     ) -> Result<Option<CanonicalEvent>, ProtocolResponseRejection> {
         let mut tool_count = self.tool_count;
+        let mut hosted_count = self.hosted_count;
         if let Some(constraints) = &self.tool_constraints {
+            if let CanonicalEvent::OutputItemStart(meta) = event
+                && let Some(raw) = meta.extensions.get("openai.responses.output_item")
+            {
+                let value: serde_json::Value = serde_json::from_str(raw.get())
+                    .map_err(|_| ProtocolResponseRejection::ToolConstraintViolated)?;
+                if value["type"] == "web_search_call" {
+                    if !constraints.web_search
+                        || matches!(
+                            constraints.selection,
+                            Some(ToolSelection::None | ToolSelection::Named(_))
+                        )
+                    {
+                        return Err(ProtocolResponseRejection::ToolConstraintViolated);
+                    }
+                    hosted_count += 1;
+                }
+            }
             match event {
                 CanonicalEvent::ToolCallStart(call) => {
                     let identity = protocol_openai_responses::FunctionIdentity::from_call(
@@ -76,7 +96,7 @@ impl ProtocolResponseProjector {
                     tool_count += 1;
                 }
                 CanonicalEvent::ResponseEnd(_)
-                    if tool_count == 0
+                    if tool_count + hosted_count == 0
                         && matches!(
                             constraints.selection,
                             Some(ToolSelection::Required | ToolSelection::Named(_))
@@ -101,6 +121,7 @@ impl ProtocolResponseProjector {
         self.input_state = next_input;
         self.output_state = next_output;
         self.tool_count = tool_count;
+        self.hosted_count = hosted_count;
         Ok(projected)
     }
 }
@@ -310,15 +331,7 @@ fn project_native_identity(
 }
 
 fn has_native_output_metadata(event: &CanonicalEvent) -> bool {
-    let (extensions, key) = match event {
-        CanonicalEvent::OutputItemStart(v) | CanonicalEvent::OutputItemEnd(v) => {
-            (&v.extensions, "openai.responses.output_item")
-        }
-        CanonicalEvent::TextDelta(v) => (&v.extensions, "openai.responses.output_part"),
-        CanonicalEvent::ReasoningDelta(v) => (&v.extensions, "openai.responses.output_part"),
-        _ => return false,
-    };
-    extensions.iter().len() == 1 && extensions.get(key).is_some()
+    protocol_openai_responses::has_native_output_metadata(event)
 }
 
 fn reject_extensions(event: &CanonicalEvent) -> Result<(), ProtocolResponseRejection> {

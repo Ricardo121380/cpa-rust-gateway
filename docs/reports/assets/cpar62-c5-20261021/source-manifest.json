@@ -1,0 +1,123 @@
+[
+  {
+    "name": "openai-web-search.md",
+    "url": "https://developers.openai.com/api/docs/guides/tools-web-search.md",
+    "resolved_url": "https://developers.openai.com/api/docs/guides/tools-web-search.md",
+    "retrieved_utc": "2026-10-21T03:59:49.556538+00:00",
+    "revision": null,
+    "bytes": 47401,
+    "sha256": "7eee490dc188bf63708f31aae94e9191cef19cdd890a52578a73938cb718e19e",
+    "last_modified": null,
+    "scope": "public representation/client source; no fixed service qualification"
+  },
+  {
+    "name": "openai-responses-create.md",
+    "url": "https://developers.openai.com/api/reference/resources/responses/methods/create.md",
+    "resolved_url": "https://developers.openai.com/api/reference/resources/responses/methods/create.md",
+    "retrieved_utc": "2026-10-21T03:59:50.642830+00:00",
+    "revision": null,
+    "bytes": 507870,
+    "sha256": "9c4d505259ac72b879a3697f4f606d4131989ae686d204078b7b22e5638794d0",
+    "last_modified": null,
+    "scope": "public representation/client source; no fixed service qualification"
+  },
+  {
+    "name": "openai-responses-input.md",
+    "url": "https://developers.openai.com/api/reference/resources/responses/subresources/input_items/methods/list.md",
+    "resolved_url": "https://developers.openai.com/api/reference/resources/responses/subresources/input_items/methods/list.md",
+    "retrieved_utc": "2026-10-21T03:59:50.094604+00:00",
+    "revision": null,
+    "bytes": 125902,
+    "sha256": "1f58a68b72193fdfdf1053236a0117af5d613d5ec51cc2e20a90d0a4fa23281e",
+    "last_modified": null,
+    "scope": "public representation/client source; no fixed service qualification"
+  },
+  {
+    "name": "openai-responses-streaming.md",
+    "url": "https://developers.openai.com/api/reference/resources/responses/streaming-events.md",
+    "resolved_url": "https://developers.openai.com/api/reference/resources/responses/streaming-events.md",
+    "retrieved_utc": "2026-10-21T03:59:51.130232+00:00",
+    "revision": null,
+    "bytes": 2092074,
+    "sha256": "953d5dcf090a159603b31fade58a8e14c3174c874ed669a6fa916906abbd10c9",
+    "last_modified": null,
+    "scope": "public representation/client source; no fixed service qualification"
+  },
+  {
+    "name": "build-tool-overrides.rs",
+    "url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampling-types/src/tool_overrides.rs",
+    "resolved_url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampling-types/src/tool_overrides.rs",
+    "retrieved_utc": "2026-10-21T03:59:49.409392+00:00",
+    "revision": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+    "bytes": 17620,
+    "sha256": "9c35a1fd25afaf93933a35b69d36f76fe2400de8983fae947481ac5ce9490784",
+    "last_modified": null,
+    "scope": "public representation/client source; no fixed service qualification"
+  },
+  {
+    "name": "build-conversation.rs",
+    "url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampling-types/src/conversation.rs",
+    "resolved_url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampling-types/src/conversation.rs",
+    "retrieved_utc": "2026-10-21T03:59:51.128946+00:00",
+    "revision": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+    "bytes": 200909,
+    "sha256": "3037023d7dd661b187134dbd4872ae66d7931b75bc3849367bc9b4875735399f",
+    "last_modified": null,
+    "scope": "public representation/client source; no fixed service qualification"
+  },
+  {
+    "name": "build-history-responses.rs",
+    "url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampling-types/src/conversation/responses.rs",
+    "resolved_url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampling-types/src/conversation/responses.rs",
+    "retrieved_utc": "2026-10-21T03:59:50.660751+00:00",
+    "revision": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+    "bytes": 14124,
+    "sha256": "0e7325bcdaf5fe140d1d4d1d8642c38138f37e8bee2f9ed8edd840d46315d483",
+    "last_modified": null,
+    "scope": "public representation/client source; no fixed service qualification"
+  },
+  {
+    "name": "build-stream-responses.rs",
+    "url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampler/src/stream/responses.rs",
+    "resolved_url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-sampler/src/stream/responses.rs",
+    "retrieved_utc": "2026-10-21T03:59:51.649897+00:00",
+    "revision": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+    "bytes": 70118,
+    "sha256": "d32bf24f6985abc3e78d3f761c82a0cf292b7942ee2adf7be78757010cc9c56a",
+    "last_modified": null,
+    "scope": "public representation/client source; no fixed service qualification"
+  },
+  {
+    "name": "build-endpoints.rs",
+    "url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-config/src/endpoints.rs",
+    "resolved_url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-config/src/endpoints.rs",
+    "retrieved_utc": "2026-10-21T03:59:51.785875+00:00",
+    "revision": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+    "bytes": 17400,
+    "sha256": "1a8cdd04ad948d7a2d6fcdc932d90a3814dc9d93bfd06e9b920448bd71be4dfd",
+    "last_modified": null,
+    "scope": "public representation/client source; no fixed service qualification"
+  },
+  {
+    "name": "build-readme.md",
+    "url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/README.md",
+    "resolved_url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/README.md",
+    "retrieved_utc": "2026-10-21T03:59:51.689921+00:00",
+    "revision": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+    "bytes": 5757,
+    "sha256": "322066de9f5bc136295bd0ae4f1752cef3d8dcb1a8f9d88044609e7b6d7abcf7",
+    "last_modified": null,
+    "scope": "public representation/client source; no fixed service qualification"
+  },
+  {
+    "name": "build-source-rev.txt",
+    "url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/SOURCE_REV",
+    "resolved_url": "https://raw.githubusercontent.com/xai-org/grok-build/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/SOURCE_REV",
+    "retrieved_utc": "2026-10-21T03:59:52.173729+00:00",
+    "revision": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+    "bytes": 41,
+    "sha256": "ef218bf538f31e240aff551a39d6d9a6564b03bb2a75c49f309bf46015ee3030",
+    "last_modified": null,
+    "scope": "public representation/client source; no fixed service qualification"
+  }
+]

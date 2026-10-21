@@ -335,9 +335,11 @@ impl GrokBuildResponsesRequestBuilder {
             cache_identity,
             None,
             false,
+            false,
         )
     }
 
+    #[allow(clippy::too_many_arguments)] // Independent field qualifications are not interchangeable.
     pub(crate) fn build_owned(
         credential: &GrokBuildCredential,
         upstream_model: &str,
@@ -346,6 +348,7 @@ impl GrokBuildResponsesRequestBuilder {
         cache_identity: Option<&GrokBuildCacheIdentity>,
         owner: Option<&crate::GrokBuildReasoningOwner>,
         namespaces_qualified: bool,
+        web_search_qualified: bool,
     ) -> Result<GrokBuildResponsesOutboundRequest, GatewayError> {
         if protocol_openai_responses::requires_tool_identity_qualification(request)
             && !namespaces_qualified
@@ -355,6 +358,15 @@ impl GrokBuildResponsesRequestBuilder {
                 ErrorScope::Request,
             ));
         }
+        if protocol_openai_responses::web_search::requires_qualification(request)
+            && !web_search_qualified
+        {
+            return Err(GatewayError::new(
+                GatewayErrorCode::ClientRequestError,
+                ErrorScope::Request,
+            ));
+        }
+        protocol_openai_responses::web_search::validate_history(request)?;
         if let Some(tools) = protocol_openai_responses::ResponsesToolSet::from_request(request)? {
             tools.validate_history(request)?;
         }
@@ -534,7 +546,25 @@ fn encode_input(
             match content {
                 MessageContent::Text(text) => message_parts.push(encode_text_part(role, text)?),
                 MessageContent::Opaque(opaque) => {
-                    message_parts.push(encode_opaque_part(opaque.raw(), &opaque.extensions)?);
+                    if let Some(item) =
+                        protocol_openai_responses::web_search::history_item(content)?
+                    {
+                        if role != "assistant"
+                            || message.content.len() != 1
+                            || !message.extensions.is_empty()
+                        {
+                            return Err(provider_protocol_error());
+                        }
+                        flush_message_parts(
+                            &mut input,
+                            role,
+                            &message.extensions,
+                            &mut message_parts,
+                        )?;
+                        input.push(item);
+                    } else {
+                        message_parts.push(encode_opaque_part(opaque.raw(), &opaque.extensions)?);
+                    }
                 }
                 MessageContent::Reasoning(history) => {
                     flush_message_parts(&mut input, role, &message.extensions, &mut message_parts)?;
@@ -939,7 +969,7 @@ impl GrokBuildResponsesDecoder {
     ///
     /// Returns a safe provider/stream protocol error for malformed or unrepresentable input.
     pub fn decode_non_streaming(input: &[u8]) -> Result<CanonicalResponse, GatewayError> {
-        Self::decode_owned(input, None, None, false)
+        Self::decode_owned(input, None, None, false, false)
     }
 
     fn decode_owned(
@@ -947,6 +977,7 @@ impl GrokBuildResponsesDecoder {
         owner: Option<crate::GrokBuildReasoningOwner>,
         expected_model: Option<String>,
         namespaces_qualified: bool,
+        search_enabled: bool,
     ) -> Result<CanonicalResponse, GatewayError> {
         let value = parse_strict_json(input, MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES)
             .map_err(|()| provider_protocol_error())?;
@@ -957,6 +988,7 @@ impl GrokBuildResponsesDecoder {
             reasoning_owner: owner,
             expected_model,
             namespaces_qualified,
+            search_enabled,
             raw_usage: received_usage_slice(input, false)?,
             ..Default::default()
         };
@@ -964,7 +996,15 @@ impl GrokBuildResponsesDecoder {
         state.handle_response_created(response, &mut events)?;
         for item in output {
             let item = item.as_object().ok_or_else(stream_protocol_error)?;
-            state.handle_output_item_added(item, &mut events)?;
+            let mut initial = item.clone();
+            if item.get("type").and_then(Value::as_str) == Some("web_search_call") {
+                protocol_openai_responses::web_search::validate_item(
+                    &Value::Object(item.clone()),
+                    true,
+                )?;
+                initial.insert("status".into(), Value::String("in_progress".into()));
+            }
+            state.handle_output_item_added(&initial, &mut events)?;
             state.handle_output_item_done(item, &mut events)?;
         }
         state.handle_response_terminal(response, &mut events)?;
@@ -986,7 +1026,7 @@ impl GrokBuildResponsesDecoder {
         content_encoding: Option<&str>,
         input: &[u8],
     ) -> Result<CanonicalResponse, GatewayError> {
-        Self::decode_owned_with_encoding(content_encoding, input, None, None, false)
+        Self::decode_owned_with_encoding(content_encoding, input, None, None, false, false)
     }
 
     pub(crate) fn decode_owned_with_encoding(
@@ -995,9 +1035,16 @@ impl GrokBuildResponsesDecoder {
         owner: Option<crate::GrokBuildReasoningOwner>,
         expected_model: Option<String>,
         namespaces_qualified: bool,
+        search_enabled: bool,
     ) -> Result<CanonicalResponse, GatewayError> {
         let decoded = decode_non_streaming_content_encoding(content_encoding, input)?;
-        Self::decode_owned(&decoded, owner, expected_model, namespaces_qualified)
+        Self::decode_owned(
+            &decoded,
+            owner,
+            expected_model,
+            namespaces_qualified,
+            search_enabled,
+        )
     }
 }
 
@@ -1044,6 +1091,11 @@ pub struct GrokBuildResponsesStreamDecoder {
 impl GrokBuildResponsesStreamDecoder {
     pub(crate) fn with_namespace_qualification(mut self, qualified: bool) -> Self {
         self.state.namespaces_qualified = qualified;
+        self
+    }
+
+    pub(crate) fn with_search_declaration(mut self, enabled: bool) -> Self {
+        self.state.search_enabled = enabled;
         self
     }
     pub(crate) fn with_expected_model(mut self, model: String) -> Self {
@@ -1131,6 +1183,9 @@ impl fmt::Debug for GrokBuildResponsesStreamDecoder {
 
 #[derive(Clone, Default)]
 struct GrokBuildResponsesDecodeState {
+    search_enabled: bool,
+    search_actions: BTreeMap<String, Value>,
+    search_phases: BTreeMap<String, (u8, u64)>,
     namespaces_qualified: bool,
     pending_tool_completion: Vec<CanonicalEvent>,
     expected_model: Option<String>,
@@ -1162,6 +1217,9 @@ impl fmt::Debug for GrokBuildResponsesDecodeState {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("GrokBuildResponsesDecodeState")
+            .field("search_enabled", &self.search_enabled)
+            .field("search_action_count", &self.search_actions.len())
+            .field("search_phase_count", &self.search_phases.len())
             .field("local_controlled_namespaces", &self.namespaces_qualified)
             .field(
                 "pending_tool_completion_count",
@@ -1211,6 +1269,7 @@ enum OutputItemKind {
     Message,
     Reasoning,
     FunctionCall,
+    WebSearch,
 }
 
 impl GrokBuildResponsesDecodeState {
@@ -1219,6 +1278,13 @@ impl GrokBuildResponsesDecodeState {
         item: &Map<String, Value>,
         completed: bool,
     ) -> Result<gateway_core::OutputItemMetadata, GatewayError> {
+        if item.get("type").and_then(Value::as_str) == Some("web_search_call") {
+            if !self.search_enabled {
+                return Err(stream_protocol_error());
+            }
+            let value = Value::Object(item.clone());
+            return protocol_openai_responses::native_item_metadata(&value, completed);
+        }
         if item.contains_key("namespace") && !self.namespaces_qualified {
             return Err(stream_protocol_error());
         }
@@ -1332,6 +1398,9 @@ impl GrokBuildResponsesDecodeState {
                 required_object(object, "item", stream_protocol_error())?,
                 events,
             ),
+            "response.web_search_call.in_progress"
+            | "response.web_search_call.searching"
+            | "response.web_search_call.completed" => self.handle_search_phase(object, events),
             "response.content_part.added" => self.handle_text_content_part_added(object, events),
             "response.content_part.done" => self.handle_text_content_part_done(object, events),
             "response.output_text.delta" => self.handle_text_delta(object, events),
@@ -1389,6 +1458,38 @@ impl GrokBuildResponsesDecodeState {
         result
     }
 
+    fn handle_search_phase(
+        &mut self,
+        object: &Map<String, Value>,
+        events: &mut Vec<CanonicalEvent>,
+    ) -> Result<(), GatewayError> {
+        let value = Value::Object(object.clone());
+        let rank = protocol_openai_responses::web_search::validate_phase(&value)?;
+        let id = required_identifier(object, "item_id", stream_protocol_error())?;
+        let sequence = object["sequence_number"]
+            .as_u64()
+            .ok_or_else(stream_protocol_error)?;
+        let previous = self.search_phases.get(id).copied();
+        if self.item_kinds.get(id) != Some(&OutputItemKind::WebSearch)
+            || self.done_item_ids.contains(id)
+            || !matches!(
+                (previous.map(|v| v.0), rank),
+                (None, 1) | (Some(1), 2 | 3) | (Some(2), 3)
+            )
+            || previous.is_some_and(|v| sequence <= v.1)
+        {
+            return Err(stream_protocol_error());
+        }
+        self.search_phases.insert(id.to_owned(), (rank, sequence));
+        self.emit(
+            events,
+            CanonicalEvent::TextDelta(TextDelta {
+                text: String::new(),
+                extensions: protocol_openai_responses::web_search::phase_extensions(&value)?,
+            }),
+        )
+    }
+
     fn handle_response_created(
         &mut self,
         response: &Map<String, Value>,
@@ -1440,6 +1541,7 @@ impl GrokBuildResponsesDecodeState {
             "message" => OutputItemKind::Message,
             "reasoning" => OutputItemKind::Reasoning,
             "function_call" => OutputItemKind::FunctionCall,
+            "web_search_call" if self.search_enabled => OutputItemKind::WebSearch,
             _ => return Err(stream_protocol_error()),
         };
         self.ensure_message(events)?;
@@ -1478,6 +1580,12 @@ impl GrokBuildResponsesDecodeState {
         }
         self.item_order.push(item_id.to_owned());
         self.item_kinds.insert(item_id.to_owned(), kind);
+        if kind == OutputItemKind::WebSearch
+            && let Some(action) = item.get("action")
+        {
+            self.search_actions
+                .insert(item_id.to_owned(), action.clone());
+        }
         for field in ["content", "summary"] {
             for (index, part) in item
                 .get(field)
@@ -1558,6 +1666,7 @@ impl GrokBuildResponsesDecodeState {
         result
     }
 
+    #[allow(clippy::too_many_lines)] // One closed item completion barrier checks identity, parts and done.
     fn complete_output_item(
         &mut self,
         item: &Map<String, Value>,
@@ -1589,6 +1698,7 @@ impl GrokBuildResponsesDecodeState {
             OutputItemKind::Message => "message",
             OutputItemKind::Reasoning => "reasoning",
             OutputItemKind::FunctionCall => "function_call",
+            OutputItemKind::WebSearch => "web_search_call",
         };
         *stage = "item_type";
         if required_string(item, "type", stream_protocol_error())? != expected_kind {
@@ -1597,12 +1707,30 @@ impl GrokBuildResponsesDecodeState {
         *stage = "item_status";
         let status = required_string(item, "status", stream_protocol_error())?;
         if status != "completed"
-            && !(status == "incomplete" && kind != OutputItemKind::FunctionCall)
+            && !(status == "incomplete"
+                && matches!(kind, OutputItemKind::Message | OutputItemKind::Reasoning))
         {
             return Err(stream_protocol_error());
         }
 
         match kind {
+            OutputItemKind::WebSearch => {
+                protocol_openai_responses::web_search::validate_item(
+                    &Value::Object(item.clone()),
+                    true,
+                )?;
+                if self
+                    .search_actions
+                    .get(item_id)
+                    .is_some_and(|action| item.get("action") != Some(action))
+                    || self
+                        .search_phases
+                        .get(item_id)
+                        .is_some_and(|phase| phase.0 != 3)
+                {
+                    return Err(stream_protocol_error());
+                }
+            }
             OutputItemKind::Message | OutputItemKind::Reasoning => {
                 for field in ["content", "summary"] {
                     if let Some(parts) = item.get(field) {
@@ -1693,8 +1821,9 @@ impl GrokBuildResponsesDecodeState {
         native::retain_item_annotations(&completed, &mut self.annotations)?;
         *stage = "canonical_item_end";
         let end = CanonicalEvent::OutputItemEnd(metadata);
-        if self.namespaces_qualified
-            && completed.get("type").and_then(Value::as_str) == Some("function_call")
+        if completed.get("type").and_then(Value::as_str) == Some("web_search_call")
+            || (self.namespaces_qualified || self.search_enabled)
+                && completed.get("type").and_then(Value::as_str) == Some("function_call")
         {
             self.pending_tool_completion.push(end);
         } else {
@@ -2139,6 +2268,10 @@ impl GrokBuildResponsesDecodeState {
                 .get(item_id)
                 .and_then(Value::as_object)
                 .ok_or_else(stream_protocol_error)?;
+            if known.get("type").and_then(Value::as_str) == Some("web_search_call") && known != item
+            {
+                return Err(stream_protocol_error());
+            }
             if known.get("type").and_then(Value::as_str) == Some("function_call") {
                 for key in ["type", "call_id", "name", "namespace"] {
                     if item.get(key) != known.get(key) {
@@ -2178,7 +2311,7 @@ impl GrokBuildResponsesDecodeState {
             return Err(stream_protocol_error());
         }
         let usage = parse_usage(response, self.raw_usage.as_ref(), &stream_protocol_error())?;
-        // A controlled namespace call becomes executable only after its terminal snapshot and
+        // Controlled native tool calls become executable only after their terminal snapshot and
         // Usage have also passed validation. Earlier item.done cannot authorize execution.
         if let Some(usage) = usage {
             self.emit(
@@ -2190,7 +2323,7 @@ impl GrokBuildResponsesDecodeState {
                 }),
             )?;
         }
-        // Usage projection/confirmation precedes any executable namespace completion. An
+        // Usage projection/confirmation precedes any executable native tool completion. An
         // unadmitted Usage extension therefore fails without exposing a completed tool call.
         for event in std::mem::take(&mut self.pending_tool_completion) {
             self.emit(events, event)?;
@@ -2380,7 +2513,7 @@ impl GrokBuildResponsesDecodeState {
             arguments: raw_arguments,
             extensions: RawExtensions::default(),
         });
-        if self.namespaces_qualified {
+        if self.namespaces_qualified || self.search_enabled {
             self.pending_tool_completion.push(end);
         } else {
             self.emit(events, end)?;

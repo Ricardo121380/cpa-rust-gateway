@@ -67,6 +67,7 @@ impl fmt::Debug for FunctionIdentity {
 pub struct ResponsesToolSet {
     wire: Value,
     functions: BTreeSet<FunctionIdentity>,
+    web_search: bool,
 }
 
 impl ResponsesToolSet {
@@ -86,8 +87,19 @@ impl ResponsesToolSet {
             .ok_or_else(client_request_error)?;
         let mut functions = BTreeSet::new();
         let mut groups = BTreeSet::new();
+        let mut web_search = false;
         for tool in tools {
-            if tool.get("type").and_then(Value::as_str) == Some("namespace") {
+            if tool.get("type").and_then(Value::as_str) == Some("web_search") {
+                let fields = tool.as_object().ok_or_else(client_request_error)?;
+                if web_search
+                    || tool.to_string().len() > 256
+                    || fields.len() != 2
+                    || fields.get("external_web_access") != Some(&Value::Bool(false))
+                {
+                    return Err(client_request_error());
+                }
+                web_search = true;
+            } else if tool.get("type").and_then(Value::as_str) == Some("namespace") {
                 let fields = tool.as_object().ok_or_else(client_request_error)?;
                 if fields
                     .keys()
@@ -112,10 +124,14 @@ impl ResponsesToolSet {
                 insert_function(tool, None, &mut functions)?;
             }
         }
-        if groups.is_empty() || functions.len() > 256 {
+        if groups.is_empty() && !web_search || functions.len() > 256 {
             return Err(client_request_error());
         }
-        Ok(Self { wire, functions })
+        Ok(Self {
+            wire,
+            functions,
+            web_search,
+        })
     }
 
     /// Reads the existing envelope and refuses competing typed declarations.
@@ -147,12 +163,19 @@ impl ResponsesToolSet {
         &self.functions
     }
 
+    /// Whether the complete set declares the independently qualified hosted search tool.
+    #[must_use]
+    pub const fn has_web_search(&self) -> bool {
+        self.web_search
+    }
+
     /// Confirms history against full declarations and results against the exact preceding call ID.
     ///
     /// # Errors
     /// Rejects undeclared identities, orphan/reused calls, and contradictory optional result names.
     pub fn validate_history(&self, request: &CanonicalRequest) -> Result<(), GatewayError> {
         request.validate_tool_history()?;
+        crate::web_search::validate_history(request)?;
         validate_identity_history(request, Some(&self.functions))
     }
 }
@@ -205,16 +228,23 @@ impl fmt::Debug for ResponsesToolSet {
 /// Whether this request uses any part of the native namespace field family.
 #[must_use]
 pub fn uses_namespaces(request: &CanonicalRequest) -> bool {
-    request.extensions.get(RESPONSES_TOOLS).is_some()
-        || request
-            .messages
-            .iter()
-            .flat_map(|m| &m.content)
-            .any(|p| match p {
-                MessageContent::ToolCall(v) => v.extensions.get("namespace").is_some(),
-                MessageContent::ToolResult(v) => v.extensions.get("namespace").is_some(),
-                _ => false,
+    request.extensions.get(RESPONSES_TOOLS).is_some_and(|raw| {
+        serde_json::from_str::<Value>(raw.get()).is_ok_and(|v| {
+            v.as_array().is_some_and(|tools| {
+                tools
+                    .iter()
+                    .any(|tool| tool.get("type").and_then(Value::as_str) == Some("namespace"))
             })
+        })
+    }) || request
+        .messages
+        .iter()
+        .flat_map(|m| &m.content)
+        .any(|p| match p {
+            MessageContent::ToolCall(v) => v.extensions.get("namespace").is_some(),
+            MessageContent::ToolResult(v) => v.extensions.get("namespace").is_some(),
+            _ => false,
+        })
 }
 
 /// Whether any C1–C3 native tool identity member requires adapter/target/mode qualification.

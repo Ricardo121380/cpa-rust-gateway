@@ -55,6 +55,22 @@ fn native_item_metadata_checked(
         .get("type")
         .and_then(Value::as_str)
         .ok_or_else(stream_protocol_error)?;
+    if kind == "web_search_call" {
+        let value = Value::Object(item.clone());
+        crate::web_search::validate_item(&value, completed)?;
+        let mut extensions = RawExtensions::default();
+        extensions
+            .try_insert(
+                ITEM,
+                RawJson::from_json_string(value.to_string())
+                    .map_err(|_| stream_protocol_error())?,
+            )
+            .map_err(|_| stream_protocol_error())?;
+        return Ok(OutputItemMetadata {
+            item_id: id,
+            extensions,
+        });
+    }
     let allowed: &[&str] = match kind {
         "reasoning" => &[
             "id",
@@ -117,7 +133,7 @@ fn native_item_metadata_checked(
             item.entry("summary").or_insert_with(|| json!([]));
             for (field, kind) in [("summary", "summary_text"), ("content", "reasoning_text")] {
                 if let Some(parts) = item.get(field) {
-                    validate_parts(parts, kind, stage)?;
+                    validate_parts(parts, kind, completed, stage)?;
                 }
             }
         }
@@ -135,7 +151,7 @@ fn native_item_metadata_checked(
                 return Err(stream_protocol_error());
             }
             item.entry("content").or_insert_with(|| json!([]));
-            validate_parts(&item["content"], "output_text", stage)?;
+            validate_parts(&item["content"], "output_text", completed, stage)?;
         }
         Some("function_call") => {
             if item.get("namespace").is_some_and(|value| {
@@ -200,7 +216,12 @@ fn clear_item_content(item: &mut serde_json::Map<String, Value>) {
     }
 }
 
-fn validate_parts(value: &Value, kind: &str, stage: &mut &'static str) -> Result<(), GatewayError> {
+fn validate_parts(
+    value: &Value,
+    kind: &str,
+    completed: bool,
+    stage: &mut &'static str,
+) -> Result<(), GatewayError> {
     *stage = "parts_shape";
     let parts = value.as_array().ok_or_else(stream_protocol_error)?;
     if parts.len() > 64 {
@@ -247,7 +268,14 @@ fn validate_parts(value: &Value, kind: &str, stage: &mut &'static str) -> Result
             if kind != "output_text" {
                 return Err(stream_protocol_error());
             }
-            crate::annotations::validate(annotations)?;
+            if completed {
+                crate::annotations::validate_text(
+                    annotations,
+                    part["text"].as_str().ok_or_else(stream_protocol_error)?,
+                )?;
+            } else {
+                crate::annotations::validate(annotations)?;
+            }
         }
     }
     Ok(())
@@ -301,7 +329,14 @@ pub fn has_native_output_metadata(event: &CanonicalEvent) -> bool {
         CanonicalEvent::OutputItemStart(v) | CanonicalEvent::OutputItemEnd(v) => {
             (&v.extensions, ITEM)
         }
-        CanonicalEvent::TextDelta(v) => (&v.extensions, PART),
+        CanonicalEvent::TextDelta(v) => (
+            &v.extensions,
+            if v.extensions.get(crate::web_search::PHASE).is_some() {
+                crate::web_search::PHASE
+            } else {
+                PART
+            },
+        ),
         CanonicalEvent::ReasoningDelta(v) => (&v.extensions, PART),
         _ => return false,
     };
@@ -350,6 +385,11 @@ impl OpenAiResponsesSseEncoder {
                 )?]))
             }
             CanonicalEvent::OutputItemEnd(meta) => self.finish_native(meta).map(Some),
+            CanonicalEvent::TextDelta(v)
+                if v.extensions.get(crate::web_search::PHASE).is_some() =>
+            {
+                self.encode_search_phase(v).map(Some)
+            }
             CanonicalEvent::TextDelta(v) if has_native_output_metadata(event) => {
                 self.append_native(&v.extensions, &v.text, false).map(Some)
             }
@@ -426,6 +466,58 @@ impl OpenAiResponsesSseEncoder {
         self.response.as_ref()?.output.iter().position(|item| matches!(item,
             OutputItem::Native { value, .. } if value["type"] == "function_call" && value["call_id"] == call))
     }
+    fn encode_search_phase(
+        &mut self,
+        v: &gateway_core::TextDelta,
+    ) -> Result<Vec<SseFrame>, GatewayError> {
+        if !v.text.is_empty() || v.extensions.iter().len() != 1 {
+            return Err(stream_protocol_error());
+        }
+        let value: Value = serde_json::from_str(
+            v.extensions
+                .get(crate::web_search::PHASE)
+                .ok_or_else(stream_protocol_error)?
+                .get(),
+        )
+        .map_err(|_| stream_protocol_error())?;
+        let rank = crate::web_search::validate_phase(&value)?;
+        let id = value["item_id"]
+            .as_str()
+            .ok_or_else(stream_protocol_error)?;
+        let index = usize::try_from(
+            value["output_index"]
+                .as_u64()
+                .ok_or_else(stream_protocol_error)?,
+        )
+        .map_err(|_| stream_protocol_error())?;
+        let item = self.native_value(index)?;
+        let previous = self.search_phases.get(id).copied();
+        if item["id"] != id
+            || item["type"] != "web_search_call"
+            || item["status"] != "in_progress"
+            || !matches!(
+                (previous, rank),
+                (None, 1) | (Some(1), 2 | 3) | (Some(2), 3)
+            )
+        {
+            return Err(stream_protocol_error());
+        }
+        self.search_phases.insert(id.to_owned(), rank);
+        let mut data = value
+            .as_object()
+            .cloned()
+            .ok_or_else(stream_protocol_error)?;
+        data.remove("type");
+        let kind = match rank {
+            1 => "response.web_search_call.in_progress",
+            2 => "response.web_search_call.searching",
+            3 => "response.web_search_call.completed",
+            _ => return Err(stream_protocol_error()),
+        };
+        data.remove("sequence_number");
+        Ok(vec![frame(&mut self.next_sequence_number, kind, data)?])
+    }
+
     fn native_value(&self, index: usize) -> Result<&Value, GatewayError> {
         match self
             .response
@@ -555,7 +647,18 @@ impl OpenAiResponsesSseEncoder {
             return Err(stream_protocol_error());
         }
         let mut frames = Vec::new();
-        if value["type"] == "function_call" {
+        if value["type"] == "web_search_call" {
+            if old
+                .get("action")
+                .is_some_and(|action| value.get("action") != Some(action))
+                || self
+                    .search_phases
+                    .get(&meta.item_id)
+                    .is_some_and(|rank| *rank != 3)
+            {
+                return Err(stream_protocol_error());
+            }
+        } else if value["type"] == "function_call" {
             if old["call_id"] != value["call_id"]
                 || old["name"] != value["name"]
                 || old.get("namespace") != value.get("namespace")
@@ -573,67 +676,7 @@ impl OpenAiResponsesSseEncoder {
                     .ok_or_else(stream_protocol_error)?,
             )?);
         } else {
-            for field in ["content", "summary"] {
-                let empty = Vec::new();
-                let previous = old.get(field).and_then(Value::as_array).unwrap_or(&empty);
-                let final_parts = value.get(field).and_then(Value::as_array).unwrap_or(&empty);
-                if previous.len() > final_parts.len() {
-                    return Err(stream_protocol_error());
-                }
-                for (part_index, part) in final_parts.iter().enumerate() {
-                    let text = part["text"].as_str().ok_or_else(stream_protocol_error)?;
-                    let emitted = previous
-                        .get(part_index)
-                        .and_then(|v| v["text"].as_str())
-                        .unwrap_or("");
-                    let suffix = text
-                        .strip_prefix(emitted)
-                        .ok_or_else(stream_protocol_error)?;
-                    if !suffix.is_empty() || part_index >= previous.len() {
-                        frames.extend(self.append_native(
-                            &native_part_extensions(&meta.item_id, field, part_index)?,
-                            suffix,
-                            value["type"] == "reasoning",
-                        )?);
-                    }
-                    frames.extend(self.finish_annotations(
-                        &meta.item_id,
-                        part_index,
-                        previous.get(part_index),
-                        part,
-                    )?);
-                    let mut data = function_data(index, &meta.item_id);
-                    data.insert(
-                        if field == "summary" {
-                            "summary_index"
-                        } else {
-                            "content_index"
-                        }
-                        .into(),
-                        json!(part_index),
-                    );
-                    data.insert("text".into(), json!(text));
-                    let event = if field == "summary" {
-                        "response.reasoning_summary_text.done"
-                    } else if value["type"] == "reasoning" {
-                        "response.reasoning_text.done"
-                    } else {
-                        "response.output_text.done"
-                    };
-                    frames.push(frame(&mut self.next_sequence_number, event, data.clone())?);
-                    data.remove("text");
-                    data.insert("part".into(), part.clone());
-                    frames.push(frame(
-                        &mut self.next_sequence_number,
-                        if field == "summary" {
-                            "response.reasoning_summary_part.done"
-                        } else {
-                            "response.content_part.done"
-                        },
-                        data,
-                    )?);
-                }
-            }
+            frames.extend(self.finish_native_parts(meta, index, &old, &value)?);
         }
         *self.native_value_mut(index)? = value.clone();
         frames.push(output_item_done_frame(
@@ -641,6 +684,78 @@ impl OpenAiResponsesSseEncoder {
             index,
             value,
         )?);
+        Ok(frames)
+    }
+
+    fn finish_native_parts(
+        &mut self,
+        meta: &OutputItemMetadata,
+        index: usize,
+        old: &Value,
+        value: &Value,
+    ) -> Result<Vec<SseFrame>, GatewayError> {
+        let mut frames = Vec::new();
+        for field in ["content", "summary"] {
+            let empty = Vec::new();
+            let previous = old.get(field).and_then(Value::as_array).unwrap_or(&empty);
+            let final_parts = value.get(field).and_then(Value::as_array).unwrap_or(&empty);
+            if previous.len() > final_parts.len() {
+                return Err(stream_protocol_error());
+            }
+            for (part_index, part) in final_parts.iter().enumerate() {
+                let text = part["text"].as_str().ok_or_else(stream_protocol_error)?;
+                let emitted = previous
+                    .get(part_index)
+                    .and_then(|v| v["text"].as_str())
+                    .unwrap_or("");
+                let suffix = text
+                    .strip_prefix(emitted)
+                    .ok_or_else(stream_protocol_error)?;
+                if !suffix.is_empty() || part_index >= previous.len() {
+                    frames.extend(self.append_native(
+                        &native_part_extensions(&meta.item_id, field, part_index)?,
+                        suffix,
+                        value["type"] == "reasoning",
+                    )?);
+                }
+                frames.extend(self.finish_annotations(
+                    &meta.item_id,
+                    part_index,
+                    previous.get(part_index),
+                    part,
+                )?);
+                let mut data = function_data(index, &meta.item_id);
+                data.insert(
+                    if field == "summary" {
+                        "summary_index"
+                    } else {
+                        "content_index"
+                    }
+                    .into(),
+                    json!(part_index),
+                );
+                data.insert("text".into(), json!(text));
+                let event = if field == "summary" {
+                    "response.reasoning_summary_text.done"
+                } else if value["type"] == "reasoning" {
+                    "response.reasoning_text.done"
+                } else {
+                    "response.output_text.done"
+                };
+                frames.push(frame(&mut self.next_sequence_number, event, data.clone())?);
+                data.remove("text");
+                data.insert("part".into(), part.clone());
+                frames.push(frame(
+                    &mut self.next_sequence_number,
+                    if field == "summary" {
+                        "response.reasoning_summary_part.done"
+                    } else {
+                        "response.content_part.done"
+                    },
+                    data,
+                )?);
+            }
+        }
         Ok(frames)
     }
 

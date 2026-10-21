@@ -4287,6 +4287,8 @@ struct P12TransportProfiles {
     #[cfg(test)]
     build_namespaces_local_controlled: bool,
     #[cfg(test)]
+    build_search_local_controlled: bool,
+    #[cfg(test)]
     console: Option<Arc<dyn provider_grok::GrokConsoleTransport>>,
     streaming: UpstreamTransportProfile,
     non_streaming: UpstreamTransportProfile,
@@ -4363,6 +4365,8 @@ impl P12TransportProfiles {
             build: None,
             #[cfg(test)]
             build_namespaces_local_controlled: false,
+            #[cfg(test)]
+            build_search_local_controlled: false,
             #[cfg(test)]
             console: None,
             streaming,
@@ -4706,19 +4710,24 @@ impl EndpointAttemptDriver {
         }
     }
 
-    fn validate_namespace_candidate(
+    fn validate_native_tool_candidate(
         &self,
         runtime: &EndpointRuntime,
         candidate: &SnapshotRouteCandidate,
         target: ProtocolFormat,
     ) -> Result<(), ProtocolTransformRejection> {
-        if protocol_openai_responses::requires_tool_identity_qualification(&self.request) {
+        let namespaces =
+            protocol_openai_responses::requires_tool_identity_qualification(&self.request);
+        let search = protocol_openai_responses::web_search::requires_qualification(&self.request);
+        if namespaces || search {
             #[cfg(not(test))]
             let qualified = false;
             #[cfg(test)]
-            let qualified = runtime.transports.build_namespaces_local_controlled
+            let qualified = (!namespaces || runtime.transports.build_namespaces_local_controlled)
+                && (!search || runtime.transports.build_search_local_controlled)
                 && runtime.transports.build.is_some();
             if !qualified
+                || search && self.client_transport != ResponsesClientTransport::Http
                 || !matches!(runtime.adapter, EndpointAdapter::GrokBuildResponses)
                 || self.client_protocol != ProtocolFormat::OpenAiResponses
                 || target != ProtocolFormat::OpenAiResponses
@@ -4748,7 +4757,7 @@ impl EndpointAttemptDriver {
             .endpoints
             .get(candidate.endpoint_id())
             .ok_or(ProtocolTransformRejection::PairUnregistered)?;
-        self.validate_namespace_candidate(runtime, candidate, target)?;
+        self.validate_native_tool_candidate(runtime, candidate, target)?;
         if self.client_transport == ResponsesClientTransport::WebSocket
             && !candidate
                 .effective_capabilities()
@@ -5393,6 +5402,14 @@ impl EndpointAttemptDriver {
             && runtime.transports.build.is_some()
         {
             adapter.with_local_controlled_namespaces()
+        } else {
+            adapter
+        };
+        #[cfg(test)]
+        let adapter = if runtime.transports.build_search_local_controlled
+            && runtime.transports.build.is_some()
+        {
+            adapter.with_local_controlled_web_search()
         } else {
             adapter
         };

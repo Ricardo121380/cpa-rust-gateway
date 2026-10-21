@@ -40,6 +40,7 @@ pub struct ToolExecutionConstraints {
     pub(crate) parallel: Option<bool>,
     pub(crate) selection: Option<ToolSelection>,
     pub(crate) declared: BTreeSet<FunctionIdentity>,
+    pub(crate) web_search: bool,
 }
 
 impl ToolExecutionConstraints {
@@ -53,6 +54,7 @@ impl ToolExecutionConstraints {
     ) -> Result<Self, ProtocolTransformRejection> {
         let invalid = || ProtocolTransformRejection::ToolHistoryUnsupported;
         let mut declared = BTreeSet::new();
+        let mut web_search = false;
         for tool in &request.tools {
             if tool.name.is_empty()
                 || tool.name.len() > 64
@@ -73,9 +75,12 @@ impl ToolExecutionConstraints {
             }
             tools.validate_history(request).map_err(|_| invalid())?;
             declared.clone_from(tools.functions());
+            web_search = tools.has_web_search();
         } else if protocol_openai_responses::uses_namespaces(request) {
             return Err(invalid());
         } else if source == ProtocolFormat::OpenAiResponses {
+            protocol_openai_responses::web_search::validate_history(request)
+                .map_err(|_| invalid())?;
             protocol_openai_responses::validate_identity_history(request, None)
                 .map_err(|_| invalid())?;
         }
@@ -95,7 +100,9 @@ impl ToolExecutionConstraints {
             .map(|raw| decode_selection(raw, source, &mut parallel))
             .transpose()?;
         match &selection {
-            Some(ToolSelection::Required) if declared.is_empty() => return Err(invalid()),
+            Some(ToolSelection::Required) if declared.is_empty() && !web_search => {
+                return Err(invalid());
+            }
             Some(ToolSelection::Named(name))
                 if !declared.contains(&FunctionIdentity::flat(name)) =>
             {
@@ -107,6 +114,7 @@ impl ToolExecutionConstraints {
             parallel,
             selection,
             declared,
+            web_search,
         })
     }
 
@@ -154,6 +162,7 @@ impl fmt::Debug for ToolExecutionConstraints {
             .field("parallel", &self.parallel)
             .field("selection", &self.selection)
             .field("declared_count", &self.declared.len())
+            .field("web_search", &self.web_search)
             .finish()
     }
 }

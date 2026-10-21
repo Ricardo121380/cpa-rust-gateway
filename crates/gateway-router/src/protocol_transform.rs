@@ -667,9 +667,15 @@ fn validate_target_content(
             return Err(ProtocolTransformRejection::UnknownContentExtensions);
         }
         MessageContent::Opaque(content)
-            if !(target == ProtocolFormat::AnthropicMessages
+            if !(target == ProtocolFormat::OpenAiResponses
                 && role == "assistant"
-                && valid_anthropic_thinking_history(content.raw())) =>
+                && protocol_openai_responses::web_search::history_item(
+                    &MessageContent::Opaque(content.clone()),
+                )
+                .is_ok_and(|v| v.is_some())
+                || target == ProtocolFormat::AnthropicMessages
+                    && role == "assistant"
+                    && valid_anthropic_thinking_history(content.raw())) =>
         {
             return Err(ProtocolTransformRejection::OpaqueContent);
         }
@@ -1044,6 +1050,7 @@ fn valid_responses_content(role: &str, content: &[MessageContent]) -> bool {
                 .iter()
                 .all(|part| matches!(part, MessageContent::Text(_)))
                 || matches!(content, [MessageContent::Reasoning(_)])
+                || matches!(content, [part] if protocol_openai_responses::web_search::history_item(part).is_ok_and(|v| v.is_some()))
                 || valid_assistant_tool_history(content, ProtocolFormat::OpenAiResponses)
         }
         "tool" => valid_tool_result_message(content, ProtocolFormat::OpenAiResponses),
@@ -1075,10 +1082,9 @@ fn capability_rejection(
     }
 
     let has_tools = !request.tools.is_empty()
-        || request
-            .extensions
-            .get(protocol_openai_responses::RESPONSES_TOOLS)
-            .is_some()
+        || protocol_openai_responses::ResponsesToolSet::from_request(request)
+            .map_err(|_| ProtocolTransformRejection::UnknownToolDefinitionExtensions)?
+            .is_some_and(|tools| !tools.functions().is_empty())
         || request.messages.iter().any(|message| {
             message.content.iter().any(|content| {
                 matches!(

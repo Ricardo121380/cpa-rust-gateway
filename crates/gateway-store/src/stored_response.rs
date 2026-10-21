@@ -1626,6 +1626,91 @@ mod tests {
     }
 
     #[test]
+    fn hosted_search_extensions_reopen_in_payload_v1_without_presence_loss() -> TestResult {
+        use gateway_core::{
+            CanonicalMessage, MessageContent, OpaqueContent, OutputItemMetadata, RawJson,
+        };
+        let mut request = request()?;
+        request.tools.clear();
+        request.extensions.try_insert(
+            "openai.responses.tools",
+            RawJson::from_json_string(
+                r#"[{"type":"web_search","external_web_access":false}]"#.into(),
+            )?,
+        )?;
+        let raw = r#"{"id":"ws-history","type":"web_search_call","status":"completed","action":{"type":"open_page","url":null}}"#;
+        let mut history = OpaqueContent::new(RawJson::from_json_string(raw.into())?);
+        history.extensions.try_insert(
+            "openai.responses.hosted_history",
+            RawJson::from_json_string("true".into())?,
+        )?;
+        request.messages.push(CanonicalMessage {
+            role: MessageRole("assistant".into()),
+            content: vec![MessageContent::Opaque(history)],
+            extensions: RawExtensions::default(),
+        });
+        let mut events = canonical_response("resp-hosted", "answer")?.into_events();
+        let mut extensions = RawExtensions::default();
+        extensions.try_insert(
+            "openai.responses.output_item",
+            RawJson::from_json_string(raw.into())?,
+        )?;
+        let end = OutputItemMetadata {
+            item_id: "ws-history".into(),
+            extensions,
+        };
+        let mut start = end.clone();
+        start.extensions = RawExtensions::default();
+        start.extensions.try_insert(
+            "openai.responses.output_item",
+            RawJson::from_json_string(raw.replace("completed", "in_progress"))?,
+        )?;
+        events.splice(
+            2..2,
+            [
+                CanonicalEvent::OutputItemStart(start),
+                CanonicalEvent::OutputItemEnd(end),
+            ],
+        );
+        let payload = StoredResponsePayload::try_new(
+            lineage()?,
+            "model-a",
+            1,
+            request,
+            CanonicalResponse::try_new(events)?,
+        )?;
+        let path = temporary_database_path();
+        let owner = client_key("client-a")?;
+        {
+            let store = SqliteStoredResponseStore::open(&path, secret_store(1, &[(1, 0x11)])?)?;
+            assert_eq!(
+                store.put_owned(&owner, 1_000, &payload)?,
+                StoredResponsePutOutcome::Stored
+            );
+        }
+        {
+            let store =
+                SqliteStoredResponseStore::open(&path, secret_store(2, &[(1, 0x11), (2, 0x22)])?)?;
+            let record = store
+                .get_owned(&owner, payload.response_id()?, 1_001)?
+                .ok_or("reopened")?;
+            assert_eq!(record.payload(), &payload);
+            assert_eq!(record.payload().payload_version, 1);
+            assert_eq!(
+                store.put_owned(&owner, 1_000, record.payload())?,
+                StoredResponsePutOutcome::Replayed
+            );
+            assert!(
+                store
+                    .get_owned(&client_key("foreign")?, payload.response_id()?, 1_001)?
+                    .is_none()
+            );
+        }
+        fs::remove_file(path)?;
+        Ok(())
+    }
+
+    #[test]
     fn summary_only_and_legacy_effort_payloads_reopen_without_rewriting_or_replay_conflicts()
     -> TestResult {
         const LEGACY: &str = r#"{"requested_model":"model-a","messages":[],"tools":[],"thinking":{"effort":"medium","extensions":{"summary":"auto"}},"extensions":{}}"#;

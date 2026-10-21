@@ -1,0 +1,25 @@
+{
+  "head": "e16e120267c52b6dfb196df2976ea79a88f6ffe0",
+  "branch": "feature/62-client-metadata",
+  "expected_head_matches": true,
+  "index_initially_empty": true,
+  "inherited_input_count": 18,
+  "source_inputs_before_count": 7103,
+  "inherited_backups": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c5-20261021/inherited-backup",
+  "manifest_before_sha256": "1b1a37ce8d8fcafa51d379ffae2ff33fff091c5a48c0f3458e47b99c12b22355",
+  "lock_before_sha256": "ee3d735f0f7aa364f3f4675e75a87751c8ad3784f0788ac244c4d391ce479cce",
+  "toolchain_before_sha256": "8e390d6a0838315f972690f46ef8bae8b7ecc9ee6c1ed70140ef852869c2482e",
+  "github": {
+    "issue_62": "OPEN",
+    "issue_61": "OPEN",
+    "issue_62_blocked_by": [
+      61
+    ],
+    "branch_prs": [],
+    "origin_branch_absent": true,
+    "main": "c6a981b0f9eda09b0a2e58df11d272adf14f9552",
+    "develop": "c39bc07b1d53f831199f21cc5ae5062c987670b2"
+  },
+  "remote_mutations": "NONE",
+  "provider_calls": "NOT_RUN"
+}

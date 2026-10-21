@@ -15,6 +15,7 @@ mod annotations;
 mod native_output;
 mod tool_set;
 mod upstream_response;
+pub mod web_search;
 pub use annotations::validate as validate_annotations;
 pub use native_output::{
     has_native_output_metadata, native_annotation_extensions, native_item_metadata,
@@ -538,6 +539,20 @@ fn decode_input_item(item: &Value) -> Result<CanonicalMessage, GatewayError> {
             extensions: RawExtensions::default(),
         }),
         Some("function_call") => decode_function_call(item),
+        Some("web_search_call") => {
+            let value = Value::Object(item.clone());
+            web_search::validate_item(&value, true).map_err(|_| client_request_error())?;
+            let mut history = OpaqueContent::new(raw_json(&value)?);
+            history
+                .extensions
+                .try_insert(web_search::HISTORY, raw_json(&json!(true))?)
+                .map_err(|_| client_request_error())?;
+            Ok(CanonicalMessage {
+                role: MessageRole("assistant".into()),
+                content: vec![MessageContent::Opaque(history)],
+                extensions: RawExtensions::default(),
+            })
+        }
         Some("function_call_output") => decode_function_call_output(item),
         Some("message") | None if item.contains_key("role") => decode_message_item(item),
         _ => Err(client_request_error()),
@@ -575,7 +590,8 @@ fn decode_content_part(part: &Value) -> Result<MessageContent, GatewayError> {
     match object.get("type").and_then(Value::as_str) {
         Some("input_text" | "output_text") => {
             if let Some(annotations) = object.get("annotations") {
-                annotations::validate(annotations).map_err(|_| client_request_error())?;
+                annotations::validate_text(annotations, required_string(object, "text")?)
+                    .map_err(|_| client_request_error())?;
             }
             let text = required_string(object, "text")?.to_owned();
             Ok(MessageContent::Text(TextContent {
@@ -643,9 +659,12 @@ fn decode_tool_declarations(
         .get("tools")
         .filter(|value| {
             value.as_array().is_some_and(|tools| {
-                tools
-                    .iter()
-                    .any(|tool| tool.get("type").and_then(Value::as_str) == Some("namespace"))
+                tools.iter().any(|tool| {
+                    matches!(
+                        tool.get("type").and_then(Value::as_str),
+                        Some("namespace" | "web_search")
+                    )
+                })
             })
         })
         .map(|value| {
@@ -1126,6 +1145,7 @@ pub struct OpenAiResponsesSseEncoder {
     lifecycle: CanonicalEventState,
     response: Option<ResponseState>,
     next_sequence_number: u64,
+    search_phases: BTreeMap<String, u8>,
     terminal: Option<ResponsesTerminal>,
 }
 
@@ -1138,6 +1158,7 @@ impl OpenAiResponsesSseEncoder {
             lifecycle: CanonicalEventState::default(),
             response: None,
             next_sequence_number: 1,
+            search_phases: BTreeMap::new(),
             terminal: None,
         }
     }
@@ -1156,6 +1177,7 @@ impl OpenAiResponsesSseEncoder {
 
         let response_before = self.response.clone();
         let sequence_before = self.next_sequence_number;
+        let phases_before = self.search_phases.clone();
         let terminal_before = self.terminal;
         let result = self.encode_valid_event(event);
         let frames = match result {
@@ -1163,6 +1185,7 @@ impl OpenAiResponsesSseEncoder {
             Err(error) => {
                 self.response = response_before;
                 self.next_sequence_number = sequence_before;
+                self.search_phases = phases_before;
                 self.terminal = terminal_before;
                 return Err(error);
             }
@@ -1415,6 +1438,7 @@ impl fmt::Debug for OpenAiResponsesSseEncoder {
             .field("lifecycle", &self.lifecycle)
             .field("response_started", &self.response.is_some())
             .field("next_sequence_number", &self.next_sequence_number)
+            .field("search_phase_count", &self.search_phases.len())
             .field("terminal", &self.terminal.is_some())
             .finish()
     }

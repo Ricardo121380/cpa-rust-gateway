@@ -252,6 +252,7 @@ impl GrokBuildTransport for GrokBuildUpstreamTransport {
 #[derive(Clone)]
 pub struct GrokBuildInferenceAdapter {
     namespaces_qualified: bool,
+    web_search_qualified: bool,
     provider_id: ProviderId,
     credential: GrokBuildCredential,
     upstream_model: String,
@@ -287,6 +288,7 @@ impl GrokBuildInferenceAdapter {
             ProviderId::try_new(GROK_BUILD_PROVIDER_ID.to_owned()).map_err(|_| internal_error())?;
         Ok(Self {
             namespaces_qualified: false,
+            web_search_qualified: false,
             provider_id,
             credential,
             upstream_model,
@@ -312,6 +314,14 @@ impl GrokBuildInferenceAdapter {
     #[must_use]
     pub fn with_local_controlled_namespaces(mut self) -> Self {
         self.namespaces_qualified = true;
+        self
+    }
+
+    /// Qualifies C5 only for an owning local controlled assembly, independently of namespaces.
+    #[cfg(feature = "controlled-test-support")]
+    #[must_use]
+    pub fn with_local_controlled_web_search(mut self) -> Self {
+        self.web_search_qualified = true;
         self
     }
 
@@ -345,6 +355,7 @@ impl fmt::Debug for GrokBuildInferenceAdapter {
         formatter
             .debug_struct("GrokBuildInferenceAdapter")
             .field("local_controlled_namespaces", &self.namespaces_qualified)
+            .field("local_controlled_web_search", &self.web_search_qualified)
             .field("model_binding", &self.model_binding.is_some())
             .field("reasoning_owner", &self.reasoning_owner.is_some())
             .field("provider_id", &self.provider_id)
@@ -386,6 +397,7 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
         let reasoning_owner = self.reasoning_owner.clone();
         let model_binding = self.model_binding.clone();
         let namespaces_qualified = self.namespaces_qualified;
+        let web_search_qualified = self.web_search_qualified;
 
         Box::pin(async move {
             let binding = model_binding.map_or_else(
@@ -411,6 +423,9 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
                         .map_err(|_| provider_protocol_error())
                 })
                 .transpose()?;
+            let search_enabled = web_search_qualified
+                && protocol_openai_responses::ResponsesToolSet::from_request(&request)?
+                    .is_some_and(|tools| tools.has_web_search());
             let outbound = GrokBuildResponsesRequestBuilder::build_owned(
                 &credential,
                 &upstream_model,
@@ -419,6 +434,7 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
                 cache_identity.as_ref(),
                 reasoning_owner.as_ref(),
                 namespaces_qualified,
+                web_search_qualified,
             )?;
             let response = transport
                 .send_with_egress_attempt(outbound, egress_attempt.clone())
@@ -462,6 +478,7 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
                         reasoning_owner,
                         Some(expected_native_model),
                         namespaces_qualified,
+                        search_enabled,
                     )?;
                     let events = decoded.into_events();
                     let source =
@@ -476,6 +493,7 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
                         reasoning_owner,
                         expected_native_model,
                         namespaces_qualified,
+                        search_enabled,
                     )) as Box<dyn CanonicalEventSource>;
                     Ok(wrap_egress_source(source, egress_attempt))
                 }
@@ -552,12 +570,14 @@ impl StreamingEventSource {
         owner: Option<crate::GrokBuildReasoningOwner>,
         expected_model: String,
         namespaces_qualified: bool,
+        search_enabled: bool,
     ) -> Self {
         Self {
             body,
             decoder: GrokBuildResponsesStreamDecoder::new()
                 .with_reasoning_owner(owner)
                 .with_namespace_qualification(namespaces_qualified)
+                .with_search_declaration(search_enabled)
                 .with_expected_model(expected_model),
             pending: VecDeque::new(),
             response_started: false,
