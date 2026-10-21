@@ -1,0 +1,18 @@
+{
+  "candidate": "e4d5d4c1fedd2d3fa394a5a155eeb528d249c173",
+  "exit": 0,
+  "elapsed_seconds": 826.317,
+  "log_sha256": "ed5176da23aa5edbd9a3b4a10d82c07674bc5198f8710e61a644b3a2fe45a397",
+  "rust_passed": 1641,
+  "rust_failed": 0,
+  "rust_ignored": 17,
+  "suites": 131,
+  "full_binary": {
+    "actual_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-codex-combined-20261022/target-full-final/debug/deps/gateway-a461d4598ca4d623",
+    "retained_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-codex-combined-20261022/binaries/gateway-full-e4d5d4c1",
+    "sha256": "cc61b1eefc8c8779c155039a1c0c2611a5afaf6a3b8d60de979d0dd82ac42418"
+  },
+  "bare_tree": false,
+  "overlays": 18,
+  "checks_passed": 45
+}

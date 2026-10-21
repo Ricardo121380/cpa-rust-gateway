@@ -1,0 +1,20 @@
+{
+  "base": "e8a669b67bebffc09727f749d6e5116d037767a1",
+  "candidate": "e4d5d4c1fedd2d3fa394a5a155eeb528d249c173",
+  "initial_full_source_paths": 23,
+  "initial_review_candidate": "8de2d1a18dca8d598160410f84f4930a1277ea2f",
+  "initial_standards": "PASS (0 hard, 0 judgement)",
+  "initial_spec_findings": 2,
+  "findings_red_green": "spec-c4-gate-red/green.json and spec-sse-frame-red/green.log",
+  "final_delta_review_paths": 5,
+  "final_delta_standards": "PASS (0 hard, 0 judgement)",
+  "final_delta_spec": "Both P2 closed; no new wrong/missing/scope creep",
+  "remaining_actionable_findings": 0,
+  "scope": "static source verification; final runtime validation separately required",
+  "agents": [
+    "/root/combined_standards_20261022",
+    "/root/combined_spec_20261022",
+    "/root/oracle_standards_20261022",
+    "/root/oracle_spec_20261022"
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "issues": {
+    "62": {
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/62",
+      "title": "Codex 与 Pi 的 Responses 受控工具闭环",
+      "state": "open",
+      "updated_at": "2026-10-19T08:21:40Z",
+      "native_blocked_by": [
+        {
+          "number": 61,
+          "state": "open",
+          "title": "标准 Responses 的 JSON、SSE 与工具闭环"
+        }
+      ]
+    },
+    "61": {
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/61",
+      "title": "标准 Responses 的 JSON、SSE 与工具闭环",
+      "state": "open",
+      "updated_at": "2026-10-18T15:19:58Z",
+      "native_blocked_by": [
+        {
+          "number": 59,
+          "state": "closed",
+          "title": "Grok Build 失败请求的完整加密诊断闭环"
+        },
+        {
+          "number": 60,
+          "state": "closed",
+          "title": "Grok Build 模型身份三段核对与准确拒绝"
+        }
+      ]
+    }
+  },
+  "remote_refs": {
+    "exit": 0,
+    "refs": "c39bc07b1d53f831199f21cc5ae5062c987670b2\trefs/heads/develop\nc6a981b0f9eda09b0a2e58df11d272adf14f9552\trefs/heads/main\n",
+    "stderr": null
+  },
+  "writes": false
+}

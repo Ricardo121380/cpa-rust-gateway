@@ -1,0 +1,59 @@
+{
+  "candidate": "e4d5d4c1fedd2d3fa394a5a155eeb528d249c173",
+  "report_sha256": "62d32277bca103b60951bfb5b24828013c6c465856d6de0118c37a1b4a886e59",
+  "files": {
+    "actual-cli-summary.json": {
+      "bytes": 343127,
+      "sha256": "0a79e7eca5acc8fccd65c44869550419f26820a161e8d90f92780d6f90e3cc7b"
+    },
+    "actual-field-observations.json": {
+      "bytes": 50574,
+      "sha256": "a51c7ebb1ccf030d14f4aceb5cb5e91cf2deb7d6de1907cd637834ebfb34c639"
+    },
+    "candidate-binding.json": {
+      "bytes": 7820,
+      "sha256": "48b2240510f45c8a5784b74fa99db004f2cae916abd488fae4b222b0a9df9466"
+    },
+    "full-summary.json": {
+      "bytes": 724,
+      "sha256": "1fb17585bbc1e98137423dbe9ea55d655f4c8265468bce8cbea9473c82c17d7d"
+    },
+    "github-status.json": {
+      "bytes": 1194,
+      "sha256": "24879fa410fc65858728f369d62483e8dd07dbeada54f92b31514fbbf8327742"
+    },
+    "historical-evidence-reference.json": {
+      "bytes": 294,
+      "sha256": "bb10565750d6eb61d0c758c7de2e29169fe460c14495cc8a3065a9279e0c99cc"
+    },
+    "input-stability.json": {
+      "bytes": 149,
+      "sha256": "9598f29f3b48d3826ea1fffd6ea849d69fe7432f80387a85ed5f0b1d84ad0c34"
+    },
+    "oracle-regressions.json": {
+      "bytes": 1886,
+      "sha256": "a13d28f123c34f3c8ddf542687a409c3172d31bee982d5cf30981f1d5bce6179"
+    },
+    "preservation.json": {
+      "bytes": 7409,
+      "sha256": "fbad7da975dd5d3a2368b6a9bc4de5bd8881980c5b4ae522cb775d4db5db10f6"
+    },
+    "reviews-final.json": {
+      "bytes": 853,
+      "sha256": "bd1cb6333f87c225444dccdb0c4a507860cfd306cb2c694088f8760e06e5a3a5"
+    },
+    "source-manifest.json": {
+      "bytes": 6789,
+      "sha256": "f4222e624714dd3e9505dca875c95b63e1fe7027ea9c89bec4d7a4f7506af90e"
+    },
+    "validation-summary.json": {
+      "bytes": 3667,
+      "sha256": "392fbda2ee6f72c2de43a2d3297ff8dcf1dfcb0853974d47a9a3595df9729165"
+    }
+  },
+  "private_evidence_root": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-codex-combined-20261022",
+  "raw_manifest_sha256": "0faeaf83eea6731b897e045cc44ba99b2181b4ee0023450782e11761e5361a9a",
+  "retained_raw_receipts": 489,
+  "historical_raw_receipts": 416,
+  "published_remotely": false
+}

@@ -1,0 +1,36 @@
+{
+  "candidate": "e4d5d4c1fedd2d3fa394a5a155eeb528d249c173",
+  "initial_spec_p2": 2,
+  "closed_after_independent_recheck": 2,
+  "c4_mutation_is_actual_client_evidence": false,
+  "receipts": {
+    "spec-c4-gate-red.json": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-codex-combined-20261022/spec-c4-gate-red.json",
+      "sha256": "d2e4e9ebeee86e3db25307cee893688c115a6e9b90901a8994e3ea3ae35525e9"
+    },
+    "spec-c4-gate-green.json": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-codex-combined-20261022/spec-c4-gate-green.json",
+      "sha256": "92b64e5b4d615d062cbe98b6e6da3a2ceef80617e54c4971cf16ec83393b62a3"
+    },
+    "spec-sse-frame-red.log": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-codex-combined-20261022/spec-sse-frame-red.log",
+      "sha256": "87701f4e4d9aee1635032c8e096e232d3859b79659af197980319be4fdba78a2"
+    },
+    "spec-sse-frame-green.log": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-codex-combined-20261022/spec-sse-frame-green.log",
+      "sha256": "498f603ef3fa344772cb28eb6dc4a9a23adc6f7eab59327c649450b5e45dbcdd"
+    },
+    "spec-oracle-python-green.log": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-codex-combined-20261022/spec-oracle-python-green.log",
+      "sha256": "80814319d0a0cc0b9c96beec289b68107e7bfef5b6b7e1b8b344df518b4f9c4d"
+    },
+    "final-python-oracles.log": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-codex-combined-20261022/final-python-oracles.log",
+      "sha256": "80814319d0a0cc0b9c96beec289b68107e7bfef5b6b7e1b8b344df518b4f9c4d"
+    },
+    "reviews-initial.json": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-codex-combined-20261022/reviews-initial.json",
+      "sha256": "c3a9529ca3a3bd021d2c69eec82f28d71710fd28357ac9b4595bf19b8c70e35a"
+    }
+  }
+}

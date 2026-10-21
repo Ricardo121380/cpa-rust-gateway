@@ -1,0 +1,110 @@
+{
+  "candidate": "e4d5d4c1fedd2d3fa394a5a155eeb528d249c173",
+  "affected_development_checks": {
+    "affected-codecs.log": {
+      "passed": 285,
+      "failed": 0,
+      "ignored": 1,
+      "sha256": "397f1e55d02ca936dabaefacae29f8631e695f61698deec7e34c654025f5a8e7"
+    },
+    "affected-provider-2.log": {
+      "passed": 33,
+      "failed": 0,
+      "ignored": 0,
+      "sha256": "652844b41d46baa89f5620c7932f951bee28afb42dfd7a609032c6c2977c9baf"
+    },
+    "affected-public-2.log": {
+      "passed": 80,
+      "failed": 0,
+      "ignored": 2,
+      "sha256": "7e86a8b80bced6b944d40036beb444f4fbc4e32eac8aadf6d74e07b52564aa28"
+    }
+  },
+  "affected_clippy": "PASS --all-targets --all-features -D warnings",
+  "final_python_oracles": {
+    "candidate": "e4d5d4c1fedd2d3fa394a5a155eeb528d249c173",
+    "exit": 0,
+    "tests": 3,
+    "python": "3.9.6 (default, Aug 25 2026, 21:26:21) \n[Clang 21.0.0 (clang-2100.3.34.2)]",
+    "executable": "/Library/Developer/CommandLineTools/usr/bin/python3",
+    "actual_client_driver_python": "/usr/bin/python3"
+  },
+  "full_steps": [
+    "Shell syntax",
+    "CI workflow",
+    "Release artifact workflow",
+    "CI change classifier",
+    "Plan state",
+    "Plan state guard",
+    "Canary thresholds",
+    "Caddy split",
+    "Caddy split guard",
+    "Management SPA dependencies",
+    "Benchmark baseline comparator",
+    "Soak runner argument guard",
+    "Soak receipt checker",
+    "Quality installer cache behavior",
+    "Release artifact verifier",
+    "P12 systemd unit",
+    "P12 OpenAI differential graph",
+    "P12 OpenAI differential classifier",
+    "P12 OpenClaw migration dry-run",
+    "P12 G1 production graph",
+    "P12 G1 live harness",
+    "P12 G1 Chat SSE classifier",
+    "P12 G1 Responses JSON classifier",
+    "P12 G1 Messages SSE classifier",
+    "P12 grok2api memory export",
+    "P12 Autoreg Console memory export",
+    "P12 production observer",
+    "P12 Grok CPAR curl E2E harness",
+    "CPAR new-build acceptance oracle",
+    "Management SPA",
+    "Rust format",
+    "Clippy",
+    "Rust tests",
+    "P12 serve envelope",
+    "Agent multi-turn and stream regression",
+    "Source policy",
+    "Secret scanner test",
+    "Crate boundaries",
+    "Document links",
+    "Contract tests",
+    "Tracked secret scan",
+    "Git whitespace",
+    "Quality tool versions",
+    "Dependency policy",
+    "RustSec audit"
+  ],
+  "full": {
+    "candidate": "e4d5d4c1fedd2d3fa394a5a155eeb528d249c173",
+    "exit": 0,
+    "elapsed_seconds": 826.317,
+    "log_sha256": "ed5176da23aa5edbd9a3b4a10d82c07674bc5198f8710e61a644b3a2fe45a397",
+    "rust_passed": 1641,
+    "rust_failed": 0,
+    "rust_ignored": 17,
+    "suites": 131,
+    "full_binary": {
+      "actual_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-codex-combined-20261022/target-full-final/debug/deps/gateway-a461d4598ca4d623",
+      "retained_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-codex-combined-20261022/binaries/gateway-full-e4d5d4c1",
+      "sha256": "cc61b1eefc8c8779c155039a1c0c2611a5afaf6a3b8d60de979d0dd82ac42418"
+    },
+    "bare_tree": false,
+    "overlays": 18,
+    "checks_passed": 45
+  },
+  "strict_actual_cli": {
+    "exit": 0,
+    "elapsed_seconds": 54.507,
+    "raw": "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-combined-final-e4d5d4c1-20261022",
+    "args": [
+      "python3",
+      "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/scripts/acceptance/cpar62-cli.py",
+      "--require-prompt-release",
+      "--require-codex-success",
+      "--output",
+      "/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-combined-final-e4d5d4c1-20261022"
+    ]
+  }
+}
