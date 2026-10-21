@@ -1,0 +1,18 @@
+{
+  "RUST_TEST_THREADS": null,
+  "RUSTFLAGS": null,
+  "CARGO_BUILD_JOBS": null,
+  "CARGO_INCREMENTAL": null,
+  "CARGO_PROFILE_TEST_OPT_LEVEL": null,
+  "CARGO_PROFILE_DEV_OPT_LEVEL": null,
+  "RUSTUP_TOOLCHAIN": null,
+  "CARGO_TARGET_DIR": null,
+  "CHECK_REPORT_PATH": null,
+  "full_command_overrides": {
+    "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c6-20261021/target-full-final",
+    "CHECK_REPORT_PATH": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/output/cpar62-c6-20261021/full-check.md"
+  },
+  "workspace_cargo_config": {
+    "build.incremental": false
+  }
+}

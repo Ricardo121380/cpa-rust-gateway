@@ -1,0 +1,122 @@
+{
+  "candidate": "8b192fd99a6d33e0517bcf12eb3f8a8ffec8f343",
+  "candidate_tree": "8fcf7adebd53801245f6cecf2a489c401c1918a8",
+  "validation_worktree": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-c6-full-20261021-8b192fd9",
+  "target_dir": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c6-20261021/target-full-final",
+  "overlay": [
+    {
+      "path": "AGENTS.md",
+      "kind": "tracked",
+      "mode": "0o644",
+      "sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002"
+    },
+    {
+      "path": "CONTEXT.md",
+      "kind": "untracked",
+      "mode": "0o644",
+      "sha256": "eaa545ede563d661387baff18ebd21e8acc3a9661000c4123eec6bf2d1779e21"
+    },
+    {
+      "path": "README.md",
+      "kind": "tracked",
+      "mode": "0o644",
+      "sha256": "376de5be81e5b8ac7b0ad6ac25b4e186db18321a0cd89057d7432ef5524219f9"
+    },
+    {
+      "path": "README.zh-CN.md",
+      "kind": "tracked",
+      "mode": "0o644",
+      "sha256": "d5ae62085c88f4200b19f973b675b10fad63c0e86ed42178969ec869bfbe3b76"
+    },
+    {
+      "path": "docs/06-development-plan.md",
+      "kind": "tracked",
+      "mode": "0o644",
+      "sha256": "322ac4c20b44eedf1b3e7bdb3ed1bfc7b9e12c9cf2192b3b85ffe274061b3fe5"
+    },
+    {
+      "path": "docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md",
+      "kind": "tracked",
+      "mode": "0o644",
+      "sha256": "ad35d32a70725f9da6b412c0100e920eb52cd560f67faefbb9013b3ad1834bcb"
+    },
+    {
+      "path": "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+      "kind": "tracked",
+      "mode": "0o644",
+      "sha256": "a426616e9a4cbb875e3eb081e40160357433817306ff045ed5de3c3797c39131"
+    },
+    {
+      "path": "docs/adr/ADR-0106-native-fidelity-profile.md",
+      "kind": "tracked",
+      "mode": "0o644",
+      "sha256": "8e770df75f08f2ce4c4471cfaa58365bc8e20715880dc7239e7d98438d530409"
+    },
+    {
+      "path": "docs/adr/ADR-0107-standard-response-metadata-separation.md",
+      "kind": "untracked",
+      "mode": "0o644",
+      "sha256": "dad1f8391de1a6d82a0c280189346f1a065bc04ee84f88502859e766b485938e"
+    },
+    {
+      "path": "docs/adr/ADR-0108-build-summary-standard-messages.md",
+      "kind": "untracked",
+      "mode": "0o644",
+      "sha256": "a8088457f16a6f60fbb13cd617594cb896f9c168a4dfe9122295602ade0f82ec"
+    },
+    {
+      "path": "docs/adr/README.md",
+      "kind": "tracked",
+      "mode": "0o644",
+      "sha256": "d3b73ef61f6cba5ac33f29caab308fde72fca3bb8449e4a6a7f209a491d9cd7c"
+    },
+    {
+      "path": "docs/agents/domain.md",
+      "kind": "untracked",
+      "mode": "0o644",
+      "sha256": "143fbbb108382fe791a9a9a7b2f0c208d7a8b9a64f0250b3b172f1660c6f9b40"
+    },
+    {
+      "path": "docs/agents/issue-tracker.md",
+      "kind": "untracked",
+      "mode": "0o644",
+      "sha256": "c95aff9dd13f35beb3646a2e01cf28559c1ceb0122e01515f354911385c312d0"
+    },
+    {
+      "path": "docs/agents/triage-labels.md",
+      "kind": "untracked",
+      "mode": "0o644",
+      "sha256": "ef4786ebc27973fe8afd053bc91ff16038195c354f05d7456776ec6aeea2c721"
+    },
+    {
+      "path": "docs/contracts/BC-PROTOCOL-009-codex-responses-controls.md",
+      "kind": "tracked",
+      "mode": "0o644",
+      "sha256": "6de29611abb1a57d765ed435be360127dd08823f52169009b11af4447d2d00ae"
+    },
+    {
+      "path": "docs/engineering-roadmap.md",
+      "kind": "untracked",
+      "mode": "0o644",
+      "sha256": "0babeedb83b7c2138ab7e540ef8be4c2b0a0831a0710a0e00f5a9f861f28777b"
+    },
+    {
+      "path": "docs/reports/cpar-62-64-client-field-plan-20261020.md",
+      "kind": "untracked",
+      "mode": "0o644",
+      "sha256": "26cb7b1a5af0ee25ed47f35ecac963433c9cd704830f181c9529f942571cac97"
+    },
+    {
+      "path": "docs/traceability.md",
+      "kind": "tracked",
+      "mode": "0o644",
+      "sha256": "c606d45a1f32e5d9bae45ae68cf93bef4084a450508ac5df11f77b29b38a5872"
+    }
+  ],
+  "inputs": 7181,
+  "inputs_sha256": "e1207f0d2a22174ca8ee9bd17eec7e5a0045254d2e74644e712da4575a7ccbea",
+  "manifest_sha256": "1b1a37ce8d8fcafa51d379ffae2ff33fff091c5a48c0f3458e47b99c12b22355",
+  "lock_sha256": "36564c0219707741d79ecb37d9fc4ee620ce2fe6801fdbe09b32fb4c8687c858",
+  "toolchain_sha256": "8e390d6a0838315f972690f46ef8bae8b7ecc9ee6c1ed70140ef852869c2482e",
+  "started_at": "2026-10-21T07:11:23.620221+00:00"
+}

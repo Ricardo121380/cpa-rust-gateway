@@ -1,0 +1,30 @@
+{
+  "candidate": "8b192fd99a6d33e0517bcf12eb3f8a8ffec8f343",
+  "fixed_point": "4a6a83d1be5617329932b7fba691c2bfbd72a7a3",
+  "diff_paths": 17,
+  "standards": {
+    "agent": "/root/c6_standards_review",
+    "result": "PASS_STATIC",
+    "hard_findings": 0,
+    "actionable_judgment_findings": 0,
+    "evidence": [
+      "docs/06-development-plan.md:167",
+      "crates/protocol-openai-responses/src/input_message_ids.rs:7",
+      "crates/gateway-router/src/protocol_transform.rs:824",
+      "apps/gateway/src/runtime.rs:2104",
+      "apps/gateway/src/runtime.rs:4765"
+    ]
+  },
+  "spec": {
+    "agent": "/root/c6_spec_review",
+    "result": "PASS_STATIC_BOUNDED",
+    "actionable_findings": 0,
+    "evidence": [
+      "docs/contracts/BC-PROTOCOL-012-native-input-message-id.md:31",
+      "crates/protocol-openai-responses/src/web_search.rs:145",
+      "apps/gateway/src/runtime.rs:2106",
+      "crates/provider-grok/src/build_responses.rs:355"
+    ],
+    "qualification": "C6 only; Full and actual CLI pending at review time; actual Codex and whole #62 separate"
+  }
+}

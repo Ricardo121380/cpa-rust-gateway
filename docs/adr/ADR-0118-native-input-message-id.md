@@ -52,3 +52,5 @@ invalid/duplicate/cross-kind IDs, independent qualification and ordinary paths. 
 checks, required Full and independent Standards/Spec to immutable code/manifest/lock and exact
 inherited overlays. Keep historical failures. Restore rejection to roll back execution; retain
 all stored data and keys. No real Provider, remote write, merge, release or deployment is authorized.
+
+Delivery evidence: [C6 bounded report](../reports/cpar-62-c6-input-message-id-20261021.md).

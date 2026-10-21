@@ -1,0 +1,13 @@
+{
+  "candidate": "8b192fd99a6d33e0517bcf12eb3f8a8ffec8f343",
+  "manifest_sha256": "1b1a37ce8d8fcafa51d379ffae2ff33fff091c5a48c0f3458e47b99c12b22355",
+  "lock_sha256": "36564c0219707741d79ecb37d9fc4ee620ce2fe6801fdbe09b32fb4c8687c858",
+  "inputs_sha256": "e1207f0d2a22174ca8ee9bd17eec7e5a0045254d2e74644e712da4575a7ccbea",
+  "command": "cargo test --locked -p gateway --bin gateway --all-features public_build_c6_ -- --nocapture",
+  "test_binary": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c6-20261021/target-full-final/debug/deps/gateway-b314458fd9b519fb",
+  "test_binary_sha256": "6b3cf35e77a44681fc3b8177512131cbb18dcdf3a1c2f09d465b87f696753af9",
+  "log_sha256": "cb2b82cb7e479f91b572baa39daacb6ccf652f59b628a27b2161bbe7e3475465",
+  "result": "7 passed / 0 failed",
+  "receipt_count": 308,
+  "receipt_sha256": "bc8bf90cb7a04265f8826e8e7ec7e592de418fcfe3dd2666cb2edb5766948bc4"
+}

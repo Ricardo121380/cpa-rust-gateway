@@ -1,0 +1,22 @@
+{
+  "rustc": {
+    "exit": 0,
+    "stdout": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
+  },
+  "cargo": {
+    "exit": 0,
+    "stdout": "cargo 1.97.1 (c980f4866 2026-06-30)"
+  },
+  "node": {
+    "exit": 0,
+    "stdout": "v26.8.2"
+  },
+  "npm": {
+    "exit": 0,
+    "stdout": "11.19.1"
+  },
+  "advisory_db_after_full": {
+    "exit": 0,
+    "stdout": "4b587f00996ebe5c05a73eaef105ef241e876414"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "candidate": "8b192fd99a6d33e0517bcf12eb3f8a8ffec8f343",
+  "source_paths_dirty": false,
+  "full": {
+    "candidate": "8b192fd99a6d33e0517bcf12eb3f8a8ffec8f343",
+    "result": "PASS",
+    "steps": 45,
+    "rust": {
+      "suites": 130,
+      "passed": 1621,
+      "failed": 0,
+      "ignored": 17
+    },
+    "input_count": 7181,
+    "inputs_equal": true,
+    "inputs_sha256": "e1207f0d2a22174ca8ee9bd17eec7e5a0045254d2e74644e712da4575a7ccbea",
+    "log_sha256": "ef5e2c2a32c4f8d9bd2cecc45220ee0a60d6d2afc8f3cad4f6573e9a1f2371fd",
+    "report_sha256": "ea901f31662847a61c56845532de23438351af472ae7ef9d482785c007d3f55e"
+  },
+  "post_cli_inputs": {
+    "candidate": "8b192fd99a6d33e0517bcf12eb3f8a8ffec8f343",
+    "count": 7181,
+    "matches_full_inputs": true,
+    "manifest_sha256": "e1207f0d2a22174ca8ee9bd17eec7e5a0045254d2e74644e712da4575a7ccbea"
+  },
+  "original_files_preserved": 18,
+  "preservation_sha256": "780140eed86aede79077698bb3642fdfbdab327c214c3ac092ca91a2ac75fd2c",
+  "archive_sha256": "a87c7f8c7d28dc92de4d23f58d6bf3ea1a798a7ececf8aa8f83684113d7390ac",
+  "workspace_secret_scan_findings": 0,
+  "archive_plaintext_secret_scan_findings": 0,
+  "release": "NOT_RUN",
+  "real_provider": "NOT_RUN",
+  "remote_ci": "NOT_RUN",
+  "report_closeout": "docs and evidence only; no runtime rebind"
+}

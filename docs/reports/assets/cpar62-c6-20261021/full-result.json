@@ -1,0 +1,16 @@
+{
+  "candidate": "8b192fd99a6d33e0517bcf12eb3f8a8ffec8f343",
+  "result": "PASS",
+  "steps": 45,
+  "rust": {
+    "suites": 130,
+    "passed": 1621,
+    "failed": 0,
+    "ignored": 17
+  },
+  "input_count": 7181,
+  "inputs_equal": true,
+  "inputs_sha256": "e1207f0d2a22174ca8ee9bd17eec7e5a0045254d2e74644e712da4575a7ccbea",
+  "log_sha256": "ef5e2c2a32c4f8d9bd2cecc45220ee0a60d6d2afc8f3cad4f6573e9a1f2371fd",
+  "report_sha256": "ea901f31662847a61c56845532de23438351af472ae7ef9d482785c007d3f55e"
+}

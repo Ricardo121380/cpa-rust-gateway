@@ -1,0 +1,18 @@
+{
+  "baseline_head": "4a6a83d1be5617329932b7fba691c2bfbd72a7a3",
+  "result": "FAIL_EXPECTED_200_GOT_400",
+  "exit": 101,
+  "receiver": 0,
+  "accepted": 0,
+  "requests": 1,
+  "attempts": 0,
+  "usage": 0,
+  "ledger": 0,
+  "cost": "UNKNOWN",
+  "red_input_count": 7177,
+  "red_input_manifest_sha256": "4548687e9e7167088699cd000d821d2730c757f4a72e5d522554eb9c653025dc",
+  "red_test_source_sha256": "c8ba9b70c5aab02ce2f4d9d0d220c8b644de24b19b37d7c8d196efb0fcc7a561",
+  "red_binary_sha256": "070ad396f575aa161773fe4dab5d16b65129cf6eb31f78e070adb52e5f8afb22",
+  "binary_observation": "preserved immediately after RED, before production implementation changes",
+  "log_sha256": "02e878e05ad3d407f7c3ea921a3dd492fbe62307c56a84f6b1f66fcd3a041408"
+}

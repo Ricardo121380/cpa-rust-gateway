@@ -92,3 +92,5 @@ qualification negatives and existing C1-C5/Pi regression belong to the delivery 
 - `public_build_c6_cross_kind_ids_and_field_qualifications_are_independent`
 - `public_build_c6_cannot_qualify_other_adapters_or_passthrough`
 - `build_input_message_ids_require_independent_qualification_and_exact_shape`
+
+Delivery evidence: [C6 bounded report](../reports/cpar-62-c6-input-message-id-20261021.md).

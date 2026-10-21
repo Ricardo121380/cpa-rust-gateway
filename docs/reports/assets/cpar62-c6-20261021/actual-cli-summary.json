@@ -1,0 +1,473 @@
+{
+  "candidate": "8b192fd99a6d33e0517bcf12eb3f8a8ffec8f343",
+  "strict_runner_exit": 1,
+  "preparation_test_exit": 0,
+  "strict_codex_status": {
+    "status": "FAIL",
+    "checks": {
+      "cli_exit_zero": false,
+      "answer_tool_task_and_follow_up": false,
+      "five_incremental_public_responses": false,
+      "independent_receives_and_exact_accounting": false,
+      "two_correlated_tool_results": false,
+      "actual_tool_file_result": false
+    }
+  },
+  "versions": {
+    "codex": {
+      "command": [
+        "/opt/homebrew/bin/codex",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "codex-cli 0.161.0\n",
+      "stderr": ""
+    },
+    "pi-shell": {
+      "command": [
+        "/opt/homebrew/bin/pi",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "0.84.3\n",
+      "stderr": ""
+    },
+    "pi-declared-bin": {
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "0.84.3\n",
+      "stderr": ""
+    },
+    "node": {
+      "command": [
+        "/opt/homebrew/bin/node",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "v26.8.2\n",
+      "stderr": ""
+    }
+  },
+  "installs_unchanged": true,
+  "cancellation": {
+    "abort_to_release_upper_bound_ms": 10,
+    "alive_after_observation": {
+      "observed_at_ms": 1792567434503,
+      "pid": 48217,
+      "rpc_alive": true
+    },
+    "cli_alive_at_abort": true,
+    "cli_kept_alive": true,
+    "cli_pid": 48217,
+    "eventually_released_before_server_stop": true,
+    "lease_before_abort": {
+      "lease": 1,
+      "observed_at_ms": 1792567434483
+    },
+    "leases_after_first_second": 0,
+    "leases_at_observation_end": 0,
+    "observation_end_at_ms": 1792567434495,
+    "peer_close_at_observation_end": 1,
+    "release_observed_at_ms": 1792567434495,
+    "released_within_first_second": true,
+    "rpc_timeline": {
+      "abort_sent_at_ms": 1792567434485,
+      "delta_at_ms": 1792567434474,
+      "pid": 48217,
+      "rpc_aborted_at_ms": 1792567434488,
+      "rpc_alive": true
+    },
+    "total_observation_ms": 0
+  },
+  "cases": {
+    "codex-standard": {
+      "observations": {
+        "accounting": {
+          "attempts": 0,
+          "client_requests": 1,
+          "cost": "UNKNOWN",
+          "finished": 1,
+          "ledger": 0,
+          "lineage": [],
+          "outcome": "Failed",
+          "requests_including_negative_probe": 1,
+          "usage": 0
+        },
+        "client": "codex",
+        "public": [
+          {
+            "client_usable": false,
+            "http": 400
+          }
+        ],
+        "received": 0,
+        "released_before_server_stop": true,
+        "released_within_one_second": true,
+        "scenario": "standard",
+        "success_metadata_retention": "BLOCKED_BY_61"
+      },
+      "client_exit": 1,
+      "shutdown_exit": null,
+      "turn_outcomes": null,
+      "public_ingress_requests": 2,
+      "independent_receives": 0,
+      "isolation": {
+        "exit": 0,
+        "stdout": "[{\"host\": \"192.0.2.1\", \"errno\": 1}, {\"host\": \"2001:db8::1\", \"errno\": 1}, {\"outside_write_errno\": 1}, {\"real_home_read_errno\": 1}]\n",
+        "stderr": ""
+      },
+      "result_txt": null
+    },
+    "pi-standard": {
+      "observations": {
+        "accounting": {
+          "attempts": 5,
+          "client_requests": 5,
+          "cost": "UNKNOWN",
+          "finished": 6,
+          "ledger": 5,
+          "lineage": [
+            {
+              "attempt_id": "attempt:45:p1-request-d87cbc51d7036e58a442ce1902a5d576-0:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-d87cbc51d7036e58a442ce1902a5d576-0",
+              "source_event_id": "usage-attempt:4d1e1076654db75dd537658e56510147b998d3cf98ee2f86aad3e458c2d498cb"
+            },
+            {
+              "attempt_id": "attempt:45:p1-request-d87cbc51d7036e58a442ce1902a5d576-1:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-d87cbc51d7036e58a442ce1902a5d576-1",
+              "source_event_id": "usage-attempt:45de4e8391d085293b809b7c25d0dd9069eaa4e23c76153cd7af0c936bf8f863"
+            },
+            {
+              "attempt_id": "attempt:45:p1-request-d87cbc51d7036e58a442ce1902a5d576-2:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-d87cbc51d7036e58a442ce1902a5d576-2",
+              "source_event_id": "usage-attempt:09814053e848c6f9055ef5b90ee8595b83a172968ff40d3acb86cbd1a44cc1c5"
+            },
+            {
+              "attempt_id": "attempt:45:p1-request-d87cbc51d7036e58a442ce1902a5d576-3:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-d87cbc51d7036e58a442ce1902a5d576-3",
+              "source_event_id": "usage-attempt:35f355c8dbd37d56294f9baed1f4ac747e678637eaba5987a98e848a109554f4"
+            },
+            {
+              "attempt_id": "attempt:45:p1-request-d87cbc51d7036e58a442ce1902a5d576-4:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-d87cbc51d7036e58a442ce1902a5d576-4",
+              "source_event_id": "usage-attempt:062482323ae51e3e0786f6b555d5ba183d73b72975991d4e9afec6c9ef6d912b"
+            }
+          ],
+          "outcome": "Succeeded",
+          "requests_including_negative_probe": 6,
+          "usage": 5
+        },
+        "client": "pi",
+        "public": [
+          {
+            "chunks": 24,
+            "completed": 1,
+            "failed": 0,
+            "http": 200
+          },
+          {
+            "chunks": 20,
+            "completed": 1,
+            "failed": 0,
+            "http": 200
+          },
+          {
+            "chunks": 39,
+            "completed": 1,
+            "failed": 0,
+            "http": 200
+          },
+          {
+            "chunks": 21,
+            "completed": 1,
+            "failed": 0,
+            "http": 200
+          },
+          {
+            "chunks": 21,
+            "completed": 1,
+            "failed": 0,
+            "http": 200
+          }
+        ],
+        "received": 5,
+        "released_before_server_stop": true,
+        "released_within_one_second": true,
+        "scenario": "standard",
+        "success_metadata_retention": "BLOCKED_BY_61"
+      },
+      "client_exit": null,
+      "shutdown_exit": 143,
+      "turn_outcomes": [
+        "stop",
+        "stop",
+        "stop"
+      ],
+      "public_ingress_requests": 7,
+      "independent_receives": 5,
+      "isolation": {
+        "exit": 0,
+        "stdout": "[{\"host\": \"192.0.2.1\", \"errno\": 1}, {\"host\": \"2001:db8::1\", \"errno\": 1}, {\"outside_write_errno\": 1}, {\"real_home_read_errno\": 1}]\n",
+        "stderr": ""
+      },
+      "result_txt": "42\n"
+    },
+    "pi-failure": {
+      "observations": {
+        "accounting": {
+          "attempts": 1,
+          "client_requests": 1,
+          "cost": "UNKNOWN",
+          "finished": 1,
+          "ledger": 1,
+          "lineage": [
+            {
+              "attempt_id": "attempt:45:p1-request-2398b5d2f2878f337771c2b7268dab72-0:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-2398b5d2f2878f337771c2b7268dab72-0",
+              "source_event_id": "usage-attempt:90789527a727df1b0cb52a6d28919f41b6285c367209db12807fd452ef23095a"
+            }
+          ],
+          "outcome": "Failed",
+          "requests_including_negative_probe": 1,
+          "usage": 1
+        },
+        "client": "pi",
+        "public": [
+          {
+            "chunks": 6,
+            "completed": 0,
+            "failed": 1,
+            "http": 200
+          }
+        ],
+        "received": 1,
+        "released_before_server_stop": true,
+        "released_within_one_second": true,
+        "scenario": "failure",
+        "success_metadata_retention": "BLOCKED_BY_61"
+      },
+      "client_exit": null,
+      "shutdown_exit": 143,
+      "turn_outcomes": [
+        "error"
+      ],
+      "public_ingress_requests": 1,
+      "independent_receives": 1,
+      "isolation": {
+        "exit": 0,
+        "stdout": "[{\"host\": \"192.0.2.1\", \"errno\": 1}, {\"host\": \"2001:db8::1\", \"errno\": 1}, {\"outside_write_errno\": 1}, {\"real_home_read_errno\": 1}]\n",
+        "stderr": ""
+      },
+      "result_txt": null,
+      "client_terminal_usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      }
+    },
+    "pi-cancel": {
+      "observations": {
+        "accounting": {
+          "attempts": 1,
+          "client_requests": 1,
+          "cost": "UNKNOWN",
+          "finished": 1,
+          "ledger": 0,
+          "lineage": [],
+          "outcome": "Cancelled",
+          "requests_including_negative_probe": 1,
+          "usage": 0
+        },
+        "client": "pi",
+        "public": [
+          {
+            "chunks": 5,
+            "completed": 0,
+            "failed": 0,
+            "http": 200
+          }
+        ],
+        "received": 1,
+        "released_before_server_stop": true,
+        "released_within_one_second": true,
+        "scenario": "cancel",
+        "success_metadata_retention": "BLOCKED_BY_61"
+      },
+      "client_exit": null,
+      "shutdown_exit": 143,
+      "turn_outcomes": [
+        "aborted"
+      ],
+      "public_ingress_requests": 1,
+      "independent_receives": 1,
+      "isolation": {
+        "exit": 0,
+        "stdout": "[{\"host\": \"192.0.2.1\", \"errno\": 1}, {\"host\": \"2001:db8::1\", \"errno\": 1}, {\"outside_write_errno\": 1}, {\"real_home_read_errno\": 1}]\n",
+        "stderr": ""
+      },
+      "result_txt": null
+    }
+  },
+  "raw_evidence_root": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5",
+  "raw_receipts": [
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/codex-standard/observations.json",
+      "sha256": "bba29dae9b051b21a54710948ac056bd56e0dddcd1f6975016169e0f6e8176e3",
+      "bytes": 501
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/codex-standard/ingress.json",
+      "sha256": "611066ffdb1961ab38c2c621f619d5534d4f74e5746141160a1f0ed8afc6cf9c",
+      "bytes": 51868
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/codex-standard/upstream.json",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "bytes": 2
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/codex-standard/isolation.json",
+      "sha256": "2e85a74d7d83a53e158196f38d098d1fcb79658f3774a439336a1d4ed9a3d512",
+      "bytes": 195
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/codex-standard/client.json",
+      "sha256": "869564a1d0001b4bbb460dfe5664e20425611ce595872d742a2c721bdf856a95",
+      "bytes": 1274
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/pi-standard/observations.json",
+      "sha256": "6136642abf7ebfe141721e03bb25e19a07948a19148c35baf10a24f346741e2a",
+      "bytes": 2714
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/pi-standard/ingress.json",
+      "sha256": "05adea2192851747b2dc1fbf8262d7a2ad204dd4cce75313c23d00d28133307e",
+      "bytes": 97642
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/pi-standard/upstream.json",
+      "sha256": "9c9e7767159f39d9c405cfdeb7f381d726e8be26c52c5701746f2a842a637cf5",
+      "bytes": 45123
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/pi-standard/isolation.json",
+      "sha256": "2e85a74d7d83a53e158196f38d098d1fcb79658f3774a439336a1d4ed9a3d512",
+      "bytes": 195
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/pi-standard/client.json",
+      "sha256": "0ec34fe6a5209e7bbacc266719970384711808e294574713b77bf630de9475b6",
+      "bytes": 46818
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/pi-failure/observations.json",
+      "sha256": "1ae1a82945976f8b85cd4c61c06e08ad07843384ae31429b22147e1db5351906",
+      "bytes": 893
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/pi-failure/ingress.json",
+      "sha256": "5dc5ae8ff762babf6051c275e25ac997db404ed07394b8727b28c2ff2d5b1316",
+      "bytes": 11728
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/pi-failure/upstream.json",
+      "sha256": "e910a38a36df8deaf62c5d39fe69f57a1a9657a74205680a21eefd6f3bd6a1e9",
+      "bytes": 7665
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/pi-failure/isolation.json",
+      "sha256": "2e85a74d7d83a53e158196f38d098d1fcb79658f3774a439336a1d4ed9a3d512",
+      "bytes": 195
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/pi-failure/client.json",
+      "sha256": "fe9335392b5704181e017eddb7c618578c5cb3c6297099fc1584732bdd8227d4",
+      "bytes": 3817
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/pi-cancel/observations.json",
+      "sha256": "468a97e0107426a49c94dc15663306070248baa391b0be9b314c9c6069aa441d",
+      "bytes": 529
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/pi-cancel/ingress.json",
+      "sha256": "c4900bf8d871aac9f1ebf528cd8bb44798abbc5f796aeeccadf750ed169fd588",
+      "bytes": 10898
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/pi-cancel/upstream.json",
+      "sha256": "389fb7c0bbe7480c68755d09920987c87c7ba796e570bda1c48ce576a99b7215",
+      "bytes": 7664
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/pi-cancel/isolation.json",
+      "sha256": "2e85a74d7d83a53e158196f38d098d1fcb79658f3774a439336a1d4ed9a3d512",
+      "bytes": 195
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/pi-cancel/client.json",
+      "sha256": "66b2c1cbc86846ccf8f5de587d663174a05d8a8dfd96725d244aab0abdf6bb21",
+      "bytes": 3808
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/run.json",
+      "sha256": "85ea1e78465e6a4049e2d63ed9e926aa133b3dc94a387ea6284b6163b61d7bc6",
+      "bytes": 1838
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/client-identity.json",
+      "sha256": "1e245d1d3d572add00498f40fd3f7420b68dd81162a2a8f7cc244858ab406167",
+      "bytes": 26111
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/installed-files.json.gz",
+      "sha256": "3137abae151b090bfd6e62f5d4026de463a3cd4e2c22bfc79f36a3f9d2b2b8df",
+      "bytes": 548461
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/qualification.log",
+      "sha256": "f952893d7f1bad0473e867b175ee0bca88c7bd7e598fca118b3d38a13d5c53b5",
+      "bytes": 224
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/isolated.sb",
+      "sha256": "28e77ce72896330cfc01ced3726f3e6fb88df06fad0c56d2333104c4a588ef12",
+      "bytes": 673
+    },
+    {
+      "path": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-c6-cli-20261021-9a51c2e5/build.log",
+      "sha256": "f7a56451d4d867842e681127e8f4b91fc8202cf90f979d7188f74f47ba430931",
+      "bytes": 311644
+    }
+  ],
+  "test_binary": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-c6-20261021/target-full-final/debug/deps/gateway-b314458fd9b519fb",
+  "test_binary_sha256": "6b3cf35e77a44681fc3b8177512131cbb18dcdf3a1c2f09d465b87f696753af9",
+  "runner_sha256": "52daceb172dfb286aafcb67aaeb9916e907c7ff3f7c4c3aef3199daa4f5a7da9",
+  "cost": "UNKNOWN"
+}
