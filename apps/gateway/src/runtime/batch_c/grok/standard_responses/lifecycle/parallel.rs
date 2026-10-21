@@ -17,7 +17,7 @@ fn controlled_compiler(database: &Path) -> Result<RouteCompiler, RuntimeComposit
     .with_durable_catalog(database.to_owned()))
 }
 
-fn fixture_for(
+pub(super) fn fixture_for(
     transport: Arc<dyn GrokBuildTransport>,
     stored: bool,
     parallel_profile: bool,

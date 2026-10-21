@@ -1,9 +1,11 @@
 //! Opt-in actual CLI qualification through the production public HTTP and leased Build chain.
 use super::*;
 use actix_web::middleware::from_fn;
+mod evidence;
 mod http;
 mod oracles;
 mod peer;
+mod tool_loop;
 use http::assert_presend_rejections;
 pub(super) use http::capture;
 use oracles::{assert_accounting, assert_history, assert_public};
@@ -35,11 +37,17 @@ async fn actual_cli_public_build_qualification() -> TestResult {
     let run = std::path::PathBuf::from(std::env::var("CPAR62_RUN")?);
     assert!(run.is_absolute() && run.is_dir());
     for (client, scenario) in [
-        ("codex", "standard"),
         ("pi", "standard"),
         ("pi", "failure"),
         ("pi", "cancel"),
+        ("codex", "unqualified"),
+        ("codex", "standard"),
+        ("codex", "failure"),
+        ("codex", "cancel"),
     ] {
+        if std::env::var("CPAR62_CASE").is_ok_and(|case| case != format!("{client}-{scenario}")) {
+            continue;
+        }
         let peer = match scenario {
             "failure" => {
                 let mut failed = response();
@@ -51,12 +59,22 @@ async fn actual_cli_public_build_qualification() -> TestResult {
                 )?
             }
             "cancel" => SocketPeer::start(partial_wire(), PeerEnd::Hold)?,
-            _ => scripted_peer()?,
+            _ => scripted_peer(client)?,
         };
-        let fixture = lifecycle_fixture(peer.transport(
+        let transport = peer.transport(
             Duration::from_secs(if scenario == "cancel" { 30 } else { 5 }),
             Duration::from_secs(if scenario == "cancel" { 60 } else { 15 }),
-        )?)?;
+        )?;
+        let fixture = if client == "codex" && scenario != "unqualified" {
+            parallel::fixture_for(transport, false, true, |p| {
+                p.build_parallel_local_controlled = true;
+                p.build_namespaces_local_controlled = true;
+                p.build_search_local_controlled = true;
+                p.build_input_message_ids_local_controlled = true;
+            })?
+        } else {
+            lifecycle_fixture(transport)?
+        };
         let recording = Recording::start(&fixture, false)?;
         let ingress = web::Data::new(Mutex::new(Vec::<Captured>::new()));
         let listener = std::net::TcpListener::bind("127.0.0.1:0")?;
@@ -94,17 +112,21 @@ async fn actual_cli_public_build_qualification() -> TestResult {
                 .env("CPAR62_TEST_KEY", key)
                 .output()
         });
+        let mut cancel_ready = true;
         if scenario == "cancel" {
-            tokio::time::timeout(Duration::from_secs(10), async {
+            cancel_ready = tokio::time::timeout(Duration::from_secs(10), async {
                 while !directory.join("cancel-ready").exists() {
                     tokio::time::sleep(Duration::from_millis(10)).await;
                 }
             })
-            .await?;
+            .await
+            .is_ok();
+        }
+        if scenario == "cancel" && cancel_ready {
             assert_eq!(
                 active_leases(&fixture),
                 1,
-                "actual Pi has received text while the real lease is held"
+                "actual CLI has received text while the real lease is held"
             );
             std::fs::write(
                 directory.join("cancel-proceed"),
@@ -113,8 +135,8 @@ async fn actual_cli_public_build_qualification() -> TestResult {
                 }))?,
             )?;
         }
-        let live_cancel = if scenario == "cancel" {
-            Some(observe_live_cancel(&fixture, &peer, &directory).await?)
+        let live_cancel = if scenario == "cancel" && cancel_ready {
+            Some(observe_live_cancel(&fixture, &peer, &directory).await)
         } else {
             None
         };
@@ -123,7 +145,16 @@ async fn actual_cli_public_build_qualification() -> TestResult {
         std::fs::write(directory.join("driver.stderr"), &result.stderr)?;
         let (released_before_stop, eventually_released_before_stop) =
             if let Some(observed) = live_cancel {
-                observed
+                match observed {
+                    Ok(value) => value,
+                    Err(error) => {
+                        std::fs::write(
+                            directory.join("cancel-observation-error.txt"),
+                            error.to_string(),
+                        )?;
+                        (false, false)
+                    }
+                }
             } else {
                 let released = wait_until(|| active_leases(&fixture) == 0).await;
                 (released, released)
@@ -138,13 +169,25 @@ async fn actual_cli_public_build_qualification() -> TestResult {
             directory.join("upstream.json"),
             serde_json::to_vec_pretty(&received)?,
         )?;
-        let captured: Vec<_> = ingress.lock().map_err(|_|"ingress")?.iter().map(|v|json!({"path":v.path,"probe":v.probe,"body":v.request,"headers":v.headers,"status":v.status,"chunks":v.chunks,"chunk_elapsed_ms":v.chunk_elapsed_ms,"wire":String::from_utf8_lossy(&v.wire)})).collect();
+        std::fs::write(
+            directory.join("receiver-receipts.json"),
+            serde_json::to_vec_pretty(&*peer.receipts.lock().map_err(|_| "receiver receipts")?)?,
+        )?;
+        let captured: Vec<_> = ingress.lock().map_err(|_|"ingress")?.iter().enumerate().map(|(index,v)| {
+            std::fs::write(directory.join(format!("request-{index}.bin")), &v.request_bytes)?;
+            std::fs::write(directory.join(format!("response-{index}.bin")), &v.wire)?;
+            Ok(json!({"path":v.path,"probe":v.probe,"body":v.request,"headers":v.headers,"status":v.status,"chunks":v.chunks,"chunk_elapsed_ms":v.chunk_elapsed_ms,"wire":String::from_utf8_lossy(&v.wire),"response_headers":v.response_headers,"wire_truncated":v.wire_truncated,"body_complete":v.body_complete}))
+        }).collect::<Result<_,std::io::Error>>()?;
         std::fs::write(
             directory.join("ingress.json"),
             serde_json::to_vec_pretty(&captured)?,
         )?;
         let rows = SqliteEventStore::open_read_only(&database)?.list_events()?;
         std::fs::write(directory.join("events.txt"), format!("{rows:#?}"))?;
+        assert!(
+            cancel_ready,
+            "actual CLI did not reach the cancellation delta/lease barrier; raw receipts retained"
+        );
         assert!(
             result.status.success(),
             "driver: {}",
@@ -166,23 +209,24 @@ async fn actual_cli_public_build_qualification() -> TestResult {
             std::fs::write(diagnostic_path, serde_json::to_vec_pretty(&diagnostic)?)?;
             assert!(
                 wait_until(|| peer.closed.load(Ordering::SeqCst) == 1).await,
-                "actual Pi abort closes the upstream socket"
+                "actual CLI abort closes the upstream socket"
             );
         }
-        if client == "pi" {
-            assert_eq!(
-                received.len(),
-                if scenario == "standard" { 5 } else { 1 },
-                "actual Pi receives, including tool cycles and follow-up"
-            );
-        } else {
+        if scenario == "unqualified" {
             assert!(
                 received.is_empty(),
                 "Codex's unsupported controls must fail before send"
             );
+        } else {
+            assert_eq!(
+                received.len(),
+                if scenario == "standard" { 5 } else { 1 },
+                "actual CLI receives, including tool cycles and follow-up"
+            );
         }
         let accounting = assert_accounting(&database, client, scenario).await?;
         let public = assert_public(&ingress, client, scenario)?;
+        let correspondence = evidence::correspondence(&database, &ingress, &peer)?;
         if client == "pi" && scenario != "standard" {
             let receipt: Value =
                 serde_json::from_slice(&std::fs::read(directory.join("client.json"))?)?;
@@ -195,15 +239,23 @@ async fn actual_cli_public_build_qualification() -> TestResult {
                 }])
             );
         }
+        if client == "codex" && matches!(scenario, "failure" | "cancel") {
+            oracles::assert_codex_terminal(&directory, scenario)?;
+        }
         if client == "pi" && scenario == "standard" {
             assert_history(&received, &directory)?;
         }
+        let tool_loop = if client == "codex" && scenario == "standard" {
+            tool_loop::assert_codex(&received, &directory)?
+        } else {
+            Value::Null
+        };
         std::fs::write(
             directory.join("observations.json"),
             serde_json::to_vec_pretty(&json!({
                 "client":client,"scenario":scenario,"received":received.len(),"released_within_one_second":released_before_stop,
                 "released_before_server_stop":eventually_released_before_stop,
-                "accounting":accounting,"public":public,"success_metadata_retention":"BLOCKED_BY_61"
+                "accounting":accounting,"public":public,"correspondence":correspondence,"tool_loop":tool_loop,"success_metadata_retention":"BLOCKED_BY_61"
             }))?,
         )?;
         assert!(

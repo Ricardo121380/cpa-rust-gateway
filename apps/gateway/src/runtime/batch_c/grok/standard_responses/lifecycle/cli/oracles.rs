@@ -17,13 +17,13 @@ pub(super) async fn assert_accounting(
             _ => {}
         }
     }
-    let expected = if client == "pi" && scenario == "standard" {
-        5
-    } else {
-        1
-    };
+    let expected = if scenario == "standard" { 5 } else { 1 };
     let probe_requests = usize::from(client == "pi" && scenario == "standard");
-    let expected_attempts = if client == "codex" { 0 } else { expected };
+    let expected_attempts = if scenario == "unqualified" {
+        0
+    } else {
+        expected
+    };
     assert_eq!(
         (requests.len(), attempts.len(), finished.len()),
         (
@@ -32,14 +32,14 @@ pub(super) async fn assert_accounting(
             expected + probe_requests
         )
     );
-    let usage_count = if scenario == "cancel" || client == "codex" {
+    let usage_count = if scenario == "cancel" || scenario == "unqualified" {
         0
     } else {
         expected
     };
     assert_eq!(usages.len(), usage_count);
     let expected_outcome = match (client, scenario) {
-        ("codex", _) | (_, "failure") => gateway_core::RequestOutcome::Failed,
+        (_, "unqualified" | "failure") => gateway_core::RequestOutcome::Failed,
         (_, "cancel") => gateway_core::RequestOutcome::Cancelled,
         _ => gateway_core::RequestOutcome::Succeeded,
     };
@@ -141,18 +141,11 @@ pub(super) fn assert_public(
 ) -> Result<Value, Box<dyn Error>> {
     let rows = ingress.lock().map_err(|_| "ingress")?;
     let rows: Vec<_> = rows.iter().filter(|v| !v.probe).collect();
-    assert_eq!(
-        rows.len(),
-        if client == "pi" && scenario == "standard" {
-            5
-        } else {
-            1
-        }
-    );
+    assert_eq!(rows.len(), if scenario == "standard" { 5 } else { 1 });
     let mut results = Vec::new();
     for row in &rows {
         assert_eq!(row.path, "/v1/responses");
-        if client == "codex" {
+        if scenario == "unqualified" {
             assert_eq!(row.status, 400);
             assert_eq!(
                 serde_json::from_slice::<Value>(&row.wire)?["error"]["code"],
@@ -171,7 +164,11 @@ pub(super) fn assert_public(
         assert!(row.chunks > 2);
         assert_eq!(
             row.request["reasoning"],
-            json!({"effort":"medium","summary":"auto"})
+            if client == "pi" {
+                json!({"effort":"medium","summary":"auto"})
+            } else {
+                json!({"summary":"auto"})
+            }
         );
         assert_eq!(
             row.request["include"],
@@ -273,5 +270,53 @@ pub(super) fn assert_history(received: &[Value], directory: &std::path::Path) ->
     }
     let receipt: Value = serde_json::from_slice(&std::fs::read(directory.join("client.json"))?)?;
     assert_eq!(receipt["turn_outcomes"], json!(["stop", "stop", "stop"]));
+    Ok(())
+}
+
+pub(super) fn assert_codex_terminal(directory: &std::path::Path, scenario: &str) -> TestResult {
+    let receipt: Value = serde_json::from_slice(&std::fs::read(directory.join("client.json"))?)?;
+    assert_eq!(
+        receipt["exit"], 0,
+        "native client shutdown must be normal after observation"
+    );
+    assert_eq!(
+        receipt["turn_outcomes"],
+        json!([if scenario == "failure" {
+            "failed"
+        } else {
+            "interrupted"
+        }])
+    );
+    assert!(
+        !directory.join("work/result.txt").exists(),
+        "failed/cancelled turns execute no scripted tool"
+    );
+    let events: Vec<Value> = receipt["stdout"]
+        .as_str()
+        .ok_or("actual Codex RPC output")?
+        .lines()
+        .map(serde_json::from_str)
+        .collect::<Result<_, _>>()?;
+    let terminals: Vec<_> = events
+        .iter()
+        .filter(|v| v["method"] == "turn/completed")
+        .collect();
+    assert_eq!(terminals.len(), 1);
+    assert!(
+        events
+            .iter()
+            .all(|v| v["params"]["item"]["type"] != "commandExecution")
+    );
+    let errors: Vec<_> = events.iter().filter(|v| v["method"] == "error").collect();
+    if scenario == "failure" {
+        assert_eq!(
+            errors.len(),
+            1,
+            "actual Codex observes a single controlled failure"
+        );
+        assert_eq!(errors[0]["params"]["willRetry"], false);
+    } else {
+        assert!(errors.is_empty());
+    }
     Ok(())
 }

@@ -20,6 +20,7 @@ mod search;
 struct SocketPeer {
     target: AdmittedEgressTarget,
     received: Arc<Mutex<Vec<Value>>>,
+    receipts: Arc<Mutex<Vec<Value>>>,
     closed: Arc<AtomicUsize>,
     task: tokio::task::JoinHandle<std::io::Result<()>>,
 }
@@ -41,12 +42,17 @@ impl SocketPeer {
         let listener = tokio::net::TcpListener::from_std(listener)?;
         let received = Arc::new(Mutex::new(Vec::new()));
         let requests = received.clone();
+        let receipts = Arc::new(Mutex::new(Vec::new()));
+        let observations = receipts.clone();
         let closed = Arc::new(AtomicUsize::new(0));
         let closure = closed.clone();
         let task: tokio::task::JoinHandle<std::io::Result<()>> = tokio::spawn(async move {
             loop {
                 let (mut socket, _) = listener.accept().await?;
-                let request = read_request(&mut socket).await?;
+                let (request, headers) = read_request_observed(&mut socket).await?;
+                observations.lock().map_err(|_| std::io::Error::other("receiver"))?.push(
+                    json!({"ordinal":requests.lock().map_err(|_| std::io::Error::other("receiver"))?.len(),
+                        "headers":headers,"response_id":"response-61"}));
                 let first = {
                     let mut received = requests
                         .lock()
@@ -118,6 +124,7 @@ impl SocketPeer {
                 &SystemEgressDnsResolver,
             )?,
             received,
+            receipts,
             closed,
             task,
         })
@@ -160,7 +167,9 @@ fn closed_socket(error: &std::io::Error) -> bool {
     )
 }
 
-async fn read_request(socket: &mut tokio::net::TcpStream) -> Result<Value, std::io::Error> {
+async fn read_request_observed(
+    socket: &mut tokio::net::TcpStream,
+) -> Result<(Value, Value), std::io::Error> {
     let mut bytes = Vec::new();
     let mut chunk = [0; 4096];
     while bytes.len() < 64 * 1024 {
@@ -177,7 +186,25 @@ async fn read_request(socket: &mut tokio::net::TcpStream) -> Result<Value, std::
                 .and_then(|v| v.parse::<usize>().ok())
                 .ok_or_else(|| std::io::Error::other("request length"))?;
             if bytes.len() >= end + 4 + length {
-                return Ok(serde_json::from_slice(&bytes[end + 4..end + 4 + length])?);
+                let observed: Vec<_> = String::from_utf8_lossy(&bytes[..end])
+                    .lines()
+                    .skip(1)
+                    .filter_map(|line| line.split_once(':'))
+                    .map(|(name, value)| {
+                        let name = name.to_ascii_lowercase();
+                        let value =
+                            if matches!(name.as_str(), "authorization" | "cookie" | "x-api-key") {
+                                "[redacted]".to_owned()
+                            } else {
+                                value.trim().to_owned()
+                            };
+                        (name, value)
+                    })
+                    .collect();
+                return Ok((
+                    serde_json::from_slice(&bytes[end + 4..end + 4 + length])?,
+                    json!(observed),
+                ));
             }
         }
     }

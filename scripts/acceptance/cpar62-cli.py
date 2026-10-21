@@ -20,6 +20,7 @@ from urllib.parse import urlsplit
 
 
 CODEX_ROOT = Path("/opt/homebrew/lib/node_modules/@openai/codex")
+CODEX_NATIVE = CODEX_ROOT / "vendor/aarch64-apple-darwin/bin/codex"
 PI_ROOT = Path("/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent")
 
 
@@ -166,15 +167,34 @@ def codex_success_checks(root):
                 position for position, result in enumerate(history)
                 if result.get("type") == "function_call_output" and result.get("call_id") == call_id)
             for index, call_id in enumerate(call_ids))
+        verified = observations.get("tool_loop", {})
+        correlated = correlated and verified.get("pass") is True \
+            and len(verified.get("ordered_tools", [])) == 2
+        for call, expected in zip(calls, verified.get("ordered_tools", [])):
+            correlated = correlated and call.get("name") == expected["name"] \
+                and "namespace" not in call and json.loads(call["arguments"]) == expected["arguments"]
+            result = next(row for row in results if row["call_id"] == call["call_id"])
+            correlated = correlated and result.get("output") == expected["full_result"] \
+                and result.get("id") == expected["result_id"] and "namespace" not in result and "name" not in result
     accounting = observations["accounting"]
+    joined = observations.get("correspondence", [])
     checks = {
         "cli_exit_zero": receipt["exit"] == 0,
-        "answer_tool_task_and_follow_up": sum(row.get("type") == "turn.completed" for row in events) == 3
-            and not any(row.get("type") in ("turn.failed", "error") for row in events),
+        "answer_tool_task_and_follow_up": sum(row.get("method") == "turn/completed"
+            and row.get("params", {}).get("turn", {}).get("status") == "completed" for row in events) == 3
+            and receipt.get("turn_outcomes") == ["completed"] * 3
+            and not any(row.get("type") in ("turn.failed", "error") or row.get("method") == "error"
+                        for row in events),
         "five_incremental_public_responses": len(ingress) == 5
-            and all(row["status"] == 200 and row["chunks"] > 2 for row in ingress),
+            and all(row["status"] == 200 and row["chunks"] > 2 and row.get("body_complete") is True
+                    and row.get("wire_truncated") is False for row in ingress),
         "independent_receives_and_exact_accounting": len(upstream) == 5
-            and all(accounting.get(name) == 5 for name in ("client_requests", "attempts", "usage", "ledger")),
+            and all(accounting.get(name) == 5 for name in ("client_requests", "attempts", "usage", "ledger"))
+            and len(joined) == 5 and all(len({row[key] for row in joined}) == 5
+                for key in ("request_id", "attempt_id", "response_id", "receiver_ordinal", "usage_source_event_id"))
+            and all(row["ledger_rows"] == 1 and row["usage_source_event_id"]
+                and row["usage"]["input_tokens"] == 20 and row["usage"]["output_tokens"] == 7
+                and row["outcome"] == "Succeeded" and row["c4"].get("exact_raw_readback") is True for row in joined),
         "two_correlated_tool_results": correlated,
         "actual_tool_file_result": (directory / "work/result.txt").exists()
             and (directory / "work/result.txt").read_text() == "42\n",
@@ -183,7 +203,7 @@ def codex_success_checks(root):
 
 
 def run_qualification(output, require_prompt_release=False, require_codex_success=False,
-                      observe_tcp=False):
+                      observe_tcp=False, case=None):
     if sys.platform != "darwin":
         raise RuntimeError("this fixed-client runner requires macOS Seatbelt")
     root = Path(output).resolve()
@@ -210,7 +230,9 @@ def run_qualification(output, require_prompt_release=False, require_codex_succes
         '\n(deny file-read* (subpath "/Users") (subpath "/Volumes/Asgard/Agentprojects"))\n' +
         f'(allow file-read* (literal {json.dumps(str(binary))}) (literal {json.dumps(str(Path(__file__).resolve()))}))\n' +
         '(deny file-write*)\n' +
-        f'(allow file-write* (subpath {json.dumps(str(Path(tempfile.gettempdir()).resolve()))}) (literal "/dev/null"))\n')
+        f'(allow file-write* (subpath {json.dumps(str(Path(tempfile.gettempdir()).resolve()))}) (literal "/dev/null"))\n' +
+        # Native exec_command's tty uses these kernel devices, never persistent user files.
+        '(allow file-read* file-write* (literal "/dev/ptmx") (regex #"^/dev/ttys[0-9]+$"))\n')
     probe_home = root / "identity-home"
     probe_home.mkdir()
     env = {"PATH": "/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin", "HOME": str(probe_home),
@@ -219,6 +241,7 @@ def run_qualification(output, require_prompt_release=False, require_codex_succes
     versions = {}
     for name, command, expected in [
         ("codex", ["/opt/homebrew/bin/codex", "--version"], "codex-cli 0.161.0"),
+        ("codex-native", [str(CODEX_NATIVE), "--version"], "codex-cli 0.161.0"),
         ("pi-shell", ["/opt/homebrew/bin/pi", "--version"], "0.84.3"),
         ("pi-declared-bin", ["/opt/homebrew/bin/node", str(PI_ROOT / "dist/bundle/cli.js"), "--version"], "0.84.3"),
         ("node", ["/opt/homebrew/bin/node", "--version"], "v26.8.2"),
@@ -236,16 +259,22 @@ def run_qualification(output, require_prompt_release=False, require_codex_succes
             packages[str(path)] = {"name": value["name"], "version": value["version"]}
     identity = {"versions": versions, "packages": packages,
         "node": str(Path("/opt/homebrew/bin/node").resolve()),
-        "codex_actual_native": str(CODEX_ROOT / "vendor/aarch64-apple-darwin/bin/codex"),
+        "codex_actual_native": str(CODEX_NATIVE),
+        "codex_actual_native_sha256": sha_file(CODEX_NATIVE),
         "pi_actual_entry": str(Path("/opt/homebrew/bin/pi").resolve()),
         "pi_declared_bin": json.loads((PI_ROOT / "package.json").read_text())["bin"],
         "only_my_pi": {"link": os.readlink("/Users/huangrui/.local/bin/pi"),
                        "realpath": str(Path("/Users/huangrui/.local/bin/pi").resolve()), "executed": False},
         "install_manifest_sha256": hashlib.sha256((root / "installed-files.json.gz").read_bytes()).hexdigest(),
         "source_head": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repository, text=True).strip(),
-        "test_binary_sha256": sha_file(binary)}
+        "test_binary_sha256": sha_file(binary),
+        "runner_sha256": sha_file(Path(__file__).resolve()),
+        "manifests": {name: sha_file(repository / name) for name in
+            ("Cargo.toml", "Cargo.lock", "apps/gateway/Cargo.toml", "rust-toolchain.toml")}}
     (root / "client-identity.json").write_text(json.dumps(identity, indent=2) + "\n")
     env["CPAR62_RUN"] = str(root)
+    if case:
+        env["CPAR62_CASE"] = case
     if require_prompt_release:
         env["CPAR62_REQUIRE_PROMPT_RELEASE"] = "1"
     if observe_tcp:
@@ -255,22 +284,177 @@ def run_qualification(output, require_prompt_release=False, require_codex_succes
     with (root / "qualification.log").open("w") as log:
         result = subprocess.run(command, cwd=root, env=env, stdout=log, stderr=subprocess.STDOUT, timeout=160)
     unchanged = before == installed_manifest()
-    cancel_path = root / "pi-cancel/cancel-diagnostic.json"
-    cancel = json.loads(cancel_path.read_text()) if cancel_path.exists() else None
+    cancellations = {}
+    for name in ("pi", "codex"):
+        cancel_path = root / f"{name}-cancel/cancel-diagnostic.json"
+        cancellations[name] = json.loads(cancel_path.read_text()) if cancel_path.exists() else None
     codex_gate = codex_success_checks(root) if (root / "codex-standard/observations.json").exists() else {
         "status": "FAIL", "reason": "missing actual Codex observations"}
     (root / "run.json").write_text(json.dumps({"command": command, "exit": result.returncode,
         "runner_status": "FAIL" if result.returncode or not unchanged
             or require_codex_success and codex_gate["status"] != "PASS" else "PASS",
-        "require_prompt_release": require_prompt_release, "cancellation": cancel,
+        "require_prompt_release": require_prompt_release, "cancellations": cancellations,
         "tcp_observer": observe_tcp,
+        "selected_case": case,
         "require_codex_success": require_codex_success, "codex_success_gate": codex_gate,
-        "installs_unchanged": unchanged, "claim": "local controlled independent preparation; #62 remains blocked"}, indent=2) + "\n")
+        "installs_unchanged": unchanged, "claim": "fixed-version native clients, local controlled only; #62 remains open and fixed Build activation blocked"}, indent=2) + "\n")
     if result.returncode or not unchanged:
         raise RuntimeError("qualification failed or installed bytes drifted; see receipts")
     if require_codex_success and codex_gate["status"] != "PASS":
         raise RuntimeError("Codex success gate FAILED; expected-400 preparation is not compatibility; see run.json")
-    print(f"Preparation oracles PASS; Codex BLOCKED; Pi cancellation latency is recorded separately; #62 OPEN/BLOCKED. Receipts: {root}")
+    print(f"Actual-client oracles PASS; Codex success gate {codex_gate['status']}; separate cancellation observations retained; #62 OPEN/BLOCKED. Receipts: {root}")
+
+
+def codex_app_server(root, command, env, scenario, prompt):
+    """Drive the fixed native CLI's stdio protocol, including a disk resume in a new PID."""
+    output, errors, outcomes, commands, pids, exits = [], [], [], [], [], []
+    process = None
+    readers = []
+    sent = []
+    messages, pending = queue.Queue(), []
+
+    def launch():
+        nonlocal process, readers, messages, pending
+        process = subprocess.Popen(command, env=env, cwd=root / "work", stdin=subprocess.PIPE,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                   text=True, start_new_session=True)
+        pids.append(process.pid)
+        commands.append(command)
+        messages, pending = queue.Queue(), []
+
+        def read_output():
+            for line in process.stdout:
+                output.append(line)
+                with (root / "rpc-output.jsonl").open("a") as log:
+                    log.write(line)
+                try:
+                    messages.put(json.loads(line))
+                except ValueError as error:
+                    messages.put(error)
+            messages.put(None)
+
+        readers = [threading.Thread(target=read_output, daemon=True),
+                   threading.Thread(target=lambda: errors.extend(process.stderr), daemon=True)]
+        for reader in readers:
+            reader.start()
+
+    def send(method, params, identifier=None):
+        message = {"method": method, "params": params}
+        if identifier is not None:
+            message["id"] = identifier
+        sent.append({"pid": process.pid, "message": message})
+        (root / "rpc-input.json").write_text(json.dumps(sent, indent=2) + "\n")
+        process.stdin.write(json.dumps(message) + "\n")
+        process.stdin.flush()
+
+    def receive(predicate):
+        deadline = time.monotonic() + 20
+        while True:
+            for index, event in enumerate(pending):
+                if predicate(event):
+                    return pending.pop(index)
+            event = messages.get(timeout=max(0.01, deadline - time.monotonic()))
+            if event is None:
+                raise RuntimeError("Codex app-server exited before the expected RPC event")
+            if isinstance(event, Exception):
+                raise event
+            pending.append(event)
+
+    def rpc(identifier, method, params):
+        send(method, params, identifier)
+        result = receive(lambda event: event.get("id") == identifier)
+        if "error" in result:
+            raise RuntimeError(f"Codex {method} rejected: {result['error']}")
+        return result["result"]
+
+    def initialize():
+        rpc(1, "initialize", {"clientInfo": {"name": "cpar62_controlled",
+            "title": "CPA-Rust controlled acceptance", "version": "1"}, "capabilities": None})
+        send("initialized", {})
+
+    def finish_process():
+        # EOF is graceful session shutdown, used only after turn/release observations.
+        process.stdin.close()
+        try:
+            exits.append(process.wait(timeout=5))
+        finally:
+            stop_process(process)
+            for reader in readers:
+                reader.join(timeout=2)
+
+    def turn(identifier, thread, question):
+        result = rpc(identifier, "turn/start", {"threadId": thread, "turnTrigger": "exec",
+            "sandboxPolicy": {"type": "externalSandbox", "networkAccess": "restricted"},
+            "input": [{"type": "text", "text": question, "text_elements": []}]})
+        turn_id = result["turn"]["id"]
+        if scenario == "cancel":
+            receive(lambda event: event.get("method") == "item/agentMessage/delta"
+                    and event.get("params", {}).get("turnId") == turn_id
+                    and bool(event["params"].get("delta")))
+            delta_at_ms = time.time_ns() // 1_000_000
+            (root / "cancel-ready").write_text("observed actual Codex text delta\n")
+            limit = time.monotonic() + 5
+            while not (root / "cancel-proceed").exists():
+                if time.monotonic() > limit:
+                    raise TimeoutError("serving lease cancellation barrier")
+                time.sleep(0.01)
+            abort_sent_at_ms = time.time_ns() // 1_000_000
+            rpc(identifier + 1, "turn/interrupt", {"threadId": thread, "turnId": turn_id})
+        terminal = receive(lambda event: event.get("method") == "turn/completed"
+            and event.get("params", {}).get("threadId") == thread
+            and event["params"]["turn"]["id"] == turn_id)
+        status = terminal["params"]["turn"]["status"]
+        outcomes.append(status)
+        if scenario == "cancel":
+            if status != "interrupted":
+                raise RuntimeError(f"Codex interrupt ended as {status}")
+            (root / "abort-complete").write_text(json.dumps({"rpc_alive": process.poll() is None,
+                "pid": process.pid, "delta_at_ms": delta_at_ms, "abort_sent_at_ms": abort_sent_at_ms,
+                "rpc_aborted_at_ms": time.time_ns() // 1_000_000}) + "\n")
+            limit = time.monotonic() + 25
+            while not (root / "cancel-observed").exists():
+                if process.poll() is not None:
+                    raise RuntimeError("Codex exited during cancellation observation")
+                if time.monotonic() > limit:
+                    raise TimeoutError("live Codex cancellation observation barrier")
+                time.sleep(0.01)
+            alive = {"rpc_alive": process.poll() is None, "pid": process.pid,
+                     "observed_at_ms": time.time_ns() // 1_000_000}
+            (root / "cancel-client-alive").write_text(json.dumps(alive) + "\n")
+            if not alive["rpc_alive"]:
+                raise RuntimeError("Codex exited before cancellation liveness proof")
+        return status
+
+    driver_error = None
+    try:
+        launch()
+        initialize()
+        thread = rpc(2, "thread/start", {"model": "grok-4.5", "modelProvider": "cpar62",
+            "cwd": str(root / "work"), "approvalPolicy": "never", "sandbox": "workspace-write",
+            "ephemeral": False})["thread"]["id"]
+        turn(3, thread, prompt if scenario == "standard" else "Report progress.")
+        if scenario == "standard" and outcomes == ["completed"]:
+            turn(5, thread, "What value did the two tools produce, and how was it derived?")
+            finish_process()
+            launch()
+            initialize()
+            resumed = rpc(2, "thread/resume", {"threadId": thread})
+            if resumed["thread"]["id"] != thread:
+                raise RuntimeError("Codex resumed a different thread")
+            turn(3, thread, "Using our saved history, confirm the seed, increment and final value.")
+        finish_process()
+    except Exception as error:
+        driver_error = f"{type(error).__name__}: {error}"
+    finally:
+        cleanup_at_ms = time.time_ns() // 1_000_000
+        if process is not None:
+            stop_process(process)
+            for reader in readers:
+                reader.join(timeout=2)
+    return {"command": command, "commands": commands, "pids": pids, "process_exits": exits,
+        "exit": 0 if exits and all(value == 0 for value in exits) and not driver_error else 1,
+        "turn_outcomes": outcomes, "driver_error": driver_error,
+        "cleanup_started_at_ms": cleanup_at_ms, "stdout": "".join(output), "stderr": "".join(errors)}
 
 
 def client(name, scenario, directory, base):
@@ -300,8 +484,10 @@ def client(name, scenario, directory, base):
             'env_key = "CPAR62_TEST_KEY"\nwire_api = "responses"\n'
             'requires_openai_auth = false\n'
         )
-        command = ["/opt/homebrew/bin/codex", "exec", "--skip-git-repo-check",
-                   "--json", "--color", "never", "--sandbox", "workspace-write", prompt]
+        command = (["/opt/homebrew/bin/codex", "exec", "--skip-git-repo-check",
+                    "--json", "--color", "never", "--sandbox", "workspace-write", prompt]
+                   if scenario == "unqualified" else
+                   [str(CODEX_NATIVE), "app-server", "--listen", "stdio://"])
     elif name == "pi":
         (root / "agent/models.json").write_text(json.dumps({"providers": {"cpar62": {
             "baseUrl": base, "api": "openai-responses", "apiKey": env["CPAR62_TEST_KEY"],
@@ -313,7 +499,9 @@ def client(name, scenario, directory, base):
     else:
         raise ValueError("unknown client")
     command = client_fence(root) + command
-    if name == "codex":
+    if name == "codex" and scenario != "unqualified":
+        receipt = codex_app_server(root, command, env, scenario, prompt)
+    elif name == "codex":
         process = subprocess.Popen(command, env=env, cwd=root / "work", stdin=subprocess.DEVNULL,
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                    text=True, start_new_session=True)
@@ -414,6 +602,8 @@ def client(name, scenario, directory, base):
     receipt["stderr"] = "\n".join(line for line in stderr.splitlines()
         if line.startswith(("WARNING:", "Error:", "Reading additional", "Traceback")))
     (root / "client.json").write_text(json.dumps(receipt, indent=2) + "\n")
+    if receipt.get("driver_error"):
+        raise RuntimeError(receipt["driver_error"])
 
 
 if __name__ == "__main__":
@@ -428,6 +618,9 @@ if __name__ == "__main__":
                             help="fail unless actual Codex completes the answer, two tool cycles and follow-up; expected HTTP400 is not success")
         parser.add_argument("--observe-client-tcp", action="store_true",
                             help="diagnostic TCP hop for Pi EOF/reset observation; direct runs remain the timing oracle")
+        parser.add_argument("--case", choices=("codex-unqualified", "codex-standard", "codex-failure", "codex-cancel",
+                                              "pi-standard", "pi-failure", "pi-cancel"),
+                            help="one diagnostic scenario; strict Codex success still requires all six normal-path receipts")
         args = parser.parse_args()
         run_qualification(args.output, args.require_prompt_release, args.require_codex_success,
-                          args.observe_client_tcp)
+                          args.observe_client_tcp, args.case)
