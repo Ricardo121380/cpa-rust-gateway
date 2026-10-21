@@ -142,6 +142,17 @@ def installed_manifest():
     return records
 
 
+def c4_readback_matches_presence(row):
+    """A present field needs exact capture; an absent field needs verified no capture."""
+    c4 = row.get("c4", {})
+    presence = row.get("fields", {}).get("client_metadata", {}).get("present")
+    if presence is True:
+        return c4.get("present") is True and c4.get("exact_raw_readback") is True
+    if presence is False:
+        return c4.get("present") is False and c4.get("absent_field_no_capture") is True
+    return False
+
+
 def codex_success_checks(root):
     """A required success gate is separate from the historical expected-400 preparation oracle.
 
@@ -201,7 +212,7 @@ def codex_success_checks(root):
                 for key in ("request_id", "attempt_id", "response_id", "receiver_ordinal", "usage_source_event_id"))
             and all(row["ledger_rows"] == 1 and row["usage_source_event_id"]
                 and row["usage"]["input_tokens"] == 20 and row["usage"]["output_tokens"] == 7
-                and row["outcome"] == "Succeeded" and row["c4"].get("exact_raw_readback") is True for row in joined),
+                and row["outcome"] == "Succeeded" and c4_readback_matches_presence(row) for row in joined),
         "two_correlated_tool_results": correlated,
         "actual_tool_file_result": (directory / "work/result.txt").exists()
             and (directory / "work/result.txt").read_text() == "42\n",

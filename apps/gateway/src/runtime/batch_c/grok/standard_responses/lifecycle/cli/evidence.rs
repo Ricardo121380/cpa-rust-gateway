@@ -6,17 +6,37 @@ use sha2::{Digest, Sha256};
 
 pub(super) fn frames(row: &Captured) -> Result<Vec<Value>, Box<dyn Error>> {
     assert!(!row.wire_truncated);
-    let semantic = std::str::from_utf8(&row.wire)?
-        .split("\n\n")
+    let wire = std::str::from_utf8(&row.wire)?;
+    if !wire.ends_with("\n\n") {
+        return Err("incomplete captured SSE record".into());
+    }
+    let semantic = wire
+        .split_inclusive("\n\n")
         .filter(|record| {
             !record
                 .lines()
                 .all(|line| line.is_empty() || line.starts_with(':'))
         })
-        .collect::<Vec<_>>()
-        .join("\n\n")
-        + "\n\n";
+        .collect::<String>();
     public_frames(semantic.as_bytes())
+}
+
+#[actix_web::test]
+async fn cli_capture_rejects_unterminated_semantic_record() -> TestResult {
+    let wire = b"event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n";
+    let mut row = Captured {
+        wire: wire.to_vec(),
+        ..Captured::default()
+    };
+    assert_eq!(frames(&row)?.len(), 1);
+    for removed in [1, 2] {
+        row.wire = wire[..wire.len() - removed].to_vec();
+        assert!(
+            frames(&row).is_err(),
+            "missing SSE boundary cannot be synthesized"
+        );
+    }
+    Ok(())
 }
 
 pub(super) fn correspondence(
@@ -212,7 +232,7 @@ fn metadata(
     )?;
     let Some(raw) = root.get("client_metadata") else {
         assert!(diagnostic.is_none());
-        return Ok(json!({"present":false,"receipt":"UNKNOWN"}));
+        return Ok(json!({"present":false,"receipt":"UNKNOWN","absent_field_no_capture":true}));
     };
     let diagnostic =
         diagnostic.ok_or("confirmed encrypted C4 evidence for this actual Request/Attempt")?;

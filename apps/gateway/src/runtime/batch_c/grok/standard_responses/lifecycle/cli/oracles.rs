@@ -188,18 +188,7 @@ pub(super) fn assert_public(
         assert_eq!(row.request["stream"], true);
         // The production stream includes legal transport keepalive comments during cancellation.
         // Keep unknown/non-comment records visible to the strict existing frame oracle.
-        let text = std::str::from_utf8(&row.wire)?;
-        let semantic = text
-            .split("\n\n")
-            .filter(|record| {
-                !record
-                    .lines()
-                    .all(|line| line.is_empty() || line.starts_with(':'))
-            })
-            .collect::<Vec<_>>()
-            .join("\n\n")
-            + "\n\n";
-        let frames = public_frames(semantic.as_bytes())?;
+        let frames = evidence::frames(row)?;
         let completed = frames
             .iter()
             .filter(|v| v["type"] == "response.completed")

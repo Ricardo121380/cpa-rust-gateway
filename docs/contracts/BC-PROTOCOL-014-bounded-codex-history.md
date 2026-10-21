@@ -64,3 +64,4 @@ usage joins, no error/failed records and actual completed turns remain mandatory
 - `build_codex_history_requires_independent_qualification`
 - `public_build_codex_history_keeps_native_values_and_external_c4`
 - `public_build_codex_history_invalid_and_unqualified_send_zero`
+- `cli_capture_rejects_unterminated_semantic_record`
