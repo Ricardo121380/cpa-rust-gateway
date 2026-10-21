@@ -184,6 +184,21 @@ async fn actual_cli_public_build_qualification() -> TestResult {
         )?;
         let rows = SqliteEventStore::open_read_only(&database)?.list_events()?;
         std::fs::write(directory.join("events.txt"), format!("{rows:#?}"))?;
+        std::fs::write(
+            directory.join("events.json"),
+            serde_json::to_vec_pretty(
+                &rows
+                    .iter()
+                    .map(|row| json!({"event_id":row.event_id(),"event":row.event()}))
+                    .collect::<Vec<_>>(),
+            )?,
+        )?;
+        oracles::materialize_ledger(&database).await?;
+        let correspondence = evidence::correspondence(&database, &ingress, &peer)?;
+        std::fs::write(
+            directory.join("correspondence.json"),
+            serde_json::to_vec_pretty(&correspondence)?,
+        )?;
         assert!(
             cancel_ready,
             "actual CLI did not reach the cancellation delta/lease barrier; raw receipts retained"
@@ -224,9 +239,8 @@ async fn actual_cli_public_build_qualification() -> TestResult {
                 "actual CLI receives, including tool cycles and follow-up"
             );
         }
-        let accounting = assert_accounting(&database, client, scenario).await?;
+        let accounting = assert_accounting(&database, client, scenario)?;
         let public = assert_public(&ingress, client, scenario)?;
-        let correspondence = evidence::correspondence(&database, &ingress, &peer)?;
         if client == "pi" && scenario != "standard" {
             let receipt: Value =
                 serde_json::from_slice(&std::fs::read(directory.join("client.json"))?)?;

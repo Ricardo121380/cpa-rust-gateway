@@ -1,6 +1,6 @@
 //! Observable CLI, native history, exact Attempt and durable ledger oracles.
 use super::*;
-pub(super) async fn assert_accounting(
+pub(super) fn assert_accounting(
     database: &std::path::Path,
     client: &str,
     scenario: &str,
@@ -96,22 +96,26 @@ pub(super) async fn assert_accounting(
         lineage.push(json!({"request_id":request.request_id().as_str(),"attempt_id":attempt.attempt_id().as_str(),
             "owner":request.client_key_id().as_str(),"source_event_id":source_event,"native_companion":"UNKNOWN"}));
     }
-    assert_ledger(database, &usages).await?;
+    assert_ledger(database, &usages)?;
     Ok(
         json!({"requests_including_negative_probe":requests.len(),"client_requests":expected,"attempts":attempts.len(),"finished":finished.len(),"usage":usages.len(),"ledger":usage_count,
         "outcome":format!("{expected_outcome:?}"),"lineage":lineage,"cost":"UNKNOWN"}),
     )
 }
 
-async fn assert_ledger(
-    database: &std::path::Path,
-    usages: &[(&str, &gateway_core::UsageEvent)],
-) -> TestResult {
+pub(super) async fn materialize_ledger(database: &std::path::Path) -> TestResult {
     let worker = crate::billing_worker::BillingWorker::start(
         database.to_owned(),
         Arc::new(gateway_control::billing_processing::BillingProcessingMonitor::default()),
     );
     worker.stop().await.map_err(|()| "billing worker")?;
+    Ok(())
+}
+
+fn assert_ledger(
+    database: &std::path::Path,
+    usages: &[(&str, &gateway_core::UsageEvent)],
+) -> TestResult {
     let ledger = SqliteBillingLedger::open_read_only(database)?.list_bounded(10)?;
     assert_eq!(ledger.len(), usages.len());
     for entry in &ledger {
@@ -142,6 +146,12 @@ pub(super) fn assert_public(
     let rows = ingress.lock().map_err(|_| "ingress")?;
     let rows: Vec<_> = rows.iter().filter(|v| !v.probe).collect();
     assert_eq!(rows.len(), if scenario == "standard" { 5 } else { 1 });
+    if client == "codex" && scenario == "standard" {
+        assert!(
+            rows.iter().any(|row| combined_codex_request(&row.request)),
+            "at least one actual positive request combines C1/C4/C5/C6 and parallel=true; later presence may vary"
+        );
+    }
     let mut results = Vec::new();
     for row in &rows {
         assert_eq!(row.path, "/v1/responses");
@@ -217,6 +227,64 @@ pub(super) fn assert_public(
         );
     }
     Ok(json!(results))
+}
+
+fn combined_codex_request(request: &Value) -> bool {
+    let Some(tools) = request["tools"].as_array() else {
+        return false;
+    };
+    tools
+        .iter()
+        .any(|tool| tool["type"] == "namespace" && tool["name"] == "multi_agent_v1")
+        && tools
+            .iter()
+            .any(|tool| *tool == json!({"type":"web_search","external_web_access":false}))
+        && request["parallel_tool_calls"] == true
+        && request.get("client_metadata").is_some()
+        && request["input"].as_array().is_some_and(|input| {
+            input.iter().any(|item| {
+                matches!(item["role"].as_str(), Some("user" | "developer" | "system"))
+                    && item.get("id").is_some()
+            })
+        })
+}
+
+#[actix_web::test]
+async fn combined_codex_gate_requires_actual_field_coexistence() -> TestResult {
+    let request = json!({"tools":[
+        {"type":"namespace","name":"multi_agent_v1","tools":[{"type":"function","name":"spawn_agent","parameters":{"type":"object"},"strict":false}]},
+        {"type":"web_search","external_web_access":false}],"parallel_tool_calls":true,
+        "client_metadata":{},"input":[{"type":"message","role":"user","id":"gate-user","content":"task"}]});
+    assert!(combined_codex_request(&request));
+    for field in ["tools", "parallel_tool_calls", "client_metadata", "input"] {
+        let mut missing = request.clone();
+        missing
+            .as_object_mut()
+            .ok_or("fixture object")?
+            .remove(field);
+        assert!(!combined_codex_request(&missing), "missing {field}");
+    }
+    for index in [0, 1] {
+        let mut missing = request.clone();
+        missing["tools"]
+            .as_array_mut()
+            .ok_or("fixture tools")?
+            .remove(index);
+        assert!(!combined_codex_request(&missing));
+    }
+    let mut changed = request.clone();
+    changed["tools"][1]["external_web_access"] = json!(true);
+    assert!(!combined_codex_request(&changed));
+    changed = request.clone();
+    changed["parallel_tool_calls"] = json!(false);
+    assert!(!combined_codex_request(&changed));
+    changed = request;
+    changed["input"][0]
+        .as_object_mut()
+        .ok_or("fixture message")?
+        .remove("id");
+    assert!(!combined_codex_request(&changed));
+    Ok(())
 }
 
 pub(super) fn assert_history(received: &[Value], directory: &std::path::Path) -> TestResult {

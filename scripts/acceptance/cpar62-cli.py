@@ -149,10 +149,12 @@ def codex_success_checks(root):
     this gate alone does not qualify a new client mode or #61 encrypted retention.
     """
     directory = root / "codex-standard"
-    receipt = json.loads((directory / "client.json").read_text())
-    observations = json.loads((directory / "observations.json").read_text())
-    ingress = [row for row in json.loads((directory / "ingress.json").read_text()) if not row["probe"]]
-    upstream = json.loads((directory / "upstream.json").read_text())
+    missing = [name for name in ("client.json", "observations.json", "ingress.json", "upstream.json")
+               if not (directory / name).exists()]
+    receipt = json.loads((directory / "client.json").read_text()) if "client.json" not in missing else {"exit": None, "stdout": ""}
+    observations = json.loads((directory / "observations.json").read_text()) if "observations.json" not in missing else {}
+    ingress = [row for row in json.loads((directory / "ingress.json").read_text()) if not row["probe"]] if "ingress.json" not in missing else []
+    upstream = json.loads((directory / "upstream.json").read_text()) if "upstream.json" not in missing else []
     events = [json.loads(line) for line in receipt["stdout"].splitlines() if line.strip()]
     history = upstream[-1].get("input", []) if upstream else []
     history = [row for row in history if isinstance(row, dict)] if isinstance(history, list) else []
@@ -167,7 +169,7 @@ def codex_success_checks(root):
                 position for position, result in enumerate(history)
                 if result.get("type") == "function_call_output" and result.get("call_id") == call_id)
             for index, call_id in enumerate(call_ids))
-        verified = observations.get("tool_loop", {})
+        verified = observations.get("tool_loop") or {}
         correlated = correlated and verified.get("pass") is True \
             and len(verified.get("ordered_tools", [])) == 2
         for call, expected in zip(calls, verified.get("ordered_tools", [])):
@@ -176,7 +178,7 @@ def codex_success_checks(root):
             result = next(row for row in results if row["call_id"] == call["call_id"])
             correlated = correlated and result.get("output") == expected["full_result"] \
                 and result.get("id") == expected["result_id"] and "namespace" not in result and "name" not in result
-    accounting = observations["accounting"]
+    accounting = observations.get("accounting", {})
     joined = observations.get("correspondence", [])
     checks = {
         "cli_exit_zero": receipt["exit"] == 0,
@@ -199,7 +201,8 @@ def codex_success_checks(root):
         "actual_tool_file_result": (directory / "work/result.txt").exists()
             and (directory / "work/result.txt").read_text() == "42\n",
     }
-    return {"status": "PASS" if all(checks.values()) else "FAIL", "checks": checks}
+    return {"status": "PASS" if all(checks.values()) and not missing else "FAIL", "checks": checks,
+            "missing_receipts": missing}
 
 
 def run_qualification(output, require_prompt_release=False, require_codex_success=False,
@@ -288,8 +291,7 @@ def run_qualification(output, require_prompt_release=False, require_codex_succes
     for name in ("pi", "codex"):
         cancel_path = root / f"{name}-cancel/cancel-diagnostic.json"
         cancellations[name] = json.loads(cancel_path.read_text()) if cancel_path.exists() else None
-    codex_gate = codex_success_checks(root) if (root / "codex-standard/observations.json").exists() else {
-        "status": "FAIL", "reason": "missing actual Codex observations"}
+    codex_gate = codex_success_checks(root)
     (root / "run.json").write_text(json.dumps({"command": command, "exit": result.returncode,
         "runner_status": "FAIL" if result.returncode or not unchanged
             or require_codex_success and codex_gate["status"] != "PASS" else "PASS",

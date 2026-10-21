@@ -185,7 +185,10 @@ fn fidelity(row: &Captured, upstream: &Value, receipt: &Value) -> Result<Value, 
     );
     fields.insert(
         "input".into(),
-        json!({"items":expected.len(),"exact_after_instruction_projection":true}),
+        json!({"items":expected.len(),"exact_after_instruction_projection":true,
+            "non_assistant_ids":expected.iter().enumerate().filter(|(_,item)|
+                matches!(item["role"].as_str(),Some("user"|"developer"|"system")))
+                .map(|(index,item)|json!({"index":index,"role":item["role"],"id_present":item.get("id").is_some(),"id":item.get("id")})).collect::<Vec<_>>()}),
     );
     fields.insert(
         "client_metadata".into(),
