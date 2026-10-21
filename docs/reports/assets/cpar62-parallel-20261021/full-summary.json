@@ -1,0 +1,14 @@
+{
+  "candidate": "a786cc72c4b7880ae8ed35de6a9c0ae788f38a82",
+  "exit_code": 0,
+  "steps_passed": 45,
+  "rust": {
+    "passed": 1635,
+    "failed": 0,
+    "ignored": 17,
+    "suites": 130
+  },
+  "log_sha256": "ed1d52f1a7f25f015034403b94464c748d7302f9e8961e31489180197b265a48",
+  "report_sha256": "a3be1174e9891ebac9dd289a19bdb0879bb324220df4bc97817f5c06098fe525",
+  "input_sha256": "c2add60c02b5e847d2578cf84058f9c101c48a0d90812b277bc6db726b211f34"
+}

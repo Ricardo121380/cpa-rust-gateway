@@ -1,0 +1,12 @@
+{
+  "head": "a786cc72c4b7880ae8ed35de6a9c0ae788f38a82",
+  "tree": "4c665480722e60366fb735f3f29e3045f3fb416d",
+  "branch": "feature/62-client-metadata",
+  "manifest": {
+    "Cargo.toml": "1b1a37ce8d8fcafa51d379ffae2ff33fff091c5a48c0f3458e47b99c12b22355",
+    "Cargo.lock": "36564c0219707741d79ecb37d9fc4ee620ce2fe6801fdbe09b32fb4c8687c858",
+    "rust-toolchain.toml": "8e390d6a0838315f972690f46ef8bae8b7ecc9ee6c1ed70140ef852869c2482e",
+    "apps/gateway/Cargo.toml": "c0271c2ad72a8fcbdd419f12914d5c1db949531870e1cc142db0462c582d1108",
+    "crates/provider-grok/Cargo.toml": "1968502b1ee6e2221f02226b01b47295f33281eec6bce5f1a7434de9dd58d303"
+  }
+}

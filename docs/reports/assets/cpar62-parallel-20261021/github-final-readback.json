@@ -1,0 +1,21 @@
+{
+  "readonly": true,
+  "issues_and_dependencies_and_refs": [
+    {
+      "status": "fulfilled",
+      "value": "{\"number\":62,\"state\":\"OPEN\",\"title\":\"Codex 与 Pi 的 Responses 受控工具闭环\",\"updatedAt\":\"2026-10-19T08:21:40Z\",\"url\":\"https://github.com/Ricardo121380/cpa-rust-gateway/issues/62\"}\n"
+    },
+    {
+      "status": "fulfilled",
+      "value": "{\"number\":61,\"state\":\"OPEN\",\"title\":\"标准 Responses 的 JSON、SSE 与工具闭环\",\"updatedAt\":\"2026-10-18T15:19:58Z\",\"url\":\"https://github.com/Ricardo121380/cpa-rust-gateway/issues/61\"}\n"
+    },
+    {
+      "status": "fulfilled",
+      "value": "[{\"html_url\":\"https://github.com/Ricardo121380/cpa-rust-gateway/issues/61\",\"number\":61,\"state\":\"open\"}]\n"
+    },
+    {
+      "status": "fulfilled",
+      "value": "c39bc07b1d53f831199f21cc5ae5062c987670b2\trefs/heads/develop\nc6a981b0f9eda09b0a2e58df11d272adf14f9552\trefs/heads/main\n"
+    }
+  ]
+}

@@ -303,3 +303,5 @@ C6 delivery and final runtime evidence: [2026-10-21 report](reports/cpar-62-c6-i
 | Contract / ADR | Implementation and validation |
 | --- | --- |
 | [BC-PROTOCOL-013](contracts/BC-PROTOCOL-013-controlled-parallel-functions.md), [ADR-0119](adr/ADR-0119-controlled-parallel-function-batches.md) | Independent private Build qualification plus actual RouteCompiler/factory; existing item/call maps and completion queue guard semantic/public done through whole terminal and applicable Usage; Responses forced named exactly-one. Public `parallel` matrix covers same-response flat/cross-namespace calls, interleaved byte-fragmented SSE, explicit/owned stored multi-result continuation, identities, counts, admission/failure/Usage/cancellation and no retry/root. Production Build, actual Codex and #61 remain independent. |
+
+C2 remaining delivery and immutable runtime evidence: [2026-10-21 ParallelTools report](reports/cpar-62-c2-parallel-tools-20261021.md). Code candidate `a786cc72c4b7880ae8ed35de6a9c0ae788f38a82`: Full 45/45, public 12/12; actual Codex strict gate FAIL, Pi serial controlled PASS_BOUNDED. Fixed Build activation and #61 remain blocked.

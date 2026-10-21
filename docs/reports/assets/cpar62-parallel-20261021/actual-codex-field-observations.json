@@ -1,0 +1,46 @@
+{
+  "top_level_fields": [
+    "client_metadata",
+    "include",
+    "input",
+    "instructions",
+    "model",
+    "parallel_tool_calls",
+    "prompt_cache_key",
+    "reasoning",
+    "store",
+    "stream",
+    "tool_choice",
+    "tools"
+  ],
+  "parallel_tool_calls": true,
+  "tool_choice": "auto",
+  "tool_types": [
+    "function",
+    "function",
+    "function",
+    "function",
+    "namespace",
+    "function",
+    "function",
+    "function",
+    "web_search"
+  ],
+  "function_namespaces": [
+    [
+      "multi_agent_v1",
+      [
+        "close_agent",
+        "resume_agent",
+        "send_input",
+        "spawn_agent",
+        "wait_agent"
+      ]
+    ]
+  ],
+  "non_assistant_id_count": 3,
+  "client_metadata_present": true,
+  "error_class": "ClientRequestError",
+  "upstream_seen": 0,
+  "warning": "Field presence is not proof of which rejection check fired; no single cause inferred."
+}

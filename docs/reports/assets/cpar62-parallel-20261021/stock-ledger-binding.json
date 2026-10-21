@@ -1,0 +1,8 @@
+{
+  "before": "702264588ade1521e841550bbfe772437e601b1b",
+  "candidate": "a786cc72c4b7880ae8ed35de6a9c0ae788f38a82",
+  "function": "p12_adapter_capabilities",
+  "sha256": "d1b71b1afc2c244fb1ad38b806658c3f44474bbd5ebda29bc8990a3a1fb4b32b",
+  "unchanged": true,
+  "production_build_parallel": false
+}

@@ -1,0 +1,180 @@
+{
+  "candidate": {
+    "head": "a786cc72c4b7880ae8ed35de6a9c0ae788f38a82",
+    "tree": "4c665480722e60366fb735f3f29e3045f3fb416d",
+    "branch": "feature/62-client-metadata",
+    "manifest": {
+      "Cargo.toml": "1b1a37ce8d8fcafa51d379ffae2ff33fff091c5a48c0f3458e47b99c12b22355",
+      "Cargo.lock": "36564c0219707741d79ecb37d9fc4ee620ce2fe6801fdbe09b32fb4c8687c858",
+      "rust-toolchain.toml": "8e390d6a0838315f972690f46ef8bae8b7ecc9ee6c1ed70140ef852869c2482e",
+      "apps/gateway/Cargo.toml": "c0271c2ad72a8fcbdd419f12914d5c1db949531870e1cc142db0462c582d1108",
+      "crates/provider-grok/Cargo.toml": "1968502b1ee6e2221f02226b01b47295f33281eec6bce5f1a7434de9dd58d303"
+    }
+  },
+  "validation_tree": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-parallel-full-20261021-a786cc72",
+  "target": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-parallel-20261021/target-full-final",
+  "overlays": [
+    {
+      "path": "CONTEXT.md",
+      "original_sha256": "eaa545ede563d661387baff18ebd21e8acc3a9661000c4123eec6bf2d1779e21",
+      "mode": 420,
+      "symlink": null,
+      "applied_sha256": "eaa545ede563d661387baff18ebd21e8acc3a9661000c4123eec6bf2d1779e21",
+      "candidate_blob_sha256": null
+    },
+    {
+      "path": "docs/adr/ADR-0107-standard-response-metadata-separation.md",
+      "original_sha256": "dad1f8391de1a6d82a0c280189346f1a065bc04ee84f88502859e766b485938e",
+      "mode": 420,
+      "symlink": null,
+      "applied_sha256": "dad1f8391de1a6d82a0c280189346f1a065bc04ee84f88502859e766b485938e",
+      "candidate_blob_sha256": null
+    },
+    {
+      "path": "docs/adr/ADR-0108-build-summary-standard-messages.md",
+      "original_sha256": "a8088457f16a6f60fbb13cd617594cb896f9c168a4dfe9122295602ade0f82ec",
+      "mode": 420,
+      "symlink": null,
+      "applied_sha256": "a8088457f16a6f60fbb13cd617594cb896f9c168a4dfe9122295602ade0f82ec",
+      "candidate_blob_sha256": null
+    },
+    {
+      "path": "docs/agents/domain.md",
+      "original_sha256": "143fbbb108382fe791a9a9a7b2f0c208d7a8b9a64f0250b3b172f1660c6f9b40",
+      "mode": 420,
+      "symlink": null,
+      "applied_sha256": "143fbbb108382fe791a9a9a7b2f0c208d7a8b9a64f0250b3b172f1660c6f9b40",
+      "candidate_blob_sha256": null
+    },
+    {
+      "path": "docs/agents/issue-tracker.md",
+      "original_sha256": "c95aff9dd13f35beb3646a2e01cf28559c1ceb0122e01515f354911385c312d0",
+      "mode": 420,
+      "symlink": null,
+      "applied_sha256": "c95aff9dd13f35beb3646a2e01cf28559c1ceb0122e01515f354911385c312d0",
+      "candidate_blob_sha256": null
+    },
+    {
+      "path": "docs/agents/triage-labels.md",
+      "original_sha256": "ef4786ebc27973fe8afd053bc91ff16038195c354f05d7456776ec6aeea2c721",
+      "mode": 420,
+      "symlink": null,
+      "applied_sha256": "ef4786ebc27973fe8afd053bc91ff16038195c354f05d7456776ec6aeea2c721",
+      "candidate_blob_sha256": null
+    },
+    {
+      "path": "docs/engineering-roadmap.md",
+      "original_sha256": "0babeedb83b7c2138ab7e540ef8be4c2b0a0831a0710a0e00f5a9f861f28777b",
+      "mode": 420,
+      "symlink": null,
+      "applied_sha256": "0babeedb83b7c2138ab7e540ef8be4c2b0a0831a0710a0e00f5a9f861f28777b",
+      "candidate_blob_sha256": null
+    },
+    {
+      "path": "docs/reports/cpar-62-64-client-field-plan-20261020.md",
+      "original_sha256": "26cb7b1a5af0ee25ed47f35ecac963433c9cd704830f181c9529f942571cac97",
+      "mode": 420,
+      "symlink": null,
+      "applied_sha256": "26cb7b1a5af0ee25ed47f35ecac963433c9cd704830f181c9529f942571cac97",
+      "candidate_blob_sha256": null
+    },
+    {
+      "path": "AGENTS.md",
+      "original_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+      "mode": 420,
+      "symlink": null,
+      "applied_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+      "candidate_blob_sha256": "6c90617fc5facd485b302863a18970646ee74d2ab58e854fe246be296e274e0f"
+    },
+    {
+      "path": "README.md",
+      "original_sha256": "376de5be81e5b8ac7b0ad6ac25b4e186db18321a0cd89057d7432ef5524219f9",
+      "mode": 420,
+      "symlink": null,
+      "applied_sha256": "376de5be81e5b8ac7b0ad6ac25b4e186db18321a0cd89057d7432ef5524219f9",
+      "candidate_blob_sha256": "923d57d522645025404d8fdd957b811385c522aaa899eddb488e26bdaff8e137"
+    },
+    {
+      "path": "README.zh-CN.md",
+      "original_sha256": "d5ae62085c88f4200b19f973b675b10fad63c0e86ed42178969ec869bfbe3b76",
+      "mode": 420,
+      "symlink": null,
+      "applied_sha256": "d5ae62085c88f4200b19f973b675b10fad63c0e86ed42178969ec869bfbe3b76",
+      "candidate_blob_sha256": "9b2c3a7d94c756253c6365c79aa1a343352ac5befcb4e3fcf93c30d1c11b70ef"
+    },
+    {
+      "path": "docs/06-development-plan.md",
+      "original_sha256": "322ac4c20b44eedf1b3e7bdb3ed1bfc7b9e12c9cf2192b3b85ffe274061b3fe5",
+      "mode": 420,
+      "symlink": null,
+      "applied_sha256": "322ac4c20b44eedf1b3e7bdb3ed1bfc7b9e12c9cf2192b3b85ffe274061b3fe5",
+      "candidate_blob_sha256": "21abfd21ba381f6b7175b6eb572f51e92e611e62ddf786c309b7973f6ae28c2e"
+    },
+    {
+      "path": "docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md",
+      "original_sha256": "ad35d32a70725f9da6b412c0100e920eb52cd560f67faefbb9013b3ad1834bcb",
+      "mode": 420,
+      "symlink": null,
+      "applied_sha256": "ad35d32a70725f9da6b412c0100e920eb52cd560f67faefbb9013b3ad1834bcb",
+      "candidate_blob_sha256": "bfbcee6fad3ed9c7924c3d801ff4796db353abaac65c00fb59d777d2c766ca0f"
+    },
+    {
+      "path": "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+      "original_sha256": "a426616e9a4cbb875e3eb081e40160357433817306ff045ed5de3c3797c39131",
+      "mode": 420,
+      "symlink": null,
+      "applied_sha256": "a426616e9a4cbb875e3eb081e40160357433817306ff045ed5de3c3797c39131",
+      "candidate_blob_sha256": "da24f31ebb1aef77a48f9d9a696ea61504e8a0091333dea16e64bd63ee1ab3f5"
+    },
+    {
+      "path": "docs/adr/ADR-0106-native-fidelity-profile.md",
+      "original_sha256": "8e770df75f08f2ce4c4471cfaa58365bc8e20715880dc7239e7d98438d530409",
+      "mode": 420,
+      "symlink": null,
+      "applied_sha256": "8e770df75f08f2ce4c4471cfaa58365bc8e20715880dc7239e7d98438d530409",
+      "candidate_blob_sha256": "117396b52adb4bf218704adfe7ead78b49176b0c56bbb172c3a0f3f56f781cbe"
+    },
+    {
+      "path": "docs/adr/README.md",
+      "original_sha256": "d3b73ef61f6cba5ac33f29caab308fde72fca3bb8449e4a6a7f209a491d9cd7c",
+      "mode": 420,
+      "symlink": null,
+      "applied_sha256": "7265b24f7d8d72b81ed9ca83809be4eb708e94e12c1a4a35684cb57e51803917",
+      "candidate_blob_sha256": "e79fcdf353e4a460a23405ed20ceaf220d25669bea8c1b428d5198492440be3d"
+    },
+    {
+      "path": "docs/contracts/BC-PROTOCOL-009-codex-responses-controls.md",
+      "original_sha256": "6de29611abb1a57d765ed435be360127dd08823f52169009b11af4447d2d00ae",
+      "mode": 420,
+      "symlink": null,
+      "applied_sha256": "6a1f887ec2e203c204e0a5b79e836dbc0621a93ff8534e5bbba5130931e00f3f",
+      "candidate_blob_sha256": "cc8ab5f8adc1a7a7df9f4f8c9f0e34c47c10a7d4c7b5ddb100a10acbcd6d8c72"
+    },
+    {
+      "path": "docs/traceability.md",
+      "original_sha256": "e629e49d7f66001e2308f84c78bdb84c9350e0406d68b5510c977c95def7ed2e",
+      "mode": 420,
+      "symlink": null,
+      "applied_sha256": "59680257e09065fb118d57ce50ac13dbcf379e826bbf4eac3cb21a7003d308fd",
+      "candidate_blob_sha256": "699af21d956ac7dedba898998bd0f8f4ce1c3b7c65fbcc68498f28d95ef3dd66"
+    }
+  ],
+  "source_input_count": 7206,
+  "source_input_sha256": "c2add60c02b5e847d2578cf84058f9c101c48a0d90812b277bc6db726b211f34",
+  "cargo_metadata_sha256": "d4f9d7ca0e542c3dca8c8eeef0bccc1a8cf59b8fd2154cd6cb25d7cb8686bd5c",
+  "tool_versions": {
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "node": "v26.8.2",
+    "npm": "11.19.1",
+    "ruby": "ruby 2.6.10p210 (2022-04-12 revision 67958) [universal.arm64e-darwin26]",
+    "cargo-deny": "cargo-deny 0.20.2",
+    "cargo-audit": "cargo-audit-audit 0.22.2",
+    "build_env": {
+      "RUST_TEST_THREADS": null,
+      "RUSTFLAGS": null,
+      "CARGO_BUILD_JOBS": null,
+      "CARGO_PROFILE_TEST_OPT_LEVEL": null
+    }
+  }
+}

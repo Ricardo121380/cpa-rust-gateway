@@ -1,0 +1,154 @@
+{
+  "initial_head": "702264588ade1521e841550bbfe772437e601b1b",
+  "code_candidate": "a786cc72c4b7880ae8ed35de6a9c0ae788f38a82",
+  "original_file_count": 18,
+  "files": [
+    {
+      "path": "CONTEXT.md",
+      "original_sha256": "eaa545ede563d661387baff18ebd21e8acc3a9661000c4123eec6bf2d1779e21",
+      "current_sha256": "eaa545ede563d661387baff18ebd21e8acc3a9661000c4123eec6bf2d1779e21",
+      "owned_suffix_sha256": null,
+      "original_bytes_preserved": true,
+      "mode_uid_gid_symlink_preserved": true
+    },
+    {
+      "path": "docs/adr/ADR-0107-standard-response-metadata-separation.md",
+      "original_sha256": "dad1f8391de1a6d82a0c280189346f1a065bc04ee84f88502859e766b485938e",
+      "current_sha256": "dad1f8391de1a6d82a0c280189346f1a065bc04ee84f88502859e766b485938e",
+      "owned_suffix_sha256": null,
+      "original_bytes_preserved": true,
+      "mode_uid_gid_symlink_preserved": true
+    },
+    {
+      "path": "docs/adr/ADR-0108-build-summary-standard-messages.md",
+      "original_sha256": "a8088457f16a6f60fbb13cd617594cb896f9c168a4dfe9122295602ade0f82ec",
+      "current_sha256": "a8088457f16a6f60fbb13cd617594cb896f9c168a4dfe9122295602ade0f82ec",
+      "owned_suffix_sha256": null,
+      "original_bytes_preserved": true,
+      "mode_uid_gid_symlink_preserved": true
+    },
+    {
+      "path": "docs/agents/domain.md",
+      "original_sha256": "143fbbb108382fe791a9a9a7b2f0c208d7a8b9a64f0250b3b172f1660c6f9b40",
+      "current_sha256": "143fbbb108382fe791a9a9a7b2f0c208d7a8b9a64f0250b3b172f1660c6f9b40",
+      "owned_suffix_sha256": null,
+      "original_bytes_preserved": true,
+      "mode_uid_gid_symlink_preserved": true
+    },
+    {
+      "path": "docs/agents/issue-tracker.md",
+      "original_sha256": "c95aff9dd13f35beb3646a2e01cf28559c1ceb0122e01515f354911385c312d0",
+      "current_sha256": "c95aff9dd13f35beb3646a2e01cf28559c1ceb0122e01515f354911385c312d0",
+      "owned_suffix_sha256": null,
+      "original_bytes_preserved": true,
+      "mode_uid_gid_symlink_preserved": true
+    },
+    {
+      "path": "docs/agents/triage-labels.md",
+      "original_sha256": "ef4786ebc27973fe8afd053bc91ff16038195c354f05d7456776ec6aeea2c721",
+      "current_sha256": "ef4786ebc27973fe8afd053bc91ff16038195c354f05d7456776ec6aeea2c721",
+      "owned_suffix_sha256": null,
+      "original_bytes_preserved": true,
+      "mode_uid_gid_symlink_preserved": true
+    },
+    {
+      "path": "docs/engineering-roadmap.md",
+      "original_sha256": "0babeedb83b7c2138ab7e540ef8be4c2b0a0831a0710a0e00f5a9f861f28777b",
+      "current_sha256": "0babeedb83b7c2138ab7e540ef8be4c2b0a0831a0710a0e00f5a9f861f28777b",
+      "owned_suffix_sha256": null,
+      "original_bytes_preserved": true,
+      "mode_uid_gid_symlink_preserved": true
+    },
+    {
+      "path": "docs/reports/cpar-62-64-client-field-plan-20261020.md",
+      "original_sha256": "26cb7b1a5af0ee25ed47f35ecac963433c9cd704830f181c9529f942571cac97",
+      "current_sha256": "26cb7b1a5af0ee25ed47f35ecac963433c9cd704830f181c9529f942571cac97",
+      "owned_suffix_sha256": null,
+      "original_bytes_preserved": true,
+      "mode_uid_gid_symlink_preserved": true
+    },
+    {
+      "path": "AGENTS.md",
+      "original_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+      "current_sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+      "owned_suffix_sha256": null,
+      "original_bytes_preserved": true,
+      "mode_uid_gid_symlink_preserved": true
+    },
+    {
+      "path": "README.md",
+      "original_sha256": "376de5be81e5b8ac7b0ad6ac25b4e186db18321a0cd89057d7432ef5524219f9",
+      "current_sha256": "376de5be81e5b8ac7b0ad6ac25b4e186db18321a0cd89057d7432ef5524219f9",
+      "owned_suffix_sha256": null,
+      "original_bytes_preserved": true,
+      "mode_uid_gid_symlink_preserved": true
+    },
+    {
+      "path": "README.zh-CN.md",
+      "original_sha256": "d5ae62085c88f4200b19f973b675b10fad63c0e86ed42178969ec869bfbe3b76",
+      "current_sha256": "d5ae62085c88f4200b19f973b675b10fad63c0e86ed42178969ec869bfbe3b76",
+      "owned_suffix_sha256": null,
+      "original_bytes_preserved": true,
+      "mode_uid_gid_symlink_preserved": true
+    },
+    {
+      "path": "docs/06-development-plan.md",
+      "original_sha256": "322ac4c20b44eedf1b3e7bdb3ed1bfc7b9e12c9cf2192b3b85ffe274061b3fe5",
+      "current_sha256": "322ac4c20b44eedf1b3e7bdb3ed1bfc7b9e12c9cf2192b3b85ffe274061b3fe5",
+      "owned_suffix_sha256": null,
+      "original_bytes_preserved": true,
+      "mode_uid_gid_symlink_preserved": true
+    },
+    {
+      "path": "docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md",
+      "original_sha256": "ad35d32a70725f9da6b412c0100e920eb52cd560f67faefbb9013b3ad1834bcb",
+      "current_sha256": "ad35d32a70725f9da6b412c0100e920eb52cd560f67faefbb9013b3ad1834bcb",
+      "owned_suffix_sha256": null,
+      "original_bytes_preserved": true,
+      "mode_uid_gid_symlink_preserved": true
+    },
+    {
+      "path": "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+      "original_sha256": "a426616e9a4cbb875e3eb081e40160357433817306ff045ed5de3c3797c39131",
+      "current_sha256": "a426616e9a4cbb875e3eb081e40160357433817306ff045ed5de3c3797c39131",
+      "owned_suffix_sha256": null,
+      "original_bytes_preserved": true,
+      "mode_uid_gid_symlink_preserved": true
+    },
+    {
+      "path": "docs/adr/ADR-0106-native-fidelity-profile.md",
+      "original_sha256": "8e770df75f08f2ce4c4471cfaa58365bc8e20715880dc7239e7d98438d530409",
+      "current_sha256": "8e770df75f08f2ce4c4471cfaa58365bc8e20715880dc7239e7d98438d530409",
+      "owned_suffix_sha256": null,
+      "original_bytes_preserved": true,
+      "mode_uid_gid_symlink_preserved": true
+    },
+    {
+      "path": "docs/adr/README.md",
+      "original_sha256": "d3b73ef61f6cba5ac33f29caab308fde72fca3bb8449e4a6a7f209a491d9cd7c",
+      "current_sha256": "7265b24f7d8d72b81ed9ca83809be4eb708e94e12c1a4a35684cb57e51803917",
+      "owned_suffix_sha256": "cc8c3f6efe92ab01973214ddaaf7c780c832137754e6c3385f21981839d0348f",
+      "original_bytes_preserved": true,
+      "mode_uid_gid_symlink_preserved": true
+    },
+    {
+      "path": "docs/contracts/BC-PROTOCOL-009-codex-responses-controls.md",
+      "original_sha256": "6de29611abb1a57d765ed435be360127dd08823f52169009b11af4447d2d00ae",
+      "current_sha256": "6a1f887ec2e203c204e0a5b79e836dbc0621a93ff8534e5bbba5130931e00f3f",
+      "owned_suffix_sha256": "a04025cd1de80c65beaa04421ec7e50a4968e19cc8d5e0748cc814f4ce13bfaf",
+      "original_bytes_preserved": true,
+      "mode_uid_gid_symlink_preserved": true
+    },
+    {
+      "path": "docs/traceability.md",
+      "original_sha256": "e629e49d7f66001e2308f84c78bdb84c9350e0406d68b5510c977c95def7ed2e",
+      "current_sha256": "4ebd3c9b710cbe23adf0cf8a22c54a129446b440fa837ba900ca500d65c2ac3d",
+      "owned_suffix_sha256": "a0e11db44b8d4f9d1fe689b18fcb18fae80342bc51e39dc9e0e3b74f79935996",
+      "original_bytes_preserved": true,
+      "mode_uid_gid_symlink_preserved": true
+    }
+  ],
+  "all_preserved": true,
+  "index_policy": "Owned paths only; co-edited documents are prior HEAD plus exactly the recorded own suffix. Inherited dirty content is excluded from commits.",
+  "forbidden_operations_used": false
+}

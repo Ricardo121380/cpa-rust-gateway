@@ -1,0 +1,418 @@
+{
+  "candidate": "a786cc72c4b7880ae8ed35de6a9c0ae788f38a82",
+  "raw_receipts": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-parallel-actual-20261021T105200Z",
+  "outer_exit": 1,
+  "preparation_test_exit": 0,
+  "runner_status": "FAIL",
+  "codex_success_gate": {
+    "status": "FAIL",
+    "checks": {
+      "cli_exit_zero": false,
+      "answer_tool_task_and_follow_up": false,
+      "five_incremental_public_responses": false,
+      "independent_receives_and_exact_accounting": false,
+      "two_correlated_tool_results": false,
+      "actual_tool_file_result": false
+    }
+  },
+  "versions": {
+    "codex": {
+      "command": [
+        "/opt/homebrew/bin/codex",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "codex-cli 0.161.0\n",
+      "stderr": ""
+    },
+    "pi-shell": {
+      "command": [
+        "/opt/homebrew/bin/pi",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "0.84.3\n",
+      "stderr": ""
+    },
+    "pi-declared-bin": {
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "0.84.3\n",
+      "stderr": ""
+    },
+    "node": {
+      "command": [
+        "/opt/homebrew/bin/node",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "v26.8.2\n",
+      "stderr": ""
+    }
+  },
+  "executable_identities": {
+    "/opt/homebrew/lib/node_modules/@openai/codex/bin/codex.js": {
+      "sha256": "61b0194f3bb6534439c8d26a3ed57d0805f84b884588b761795323eeb92fcf70",
+      "frozen_manifest": {
+        "mode": 493,
+        "sha256": "61b0194f3bb6534439c8d26a3ed57d0805f84b884588b761795323eeb92fcf70"
+      }
+    },
+    "/opt/homebrew/lib/node_modules/@openai/codex/vendor/aarch64-apple-darwin/bin/codex": {
+      "sha256": "12ac11d2c7eee27cfae34393986d7b7c9ed0dea537cb749831cdd7033893e6de",
+      "frozen_manifest": {
+        "mode": 493,
+        "sha256": "12ac11d2c7eee27cfae34393986d7b7c9ed0dea537cb749831cdd7033893e6de"
+      }
+    },
+    "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/dist/cli.js": {
+      "sha256": "840d1e8e689ed9e4937bcb00b9a810e02a8567d9afb10a47097f11ca93ea1521",
+      "frozen_manifest": {
+        "mode": 493,
+        "sha256": "840d1e8e689ed9e4937bcb00b9a810e02a8567d9afb10a47097f11ca93ea1521"
+      }
+    },
+    "/opt/homebrew/Cellar/node/26.8.2/bin/node": {
+      "sha256": "902b6a6984d5d825829ea9064ab73b734548df37bc0683990dca31c8dc2a9253",
+      "frozen_manifest": {
+        "link": null,
+        "mode": 365,
+        "realpath": "/opt/homebrew/Cellar/node/26.8.2/bin/node",
+        "sha256": "902b6a6984d5d825829ea9064ab73b734548df37bc0683990dca31c8dc2a9253"
+      }
+    }
+  },
+  "native_resolution": "Installed launcher uses its existing ../vendor fallback; optional platform npm package absent. Exact binary frozen in installed manifest.",
+  "runner_sha256": "52daceb172dfb286aafcb67aaeb9916e907c7ff3f7c4c3aef3199daa4f5a7da9",
+  "test_binary_sha256": "2f96da438e858ec0e1605e4f4bb37d27e770ecfb85b1c14ac2d0d52f36d3fe95",
+  "test_binary": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-parallel-20261021/target-full-final/debug/deps/gateway-b314458fd9b519fb",
+  "installed_manifest_sha256": "3137abae151b090bfd6e62f5d4026de463a3cd4e2c22bfc79f36a3f9d2b2b8df",
+  "installed_file_count": 12564,
+  "installs_unchanged": true,
+  "cancellation": {
+    "abort_to_release_upper_bound_ms": 8,
+    "alive_after_observation": {
+      "observed_at_ms": 1792579933033,
+      "pid": 21020,
+      "rpc_alive": true
+    },
+    "cli_alive_at_abort": true,
+    "cli_kept_alive": true,
+    "cli_pid": 21020,
+    "eventually_released_before_server_stop": true,
+    "lease_before_abort": {
+      "lease": 1,
+      "observed_at_ms": 1792579933010
+    },
+    "leases_after_first_second": 0,
+    "leases_at_observation_end": 0,
+    "observation_end_at_ms": 1792579933023,
+    "peer_close_at_observation_end": 1,
+    "release_observed_at_ms": 1792579933023,
+    "released_within_first_second": true,
+    "rpc_timeline": {
+      "abort_sent_at_ms": 1792579933015,
+      "delta_at_ms": 1792579933001,
+      "pid": 21020,
+      "rpc_aborted_at_ms": 1792579933018,
+      "rpc_alive": true
+    },
+    "total_observation_ms": 0
+  },
+  "scenarios": {
+    "codex-standard": {
+      "observations": {
+        "accounting": {
+          "attempts": 0,
+          "client_requests": 1,
+          "cost": "UNKNOWN",
+          "finished": 1,
+          "ledger": 0,
+          "lineage": [],
+          "outcome": "Failed",
+          "requests_including_negative_probe": 1,
+          "usage": 0
+        },
+        "client": "codex",
+        "public": [
+          {
+            "client_usable": false,
+            "http": 400
+          }
+        ],
+        "received": 0,
+        "released_before_server_stop": true,
+        "released_within_one_second": true,
+        "scenario": "standard",
+        "success_metadata_retention": "BLOCKED_BY_61"
+      },
+      "client_exit": 1,
+      "turn_outcomes": null,
+      "client_receipt_sha256": "752942f42bde97e01426f00c4f0bd1efcdbe76c97dd0b09976734ab07fd914e6",
+      "ingress_sha256": "b4d397eef650b23bd5f5452fd295b4dfaf94a510a4849f80b46a5c9ab8ee2edc",
+      "upstream_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "isolation": {
+        "exit": 0,
+        "stdout": "[{\"host\": \"192.0.2.1\", \"errno\": 1}, {\"host\": \"2001:db8::1\", \"errno\": 1}, {\"outside_write_errno\": 1}, {\"real_home_read_errno\": 1}]\n",
+        "stderr": ""
+      },
+      "cleanup_started_at_ms": null,
+      "loaded_esm_sha256": "e767fc26eed1e1406f320224f8214aa7751a071a37e56491a34636228c02f38c"
+    },
+    "pi-standard": {
+      "observations": {
+        "accounting": {
+          "attempts": 5,
+          "client_requests": 5,
+          "cost": "UNKNOWN",
+          "finished": 6,
+          "ledger": 5,
+          "lineage": [
+            {
+              "attempt_id": "attempt:45:p1-request-fa98cf2c068f7a33d0f8f25e43647b03-0:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-fa98cf2c068f7a33d0f8f25e43647b03-0",
+              "source_event_id": "usage-attempt:9cde211d1c6fc4c5cfc7b56707aa74003820478543798c8ad7ddb1c347bee87f"
+            },
+            {
+              "attempt_id": "attempt:45:p1-request-fa98cf2c068f7a33d0f8f25e43647b03-1:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-fa98cf2c068f7a33d0f8f25e43647b03-1",
+              "source_event_id": "usage-attempt:9d78f0945cfaaca61e7f50dc6d76f31635db187751a2210d468b892b12e558cc"
+            },
+            {
+              "attempt_id": "attempt:45:p1-request-fa98cf2c068f7a33d0f8f25e43647b03-2:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-fa98cf2c068f7a33d0f8f25e43647b03-2",
+              "source_event_id": "usage-attempt:caf3891192b25d00733c83c3c40c6ee9928f95fa52a131c35a979756ae5d60b9"
+            },
+            {
+              "attempt_id": "attempt:45:p1-request-fa98cf2c068f7a33d0f8f25e43647b03-3:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-fa98cf2c068f7a33d0f8f25e43647b03-3",
+              "source_event_id": "usage-attempt:34bcd10067c6af25a70ab11dc10da2b3c877b3c7b463049dda7b10cbfea0f157"
+            },
+            {
+              "attempt_id": "attempt:45:p1-request-fa98cf2c068f7a33d0f8f25e43647b03-4:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-fa98cf2c068f7a33d0f8f25e43647b03-4",
+              "source_event_id": "usage-attempt:54c832d5353a692649f7644042e1c793f56c154949ade1a28ce2d5950d19da7b"
+            }
+          ],
+          "outcome": "Succeeded",
+          "requests_including_negative_probe": 6,
+          "usage": 5
+        },
+        "client": "pi",
+        "public": [
+          {
+            "chunks": 24,
+            "completed": 1,
+            "failed": 0,
+            "http": 200
+          },
+          {
+            "chunks": 20,
+            "completed": 1,
+            "failed": 0,
+            "http": 200
+          },
+          {
+            "chunks": 39,
+            "completed": 1,
+            "failed": 0,
+            "http": 200
+          },
+          {
+            "chunks": 21,
+            "completed": 1,
+            "failed": 0,
+            "http": 200
+          },
+          {
+            "chunks": 21,
+            "completed": 1,
+            "failed": 0,
+            "http": 200
+          }
+        ],
+        "received": 5,
+        "released_before_server_stop": true,
+        "released_within_one_second": true,
+        "scenario": "standard",
+        "success_metadata_retention": "BLOCKED_BY_61"
+      },
+      "client_exit": null,
+      "turn_outcomes": [
+        "stop",
+        "stop",
+        "stop"
+      ],
+      "client_receipt_sha256": "cf2ea68e2001416f53cad53559341b3bb72a260f388b47225625d1bbdd4a9641",
+      "ingress_sha256": "6c52e9fe664880fbc6cdf08eaba261230a3b1554aab4534206de0fc62cd40a80",
+      "upstream_sha256": "e6225ccccc3a51552ce33008535ed1184705333deb86bf27260b29c85baad0fa",
+      "isolation": {
+        "exit": 0,
+        "stdout": "[{\"host\": \"192.0.2.1\", \"errno\": 1}, {\"host\": \"2001:db8::1\", \"errno\": 1}, {\"outside_write_errno\": 1}, {\"real_home_read_errno\": 1}]\n",
+        "stderr": ""
+      },
+      "cleanup_started_at_ms": 1792579927692,
+      "loaded_esm_sha256": "386a774f57920011d08f44d044c21a10ba8fc96415d945bda25c1c24b7a8e55b",
+      "last_assistant_usage": {
+        "input": 20,
+        "output": 7,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "totalTokens": 27,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      }
+    },
+    "pi-failure": {
+      "observations": {
+        "accounting": {
+          "attempts": 1,
+          "client_requests": 1,
+          "cost": "UNKNOWN",
+          "finished": 1,
+          "ledger": 1,
+          "lineage": [
+            {
+              "attempt_id": "attempt:45:p1-request-5ce30364bd48fcfcdeb9c059cc9574a4-0:1",
+              "native_companion": "UNKNOWN",
+              "owner": "p12-runtime-client-key",
+              "request_id": "p1-request-5ce30364bd48fcfcdeb9c059cc9574a4-0",
+              "source_event_id": "usage-attempt:90df18329b477f5c18a51c71a975031ef69485d66da1bad8ce1ba5d63dc0b497"
+            }
+          ],
+          "outcome": "Failed",
+          "requests_including_negative_probe": 1,
+          "usage": 1
+        },
+        "client": "pi",
+        "public": [
+          {
+            "chunks": 6,
+            "completed": 0,
+            "failed": 1,
+            "http": 200
+          }
+        ],
+        "received": 1,
+        "released_before_server_stop": true,
+        "released_within_one_second": true,
+        "scenario": "failure",
+        "success_metadata_retention": "BLOCKED_BY_61"
+      },
+      "client_exit": null,
+      "turn_outcomes": [
+        "error"
+      ],
+      "client_receipt_sha256": "2c7a472c03e378d02cd473742789b3d601358ed656f17a809e325cc1690d2063",
+      "ingress_sha256": "193f70c31d616ed4b217ac069169ff51f87fa8385a6230bb0c609956b3deb043",
+      "upstream_sha256": "2c538a4f62e56d3c3f41385510e3fb3a24ca37c18ab86378299f210bcc341b15",
+      "isolation": {
+        "exit": 0,
+        "stdout": "[{\"host\": \"192.0.2.1\", \"errno\": 1}, {\"host\": \"2001:db8::1\", \"errno\": 1}, {\"outside_write_errno\": 1}, {\"real_home_read_errno\": 1}]\n",
+        "stderr": ""
+      },
+      "cleanup_started_at_ms": 1792579930450,
+      "loaded_esm_sha256": "386a774f57920011d08f44d044c21a10ba8fc96415d945bda25c1c24b7a8e55b",
+      "last_assistant_usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      }
+    },
+    "pi-cancel": {
+      "observations": {
+        "accounting": {
+          "attempts": 1,
+          "client_requests": 1,
+          "cost": "UNKNOWN",
+          "finished": 1,
+          "ledger": 0,
+          "lineage": [],
+          "outcome": "Cancelled",
+          "requests_including_negative_probe": 1,
+          "usage": 0
+        },
+        "client": "pi",
+        "public": [
+          {
+            "chunks": 5,
+            "completed": 0,
+            "failed": 0,
+            "http": 200
+          }
+        ],
+        "received": 1,
+        "released_before_server_stop": true,
+        "released_within_one_second": true,
+        "scenario": "cancel",
+        "success_metadata_retention": "BLOCKED_BY_61"
+      },
+      "client_exit": null,
+      "turn_outcomes": [
+        "aborted"
+      ],
+      "client_receipt_sha256": "d176278b9d0cea4816baf788f04472fd2fdc57c332bdb001bb6dee700907fcbe",
+      "ingress_sha256": "2ece673cfc179491daeef36a0c31cf53ded7b96819b0d0c6c6d996d92d74a50a",
+      "upstream_sha256": "59d7792fb49e478913d00ffc645ebb3c92f247205da6247bd2ae8108c35d9aec",
+      "isolation": {
+        "exit": 0,
+        "stdout": "[{\"host\": \"192.0.2.1\", \"errno\": 1}, {\"host\": \"2001:db8::1\", \"errno\": 1}, {\"outside_write_errno\": 1}, {\"real_home_read_errno\": 1}]\n",
+        "stderr": ""
+      },
+      "cleanup_started_at_ms": 1792579933033,
+      "loaded_esm_sha256": "386a774f57920011d08f44d044c21a10ba8fc96415d945bda25c1c24b7a8e55b",
+      "last_assistant_usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      }
+    }
+  },
+  "pi_actual_result": "42\n",
+  "pi_package_version": "0.84.3",
+  "only_my_pi_executed": false,
+  "limits": [
+    "Actual Pi covers existing serial controlled tools, not this new parallel batch.",
+    "Codex preparation expects HTTP 400; no combined positive actual Codex qualification was wired in this slice.",
+    "Failed-response client displayed usage remains separate from exact durable ledger.",
+    "Native success companion and real Provider cost remain UNKNOWN; cost_in_usd_ticks NOT_ADMITTED."
+  ]
+}

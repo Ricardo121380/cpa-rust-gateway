@@ -1,0 +1,78 @@
+{
+  "candidate": "a786cc72c4b7880ae8ed35de6a9c0ae788f38a82",
+  "source_manifest_sha256": "c2add60c02b5e847d2578cf84058f9c101c48a0d90812b277bc6db726b211f34",
+  "source_files": 7206,
+  "snapshots": {
+    "source-inputs-pre-full.json": "c2add60c02b5e847d2578cf84058f9c101c48a0d90812b277bc6db726b211f34",
+    "full-inputs-before.json": "c2add60c02b5e847d2578cf84058f9c101c48a0d90812b277bc6db726b211f34",
+    "full-inputs-after.json": "c2add60c02b5e847d2578cf84058f9c101c48a0d90812b277bc6db726b211f34",
+    "full-inputs-after-cli.json": "c2add60c02b5e847d2578cf84058f9c101c48a0d90812b277bc6db726b211f34"
+  },
+  "all_equal": true,
+  "manifest_lock_unchanged": true,
+  "actual_cli_runner_unchanged": true,
+  "actual_cli_test_binary_sha256": "2f96da438e858ec0e1605e4f4bb37d27e770ecfb85b1c14ac2d0d52f36d3fe95",
+  "full_and_public": {
+    "candidate": {
+      "head": "a786cc72c4b7880ae8ed35de6a9c0ae788f38a82",
+      "tree": "4c665480722e60366fb735f3f29e3045f3fb416d",
+      "branch": "feature/62-client-metadata",
+      "manifest": {
+        "Cargo.toml": "1b1a37ce8d8fcafa51d379ffae2ff33fff091c5a48c0f3458e47b99c12b22355",
+        "Cargo.lock": "36564c0219707741d79ecb37d9fc4ee620ce2fe6801fdbe09b32fb4c8687c858",
+        "rust-toolchain.toml": "8e390d6a0838315f972690f46ef8bae8b7ecc9ee6c1ed70140ef852869c2482e",
+        "apps/gateway/Cargo.toml": "c0271c2ad72a8fcbdd419f12914d5c1db949531870e1cc142db0462c582d1108",
+        "crates/provider-grok/Cargo.toml": "1968502b1ee6e2221f02226b01b47295f33281eec6bce5f1a7434de9dd58d303"
+      }
+    },
+    "source_inputs_sha256": "c2add60c02b5e847d2578cf84058f9c101c48a0d90812b277bc6db726b211f34",
+    "manifest": {
+      "Cargo.toml": "1b1a37ce8d8fcafa51d379ffae2ff33fff091c5a48c0f3458e47b99c12b22355",
+      "Cargo.lock": "36564c0219707741d79ecb37d9fc4ee620ce2fe6801fdbe09b32fb4c8687c858",
+      "rust-toolchain.toml": "8e390d6a0838315f972690f46ef8bae8b7ecc9ee6c1ed70140ef852869c2482e",
+      "apps/gateway/Cargo.toml": "c0271c2ad72a8fcbdd419f12914d5c1db949531870e1cc142db0462c582d1108",
+      "crates/provider-grok/Cargo.toml": "1968502b1ee6e2221f02226b01b47295f33281eec6bce5f1a7434de9dd58d303"
+    },
+    "full": {
+      "candidate": "a786cc72c4b7880ae8ed35de6a9c0ae788f38a82",
+      "exit_code": 0,
+      "steps_passed": 45,
+      "rust": {
+        "passed": 1635,
+        "failed": 0,
+        "ignored": 17,
+        "suites": 130
+      },
+      "log_sha256": "ed1d52f1a7f25f015034403b94464c748d7302f9e8961e31489180197b265a48",
+      "report_sha256": "a3be1174e9891ebac9dd289a19bdb0879bb324220df4bc97817f5c06098fe525",
+      "input_sha256": "c2add60c02b5e847d2578cf84058f9c101c48a0d90812b277bc6db726b211f34"
+    },
+    "public_exit": 0,
+    "public_log_sha256": "2feb96d255c943a47a267378c9e28dd61efefbb6624c7a2616745e08606b5639",
+    "receipt_count": 187,
+    "receipt_kinds": {
+      "CPAR62_PARALLEL_CANCEL": 2,
+      "CPAR62_PARALLEL_CONTROLS": 28,
+      "CPAR62_PARALLEL_PRE_REJECT": 40,
+      "CPAR62_PARALLEL_POST_REJECT": 77,
+      "CPAR62_PARALLEL_STORED_RESULT": 5,
+      "CPAR62_PARALLEL_COMBINED": 2,
+      "CPAR62_PARALLEL_HISTORY": 32,
+      "CPAR62_PARALLEL_RECEIPT": 1
+    },
+    "binaries": {
+      "full": [
+        {
+          "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-parallel-20261021/target-full-final/debug/deps/gateway-a461d4598ca4d623",
+          "sha256": "ad8e235da7908ac127a5447e89f86818247302726b5c3e2254babe4cddeecc96"
+        }
+      ],
+      "final-public": [
+        {
+          "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-parallel-20261021/target-full-final/debug/deps/gateway-b314458fd9b519fb",
+          "sha256": "2f96da438e858ec0e1605e4f4bb37d27e770ecfb85b1c14ac2d0d52f36d3fe95"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "base": "702264588ade1521e841550bbfe772437e601b1b",
+  "candidate": "a786cc72c4b7880ae8ed35de6a9c0ae788f38a82",
+  "paths": 23,
+  "standards": {
+    "status": "PASS_STATIC",
+    "hard_violations": 0,
+    "actionable_smells": 0,
+    "source": "/root/parallel_standards_review",
+    "notes": [
+      "Private independent qualification follows ADR-0119; stock ledger unchanged.",
+      "Existing pending_tool_completion reused.",
+      "Source Responses forced named cardinality stays in existing constraints and projector."
+    ]
+  },
+  "spec": {
+    "status": "PASS_STATIC_BOUNDED",
+    "missing_partial": 0,
+    "wrong_implementation": 0,
+    "scope_creep": 0,
+    "source": "/root/parallel_spec_review",
+    "notes": [
+      "Independent compiler profile + private flag + owned transport and exact HTTP/adapter/format/mode.",
+      "Whole terminal and Usage before semantic/native completion.",
+      "Reverse call_id results, later dependent round, explicit/stored native order/lineage."
+    ]
+  },
+  "limitations": [
+    "Independent read-only review; no runtime test in subagents.",
+    "Full and original-client regression are separate.",
+    "#62 OPEN/BLOCKED; fixed Build activation remains blocked."
+  ]
+}

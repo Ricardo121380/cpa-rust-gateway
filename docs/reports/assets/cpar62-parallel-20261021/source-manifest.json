@@ -1,0 +1,32 @@
+[
+  {
+    "file": "openai-function-calling.md",
+    "url": "https://developers.openai.com/api/docs/guides/function-calling.md",
+    "retrieved_at": "2026-10-21T09:59:17.589336+00:00",
+    "revision": null,
+    "bytes": 77573,
+    "sha256": "ce460da5635ff6b235fd45bb94a425975fc438f5e47ba71705e7ebf689172ae1",
+    "http_last_modified": "Wed, 21 Oct 2026 06:25:10 GMT",
+    "published_source_date": null
+  },
+  {
+    "file": "openai-create.md",
+    "url": "https://developers.openai.com/api/reference/resources/responses/methods/create.md",
+    "retrieved_at": "2026-10-21T09:59:19.559437+00:00",
+    "revision": null,
+    "bytes": 507870,
+    "sha256": "9c4d505259ac72b879a3697f4f606d4131989ae686d204078b7b22e5638794d0",
+    "http_last_modified": "Wed, 21 Oct 2026 06:21:18 GMT",
+    "published_source_date": null
+  },
+  {
+    "file": "openai-streaming.md",
+    "url": "https://developers.openai.com/api/reference/resources/responses/streaming-events.md",
+    "retrieved_at": "2026-10-21T09:59:22.136563+00:00",
+    "revision": null,
+    "bytes": 2092074,
+    "sha256": "953d5dcf090a159603b31fade58a8e14c3174c874ed669a6fa916906abbd10c9",
+    "http_last_modified": "Wed, 21 Oct 2026 07:16:59 GMT",
+    "published_source_date": null
+  }
+]

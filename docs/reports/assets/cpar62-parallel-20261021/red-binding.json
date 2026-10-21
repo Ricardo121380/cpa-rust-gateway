@@ -1,0 +1,19 @@
+{
+  "base": "702264588ade1521e841550bbfe772437e601b1b",
+  "exit_code": 101,
+  "source_manifest_sha256": "190b14364007945edf8c3bfa8d097e6f8dc88402c43bae22438de96f3e50d019",
+  "test_source_sha256": "4acdc1e97f7167f68158dbb39ab1d161e9111a79dd9cecce97e89c18e4aaa640",
+  "log_sha256": "c2a6fbef40024ed6fcc8621d70863a781ab8e5dedeea95ce1a8a5449dc6b6048",
+  "actual_binary": {
+    "saved": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/output/cpar62-parallel-20261021/red-binary-gateway-b314458fd9b519fb",
+    "sha256": "d598f4d0868f50b9132bd3b2e413f5ffc5387f771bf4eac99d9440b859410f95"
+  },
+  "observed": {
+    "status": 400,
+    "accepted": 0,
+    "receiver": 0,
+    "request": 1,
+    "attempt": 0
+  },
+  "meaning": "FAIL: expected public 200; independent pre-send refusal, not compatibility"
+}
