@@ -1,0 +1,34 @@
+{
+  "reviewed_candidate": "b8677f9951a67ca91eec47398649129b7b738774",
+  "fixed_point": "e8a669b67bebffc09727f749d6e5116d037767a1",
+  "standards": {
+    "verdict": "PASS_STATIC",
+    "hard_violations": 0,
+    "judgement_findings": [
+      {
+        "priority": "P3",
+        "smell": "Duplicated Code",
+        "path": "scripts/acceptance/cpar62-cli.py",
+        "finding": "Codex and Pi duplicate cancel-proceed/cancel-observed file barriers and liveness receipts.",
+        "resolution": "Retained client-specific bounded drivers; no generic framework/refactor added."
+      }
+    ]
+  },
+  "spec": {
+    "verdict": "PARTIAL_BLOCKED",
+    "new_findings": [
+      {
+        "priority": "P2",
+        "finding": "Positive oracle accepted equal absent fields; did not require actual namespace/search/input IDs/parallel coexistence.",
+        "resolution_commit": "06b7c1885af7ac02e27d2484645e0a2d9c33c01d",
+        "validation": "Actual positive any-round coexistence assertion plus one missing/wrong-field gate regression; final Full passed."
+      }
+    ],
+    "known_blockers": [
+      "C4 external sandbox selectors outside BC-PROTOCOL-010",
+      "Native reasoning replay without id and with null members",
+      "Native function_call_output own id rejected by existing history validation"
+    ],
+    "final_delta_verification": "Root static review, gate regression, Clippy and final Full; no new independent whole-diff review claimed."
+  }
+}

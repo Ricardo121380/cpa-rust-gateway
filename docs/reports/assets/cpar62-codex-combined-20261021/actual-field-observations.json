@@ -1,0 +1,676 @@
+[
+  {
+    "case": "pi-standard",
+    "round": 0,
+    "http": 200,
+    "tools_present": true,
+    "namespaces": [],
+    "hosted_search": [],
+    "parallel": {
+      "present": false,
+      "value": null
+    },
+    "reasoning": {
+      "present": true,
+      "value": {
+        "effort": "medium",
+        "summary": "auto"
+      }
+    },
+    "include": {
+      "present": true,
+      "value": [
+        "reasoning.encrypted_content"
+      ]
+    },
+    "non_assistant_ids": [
+      {
+        "index": 0,
+        "role": "developer",
+        "id_present": false,
+        "id": null
+      },
+      {
+        "index": 1,
+        "role": "user",
+        "id_present": false,
+        "id": null
+      }
+    ],
+    "client_metadata": {
+      "present": false,
+      "keys": [],
+      "sandbox": null,
+      "sandbox_mode": null,
+      "turn_trigger": null,
+      "encrypted_receipt": "SEE_CORRESPONDENCE"
+    },
+    "hosted_or_namespace_execution": "NOT_CALLED"
+  },
+  {
+    "case": "pi-standard",
+    "round": 1,
+    "http": 200,
+    "tools_present": true,
+    "namespaces": [],
+    "hosted_search": [],
+    "parallel": {
+      "present": false,
+      "value": null
+    },
+    "reasoning": {
+      "present": true,
+      "value": {
+        "effort": "medium",
+        "summary": "auto"
+      }
+    },
+    "include": {
+      "present": true,
+      "value": [
+        "reasoning.encrypted_content"
+      ]
+    },
+    "non_assistant_ids": [
+      {
+        "index": 0,
+        "role": "developer",
+        "id_present": false,
+        "id": null
+      },
+      {
+        "index": 1,
+        "role": "user",
+        "id_present": false,
+        "id": null
+      },
+      {
+        "index": 4,
+        "role": "user",
+        "id_present": false,
+        "id": null
+      }
+    ],
+    "client_metadata": {
+      "present": false,
+      "keys": [],
+      "sandbox": null,
+      "sandbox_mode": null,
+      "turn_trigger": null,
+      "encrypted_receipt": "SEE_CORRESPONDENCE"
+    },
+    "hosted_or_namespace_execution": "NOT_CALLED"
+  },
+  {
+    "case": "pi-standard",
+    "round": 2,
+    "http": 200,
+    "tools_present": true,
+    "namespaces": [],
+    "hosted_search": [],
+    "parallel": {
+      "present": false,
+      "value": null
+    },
+    "reasoning": {
+      "present": true,
+      "value": {
+        "effort": "medium",
+        "summary": "auto"
+      }
+    },
+    "include": {
+      "present": true,
+      "value": [
+        "reasoning.encrypted_content"
+      ]
+    },
+    "non_assistant_ids": [
+      {
+        "index": 0,
+        "role": "developer",
+        "id_present": false,
+        "id": null
+      },
+      {
+        "index": 1,
+        "role": "user",
+        "id_present": false,
+        "id": null
+      },
+      {
+        "index": 4,
+        "role": "user",
+        "id_present": false,
+        "id": null
+      }
+    ],
+    "client_metadata": {
+      "present": false,
+      "keys": [],
+      "sandbox": null,
+      "sandbox_mode": null,
+      "turn_trigger": null,
+      "encrypted_receipt": "SEE_CORRESPONDENCE"
+    },
+    "hosted_or_namespace_execution": "NOT_CALLED"
+  },
+  {
+    "case": "pi-standard",
+    "round": 3,
+    "http": 200,
+    "tools_present": true,
+    "namespaces": [],
+    "hosted_search": [],
+    "parallel": {
+      "present": false,
+      "value": null
+    },
+    "reasoning": {
+      "present": true,
+      "value": {
+        "effort": "medium",
+        "summary": "auto"
+      }
+    },
+    "include": {
+      "present": true,
+      "value": [
+        "reasoning.encrypted_content"
+      ]
+    },
+    "non_assistant_ids": [
+      {
+        "index": 0,
+        "role": "developer",
+        "id_present": false,
+        "id": null
+      },
+      {
+        "index": 1,
+        "role": "user",
+        "id_present": false,
+        "id": null
+      },
+      {
+        "index": 4,
+        "role": "user",
+        "id_present": false,
+        "id": null
+      }
+    ],
+    "client_metadata": {
+      "present": false,
+      "keys": [],
+      "sandbox": null,
+      "sandbox_mode": null,
+      "turn_trigger": null,
+      "encrypted_receipt": "SEE_CORRESPONDENCE"
+    },
+    "hosted_or_namespace_execution": "NOT_CALLED"
+  },
+  {
+    "case": "pi-standard",
+    "round": 4,
+    "http": 200,
+    "tools_present": true,
+    "namespaces": [],
+    "hosted_search": [],
+    "parallel": {
+      "present": false,
+      "value": null
+    },
+    "reasoning": {
+      "present": true,
+      "value": {
+        "effort": "medium",
+        "summary": "auto"
+      }
+    },
+    "include": {
+      "present": true,
+      "value": [
+        "reasoning.encrypted_content"
+      ]
+    },
+    "non_assistant_ids": [
+      {
+        "index": 0,
+        "role": "developer",
+        "id_present": false,
+        "id": null
+      },
+      {
+        "index": 1,
+        "role": "user",
+        "id_present": false,
+        "id": null
+      },
+      {
+        "index": 4,
+        "role": "user",
+        "id_present": false,
+        "id": null
+      },
+      {
+        "index": 13,
+        "role": "user",
+        "id_present": false,
+        "id": null
+      }
+    ],
+    "client_metadata": {
+      "present": false,
+      "keys": [],
+      "sandbox": null,
+      "sandbox_mode": null,
+      "turn_trigger": null,
+      "encrypted_receipt": "SEE_CORRESPONDENCE"
+    },
+    "hosted_or_namespace_execution": "NOT_CALLED"
+  },
+  {
+    "case": "codex-standard",
+    "round": 0,
+    "http": 400,
+    "tools_present": true,
+    "namespaces": [
+      {
+        "name": "multi_agent_v1",
+        "children": [
+          "close_agent",
+          "resume_agent",
+          "send_input",
+          "spawn_agent",
+          "wait_agent"
+        ]
+      }
+    ],
+    "hosted_search": [
+      {
+        "external_web_access": false,
+        "type": "web_search"
+      }
+    ],
+    "parallel": {
+      "present": true,
+      "value": true
+    },
+    "reasoning": {
+      "present": true,
+      "value": {
+        "summary": "auto"
+      }
+    },
+    "include": {
+      "present": true,
+      "value": [
+        "reasoning.encrypted_content"
+      ]
+    },
+    "non_assistant_ids": [
+      {
+        "index": 0,
+        "role": "developer",
+        "id_present": true,
+        "id": "msg_01a15f29-c0e1-7e01-a525-5027c3ec3851"
+      },
+      {
+        "index": 1,
+        "role": "user",
+        "id_present": true,
+        "id": "msg_01a15f29-c0e1-7e01-a525-503af3bc3cc4"
+      },
+      {
+        "index": 2,
+        "role": "user",
+        "id_present": true,
+        "id": "msg_01a15f29-c0e3-73d0-a0bf-ddbce30e29e7"
+      }
+    ],
+    "client_metadata": {
+      "present": true,
+      "keys": [
+        "root_turn_id",
+        "session_id",
+        "thread_id",
+        "turn_id",
+        "x-codex-installation-id",
+        "x-codex-turn-metadata",
+        "x-codex-window-id"
+      ],
+      "sandbox": "external",
+      "sandbox_mode": "external-sandbox",
+      "turn_trigger": "exec",
+      "encrypted_receipt": "NOT_ADMITTED"
+    },
+    "hosted_or_namespace_execution": "NOT_CALLED"
+  },
+  {
+    "case": "pi-failure",
+    "round": 0,
+    "http": 200,
+    "tools_present": true,
+    "namespaces": [],
+    "hosted_search": [],
+    "parallel": {
+      "present": false,
+      "value": null
+    },
+    "reasoning": {
+      "present": true,
+      "value": {
+        "effort": "medium",
+        "summary": "auto"
+      }
+    },
+    "include": {
+      "present": true,
+      "value": [
+        "reasoning.encrypted_content"
+      ]
+    },
+    "non_assistant_ids": [
+      {
+        "index": 0,
+        "role": "developer",
+        "id_present": false,
+        "id": null
+      },
+      {
+        "index": 1,
+        "role": "user",
+        "id_present": false,
+        "id": null
+      }
+    ],
+    "client_metadata": {
+      "present": false,
+      "keys": [],
+      "sandbox": null,
+      "sandbox_mode": null,
+      "turn_trigger": null,
+      "encrypted_receipt": "SEE_CORRESPONDENCE"
+    },
+    "hosted_or_namespace_execution": "NOT_CALLED"
+  },
+  {
+    "case": "codex-unqualified",
+    "round": 0,
+    "http": 400,
+    "tools_present": true,
+    "namespaces": [
+      {
+        "name": "multi_agent_v1",
+        "children": [
+          "close_agent",
+          "resume_agent",
+          "send_input",
+          "spawn_agent",
+          "wait_agent"
+        ]
+      }
+    ],
+    "hosted_search": [
+      {
+        "external_web_access": false,
+        "type": "web_search"
+      }
+    ],
+    "parallel": {
+      "present": true,
+      "value": true
+    },
+    "reasoning": {
+      "present": true,
+      "value": {
+        "summary": "auto"
+      }
+    },
+    "include": {
+      "present": true,
+      "value": [
+        "reasoning.encrypted_content"
+      ]
+    },
+    "non_assistant_ids": [
+      {
+        "index": 0,
+        "role": "developer",
+        "id_present": true,
+        "id": "msg_01a15f29-bf35-78a1-9b54-f352987533a2"
+      },
+      {
+        "index": 1,
+        "role": "user",
+        "id_present": true,
+        "id": "msg_01a15f29-bf35-78a1-9b54-f36303baefe6"
+      },
+      {
+        "index": 2,
+        "role": "user",
+        "id_present": true,
+        "id": "msg_01a15f29-bf37-7551-a46d-f7f167f1cde0"
+      }
+    ],
+    "client_metadata": {
+      "present": true,
+      "keys": [
+        "root_turn_id",
+        "session_id",
+        "thread_id",
+        "turn_id",
+        "x-codex-installation-id",
+        "x-codex-turn-metadata",
+        "x-codex-window-id"
+      ],
+      "sandbox": "seatbelt",
+      "sandbox_mode": "workspace-write",
+      "turn_trigger": "exec",
+      "encrypted_receipt": "SEE_CORRESPONDENCE"
+    },
+    "hosted_or_namespace_execution": "NOT_CALLED"
+  },
+  {
+    "case": "pi-cancel",
+    "round": 0,
+    "http": 200,
+    "tools_present": true,
+    "namespaces": [],
+    "hosted_search": [],
+    "parallel": {
+      "present": false,
+      "value": null
+    },
+    "reasoning": {
+      "present": true,
+      "value": {
+        "effort": "medium",
+        "summary": "auto"
+      }
+    },
+    "include": {
+      "present": true,
+      "value": [
+        "reasoning.encrypted_content"
+      ]
+    },
+    "non_assistant_ids": [
+      {
+        "index": 0,
+        "role": "developer",
+        "id_present": false,
+        "id": null
+      },
+      {
+        "index": 1,
+        "role": "user",
+        "id_present": false,
+        "id": null
+      }
+    ],
+    "client_metadata": {
+      "present": false,
+      "keys": [],
+      "sandbox": null,
+      "sandbox_mode": null,
+      "turn_trigger": null,
+      "encrypted_receipt": "SEE_CORRESPONDENCE"
+    },
+    "hosted_or_namespace_execution": "NOT_CALLED"
+  },
+  {
+    "case": "codex-failure",
+    "round": 0,
+    "http": 400,
+    "tools_present": true,
+    "namespaces": [
+      {
+        "name": "multi_agent_v1",
+        "children": [
+          "close_agent",
+          "resume_agent",
+          "send_input",
+          "spawn_agent",
+          "wait_agent"
+        ]
+      }
+    ],
+    "hosted_search": [
+      {
+        "external_web_access": false,
+        "type": "web_search"
+      }
+    ],
+    "parallel": {
+      "present": true,
+      "value": true
+    },
+    "reasoning": {
+      "present": true,
+      "value": {
+        "summary": "auto"
+      }
+    },
+    "include": {
+      "present": true,
+      "value": [
+        "reasoning.encrypted_content"
+      ]
+    },
+    "non_assistant_ids": [
+      {
+        "index": 0,
+        "role": "developer",
+        "id_present": true,
+        "id": "msg_01a15f2a-136c-7ad1-9d42-532a6aa45dba"
+      },
+      {
+        "index": 1,
+        "role": "user",
+        "id_present": true,
+        "id": "msg_01a15f2a-136c-7ad1-9d42-533cf644c76f"
+      },
+      {
+        "index": 2,
+        "role": "user",
+        "id_present": true,
+        "id": "msg_01a15f2a-136e-7fd0-a629-d22f12cefbd4"
+      }
+    ],
+    "client_metadata": {
+      "present": true,
+      "keys": [
+        "root_turn_id",
+        "session_id",
+        "thread_id",
+        "turn_id",
+        "x-codex-installation-id",
+        "x-codex-turn-metadata",
+        "x-codex-window-id"
+      ],
+      "sandbox": "external",
+      "sandbox_mode": "external-sandbox",
+      "turn_trigger": "exec",
+      "encrypted_receipt": "NOT_ADMITTED"
+    },
+    "hosted_or_namespace_execution": "NOT_CALLED"
+  },
+  {
+    "case": "codex-cancel",
+    "round": 0,
+    "http": 400,
+    "tools_present": true,
+    "namespaces": [
+      {
+        "name": "multi_agent_v1",
+        "children": [
+          "close_agent",
+          "resume_agent",
+          "send_input",
+          "spawn_agent",
+          "wait_agent"
+        ]
+      }
+    ],
+    "hosted_search": [
+      {
+        "external_web_access": false,
+        "type": "web_search"
+      }
+    ],
+    "parallel": {
+      "present": true,
+      "value": true
+    },
+    "reasoning": {
+      "present": true,
+      "value": {
+        "summary": "auto"
+      }
+    },
+    "include": {
+      "present": true,
+      "value": [
+        "reasoning.encrypted_content"
+      ]
+    },
+    "non_assistant_ids": [
+      {
+        "index": 0,
+        "role": "developer",
+        "id_present": true,
+        "id": "msg_01a15f2a-e239-7450-a4f7-54a2004a25e5"
+      },
+      {
+        "index": 1,
+        "role": "user",
+        "id_present": true,
+        "id": "msg_01a15f2a-e239-7450-a4f7-54bcdfb7802a"
+      },
+      {
+        "index": 2,
+        "role": "user",
+        "id_present": true,
+        "id": "msg_01a15f2a-e23c-76c0-82f4-3b886fc61192"
+      }
+    ],
+    "client_metadata": {
+      "present": true,
+      "keys": [
+        "root_turn_id",
+        "session_id",
+        "thread_id",
+        "turn_id",
+        "x-codex-installation-id",
+        "x-codex-turn-metadata",
+        "x-codex-window-id"
+      ],
+      "sandbox": "external",
+      "sandbox_mode": "external-sandbox",
+      "turn_trigger": "exec",
+      "encrypted_receipt": "NOT_ADMITTED"
+    },
+    "hosted_or_namespace_execution": "NOT_CALLED"
+  }
+]

@@ -1,0 +1,174 @@
+{
+  "head": "06b7c1885af7ac02e27d2484645e0a2d9c33c01d",
+  "tree": "85f3269dd18acd051952b9c8df941cfdfe63c6ce",
+  "overlays": [
+    {
+      "path": "AGENTS.md",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "symlink": null,
+      "bytes": 3419,
+      "sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002"
+    },
+    {
+      "path": "CONTEXT.md",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "symlink": null,
+      "bytes": 4220,
+      "sha256": "eaa545ede563d661387baff18ebd21e8acc3a9661000c4123eec6bf2d1779e21"
+    },
+    {
+      "path": "README.md",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "symlink": null,
+      "bytes": 23432,
+      "sha256": "376de5be81e5b8ac7b0ad6ac25b4e186db18321a0cd89057d7432ef5524219f9"
+    },
+    {
+      "path": "README.zh-CN.md",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "symlink": null,
+      "bytes": 21683,
+      "sha256": "d5ae62085c88f4200b19f973b675b10fad63c0e86ed42178969ec869bfbe3b76"
+    },
+    {
+      "path": "docs/06-development-plan.md",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "symlink": null,
+      "bytes": 617177,
+      "sha256": "322ac4c20b44eedf1b3e7bdb3ed1bfc7b9e12c9cf2192b3b85ffe274061b3fe5"
+    },
+    {
+      "path": "docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "symlink": null,
+      "bytes": 10266,
+      "sha256": "ad35d32a70725f9da6b412c0100e920eb52cd560f67faefbb9013b3ad1834bcb"
+    },
+    {
+      "path": "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "symlink": null,
+      "bytes": 6735,
+      "sha256": "a426616e9a4cbb875e3eb081e40160357433817306ff045ed5de3c3797c39131"
+    },
+    {
+      "path": "docs/adr/ADR-0106-native-fidelity-profile.md",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "symlink": null,
+      "bytes": 21302,
+      "sha256": "8e770df75f08f2ce4c4471cfaa58365bc8e20715880dc7239e7d98438d530409"
+    },
+    {
+      "path": "docs/adr/ADR-0107-standard-response-metadata-separation.md",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "symlink": null,
+      "bytes": 7169,
+      "sha256": "dad1f8391de1a6d82a0c280189346f1a065bc04ee84f88502859e766b485938e"
+    },
+    {
+      "path": "docs/adr/ADR-0108-build-summary-standard-messages.md",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "symlink": null,
+      "bytes": 6023,
+      "sha256": "a8088457f16a6f60fbb13cd617594cb896f9c168a4dfe9122295602ade0f82ec"
+    },
+    {
+      "path": "docs/adr/README.md",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "symlink": null,
+      "bytes": 23196,
+      "sha256": "7265b24f7d8d72b81ed9ca83809be4eb708e94e12c1a4a35684cb57e51803917"
+    },
+    {
+      "path": "docs/agents/domain.md",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "symlink": null,
+      "bytes": 1259,
+      "sha256": "143fbbb108382fe791a9a9a7b2f0c208d7a8b9a64f0250b3b172f1660c6f9b40"
+    },
+    {
+      "path": "docs/agents/issue-tracker.md",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "symlink": null,
+      "bytes": 2522,
+      "sha256": "c95aff9dd13f35beb3646a2e01cf28559c1ceb0122e01515f354911385c312d0"
+    },
+    {
+      "path": "docs/agents/triage-labels.md",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "symlink": null,
+      "bytes": 635,
+      "sha256": "ef4786ebc27973fe8afd053bc91ff16038195c354f05d7456776ec6aeea2c721"
+    },
+    {
+      "path": "docs/contracts/BC-PROTOCOL-009-codex-responses-controls.md",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "symlink": null,
+      "bytes": 15086,
+      "sha256": "6a1f887ec2e203c204e0a5b79e836dbc0621a93ff8534e5bbba5130931e00f3f"
+    },
+    {
+      "path": "docs/engineering-roadmap.md",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "symlink": null,
+      "bytes": 28896,
+      "sha256": "0babeedb83b7c2138ab7e540ef8be4c2b0a0831a0710a0e00f5a9f861f28777b"
+    },
+    {
+      "path": "docs/reports/cpar-62-64-client-field-plan-20261020.md",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "symlink": null,
+      "bytes": 30697,
+      "sha256": "26cb7b1a5af0ee25ed47f35ecac963433c9cd704830f181c9529f942571cac97"
+    },
+    {
+      "path": "docs/traceability.md",
+      "mode": "0o644",
+      "uid": 501,
+      "gid": 20,
+      "symlink": null,
+      "bytes": 87733,
+      "sha256": "4ebd3c9b710cbe23adf0cf8a22c54a129446b440fa837ba900ca500d65c2ac3d"
+    }
+  ],
+  "input_manifest_sha256": "49af7b620a650457f8234f165a9301d19d4cfe2e8307c45cb3ae8080555c1167",
+  "full_kind": "candidate plus enumerated 18 inherited overlays; not bare-tree",
+  "comparison_worktree": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar62-codex-combined-b8677f99-20261021",
+  "full_worktree": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020",
+  "worktree": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020",
+  "primary_and_comparison_inputs_byte_equal": true
+}

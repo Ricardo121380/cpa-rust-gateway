@@ -1,0 +1,119 @@
+[
+  {
+    "path": "NetworkAccess.ts",
+    "url": "https://raw.githubusercontent.com/openai/codex/979011409de0a60b52f179721948e65531d26144/codex-rs/app-server-protocol/schema/typescript/v2/NetworkAccess.ts",
+    "revision": "979011409de0a60b52f179721948e65531d26144",
+    "retrieved_date": "2026-10-21",
+    "published_date": null,
+    "bytes": 207,
+    "sha256": "3622aa2cccf2a1835cd561d97187db75eba8cc379c03e56b5d1c91ab901da9dc"
+  },
+  {
+    "path": "SandboxMode.ts",
+    "url": "https://raw.githubusercontent.com/openai/codex/979011409de0a60b52f179721948e65531d26144/codex-rs/app-server-protocol/schema/typescript/v2/SandboxMode.ts",
+    "revision": "979011409de0a60b52f179721948e65531d26144",
+    "retrieved_date": "2026-10-21",
+    "published_date": null,
+    "bytes": 235,
+    "sha256": "8a59381e04efa84f9001e5c24444ee26fccf8f9e10bcfb02d2f6a24e85898843"
+  },
+  {
+    "path": "SandboxPolicy.ts",
+    "url": "https://raw.githubusercontent.com/openai/codex/979011409de0a60b52f179721948e65531d26144/codex-rs/app-server-protocol/schema/typescript/v2/SandboxPolicy.ts",
+    "revision": "979011409de0a60b52f179721948e65531d26144",
+    "retrieved_date": "2026-10-21",
+    "published_date": null,
+    "bytes": 590,
+    "sha256": "f5a4b24c0de4945e77c1573306ae4cb98a29103a6c64ee23264dc9d35a977e85"
+  },
+  {
+    "path": "codex-models.rs",
+    "url": "https://raw.githubusercontent.com/openai/codex/979011409de0a60b52f179721948e65531d26144/codex-rs/protocol/src/models.rs",
+    "revision": "979011409de0a60b52f179721948e65531d26144",
+    "retrieved_date": "2026-10-21",
+    "published_date": null,
+    "bytes": 159747,
+    "sha256": "59c29630f8351fdfdab51fc48e4b468e9749bbff4a043984c57470b49da7fe40"
+  },
+  {
+    "path": "codex-rs/app-server/README.md",
+    "url": "https://raw.githubusercontent.com/openai/codex/979011409de0a60b52f179721948e65531d26144/codex-rs/app-server/README.md",
+    "revision": "979011409de0a60b52f179721948e65531d26144",
+    "retrieved_date": "2026-10-21",
+    "published_date": null,
+    "bytes": 33359,
+    "sha256": "41fe9f4461e5305f8be4c83fa9ce70ba93dbaabbdce835af39d0cd84aba16789"
+  },
+  {
+    "path": "codex-rs/app-server-protocol/schema/typescript/v2/ThreadResumeParams.ts",
+    "url": "https://raw.githubusercontent.com/openai/codex/979011409de0a60b52f179721948e65531d26144/codex-rs/app-server-protocol/schema/typescript/v2/ThreadResumeParams.ts",
+    "revision": "979011409de0a60b52f179721948e65531d26144",
+    "retrieved_date": "2026-10-21",
+    "published_date": null,
+    "bytes": 2265,
+    "sha256": "ceeedf2cfda691faf97432ee29135837f4cc0e7a9f3e9dc97db2379c63f73aa4"
+  },
+  {
+    "path": "codex-rs/app-server-protocol/schema/typescript/v2/ThreadStartParams.ts",
+    "url": "https://raw.githubusercontent.com/openai/codex/979011409de0a60b52f179721948e65531d26144/codex-rs/app-server-protocol/schema/typescript/v2/ThreadStartParams.ts",
+    "revision": "979011409de0a60b52f179721948e65531d26144",
+    "retrieved_date": "2026-10-21",
+    "published_date": null,
+    "bytes": 1368,
+    "sha256": "0303dcced2de5d056ba552a810dde3cf5d5cf699da9353abdfc788599829881c"
+  },
+  {
+    "path": "codex-rs/app-server-protocol/schema/typescript/v2/TurnInterruptParams.ts",
+    "url": "https://raw.githubusercontent.com/openai/codex/979011409de0a60b52f179721948e65531d26144/codex-rs/app-server-protocol/schema/typescript/v2/TurnInterruptParams.ts",
+    "revision": "979011409de0a60b52f179721948e65531d26144",
+    "retrieved_date": "2026-10-21",
+    "published_date": null,
+    "bytes": 226,
+    "sha256": "643034c3d25c23c7700236d4d1ff16286565786d48148e85b0c4761fe46d3804"
+  },
+  {
+    "path": "codex-rs/app-server-protocol/schema/typescript/v2/TurnStartParams.ts",
+    "url": "https://raw.githubusercontent.com/openai/codex/979011409de0a60b52f179721948e65531d26144/codex-rs/app-server-protocol/schema/typescript/v2/TurnStartParams.ts",
+    "revision": "979011409de0a60b52f179721948e65531d26144",
+    "retrieved_date": "2026-10-21",
+    "published_date": null,
+    "bytes": 2585,
+    "sha256": "aee116ebc86d05a738ae7cdace79f791a8b99a85693c3a005c295eb7e08b647c"
+  },
+  {
+    "path": "codex-rs/core/src/responses_metadata.rs",
+    "url": "https://raw.githubusercontent.com/openai/codex/979011409de0a60b52f179721948e65531d26144/codex-rs/core/src/responses_metadata.rs",
+    "revision": "979011409de0a60b52f179721948e65531d26144",
+    "retrieved_date": "2026-10-21",
+    "published_date": null,
+    "bytes": 24943,
+    "sha256": "17821e5baed960026bc9b54f0af5085883c9c057647631fcd4d0070fdb3827bd"
+  },
+  {
+    "path": "codex-rs/core/src/tools/context.rs",
+    "url": "https://raw.githubusercontent.com/openai/codex/979011409de0a60b52f179721948e65531d26144/codex-rs/core/src/tools/context.rs",
+    "revision": "979011409de0a60b52f179721948e65531d26144",
+    "retrieved_date": "2026-10-21",
+    "published_date": null,
+    "bytes": 20351,
+    "sha256": "9a9acc6daab2112bd9ca1a07a1e1f2105b20a7f565878157c726ee0d7a3e00cc"
+  },
+  {
+    "path": "codex-rs/core/src/tools/handlers/shell_spec.rs",
+    "url": "https://raw.githubusercontent.com/openai/codex/979011409de0a60b52f179721948e65531d26144/codex-rs/core/src/tools/handlers/shell_spec.rs",
+    "revision": "979011409de0a60b52f179721948e65531d26144",
+    "retrieved_date": "2026-10-21",
+    "published_date": null,
+    "bytes": 13296,
+    "sha256": "da7cffc9d6d82bc08b537fec6bddf3cd1906a05ba4ab193ecd50325ae3744e04"
+  },
+  {
+    "path": "responses-create.md",
+    "url": "https://developers.openai.com/api/reference/resources/responses/methods/create.md",
+    "revision": null,
+    "retrieved_date": "2026-10-21",
+    "published_date": null,
+    "bytes": 507870,
+    "sha256": "9c4d505259ac72b879a3697f4f606d4131989ae686d204078b7b22e5638794d0"
+  }
+]

@@ -1,0 +1,1971 @@
+{
+  "candidate": "06b7c1885af7ac02e27d2484645e0a2d9c33c01d",
+  "status": "PARTIAL_BLOCKED_SCOPE_DECISION",
+  "cases": {
+    "pi-standard": {
+      "run": "final",
+      "client_exit": null,
+      "process_exits": null,
+      "pids": null,
+      "turn_outcomes": [
+        "stop",
+        "stop",
+        "stop"
+      ],
+      "driver_error": null,
+      "http_statuses": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "receiver": 5,
+      "durable_event_counts": {
+        "request": 6,
+        "attempt": 5,
+        "usage": 5,
+        "request_finished": 6
+      },
+      "accounting": {
+        "attempts": 5,
+        "client_requests": 5,
+        "cost": "UNKNOWN",
+        "finished": 6,
+        "ledger": 5,
+        "lineage": [
+          {
+            "attempt_id": "attempt:45:p1-request-d147db14b67f843b95fb5e43c8cb3b06-0:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-d147db14b67f843b95fb5e43c8cb3b06-0",
+            "source_event_id": "usage-attempt:2b904ab86c5cae0beadd8bbf5da062656769f7b45fe4ce725cb617a3b006c5fd"
+          },
+          {
+            "attempt_id": "attempt:45:p1-request-d147db14b67f843b95fb5e43c8cb3b06-1:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-d147db14b67f843b95fb5e43c8cb3b06-1",
+            "source_event_id": "usage-attempt:e3993625dc24c3dac54d74f3e42862db9827631276a2760f4d5f20705c2ee286"
+          },
+          {
+            "attempt_id": "attempt:45:p1-request-d147db14b67f843b95fb5e43c8cb3b06-2:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-d147db14b67f843b95fb5e43c8cb3b06-2",
+            "source_event_id": "usage-attempt:a41763ab6270bddda725c8e1e997e02c9ebcca97e089a7922afec3cba826f61a"
+          },
+          {
+            "attempt_id": "attempt:45:p1-request-d147db14b67f843b95fb5e43c8cb3b06-3:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-d147db14b67f843b95fb5e43c8cb3b06-3",
+            "source_event_id": "usage-attempt:f28f85a7beeb5a94571800ed37657d23c44d17ad9aef295cbce27cdd24b65ad6"
+          },
+          {
+            "attempt_id": "attempt:45:p1-request-d147db14b67f843b95fb5e43c8cb3b06-4:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-d147db14b67f843b95fb5e43c8cb3b06-4",
+            "source_event_id": "usage-attempt:47b33a841bed2dfbb53658d987f9521ee2e2027f08602acb70df30424e171d09"
+          }
+        ],
+        "outcome": "Succeeded",
+        "requests_including_negative_probe": 6,
+        "usage": 5
+      },
+      "correspondence": [
+        {
+          "attempt_id": "attempt:45:p1-request-d147db14b67f843b95fb5e43c8cb3b06-0:1",
+          "c4": {
+            "present": false,
+            "receipt": "UNKNOWN"
+          },
+          "cost": "UNKNOWN",
+          "fields": {
+            "client_metadata": {
+              "forwarded": false,
+              "present": false
+            },
+            "include": {
+              "present": true,
+              "value": [
+                "reasoning.encrypted_content"
+              ]
+            },
+            "input": {
+              "exact_after_instruction_projection": true,
+              "items": 2,
+              "non_assistant_ids": [
+                {
+                  "id": null,
+                  "id_present": false,
+                  "index": 0,
+                  "role": "developer"
+                },
+                {
+                  "id": null,
+                  "id_present": false,
+                  "index": 1,
+                  "role": "user"
+                }
+              ]
+            },
+            "parallel_tool_calls": {
+              "present": false,
+              "value": null
+            },
+            "reasoning": {
+              "present": true,
+              "value": {
+                "effort": "medium",
+                "summary": "auto"
+              }
+            },
+            "tool_choice": {
+              "present": false,
+              "value": null
+            },
+            "tools": {
+              "present": true,
+              "value": [
+                {
+                  "description": "Read the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.",
+                  "name": "read",
+                  "parameters": {
+                    "properties": {
+                      "limit": {
+                        "description": "Maximum number of lines to read",
+                        "type": "number"
+                      },
+                      "offset": {
+                        "description": "Line number to start reading from (1-indexed)",
+                        "type": "number"
+                      },
+                      "path": {
+                        "description": "Path to the file to read (relative or absolute)",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "path"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                },
+                {
+                  "description": "Execute a bash command in the current working directory. Returns stdout and stderr. Output is truncated to last 2000 lines or 50KB (whichever is hit first). If truncated, full output is saved to a temp file. Optionally provide a timeout in seconds.",
+                  "name": "bash",
+                  "parameters": {
+                    "properties": {
+                      "command": {
+                        "description": "Shell command to execute",
+                        "type": "string"
+                      },
+                      "timeout": {
+                        "description": "Timeout in seconds (optional, no default timeout)",
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "command"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                },
+                {
+                  "description": "Edit a single file using exact text replacement. Every edits[].oldText must match a unique, non-overlapping region of the original file. If two changes affect the same block or nearby lines, merge them into one edit instead of emitting overlapping edits. Do not include large unchanged regions just to connect distant changes.",
+                  "name": "edit",
+                  "parameters": {
+                    "properties": {
+                      "edits": {
+                        "description": "One or more targeted replacements. Each edit is matched against the original file, not incrementally. Do not include overlapping or nested edits. If two changes touch the same block or nearby lines, merge them into one edit instead.",
+                        "items": {
+                          "properties": {
+                            "newText": {
+                              "description": "Replacement text for this targeted edit.",
+                              "type": "string"
+                            },
+                            "oldText": {
+                              "description": "Exact text for one targeted replacement. It must be unique in the original file and must not overlap with any other edits[].oldText in the same call.",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "oldText",
+                            "newText"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "path": {
+                        "description": "Path to the file to edit (relative or absolute)",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "edits"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                },
+                {
+                  "description": "Write content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.",
+                  "name": "write",
+                  "parameters": {
+                    "properties": {
+                      "content": {
+                        "description": "Content to write to the file",
+                        "type": "string"
+                      },
+                      "path": {
+                        "description": "Path to the file to write (relative or absolute)",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "content"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                }
+              ]
+            }
+          },
+          "ledger_rows": 1,
+          "outcome": "Succeeded",
+          "owner": "p12-runtime-client-key",
+          "receiver_ordinal": 0,
+          "request_id": "p1-request-d147db14b67f843b95fb5e43c8cb3b06-0",
+          "response_id": "response-62-0",
+          "upstream_model": "grok-4.5",
+          "usage": {
+            "cache_creation_tokens": null,
+            "cache_read_tokens": null,
+            "cached_tokens": null,
+            "input_accounting": "inclusive",
+            "input_tokens": 20,
+            "output_tokens": 7,
+            "provenance": "measured",
+            "reasoning_tokens": null
+          },
+          "usage_source_event_id": "usage-attempt:2b904ab86c5cae0beadd8bbf5da062656769f7b45fe4ce725cb617a3b006c5fd"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-d147db14b67f843b95fb5e43c8cb3b06-1:1",
+          "c4": {
+            "present": false,
+            "receipt": "UNKNOWN"
+          },
+          "cost": "UNKNOWN",
+          "fields": {
+            "client_metadata": {
+              "forwarded": false,
+              "present": false
+            },
+            "include": {
+              "present": true,
+              "value": [
+                "reasoning.encrypted_content"
+              ]
+            },
+            "input": {
+              "exact_after_instruction_projection": true,
+              "items": 5,
+              "non_assistant_ids": [
+                {
+                  "id": null,
+                  "id_present": false,
+                  "index": 0,
+                  "role": "developer"
+                },
+                {
+                  "id": null,
+                  "id_present": false,
+                  "index": 1,
+                  "role": "user"
+                },
+                {
+                  "id": null,
+                  "id_present": false,
+                  "index": 4,
+                  "role": "user"
+                }
+              ]
+            },
+            "parallel_tool_calls": {
+              "present": false,
+              "value": null
+            },
+            "reasoning": {
+              "present": true,
+              "value": {
+                "effort": "medium",
+                "summary": "auto"
+              }
+            },
+            "tool_choice": {
+              "present": false,
+              "value": null
+            },
+            "tools": {
+              "present": true,
+              "value": [
+                {
+                  "description": "Read the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.",
+                  "name": "read",
+                  "parameters": {
+                    "properties": {
+                      "limit": {
+                        "description": "Maximum number of lines to read",
+                        "type": "number"
+                      },
+                      "offset": {
+                        "description": "Line number to start reading from (1-indexed)",
+                        "type": "number"
+                      },
+                      "path": {
+                        "description": "Path to the file to read (relative or absolute)",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "path"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                },
+                {
+                  "description": "Execute a bash command in the current working directory. Returns stdout and stderr. Output is truncated to last 2000 lines or 50KB (whichever is hit first). If truncated, full output is saved to a temp file. Optionally provide a timeout in seconds.",
+                  "name": "bash",
+                  "parameters": {
+                    "properties": {
+                      "command": {
+                        "description": "Shell command to execute",
+                        "type": "string"
+                      },
+                      "timeout": {
+                        "description": "Timeout in seconds (optional, no default timeout)",
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "command"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                },
+                {
+                  "description": "Edit a single file using exact text replacement. Every edits[].oldText must match a unique, non-overlapping region of the original file. If two changes affect the same block or nearby lines, merge them into one edit instead of emitting overlapping edits. Do not include large unchanged regions just to connect distant changes.",
+                  "name": "edit",
+                  "parameters": {
+                    "properties": {
+                      "edits": {
+                        "description": "One or more targeted replacements. Each edit is matched against the original file, not incrementally. Do not include overlapping or nested edits. If two changes touch the same block or nearby lines, merge them into one edit instead.",
+                        "items": {
+                          "properties": {
+                            "newText": {
+                              "description": "Replacement text for this targeted edit.",
+                              "type": "string"
+                            },
+                            "oldText": {
+                              "description": "Exact text for one targeted replacement. It must be unique in the original file and must not overlap with any other edits[].oldText in the same call.",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "oldText",
+                            "newText"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "path": {
+                        "description": "Path to the file to edit (relative or absolute)",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "edits"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                },
+                {
+                  "description": "Write content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.",
+                  "name": "write",
+                  "parameters": {
+                    "properties": {
+                      "content": {
+                        "description": "Content to write to the file",
+                        "type": "string"
+                      },
+                      "path": {
+                        "description": "Path to the file to write (relative or absolute)",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "content"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                }
+              ]
+            }
+          },
+          "ledger_rows": 1,
+          "outcome": "Succeeded",
+          "owner": "p12-runtime-client-key",
+          "receiver_ordinal": 1,
+          "request_id": "p1-request-d147db14b67f843b95fb5e43c8cb3b06-1",
+          "response_id": "response-62-1",
+          "upstream_model": "grok-4.5",
+          "usage": {
+            "cache_creation_tokens": null,
+            "cache_read_tokens": null,
+            "cached_tokens": null,
+            "input_accounting": "inclusive",
+            "input_tokens": 20,
+            "output_tokens": 7,
+            "provenance": "measured",
+            "reasoning_tokens": null
+          },
+          "usage_source_event_id": "usage-attempt:e3993625dc24c3dac54d74f3e42862db9827631276a2760f4d5f20705c2ee286"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-d147db14b67f843b95fb5e43c8cb3b06-2:1",
+          "c4": {
+            "present": false,
+            "receipt": "UNKNOWN"
+          },
+          "cost": "UNKNOWN",
+          "fields": {
+            "client_metadata": {
+              "forwarded": false,
+              "present": false
+            },
+            "include": {
+              "present": true,
+              "value": [
+                "reasoning.encrypted_content"
+              ]
+            },
+            "input": {
+              "exact_after_instruction_projection": true,
+              "items": 8,
+              "non_assistant_ids": [
+                {
+                  "id": null,
+                  "id_present": false,
+                  "index": 0,
+                  "role": "developer"
+                },
+                {
+                  "id": null,
+                  "id_present": false,
+                  "index": 1,
+                  "role": "user"
+                },
+                {
+                  "id": null,
+                  "id_present": false,
+                  "index": 4,
+                  "role": "user"
+                }
+              ]
+            },
+            "parallel_tool_calls": {
+              "present": false,
+              "value": null
+            },
+            "reasoning": {
+              "present": true,
+              "value": {
+                "effort": "medium",
+                "summary": "auto"
+              }
+            },
+            "tool_choice": {
+              "present": false,
+              "value": null
+            },
+            "tools": {
+              "present": true,
+              "value": [
+                {
+                  "description": "Read the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.",
+                  "name": "read",
+                  "parameters": {
+                    "properties": {
+                      "limit": {
+                        "description": "Maximum number of lines to read",
+                        "type": "number"
+                      },
+                      "offset": {
+                        "description": "Line number to start reading from (1-indexed)",
+                        "type": "number"
+                      },
+                      "path": {
+                        "description": "Path to the file to read (relative or absolute)",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "path"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                },
+                {
+                  "description": "Execute a bash command in the current working directory. Returns stdout and stderr. Output is truncated to last 2000 lines or 50KB (whichever is hit first). If truncated, full output is saved to a temp file. Optionally provide a timeout in seconds.",
+                  "name": "bash",
+                  "parameters": {
+                    "properties": {
+                      "command": {
+                        "description": "Shell command to execute",
+                        "type": "string"
+                      },
+                      "timeout": {
+                        "description": "Timeout in seconds (optional, no default timeout)",
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "command"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                },
+                {
+                  "description": "Edit a single file using exact text replacement. Every edits[].oldText must match a unique, non-overlapping region of the original file. If two changes affect the same block or nearby lines, merge them into one edit instead of emitting overlapping edits. Do not include large unchanged regions just to connect distant changes.",
+                  "name": "edit",
+                  "parameters": {
+                    "properties": {
+                      "edits": {
+                        "description": "One or more targeted replacements. Each edit is matched against the original file, not incrementally. Do not include overlapping or nested edits. If two changes touch the same block or nearby lines, merge them into one edit instead.",
+                        "items": {
+                          "properties": {
+                            "newText": {
+                              "description": "Replacement text for this targeted edit.",
+                              "type": "string"
+                            },
+                            "oldText": {
+                              "description": "Exact text for one targeted replacement. It must be unique in the original file and must not overlap with any other edits[].oldText in the same call.",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "oldText",
+                            "newText"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "path": {
+                        "description": "Path to the file to edit (relative or absolute)",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "edits"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                },
+                {
+                  "description": "Write content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.",
+                  "name": "write",
+                  "parameters": {
+                    "properties": {
+                      "content": {
+                        "description": "Content to write to the file",
+                        "type": "string"
+                      },
+                      "path": {
+                        "description": "Path to the file to write (relative or absolute)",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "content"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                }
+              ]
+            }
+          },
+          "ledger_rows": 1,
+          "outcome": "Succeeded",
+          "owner": "p12-runtime-client-key",
+          "receiver_ordinal": 2,
+          "request_id": "p1-request-d147db14b67f843b95fb5e43c8cb3b06-2",
+          "response_id": "response-62-2",
+          "upstream_model": "grok-4.5",
+          "usage": {
+            "cache_creation_tokens": null,
+            "cache_read_tokens": null,
+            "cached_tokens": null,
+            "input_accounting": "inclusive",
+            "input_tokens": 20,
+            "output_tokens": 7,
+            "provenance": "measured",
+            "reasoning_tokens": null
+          },
+          "usage_source_event_id": "usage-attempt:a41763ab6270bddda725c8e1e997e02c9ebcca97e089a7922afec3cba826f61a"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-d147db14b67f843b95fb5e43c8cb3b06-3:1",
+          "c4": {
+            "present": false,
+            "receipt": "UNKNOWN"
+          },
+          "cost": "UNKNOWN",
+          "fields": {
+            "client_metadata": {
+              "forwarded": false,
+              "present": false
+            },
+            "include": {
+              "present": true,
+              "value": [
+                "reasoning.encrypted_content"
+              ]
+            },
+            "input": {
+              "exact_after_instruction_projection": true,
+              "items": 11,
+              "non_assistant_ids": [
+                {
+                  "id": null,
+                  "id_present": false,
+                  "index": 0,
+                  "role": "developer"
+                },
+                {
+                  "id": null,
+                  "id_present": false,
+                  "index": 1,
+                  "role": "user"
+                },
+                {
+                  "id": null,
+                  "id_present": false,
+                  "index": 4,
+                  "role": "user"
+                }
+              ]
+            },
+            "parallel_tool_calls": {
+              "present": false,
+              "value": null
+            },
+            "reasoning": {
+              "present": true,
+              "value": {
+                "effort": "medium",
+                "summary": "auto"
+              }
+            },
+            "tool_choice": {
+              "present": false,
+              "value": null
+            },
+            "tools": {
+              "present": true,
+              "value": [
+                {
+                  "description": "Read the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.",
+                  "name": "read",
+                  "parameters": {
+                    "properties": {
+                      "limit": {
+                        "description": "Maximum number of lines to read",
+                        "type": "number"
+                      },
+                      "offset": {
+                        "description": "Line number to start reading from (1-indexed)",
+                        "type": "number"
+                      },
+                      "path": {
+                        "description": "Path to the file to read (relative or absolute)",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "path"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                },
+                {
+                  "description": "Execute a bash command in the current working directory. Returns stdout and stderr. Output is truncated to last 2000 lines or 50KB (whichever is hit first). If truncated, full output is saved to a temp file. Optionally provide a timeout in seconds.",
+                  "name": "bash",
+                  "parameters": {
+                    "properties": {
+                      "command": {
+                        "description": "Shell command to execute",
+                        "type": "string"
+                      },
+                      "timeout": {
+                        "description": "Timeout in seconds (optional, no default timeout)",
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "command"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                },
+                {
+                  "description": "Edit a single file using exact text replacement. Every edits[].oldText must match a unique, non-overlapping region of the original file. If two changes affect the same block or nearby lines, merge them into one edit instead of emitting overlapping edits. Do not include large unchanged regions just to connect distant changes.",
+                  "name": "edit",
+                  "parameters": {
+                    "properties": {
+                      "edits": {
+                        "description": "One or more targeted replacements. Each edit is matched against the original file, not incrementally. Do not include overlapping or nested edits. If two changes touch the same block or nearby lines, merge them into one edit instead.",
+                        "items": {
+                          "properties": {
+                            "newText": {
+                              "description": "Replacement text for this targeted edit.",
+                              "type": "string"
+                            },
+                            "oldText": {
+                              "description": "Exact text for one targeted replacement. It must be unique in the original file and must not overlap with any other edits[].oldText in the same call.",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "oldText",
+                            "newText"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "path": {
+                        "description": "Path to the file to edit (relative or absolute)",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "edits"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                },
+                {
+                  "description": "Write content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.",
+                  "name": "write",
+                  "parameters": {
+                    "properties": {
+                      "content": {
+                        "description": "Content to write to the file",
+                        "type": "string"
+                      },
+                      "path": {
+                        "description": "Path to the file to write (relative or absolute)",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "content"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                }
+              ]
+            }
+          },
+          "ledger_rows": 1,
+          "outcome": "Succeeded",
+          "owner": "p12-runtime-client-key",
+          "receiver_ordinal": 3,
+          "request_id": "p1-request-d147db14b67f843b95fb5e43c8cb3b06-3",
+          "response_id": "response-62-3",
+          "upstream_model": "grok-4.5",
+          "usage": {
+            "cache_creation_tokens": null,
+            "cache_read_tokens": null,
+            "cached_tokens": null,
+            "input_accounting": "inclusive",
+            "input_tokens": 20,
+            "output_tokens": 7,
+            "provenance": "measured",
+            "reasoning_tokens": null
+          },
+          "usage_source_event_id": "usage-attempt:f28f85a7beeb5a94571800ed37657d23c44d17ad9aef295cbce27cdd24b65ad6"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-d147db14b67f843b95fb5e43c8cb3b06-4:1",
+          "c4": {
+            "present": false,
+            "receipt": "UNKNOWN"
+          },
+          "cost": "UNKNOWN",
+          "fields": {
+            "client_metadata": {
+              "forwarded": false,
+              "present": false
+            },
+            "include": {
+              "present": true,
+              "value": [
+                "reasoning.encrypted_content"
+              ]
+            },
+            "input": {
+              "exact_after_instruction_projection": true,
+              "items": 14,
+              "non_assistant_ids": [
+                {
+                  "id": null,
+                  "id_present": false,
+                  "index": 0,
+                  "role": "developer"
+                },
+                {
+                  "id": null,
+                  "id_present": false,
+                  "index": 1,
+                  "role": "user"
+                },
+                {
+                  "id": null,
+                  "id_present": false,
+                  "index": 4,
+                  "role": "user"
+                },
+                {
+                  "id": null,
+                  "id_present": false,
+                  "index": 13,
+                  "role": "user"
+                }
+              ]
+            },
+            "parallel_tool_calls": {
+              "present": false,
+              "value": null
+            },
+            "reasoning": {
+              "present": true,
+              "value": {
+                "effort": "medium",
+                "summary": "auto"
+              }
+            },
+            "tool_choice": {
+              "present": false,
+              "value": null
+            },
+            "tools": {
+              "present": true,
+              "value": [
+                {
+                  "description": "Read the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.",
+                  "name": "read",
+                  "parameters": {
+                    "properties": {
+                      "limit": {
+                        "description": "Maximum number of lines to read",
+                        "type": "number"
+                      },
+                      "offset": {
+                        "description": "Line number to start reading from (1-indexed)",
+                        "type": "number"
+                      },
+                      "path": {
+                        "description": "Path to the file to read (relative or absolute)",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "path"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                },
+                {
+                  "description": "Execute a bash command in the current working directory. Returns stdout and stderr. Output is truncated to last 2000 lines or 50KB (whichever is hit first). If truncated, full output is saved to a temp file. Optionally provide a timeout in seconds.",
+                  "name": "bash",
+                  "parameters": {
+                    "properties": {
+                      "command": {
+                        "description": "Shell command to execute",
+                        "type": "string"
+                      },
+                      "timeout": {
+                        "description": "Timeout in seconds (optional, no default timeout)",
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "command"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                },
+                {
+                  "description": "Edit a single file using exact text replacement. Every edits[].oldText must match a unique, non-overlapping region of the original file. If two changes affect the same block or nearby lines, merge them into one edit instead of emitting overlapping edits. Do not include large unchanged regions just to connect distant changes.",
+                  "name": "edit",
+                  "parameters": {
+                    "properties": {
+                      "edits": {
+                        "description": "One or more targeted replacements. Each edit is matched against the original file, not incrementally. Do not include overlapping or nested edits. If two changes touch the same block or nearby lines, merge them into one edit instead.",
+                        "items": {
+                          "properties": {
+                            "newText": {
+                              "description": "Replacement text for this targeted edit.",
+                              "type": "string"
+                            },
+                            "oldText": {
+                              "description": "Exact text for one targeted replacement. It must be unique in the original file and must not overlap with any other edits[].oldText in the same call.",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "oldText",
+                            "newText"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "path": {
+                        "description": "Path to the file to edit (relative or absolute)",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "edits"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                },
+                {
+                  "description": "Write content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.",
+                  "name": "write",
+                  "parameters": {
+                    "properties": {
+                      "content": {
+                        "description": "Content to write to the file",
+                        "type": "string"
+                      },
+                      "path": {
+                        "description": "Path to the file to write (relative or absolute)",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "content"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                }
+              ]
+            }
+          },
+          "ledger_rows": 1,
+          "outcome": "Succeeded",
+          "owner": "p12-runtime-client-key",
+          "receiver_ordinal": 4,
+          "request_id": "p1-request-d147db14b67f843b95fb5e43c8cb3b06-4",
+          "response_id": "response-62-4",
+          "upstream_model": "grok-4.5",
+          "usage": {
+            "cache_creation_tokens": null,
+            "cache_read_tokens": null,
+            "cached_tokens": null,
+            "input_accounting": "inclusive",
+            "input_tokens": 20,
+            "output_tokens": 7,
+            "provenance": "measured",
+            "reasoning_tokens": null
+          },
+          "usage_source_event_id": "usage-attempt:47b33a841bed2dfbb53658d987f9521ee2e2027f08602acb70df30424e171d09"
+        }
+      ],
+      "result_file_exact": true,
+      "cancellation": null,
+      "cancel_ready": false,
+      "abort_complete": false,
+      "oracle_complete": true
+    },
+    "codex-standard": {
+      "run": "final",
+      "client_exit": 0,
+      "process_exits": [
+        0
+      ],
+      "pids": [
+        92406
+      ],
+      "turn_outcomes": [
+        "failed"
+      ],
+      "driver_error": null,
+      "http_statuses": [
+        400
+      ],
+      "receiver": 0,
+      "durable_event_counts": {
+        "request": 1,
+        "request_finished": 1
+      },
+      "accounting": null,
+      "correspondence": [],
+      "result_file_exact": false,
+      "cancellation": null,
+      "cancel_ready": false,
+      "abort_complete": false,
+      "oracle_complete": false
+    },
+    "pi-failure": {
+      "run": "final",
+      "client_exit": null,
+      "process_exits": null,
+      "pids": null,
+      "turn_outcomes": [
+        "error"
+      ],
+      "driver_error": null,
+      "http_statuses": [
+        200
+      ],
+      "receiver": 1,
+      "durable_event_counts": {
+        "request": 1,
+        "attempt": 1,
+        "usage": 1,
+        "request_finished": 1
+      },
+      "accounting": {
+        "attempts": 1,
+        "client_requests": 1,
+        "cost": "UNKNOWN",
+        "finished": 1,
+        "ledger": 1,
+        "lineage": [
+          {
+            "attempt_id": "attempt:45:p1-request-2b080258ec740fd86dbdbe467e974d1e-0:1",
+            "native_companion": "UNKNOWN",
+            "owner": "p12-runtime-client-key",
+            "request_id": "p1-request-2b080258ec740fd86dbdbe467e974d1e-0",
+            "source_event_id": "usage-attempt:d8b05a56d8f1ecf032df7368009e6f2411d97311ae35c4855df6971270c7460f"
+          }
+        ],
+        "outcome": "Failed",
+        "requests_including_negative_probe": 1,
+        "usage": 1
+      },
+      "correspondence": [
+        {
+          "attempt_id": "attempt:45:p1-request-2b080258ec740fd86dbdbe467e974d1e-0:1",
+          "c4": {
+            "present": false,
+            "receipt": "UNKNOWN"
+          },
+          "cost": "UNKNOWN",
+          "fields": {
+            "client_metadata": {
+              "forwarded": false,
+              "present": false
+            },
+            "include": {
+              "present": true,
+              "value": [
+                "reasoning.encrypted_content"
+              ]
+            },
+            "input": {
+              "exact_after_instruction_projection": true,
+              "items": 2,
+              "non_assistant_ids": [
+                {
+                  "id": null,
+                  "id_present": false,
+                  "index": 0,
+                  "role": "developer"
+                },
+                {
+                  "id": null,
+                  "id_present": false,
+                  "index": 1,
+                  "role": "user"
+                }
+              ]
+            },
+            "parallel_tool_calls": {
+              "present": false,
+              "value": null
+            },
+            "reasoning": {
+              "present": true,
+              "value": {
+                "effort": "medium",
+                "summary": "auto"
+              }
+            },
+            "tool_choice": {
+              "present": false,
+              "value": null
+            },
+            "tools": {
+              "present": true,
+              "value": [
+                {
+                  "description": "Read the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.",
+                  "name": "read",
+                  "parameters": {
+                    "properties": {
+                      "limit": {
+                        "description": "Maximum number of lines to read",
+                        "type": "number"
+                      },
+                      "offset": {
+                        "description": "Line number to start reading from (1-indexed)",
+                        "type": "number"
+                      },
+                      "path": {
+                        "description": "Path to the file to read (relative or absolute)",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "path"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                },
+                {
+                  "description": "Execute a bash command in the current working directory. Returns stdout and stderr. Output is truncated to last 2000 lines or 50KB (whichever is hit first). If truncated, full output is saved to a temp file. Optionally provide a timeout in seconds.",
+                  "name": "bash",
+                  "parameters": {
+                    "properties": {
+                      "command": {
+                        "description": "Shell command to execute",
+                        "type": "string"
+                      },
+                      "timeout": {
+                        "description": "Timeout in seconds (optional, no default timeout)",
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "command"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                },
+                {
+                  "description": "Edit a single file using exact text replacement. Every edits[].oldText must match a unique, non-overlapping region of the original file. If two changes affect the same block or nearby lines, merge them into one edit instead of emitting overlapping edits. Do not include large unchanged regions just to connect distant changes.",
+                  "name": "edit",
+                  "parameters": {
+                    "properties": {
+                      "edits": {
+                        "description": "One or more targeted replacements. Each edit is matched against the original file, not incrementally. Do not include overlapping or nested edits. If two changes touch the same block or nearby lines, merge them into one edit instead.",
+                        "items": {
+                          "properties": {
+                            "newText": {
+                              "description": "Replacement text for this targeted edit.",
+                              "type": "string"
+                            },
+                            "oldText": {
+                              "description": "Exact text for one targeted replacement. It must be unique in the original file and must not overlap with any other edits[].oldText in the same call.",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "oldText",
+                            "newText"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "path": {
+                        "description": "Path to the file to edit (relative or absolute)",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "edits"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                },
+                {
+                  "description": "Write content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.",
+                  "name": "write",
+                  "parameters": {
+                    "properties": {
+                      "content": {
+                        "description": "Content to write to the file",
+                        "type": "string"
+                      },
+                      "path": {
+                        "description": "Path to the file to write (relative or absolute)",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "content"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                }
+              ]
+            }
+          },
+          "ledger_rows": 1,
+          "outcome": "Failed",
+          "owner": "p12-runtime-client-key",
+          "receiver_ordinal": 0,
+          "request_id": "p1-request-2b080258ec740fd86dbdbe467e974d1e-0",
+          "response_id": "response-61",
+          "upstream_model": "grok-4.5",
+          "usage": {
+            "cache_creation_tokens": null,
+            "cache_read_tokens": null,
+            "cached_tokens": null,
+            "input_accounting": "inclusive",
+            "input_tokens": 20,
+            "output_tokens": 7,
+            "provenance": "measured",
+            "reasoning_tokens": null
+          },
+          "usage_source_event_id": "usage-attempt:d8b05a56d8f1ecf032df7368009e6f2411d97311ae35c4855df6971270c7460f"
+        }
+      ],
+      "result_file_exact": false,
+      "cancellation": null,
+      "cancel_ready": false,
+      "abort_complete": false,
+      "oracle_complete": true
+    },
+    "codex-unqualified": {
+      "run": "final",
+      "client_exit": 1,
+      "process_exits": null,
+      "pids": null,
+      "turn_outcomes": null,
+      "driver_error": null,
+      "http_statuses": [
+        400
+      ],
+      "receiver": 0,
+      "durable_event_counts": {
+        "request": 1,
+        "request_finished": 1
+      },
+      "accounting": {
+        "attempts": 0,
+        "client_requests": 1,
+        "cost": "UNKNOWN",
+        "finished": 1,
+        "ledger": 0,
+        "lineage": [],
+        "outcome": "Failed",
+        "requests_including_negative_probe": 1,
+        "usage": 0
+      },
+      "correspondence": [],
+      "result_file_exact": false,
+      "cancellation": null,
+      "cancel_ready": false,
+      "abort_complete": false,
+      "oracle_complete": true
+    },
+    "pi-cancel": {
+      "run": "final",
+      "client_exit": null,
+      "process_exits": null,
+      "pids": null,
+      "turn_outcomes": [
+        "aborted"
+      ],
+      "driver_error": null,
+      "http_statuses": [
+        200
+      ],
+      "receiver": 1,
+      "durable_event_counts": {
+        "request": 1,
+        "attempt": 1,
+        "request_finished": 1
+      },
+      "accounting": {
+        "attempts": 1,
+        "client_requests": 1,
+        "cost": "UNKNOWN",
+        "finished": 1,
+        "ledger": 0,
+        "lineage": [],
+        "outcome": "Cancelled",
+        "requests_including_negative_probe": 1,
+        "usage": 0
+      },
+      "correspondence": [
+        {
+          "attempt_id": "attempt:45:p1-request-72ca0b2ced748ac69cd5bbd436e2262c-0:1",
+          "c4": {
+            "present": false,
+            "receipt": "UNKNOWN"
+          },
+          "cost": "UNKNOWN",
+          "fields": {
+            "client_metadata": {
+              "forwarded": false,
+              "present": false
+            },
+            "include": {
+              "present": true,
+              "value": [
+                "reasoning.encrypted_content"
+              ]
+            },
+            "input": {
+              "exact_after_instruction_projection": true,
+              "items": 2,
+              "non_assistant_ids": [
+                {
+                  "id": null,
+                  "id_present": false,
+                  "index": 0,
+                  "role": "developer"
+                },
+                {
+                  "id": null,
+                  "id_present": false,
+                  "index": 1,
+                  "role": "user"
+                }
+              ]
+            },
+            "parallel_tool_calls": {
+              "present": false,
+              "value": null
+            },
+            "reasoning": {
+              "present": true,
+              "value": {
+                "effort": "medium",
+                "summary": "auto"
+              }
+            },
+            "tool_choice": {
+              "present": false,
+              "value": null
+            },
+            "tools": {
+              "present": true,
+              "value": [
+                {
+                  "description": "Read the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.",
+                  "name": "read",
+                  "parameters": {
+                    "properties": {
+                      "limit": {
+                        "description": "Maximum number of lines to read",
+                        "type": "number"
+                      },
+                      "offset": {
+                        "description": "Line number to start reading from (1-indexed)",
+                        "type": "number"
+                      },
+                      "path": {
+                        "description": "Path to the file to read (relative or absolute)",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "path"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                },
+                {
+                  "description": "Execute a bash command in the current working directory. Returns stdout and stderr. Output is truncated to last 2000 lines or 50KB (whichever is hit first). If truncated, full output is saved to a temp file. Optionally provide a timeout in seconds.",
+                  "name": "bash",
+                  "parameters": {
+                    "properties": {
+                      "command": {
+                        "description": "Shell command to execute",
+                        "type": "string"
+                      },
+                      "timeout": {
+                        "description": "Timeout in seconds (optional, no default timeout)",
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "command"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                },
+                {
+                  "description": "Edit a single file using exact text replacement. Every edits[].oldText must match a unique, non-overlapping region of the original file. If two changes affect the same block or nearby lines, merge them into one edit instead of emitting overlapping edits. Do not include large unchanged regions just to connect distant changes.",
+                  "name": "edit",
+                  "parameters": {
+                    "properties": {
+                      "edits": {
+                        "description": "One or more targeted replacements. Each edit is matched against the original file, not incrementally. Do not include overlapping or nested edits. If two changes touch the same block or nearby lines, merge them into one edit instead.",
+                        "items": {
+                          "properties": {
+                            "newText": {
+                              "description": "Replacement text for this targeted edit.",
+                              "type": "string"
+                            },
+                            "oldText": {
+                              "description": "Exact text for one targeted replacement. It must be unique in the original file and must not overlap with any other edits[].oldText in the same call.",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "oldText",
+                            "newText"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "path": {
+                        "description": "Path to the file to edit (relative or absolute)",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "edits"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                },
+                {
+                  "description": "Write content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.",
+                  "name": "write",
+                  "parameters": {
+                    "properties": {
+                      "content": {
+                        "description": "Content to write to the file",
+                        "type": "string"
+                      },
+                      "path": {
+                        "description": "Path to the file to write (relative or absolute)",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "content"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "function"
+                }
+              ]
+            }
+          },
+          "ledger_rows": 0,
+          "outcome": "Cancelled",
+          "owner": "p12-runtime-client-key",
+          "receiver_ordinal": 0,
+          "request_id": "p1-request-72ca0b2ced748ac69cd5bbd436e2262c-0",
+          "response_id": "response-61",
+          "upstream_model": "grok-4.5",
+          "usage": null,
+          "usage_source_event_id": null
+        }
+      ],
+      "result_file_exact": false,
+      "cancellation": {
+        "abort_to_release_upper_bound_ms": 7,
+        "alive_after_observation": {
+          "observed_at_ms": 1792597932297,
+          "pid": 92377,
+          "rpc_alive": true
+        },
+        "cli_alive_at_abort": true,
+        "cli_kept_alive": true,
+        "cli_pid": 92377,
+        "eventually_released_before_server_stop": true,
+        "lease_before_abort": {
+          "lease": 1,
+          "observed_at_ms": 1792597932278
+        },
+        "leases_after_first_second": 0,
+        "leases_at_observation_end": 0,
+        "observation_end_at_ms": 1792597932290,
+        "peer_close_at_observation_end": 1,
+        "release_observed_at_ms": 1792597932290,
+        "released_within_first_second": true,
+        "rpc_timeline": {
+          "abort_sent_at_ms": 1792597932283,
+          "delta_at_ms": 1792597932267,
+          "pid": 92377,
+          "rpc_aborted_at_ms": 1792597932286,
+          "rpc_alive": true
+        },
+        "total_observation_ms": 0
+      },
+      "cancel_ready": true,
+      "abort_complete": true,
+      "oracle_complete": true
+    },
+    "codex-failure": {
+      "run": "final-failure",
+      "client_exit": 0,
+      "process_exits": [
+        0
+      ],
+      "pids": [
+        92493
+      ],
+      "turn_outcomes": [
+        "failed"
+      ],
+      "driver_error": null,
+      "http_statuses": [
+        400
+      ],
+      "receiver": 0,
+      "durable_event_counts": {
+        "request": 1,
+        "request_finished": 1
+      },
+      "accounting": null,
+      "correspondence": [],
+      "result_file_exact": false,
+      "cancellation": null,
+      "cancel_ready": false,
+      "abort_complete": false,
+      "oracle_complete": false
+    },
+    "codex-cancel": {
+      "run": "final-cancel",
+      "client_exit": 1,
+      "process_exits": [],
+      "pids": [
+        92690
+      ],
+      "turn_outcomes": [],
+      "driver_error": "Empty: ",
+      "http_statuses": [
+        400
+      ],
+      "receiver": 0,
+      "durable_event_counts": {
+        "request": 1,
+        "request_finished": 1
+      },
+      "accounting": null,
+      "correspondence": [],
+      "result_file_exact": false,
+      "cancellation": null,
+      "cancel_ready": false,
+      "abort_complete": false,
+      "oracle_complete": false
+    }
+  },
+  "runs": {
+    "final": {
+      "root": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-combined-final-06b7c188",
+      "runner": {
+        "command": [
+          "/usr/bin/sandbox-exec",
+          "-f",
+          "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-combined-final-06b7c188/isolated.sb",
+          "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-codex-combined-20261021/target-full-final/debug/deps/gateway-b314458fd9b519fb",
+          "actual_cli_public_build_qualification",
+          "--ignored",
+          "--nocapture"
+        ],
+        "exit": 101,
+        "runner_status": "FAIL",
+        "require_prompt_release": true,
+        "cancellations": {
+          "pi": {
+            "abort_to_release_upper_bound_ms": 7,
+            "alive_after_observation": {
+              "observed_at_ms": 1792597932297,
+              "pid": 92377,
+              "rpc_alive": true
+            },
+            "cli_alive_at_abort": true,
+            "cli_kept_alive": true,
+            "cli_pid": 92377,
+            "eventually_released_before_server_stop": true,
+            "lease_before_abort": {
+              "lease": 1,
+              "observed_at_ms": 1792597932278
+            },
+            "leases_after_first_second": 0,
+            "leases_at_observation_end": 0,
+            "observation_end_at_ms": 1792597932290,
+            "peer_close_at_observation_end": 1,
+            "release_observed_at_ms": 1792597932290,
+            "released_within_first_second": true,
+            "rpc_timeline": {
+              "abort_sent_at_ms": 1792597932283,
+              "delta_at_ms": 1792597932267,
+              "pid": 92377,
+              "rpc_aborted_at_ms": 1792597932286,
+              "rpc_alive": true
+            },
+            "total_observation_ms": 0
+          },
+          "codex": null
+        },
+        "tcp_observer": false,
+        "selected_case": null,
+        "require_codex_success": true,
+        "codex_success_gate": {
+          "status": "FAIL",
+          "checks": {
+            "cli_exit_zero": true,
+            "answer_tool_task_and_follow_up": false,
+            "five_incremental_public_responses": false,
+            "independent_receives_and_exact_accounting": false,
+            "two_correlated_tool_results": false,
+            "actual_tool_file_result": false
+          },
+          "missing_receipts": [
+            "observations.json"
+          ]
+        },
+        "installs_unchanged": true,
+        "claim": "fixed-version native clients, local controlled only; #62 remains open and fixed Build activation blocked"
+      },
+      "identity": {
+        "source_head": "06b7c1885af7ac02e27d2484645e0a2d9c33c01d",
+        "test_binary_sha256": "897e3676f8fef614a2c5e5eff44a82db6408466b9638d00c1e60119e52f681ec",
+        "codex_actual_native": "/opt/homebrew/lib/node_modules/@openai/codex/vendor/aarch64-apple-darwin/bin/codex",
+        "codex_actual_native_sha256": "12ac11d2c7eee27cfae34393986d7b7c9ed0dea537cb749831cdd7033893e6de",
+        "runner_sha256": "a081d3c5e97eba680caa0094db633118dc7807b2a5ea02d051e853a18f3dbfbb",
+        "manifests": {
+          "Cargo.toml": "1b1a37ce8d8fcafa51d379ffae2ff33fff091c5a48c0f3458e47b99c12b22355",
+          "Cargo.lock": "36564c0219707741d79ecb37d9fc4ee620ce2fe6801fdbe09b32fb4c8687c858",
+          "apps/gateway/Cargo.toml": "c0271c2ad72a8fcbdd419f12914d5c1db949531870e1cc142db0462c582d1108",
+          "rust-toolchain.toml": "8e390d6a0838315f972690f46ef8bae8b7ecc9ee6c1ed70140ef852869c2482e"
+        },
+        "versions": {
+          "codex": {
+            "command": [
+              "/opt/homebrew/bin/codex",
+              "--version"
+            ],
+            "exit": 0,
+            "stdout": "codex-cli 0.161.0\n",
+            "stderr": ""
+          },
+          "codex-native": {
+            "command": [
+              "/opt/homebrew/lib/node_modules/@openai/codex/vendor/aarch64-apple-darwin/bin/codex",
+              "--version"
+            ],
+            "exit": 0,
+            "stdout": "codex-cli 0.161.0\n",
+            "stderr": ""
+          },
+          "pi-shell": {
+            "command": [
+              "/opt/homebrew/bin/pi",
+              "--version"
+            ],
+            "exit": 0,
+            "stdout": "0.84.3\n",
+            "stderr": ""
+          },
+          "pi-declared-bin": {
+            "command": [
+              "/opt/homebrew/bin/node",
+              "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js",
+              "--version"
+            ],
+            "exit": 0,
+            "stdout": "0.84.3\n",
+            "stderr": ""
+          },
+          "node": {
+            "command": [
+              "/opt/homebrew/bin/node",
+              "--version"
+            ],
+            "exit": 0,
+            "stdout": "v26.8.2\n",
+            "stderr": ""
+          }
+        },
+        "only_my_pi": {
+          "link": "../share/only-my-pi/current-stack/bin/pi",
+          "realpath": "/Users/huangrui/.local/share/only-my-pi/stacks/7444c7fb3a6a91bbe077ba2e15bd157b63265f368a480db8b81f959b43d9aea0/bin/pi",
+          "executed": false
+        }
+      }
+    },
+    "final-failure": {
+      "root": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-combined-final-failure-06b7c188",
+      "runner": {
+        "command": [
+          "/usr/bin/sandbox-exec",
+          "-f",
+          "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-combined-final-failure-06b7c188/isolated.sb",
+          "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-codex-combined-20261021/target-full-final/debug/deps/gateway-b314458fd9b519fb",
+          "actual_cli_public_build_qualification",
+          "--ignored",
+          "--nocapture"
+        ],
+        "exit": 101,
+        "runner_status": "FAIL",
+        "require_prompt_release": true,
+        "cancellations": {
+          "pi": null,
+          "codex": null
+        },
+        "tcp_observer": false,
+        "selected_case": "codex-failure",
+        "require_codex_success": true,
+        "codex_success_gate": {
+          "status": "FAIL",
+          "checks": {
+            "cli_exit_zero": false,
+            "answer_tool_task_and_follow_up": false,
+            "five_incremental_public_responses": false,
+            "independent_receives_and_exact_accounting": false,
+            "two_correlated_tool_results": false,
+            "actual_tool_file_result": false
+          },
+          "missing_receipts": [
+            "client.json",
+            "observations.json",
+            "ingress.json",
+            "upstream.json"
+          ]
+        },
+        "installs_unchanged": true,
+        "claim": "fixed-version native clients, local controlled only; #62 remains open and fixed Build activation blocked"
+      },
+      "identity": {
+        "source_head": "06b7c1885af7ac02e27d2484645e0a2d9c33c01d",
+        "test_binary_sha256": "897e3676f8fef614a2c5e5eff44a82db6408466b9638d00c1e60119e52f681ec",
+        "codex_actual_native": "/opt/homebrew/lib/node_modules/@openai/codex/vendor/aarch64-apple-darwin/bin/codex",
+        "codex_actual_native_sha256": "12ac11d2c7eee27cfae34393986d7b7c9ed0dea537cb749831cdd7033893e6de",
+        "runner_sha256": "a081d3c5e97eba680caa0094db633118dc7807b2a5ea02d051e853a18f3dbfbb",
+        "manifests": {
+          "Cargo.toml": "1b1a37ce8d8fcafa51d379ffae2ff33fff091c5a48c0f3458e47b99c12b22355",
+          "Cargo.lock": "36564c0219707741d79ecb37d9fc4ee620ce2fe6801fdbe09b32fb4c8687c858",
+          "apps/gateway/Cargo.toml": "c0271c2ad72a8fcbdd419f12914d5c1db949531870e1cc142db0462c582d1108",
+          "rust-toolchain.toml": "8e390d6a0838315f972690f46ef8bae8b7ecc9ee6c1ed70140ef852869c2482e"
+        },
+        "versions": {
+          "codex": {
+            "command": [
+              "/opt/homebrew/bin/codex",
+              "--version"
+            ],
+            "exit": 0,
+            "stdout": "codex-cli 0.161.0\n",
+            "stderr": ""
+          },
+          "codex-native": {
+            "command": [
+              "/opt/homebrew/lib/node_modules/@openai/codex/vendor/aarch64-apple-darwin/bin/codex",
+              "--version"
+            ],
+            "exit": 0,
+            "stdout": "codex-cli 0.161.0\n",
+            "stderr": ""
+          },
+          "pi-shell": {
+            "command": [
+              "/opt/homebrew/bin/pi",
+              "--version"
+            ],
+            "exit": 0,
+            "stdout": "0.84.3\n",
+            "stderr": ""
+          },
+          "pi-declared-bin": {
+            "command": [
+              "/opt/homebrew/bin/node",
+              "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js",
+              "--version"
+            ],
+            "exit": 0,
+            "stdout": "0.84.3\n",
+            "stderr": ""
+          },
+          "node": {
+            "command": [
+              "/opt/homebrew/bin/node",
+              "--version"
+            ],
+            "exit": 0,
+            "stdout": "v26.8.2\n",
+            "stderr": ""
+          }
+        },
+        "only_my_pi": {
+          "link": "../share/only-my-pi/current-stack/bin/pi",
+          "realpath": "/Users/huangrui/.local/share/only-my-pi/stacks/7444c7fb3a6a91bbe077ba2e15bd157b63265f368a480db8b81f959b43d9aea0/bin/pi",
+          "executed": false
+        }
+      }
+    },
+    "final-cancel": {
+      "root": "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-combined-final-cancel-06b7c188",
+      "runner": {
+        "command": [
+          "/usr/bin/sandbox-exec",
+          "-f",
+          "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar62-combined-final-cancel-06b7c188/isolated.sb",
+          "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-codex-combined-20261021/target-full-final/debug/deps/gateway-b314458fd9b519fb",
+          "actual_cli_public_build_qualification",
+          "--ignored",
+          "--nocapture"
+        ],
+        "exit": 101,
+        "runner_status": "FAIL",
+        "require_prompt_release": true,
+        "cancellations": {
+          "pi": null,
+          "codex": null
+        },
+        "tcp_observer": false,
+        "selected_case": "codex-cancel",
+        "require_codex_success": true,
+        "codex_success_gate": {
+          "status": "FAIL",
+          "checks": {
+            "cli_exit_zero": false,
+            "answer_tool_task_and_follow_up": false,
+            "five_incremental_public_responses": false,
+            "independent_receives_and_exact_accounting": false,
+            "two_correlated_tool_results": false,
+            "actual_tool_file_result": false
+          },
+          "missing_receipts": [
+            "client.json",
+            "observations.json",
+            "ingress.json",
+            "upstream.json"
+          ]
+        },
+        "installs_unchanged": true,
+        "claim": "fixed-version native clients, local controlled only; #62 remains open and fixed Build activation blocked"
+      },
+      "identity": {
+        "source_head": "06b7c1885af7ac02e27d2484645e0a2d9c33c01d",
+        "test_binary_sha256": "897e3676f8fef614a2c5e5eff44a82db6408466b9638d00c1e60119e52f681ec",
+        "codex_actual_native": "/opt/homebrew/lib/node_modules/@openai/codex/vendor/aarch64-apple-darwin/bin/codex",
+        "codex_actual_native_sha256": "12ac11d2c7eee27cfae34393986d7b7c9ed0dea537cb749831cdd7033893e6de",
+        "runner_sha256": "a081d3c5e97eba680caa0094db633118dc7807b2a5ea02d051e853a18f3dbfbb",
+        "manifests": {
+          "Cargo.toml": "1b1a37ce8d8fcafa51d379ffae2ff33fff091c5a48c0f3458e47b99c12b22355",
+          "Cargo.lock": "36564c0219707741d79ecb37d9fc4ee620ce2fe6801fdbe09b32fb4c8687c858",
+          "apps/gateway/Cargo.toml": "c0271c2ad72a8fcbdd419f12914d5c1db949531870e1cc142db0462c582d1108",
+          "rust-toolchain.toml": "8e390d6a0838315f972690f46ef8bae8b7ecc9ee6c1ed70140ef852869c2482e"
+        },
+        "versions": {
+          "codex": {
+            "command": [
+              "/opt/homebrew/bin/codex",
+              "--version"
+            ],
+            "exit": 0,
+            "stdout": "codex-cli 0.161.0\n",
+            "stderr": ""
+          },
+          "codex-native": {
+            "command": [
+              "/opt/homebrew/lib/node_modules/@openai/codex/vendor/aarch64-apple-darwin/bin/codex",
+              "--version"
+            ],
+            "exit": 0,
+            "stdout": "codex-cli 0.161.0\n",
+            "stderr": ""
+          },
+          "pi-shell": {
+            "command": [
+              "/opt/homebrew/bin/pi",
+              "--version"
+            ],
+            "exit": 0,
+            "stdout": "0.84.3\n",
+            "stderr": ""
+          },
+          "pi-declared-bin": {
+            "command": [
+              "/opt/homebrew/bin/node",
+              "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js",
+              "--version"
+            ],
+            "exit": 0,
+            "stdout": "0.84.3\n",
+            "stderr": ""
+          },
+          "node": {
+            "command": [
+              "/opt/homebrew/bin/node",
+              "--version"
+            ],
+            "exit": 0,
+            "stdout": "v26.8.2\n",
+            "stderr": ""
+          }
+        },
+        "only_my_pi": {
+          "link": "../share/only-my-pi/current-stack/bin/pi",
+          "realpath": "/Users/huangrui/.local/share/only-my-pi/stacks/7444c7fb3a6a91bbe077ba2e15bd157b63265f368a480db8b81f959b43d9aea0/bin/pi",
+          "executed": false
+        }
+      }
+    }
+  }
+}

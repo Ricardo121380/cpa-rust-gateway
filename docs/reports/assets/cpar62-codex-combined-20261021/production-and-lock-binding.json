@@ -1,0 +1,32 @@
+[
+  {
+    "path": "apps/gateway/src/runtime.rs",
+    "sha256": "da017ca5f79caa584dd5fe8d6f990acd88c938018c623203dd7555a33e061e07",
+    "unchanged_from_baseline": true
+  },
+  {
+    "path": "crates/gateway-core/src/request_metadata.rs",
+    "sha256": "35629c6e82612bc4b69183d8944c4b7562da956ded43ff8fcfd6b78c430a7e14",
+    "unchanged_from_baseline": true
+  },
+  {
+    "path": "crates/provider-grok/src/inference.rs",
+    "sha256": "68ca0912ba9a0a606696b49256ca42c43097eae52868a010d705de4402ce9bda",
+    "unchanged_from_baseline": true
+  },
+  {
+    "path": "crates/provider-grok/src/build_responses.rs",
+    "sha256": "c787f34b365565389d488236cac98d1ac8c702bf0e12ec4bf660f2233bac260b",
+    "unchanged_from_baseline": true
+  },
+  {
+    "path": "Cargo.toml",
+    "sha256": "1b1a37ce8d8fcafa51d379ffae2ff33fff091c5a48c0f3458e47b99c12b22355",
+    "unchanged_from_baseline": true
+  },
+  {
+    "path": "Cargo.lock",
+    "sha256": "36564c0219707741d79ecb37d9fc4ee620ce2fe6801fdbe09b32fb4c8687c858",
+    "unchanged_from_baseline": true
+  }
+]

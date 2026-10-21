@@ -1,0 +1,21 @@
+{
+  "62": [
+    {
+      "number": 61,
+      "state": "open",
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/61"
+    }
+  ],
+  "61": [
+    {
+      "number": 59,
+      "state": "closed",
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/59"
+    },
+    {
+      "number": 60,
+      "state": "closed",
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/60"
+    }
+  ]
+}

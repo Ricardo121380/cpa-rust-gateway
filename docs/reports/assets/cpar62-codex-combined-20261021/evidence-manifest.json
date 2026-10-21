@@ -1,0 +1,57 @@
+{
+  "candidate": "06b7c1885af7ac02e27d2484645e0a2d9c33c01d",
+  "local_private_evidence_root": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-codex-combined-20261021",
+  "private_raw_manifest_sha256": "a51a80c555a9dbab2ac2df8828cbcb082f5d115478aa81a2fb0608aeb0f3e15f",
+  "private_raw_retained_files": 416,
+  "published_to_remote": false,
+  "files": {
+    "actual-cli-summary.json": {
+      "bytes": 75746,
+      "sha256": "1ef6e9ac8cc858fcff50590297f5a3e4e228d420d6ee54414faa0a074b8d6072"
+    },
+    "actual-field-observations.json": {
+      "bytes": 13862,
+      "sha256": "52e5f9a0fa67483233fdca4d0325dfefa6ac23df5a1db8f3b58fa74a7710ed5d"
+    },
+    "candidate-binding.json": {
+      "bytes": 5182,
+      "sha256": "ab0a6becdc3007064add20a96583ab732333dbb9161c141d096a2ad7080aba79"
+    },
+    "compatibility-proposal.md": {
+      "bytes": 4116,
+      "sha256": "ac4713d5e4187bbb154389a72d37b19126755b118553efc1c421ff042978d608"
+    },
+    "full-check.md": {
+      "bytes": 1846,
+      "sha256": "88adcf20910c7a4bdbac9e50ec6805a7b844d1ebd781c5f770c37225ecfa8604"
+    },
+    "full-summary.json": {
+      "bytes": 563,
+      "sha256": "1a0238d860c89320c3f32415f105aaced734bd91a3d683e91437200c221bd573"
+    },
+    "github-final-dependencies.json": {
+      "bytes": 428,
+      "sha256": "278a21a9d25ac82d35d441d1814c2959de6df144558ce2c0213bebe1f01f826d"
+    },
+    "github-issue-snapshots.json": {
+      "bytes": 15531,
+      "sha256": "5b13d38addb8703ab41dc0e505cde1fb2fcf6e33a5c2b407c873f5af7047090a"
+    },
+    "preservation.json": {
+      "bytes": 3978,
+      "sha256": "0d3bcc26624f6bf27c10b4c3956188e3c2a4b6af5e525ec4139542b1118cedcf"
+    },
+    "production-and-lock-binding.json": {
+      "bytes": 1031,
+      "sha256": "7e377fa879da51f2299fa1ea0a1c15d945a0e7f95b52fa74812eb7f5526e90d7"
+    },
+    "reviews.json": {
+      "bytes": 1445,
+      "sha256": "5401672ab106a5c3d39b0ac4db7b0259654c9988e01c6c7f9cdf4e712c69db68"
+    },
+    "source-manifest.json": {
+      "bytes": 5703,
+      "sha256": "2a99e8c98a81e116a3429d8e2730537a80edfd1b0a5f534739f7cf4ea18c2987"
+    }
+  }
+}

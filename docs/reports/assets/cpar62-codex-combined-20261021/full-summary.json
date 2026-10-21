@@ -1,0 +1,16 @@
+{
+  "candidate": "06b7c1885af7ac02e27d2484645e0a2d9c33c01d",
+  "checks_passed": 45,
+  "rust_passed": 1636,
+  "rust_failed": 0,
+  "rust_ignored": 17,
+  "suites": 130,
+  "log_sha256": "d7da3aaa40edfee34cbf6d5e7692aaf0dbe22bd5a568a5718c832f9cfc9ab024",
+  "bare_tree": false,
+  "overlays": 18,
+  "exit": 0,
+  "gateway_test_binary": {
+    "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar62-codex-combined-20261021/target-full-final/debug/deps/gateway-a461d4598ca4d623",
+    "sha256": "5e447c0a6fed5462c817460f1ff27fe39a07fcf8675238aa2090fc9db2ba70e3"
+  }
+}
