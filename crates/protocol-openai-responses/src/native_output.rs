@@ -495,10 +495,7 @@ impl OpenAiResponsesSseEncoder {
         if item["id"] != id
             || item["type"] != "web_search_call"
             || item["status"] != "in_progress"
-            || !matches!(
-                (previous, rank),
-                (None, 1) | (Some(1), 2 | 3) | (Some(2), 3)
-            )
+            || !crate::web_search::valid_phase_transition(previous, rank)
         {
             return Err(stream_protocol_error());
         }

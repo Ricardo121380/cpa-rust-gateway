@@ -1472,9 +1472,9 @@ impl GrokBuildResponsesDecodeState {
         let previous = self.search_phases.get(id).copied();
         if self.item_kinds.get(id) != Some(&OutputItemKind::WebSearch)
             || self.done_item_ids.contains(id)
-            || !matches!(
-                (previous.map(|v| v.0), rank),
-                (None, 1) | (Some(1), 2 | 3) | (Some(2), 3)
+            || !protocol_openai_responses::web_search::valid_phase_transition(
+                previous.map(|v| v.0),
+                rank,
             )
             || previous.is_some_and(|v| sequence <= v.1)
         {

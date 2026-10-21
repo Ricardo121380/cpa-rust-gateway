@@ -225,6 +225,15 @@ pub fn validate_phase(value: &Value) -> Result<u8, GatewayError> {
     }
 }
 
+/// Whether an observed search stage can follow the previous observed stage.
+#[must_use]
+pub fn valid_phase_transition(previous: Option<u8>, next: u8) -> bool {
+    matches!(
+        (previous, next),
+        (None, 1) | (Some(1), 2 | 3) | (Some(2), 3)
+    )
+}
+
 /// Builds a bounded protocol extension from an already observed phase.
 ///
 /// # Errors
