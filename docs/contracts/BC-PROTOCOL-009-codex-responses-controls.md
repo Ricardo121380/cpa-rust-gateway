@@ -135,3 +135,7 @@ existing-envelope persistence rules are in ADR-0115. C1-C3 does not authorize C4
 ## 2026-10-21 C6 local native input-ID successor
 
 [ADR-0118](../adr/ADR-0118-native-input-message-id.md) and [BC-PROTOCOL-012](BC-PROTOCOL-012-native-input-message-id.md) supersede only historical local C6 unimplemented statements above. The bounded compatibility contract preserves user/developer/system id at the controlled Build receiver and through explicit/owned stored history. It is not general POST-field or fixed-service qualification, and does not use C4 local consumption. Production BUILD_ACTIVATION_BLOCKED, actual ParallelTools, namespace/search activation and #61 remain independent.
+
+## 2026-10-21 C2 controlled parallel successor
+
+[ADR-0119](../adr/ADR-0119-controlled-parallel-function-batches.md) and [BC-PROTOCOL-013](BC-PROTOCOL-013-controlled-parallel-functions.md) complete the bounded local C2 remainder: independent owned ParallelTools qualification, multiple functions in one response, interleaved arguments and reversed completion/results, whole-terminal and applicable Usage barriers, explicit/owned stored continuation and Responses forced named exactly-one validation. This supersedes only historical unimplemented local ParallelTools statements. Stock Build capabilities, production BUILD_ACTIVATION_BLOCKED, actual Codex, #61, and whole #62 remain independent. Hosted search is not a member of the client function batch.

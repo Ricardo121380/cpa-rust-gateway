@@ -541,6 +541,7 @@ mod tests {
             None,
             false,
             false,
+            false,
         )?;
         let downstream = encode_response(
             &canonical,
@@ -594,6 +595,7 @@ mod tests {
             protocol_openai_responses::ResponseMode::NonStreaming,
             None,
             Some(&owner),
+            false,
             false,
             false,
             false,

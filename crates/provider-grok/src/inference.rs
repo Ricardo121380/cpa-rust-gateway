@@ -250,10 +250,15 @@ impl GrokBuildTransport for GrokBuildUpstreamTransport {
 
 /// A real Grok Build [`InferenceAdapter`] with injected credential and transport state.
 #[derive(Clone)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "independent local field qualifications must not imply each other"
+)]
 pub struct GrokBuildInferenceAdapter {
     namespaces_qualified: bool,
     web_search_qualified: bool,
     input_message_ids_qualified: bool,
+    parallel_tools_qualified: bool,
     provider_id: ProviderId,
     credential: GrokBuildCredential,
     upstream_model: String,
@@ -291,6 +296,7 @@ impl GrokBuildInferenceAdapter {
             namespaces_qualified: false,
             web_search_qualified: false,
             input_message_ids_qualified: false,
+            parallel_tools_qualified: false,
             provider_id,
             credential,
             upstream_model,
@@ -335,6 +341,14 @@ impl GrokBuildInferenceAdapter {
         self
     }
 
+    /// Qualifies function batches only for an owning local controlled assembly.
+    #[cfg(feature = "controlled-test-support")]
+    #[must_use]
+    pub fn with_local_controlled_parallel_tools(mut self) -> Self {
+        self.parallel_tools_qualified = true;
+        self
+    }
+
     /// Adds authenticated stateless reasoning ownership for this selected attempt.
     #[must_use]
     pub fn with_reasoning_owner(mut self, owner: crate::GrokBuildReasoningOwner) -> Self {
@@ -366,6 +380,10 @@ impl fmt::Debug for GrokBuildInferenceAdapter {
             .debug_struct("GrokBuildInferenceAdapter")
             .field("local_controlled_namespaces", &self.namespaces_qualified)
             .field("local_controlled_web_search", &self.web_search_qualified)
+            .field(
+                "local_controlled_parallel_tools",
+                &self.parallel_tools_qualified,
+            )
             .field(
                 "local_controlled_input_message_ids",
                 &self.input_message_ids_qualified,
@@ -413,6 +431,7 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
         let namespaces_qualified = self.namespaces_qualified;
         let web_search_qualified = self.web_search_qualified;
         let input_message_ids_qualified = self.input_message_ids_qualified;
+        let parallel_tools_qualified = self.parallel_tools_qualified;
 
         Box::pin(async move {
             let binding = model_binding.map_or_else(
@@ -451,6 +470,7 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
                 namespaces_qualified,
                 web_search_qualified,
                 input_message_ids_qualified,
+                parallel_tools_qualified,
             )?;
             let response = transport
                 .send_with_egress_attempt(outbound, egress_attempt.clone())
@@ -495,6 +515,7 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
                         Some(expected_native_model),
                         namespaces_qualified,
                         search_enabled,
+                        parallel_tools_qualified,
                     )?;
                     let events = decoded.into_events();
                     let source =
@@ -510,6 +531,7 @@ impl InferenceAdapter for GrokBuildInferenceAdapter {
                         expected_native_model,
                         namespaces_qualified,
                         search_enabled,
+                        parallel_tools_qualified,
                     )) as Box<dyn CanonicalEventSource>;
                     Ok(wrap_egress_source(source, egress_attempt))
                 }
@@ -587,6 +609,7 @@ impl StreamingEventSource {
         expected_model: String,
         namespaces_qualified: bool,
         search_enabled: bool,
+        parallel_tools_qualified: bool,
     ) -> Self {
         Self {
             body,
@@ -594,6 +617,7 @@ impl StreamingEventSource {
                 .with_reasoning_owner(owner)
                 .with_namespace_qualification(namespaces_qualified)
                 .with_search_declaration(search_enabled)
+                .with_parallel_qualification(parallel_tools_qualified)
                 .with_expected_model(expected_model),
             pending: VecDeque::new(),
             response_started: false,

@@ -89,7 +89,8 @@ impl ProtocolResponseProjector {
                     if !constraints.declared.contains(&identity)
                         || matches!(constraints.selection, Some(ToolSelection::None))
                         || matches!(&constraints.selection, Some(ToolSelection::Named(name)) if !identity.is_flat_named(name))
-                        || constraints.parallel == Some(false) && tool_count > 0
+                        || (constraints.parallel == Some(false) || constraints.single_named_call)
+                            && tool_count > 0
                     {
                         return Err(ProtocolResponseRejection::ToolConstraintViolated);
                     }

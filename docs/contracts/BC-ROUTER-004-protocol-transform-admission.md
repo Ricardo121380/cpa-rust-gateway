@@ -159,3 +159,12 @@ summary, error, cancellation and ownership boundaries remain. No C4/C5/C6 or cos
 - `public_build_namespace_json_and_fragmented_sse_keep_two_related_cycles`
 - `public_build_namespace_invalid_requests_and_unqualified_assembly_send_zero`
 - `public_build_namespace_sse_identity_conflicts_never_complete_tools_or_retry`
+
+## 2026-10-21 controlled ParallelTools successor
+
+[ADR-0119](../adr/ADR-0119-controlled-parallel-function-batches.md) and [BC-PROTOCOL-013](BC-PROTOCOL-013-controlled-parallel-functions.md) add only the independently qualified local C2 remainder. Explicit true needs actual effective ParallelTools plus owned private Build permission; stock capability evidence remains unchanged. Existing function state and completion queue now hold semantic/public executable completion through the entire successful terminal and applicable Usage confirmation, including flat-only parallel. Multiple results retain call_id and complete identity through explicit/owned stored history. Hosted search, C4/C6, fixed-service activation, #61 and original-client acceptance retain independent boundaries.
+
+- `parallel_completion_barrier_holds_semantic_and_native_ends`
+- `build_parallel_requires_independent_qualification`
+- `public_build_parallel_json_and_interleaved_sse_keep_explicit_and_stored_cycles`
+- `public_build_parallel_usage_confirmation_failure_never_completes`

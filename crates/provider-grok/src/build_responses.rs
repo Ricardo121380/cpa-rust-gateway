@@ -337,10 +337,15 @@ impl GrokBuildResponsesRequestBuilder {
             false,
             false,
             false,
+            false,
         )
     }
 
-    #[allow(clippy::too_many_arguments)] // Independent field qualifications are not interchangeable.
+    #[allow(
+        clippy::too_many_arguments,
+        clippy::fn_params_excessive_bools,
+        reason = "independent field qualifications cannot grant each other"
+    )]
     pub(crate) fn build_owned(
         credential: &GrokBuildCredential,
         upstream_model: &str,
@@ -351,7 +356,21 @@ impl GrokBuildResponsesRequestBuilder {
         namespaces_qualified: bool,
         web_search_qualified: bool,
         input_message_ids_qualified: bool,
+        parallel_tools_qualified: bool,
     ) -> Result<GrokBuildResponsesOutboundRequest, GatewayError> {
+        let invalid =
+            || GatewayError::new(GatewayErrorCode::ClientRequestError, ErrorScope::Request);
+        if request
+            .extensions
+            .get("openai.responses.parallel_tool_calls")
+            .map(|raw| serde_json::from_str::<bool>(raw.get()))
+            .transpose()
+            .map_err(|_| invalid())?
+            == Some(true)
+            && !parallel_tools_qualified
+        {
+            return Err(invalid());
+        }
         if protocol_openai_responses::input_message_ids::requires_qualification(request)
             && !input_message_ids_qualified
         {
@@ -982,7 +1001,7 @@ impl GrokBuildResponsesDecoder {
     ///
     /// Returns a safe provider/stream protocol error for malformed or unrepresentable input.
     pub fn decode_non_streaming(input: &[u8]) -> Result<CanonicalResponse, GatewayError> {
-        Self::decode_owned(input, None, None, false, false)
+        Self::decode_owned(input, None, None, false, false, false)
     }
 
     fn decode_owned(
@@ -991,6 +1010,7 @@ impl GrokBuildResponsesDecoder {
         expected_model: Option<String>,
         namespaces_qualified: bool,
         search_enabled: bool,
+        parallel_tools_qualified: bool,
     ) -> Result<CanonicalResponse, GatewayError> {
         let value = parse_strict_json(input, MAX_GROK_BUILD_NON_STREAMING_RESPONSE_BYTES)
             .map_err(|()| provider_protocol_error())?;
@@ -1002,6 +1022,7 @@ impl GrokBuildResponsesDecoder {
             expected_model,
             namespaces_qualified,
             search_enabled,
+            parallel_tools_qualified,
             raw_usage: received_usage_slice(input, false)?,
             ..Default::default()
         };
@@ -1039,7 +1060,7 @@ impl GrokBuildResponsesDecoder {
         content_encoding: Option<&str>,
         input: &[u8],
     ) -> Result<CanonicalResponse, GatewayError> {
-        Self::decode_owned_with_encoding(content_encoding, input, None, None, false, false)
+        Self::decode_owned_with_encoding(content_encoding, input, None, None, false, false, false)
     }
 
     pub(crate) fn decode_owned_with_encoding(
@@ -1049,6 +1070,7 @@ impl GrokBuildResponsesDecoder {
         expected_model: Option<String>,
         namespaces_qualified: bool,
         search_enabled: bool,
+        parallel_tools_qualified: bool,
     ) -> Result<CanonicalResponse, GatewayError> {
         let decoded = decode_non_streaming_content_encoding(content_encoding, input)?;
         Self::decode_owned(
@@ -1057,6 +1079,7 @@ impl GrokBuildResponsesDecoder {
             expected_model,
             namespaces_qualified,
             search_enabled,
+            parallel_tools_qualified,
         )
     }
 }
@@ -1111,6 +1134,11 @@ impl GrokBuildResponsesStreamDecoder {
         self.state.search_enabled = enabled;
         self
     }
+    pub(crate) fn with_parallel_qualification(mut self, qualified: bool) -> Self {
+        self.state.parallel_tools_qualified = qualified;
+        self
+    }
+
     pub(crate) fn with_expected_model(mut self, model: String) -> Self {
         self.state.expected_model = Some(model);
         self
@@ -1195,7 +1223,12 @@ impl fmt::Debug for GrokBuildResponsesStreamDecoder {
 }
 
 #[derive(Clone, Default)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "independent namespace, search and parallel permissions coexist with message lifecycle state"
+)]
 struct GrokBuildResponsesDecodeState {
+    parallel_tools_qualified: bool,
     search_enabled: bool,
     search_actions: BTreeMap<String, Value>,
     search_phases: BTreeMap<String, (u8, u64)>,
@@ -1231,6 +1264,7 @@ impl fmt::Debug for GrokBuildResponsesDecodeState {
         formatter
             .debug_struct("GrokBuildResponsesDecodeState")
             .field("search_enabled", &self.search_enabled)
+            .field("parallel_tools_qualified", &self.parallel_tools_qualified)
             .field("search_action_count", &self.search_actions.len())
             .field("search_phase_count", &self.search_phases.len())
             .field("local_controlled_namespaces", &self.namespaces_qualified)
@@ -1835,7 +1869,7 @@ impl GrokBuildResponsesDecodeState {
         *stage = "canonical_item_end";
         let end = CanonicalEvent::OutputItemEnd(metadata);
         if completed.get("type").and_then(Value::as_str) == Some("web_search_call")
-            || (self.namespaces_qualified || self.search_enabled)
+            || (self.namespaces_qualified || self.search_enabled || self.parallel_tools_qualified)
                 && completed.get("type").and_then(Value::as_str) == Some("function_call")
         {
             self.pending_tool_completion.push(end);
@@ -2323,6 +2357,12 @@ impl GrokBuildResponsesDecodeState {
         {
             return Err(stream_protocol_error());
         }
+        if self.parallel_tools_qualified
+            && status != "completed"
+            && !self.pending_tool_completion.is_empty()
+        {
+            return Err(stream_protocol_error());
+        }
         let usage = parse_usage(response, self.raw_usage.as_ref(), &stream_protocol_error())?;
         // Controlled native tool calls become executable only after their terminal snapshot and
         // Usage have also passed validation. Earlier item.done cannot authorize execution.
@@ -2526,7 +2566,7 @@ impl GrokBuildResponsesDecodeState {
             arguments: raw_arguments,
             extensions: RawExtensions::default(),
         });
-        if self.namespaces_qualified || self.search_enabled {
+        if self.namespaces_qualified || self.search_enabled || self.parallel_tools_qualified {
             self.pending_tool_completion.push(end);
         } else {
             self.emit(events, end)?;
@@ -2968,6 +3008,7 @@ mod input_message_id_tests {
                     namespaces,
                     search,
                     ids,
+                    false,
                 );
                 if ids {
                     let wire: Value = serde_json::from_slice(result?.body())?;
@@ -2999,7 +3040,8 @@ mod input_message_id_tests {
                         None,
                         false,
                         false,
-                        true
+                        true,
+                        false
                     )
                     .is_err()
                 );
@@ -3073,3 +3115,6 @@ mod completion_diagnostics_tests {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod parallel_tests;

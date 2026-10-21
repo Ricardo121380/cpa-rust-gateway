@@ -210,6 +210,33 @@ fn fixture_with_model_alias_proofs(
         &ControlPlaneConfiguration,
     ) -> Result<Arc<[provider_grok::GrokBuildModelAliasProof]>, Box<dyn Error>>,
 ) -> Result<Fixture, Box<dyn Error>> {
+    fixture_with_compiler(
+        channel,
+        secret,
+        stored,
+        prepare,
+        configure,
+        freeze,
+        deployment_route_compiler,
+    )
+}
+
+#[allow(
+    clippy::too_many_lines,
+    reason = "isolated production bootstrap with explicit compiler evidence"
+)]
+fn fixture_with_compiler(
+    channel: Channel,
+    secret: &[u8],
+    stored: bool,
+    prepare: impl FnOnce(&mut ControlPlaneConfiguration) -> TestResult,
+    configure: impl FnOnce(&mut BTreeMap<EndpointId, EndpointRuntime>) -> TestResult,
+    freeze: impl FnOnce(
+        &P12RoutedResponsesExecutor,
+        &ControlPlaneConfiguration,
+    ) -> Result<Arc<[provider_grok::GrokBuildModelAliasProof]>, Box<dyn Error>>,
+    compiler: impl FnOnce(&Path) -> Result<RouteCompiler, RuntimeCompositionError>,
+) -> Result<Fixture, Box<dyn Error>> {
     let directory = TemporaryDirectory::new()?;
     let database = directory.path().join("batch-c.sqlite3");
     let secrets = test_secret_store()?;
@@ -320,7 +347,7 @@ fn fixture_with_model_alias_proofs(
     repository.activate_version(&configuration.version.id)?;
     let lifecycle = ManagementService::bootstrap(
         SqliteControlPlaneRepository::open(&database)?,
-        deployment_route_compiler(&database)?,
+        compiler(&database)?,
         ManagementActor::try_new("batch-c-test")?,
     )?;
     let stages = Arc::new(P12AttemptStageStore::new());

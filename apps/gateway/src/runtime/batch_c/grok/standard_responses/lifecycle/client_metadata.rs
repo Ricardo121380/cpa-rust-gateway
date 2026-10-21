@@ -4,7 +4,7 @@ use gateway_store::request_metadata::SqliteRequestMetadataReader;
 
 const BLOB: &str = r#"{ "installation_id":"C4_PRIVATE_INSTALL", "session_id":"C4_PRIVATE_SESSION", "thread_id":"C4_PRIVATE_THREAD", "turn_id":"C4_PRIVATE_TURN", "root_turn_id":"C4_PRIVATE_ROOT", "window_id":"C4_PRIVATE_WINDOW", "window_number":0, "context_window_id":"C4_PRIVATE_CONTEXT", "agent_name":"/root", "request_kind":"turn", "thread_source":"user", "turn_trigger":"exec", "sandbox":"seatbelt", "sandbox_mode":"workspace-write", "auto_review_enabled":false, "node_repl_auto_review_required":false, "node_repl_disabled":false, "turn_started_at_unix_ms":1792342567139, "analytics_enabled":true, "model":"C4_PRIVATE_MODEL" }"#;
 
-fn metadata() -> Value {
+pub(super) fn metadata() -> Value {
     json!({"root_turn_id":"C4_PRIVATE_ROOT","session_id":"C4_PRIVATE_SESSION",
         "thread_id":"C4_PRIVATE_THREAD","turn_id":"C4_PRIVATE_TURN",
         "x-codex-installation-id":"C4_PRIVATE_INSTALL","x-codex-window-id":"C4_PRIVATE_WINDOW",
@@ -52,7 +52,7 @@ async fn public_build_c4_metadata_is_local_and_answer_usage_are_preserved() -> T
     Ok(())
 }
 
-fn assert_capture(fixture: &Fixture, raw: &str, attempts: usize) -> TestResult {
+pub(super) fn assert_capture(fixture: &Fixture, raw: &str, attempts: usize) -> TestResult {
     let database = fixture.directory.path().join("batch-c.sqlite3");
     let rows = SqliteEventStore::open_read_only(&database)?.list_events()?;
     let reader = SqliteRequestMetadataReader::open(&database, test_secret_store()?)?;

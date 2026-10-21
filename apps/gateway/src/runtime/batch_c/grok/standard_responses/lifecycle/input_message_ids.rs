@@ -1,7 +1,7 @@
 //! C6 native input IDs through the actual public listener and independent receiver.
 use super::*;
 mod history;
-mod negatives;
+pub(super) mod negatives;
 
 fn fixture_for(
     transport: Arc<dyn GrokBuildTransport>,

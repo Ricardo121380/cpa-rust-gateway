@@ -2101,12 +2101,18 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
             // then fails non-retryably after the lease was taken — a hard failure where the
             // filter would simply have chosen a different Candidate before the first byte.
             let admission_snapshot = route_snapshot.clone().unwrap_or_else(|| registry.load());
-            // C6 validates the fully expanded history on its pinned candidate before the
-            // continuation scheduler can classify an ineligible request as no credential.
+            // Validate expanded native identity and parallel histories on the pinned candidate
+            // before the continuation scheduler can misclassify a request as no credential.
             if let Some(pin) = continuation_pin.as_ref()
-                && protocol_openai_responses::input_message_ids::requires_qualification(
+                && (protocol_openai_responses::input_message_ids::requires_qualification(
                     &driver.request,
-                )
+                ) || protocol_openai_responses::requires_tool_identity_qualification(
+                    &driver.request,
+                ) || driver
+                    .request
+                    .extensions
+                    .get("openai.responses.parallel_tool_calls")
+                    .is_some_and(|raw| serde_json::from_str::<bool>(raw.get()).ok() == Some(true)))
                 && let Some(candidate) = admission_snapshot.route(&route_id).and_then(|route| {
                     route
                         .candidates()
@@ -4291,6 +4297,13 @@ impl EndpointAdapter {
 /// be retried, so its absolute ceiling is a last-resort bound and its liveness is enforced by the
 /// idle deadline. A non-streaming attempt is still entirely pre-first-byte for the client, so it
 /// keeps one short bounded total that a failed attempt could legally be retried against.
+#[cfg_attr(
+    test,
+    allow(
+        clippy::struct_excessive_bools,
+        reason = "private local field permissions are independent, not mutually exclusive states"
+    )
+)]
 struct P12TransportProfiles {
     build_diagnostic: Option<Arc<build_diagnostic::BuildDiagnostic>>,
     #[cfg(test)]
@@ -4307,6 +4320,8 @@ struct P12TransportProfiles {
     build_search_local_controlled: bool,
     #[cfg(test)]
     build_input_message_ids_local_controlled: bool,
+    #[cfg(test)]
+    build_parallel_local_controlled: bool,
     #[cfg(test)]
     console: Option<Arc<dyn provider_grok::GrokConsoleTransport>>,
     streaming: UpstreamTransportProfile,
@@ -4389,6 +4404,8 @@ impl P12TransportProfiles {
             #[cfg(test)]
             build_input_message_ids_local_controlled: false,
             #[cfg(test)]
+            build_parallel_local_controlled: false,
+            #[cfg(test)]
             console: None,
             streaming,
             non_streaming,
@@ -4428,6 +4445,9 @@ impl P12TransportProfiles {
             }
             if self.build_input_message_ids_local_controlled {
                 adapter = adapter.with_local_controlled_input_message_ids();
+            }
+            if self.build_parallel_local_controlled {
+                adapter = adapter.with_local_controlled_parallel_tools();
             }
         }
         adapter
@@ -4761,16 +4781,24 @@ impl EndpointAttemptDriver {
         let search = protocol_openai_responses::web_search::requires_qualification(&self.request);
         let input_ids =
             protocol_openai_responses::input_message_ids::requires_qualification(&self.request);
-        if namespaces || search || input_ids {
+        let parallel = matches!(runtime.adapter, EndpointAdapter::GrokBuildResponses)
+            && gateway_router::ToolExecutionConstraints::from_request(
+                &self.request,
+                self.client_protocol,
+            )?
+            .requires_parallel_tools();
+        if namespaces || search || input_ids || parallel {
             #[cfg(not(test))]
             let qualified = false;
             #[cfg(test)]
             let qualified = (!namespaces || runtime.transports.build_namespaces_local_controlled)
                 && (!search || runtime.transports.build_search_local_controlled)
                 && (!input_ids || runtime.transports.build_input_message_ids_local_controlled)
+                && (!parallel || runtime.transports.build_parallel_local_controlled)
                 && runtime.transports.build.is_some();
             if !qualified
-                || (search || input_ids) && self.client_transport != ResponsesClientTransport::Http
+                || (search || input_ids || parallel)
+                    && self.client_transport != ResponsesClientTransport::Http
                 || !matches!(runtime.adapter, EndpointAdapter::GrokBuildResponses)
                 || self.client_protocol != ProtocolFormat::OpenAiResponses
                 || target != ProtocolFormat::OpenAiResponses
@@ -4780,7 +4808,9 @@ impl EndpointAttemptDriver {
                         | gateway_router::SnapshotTransformMode::CanonicalBridge
                 )
             {
-                return Err(if input_ids {
+                return Err(if parallel {
+                    ProtocolTransformRejection::ParallelToolsUnsupported
+                } else if input_ids {
                     ProtocolTransformRejection::UnknownMessageExtensions
                 } else {
                     ProtocolTransformRejection::UnknownToolDefinitionExtensions

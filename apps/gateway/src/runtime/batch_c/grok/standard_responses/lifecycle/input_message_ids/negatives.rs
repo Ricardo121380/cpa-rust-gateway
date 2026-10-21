@@ -155,7 +155,7 @@ async fn public_build_c6_invalid_and_unqualified_requests_send_zero() -> TestRes
     Ok(())
 }
 
-pub(super) async fn assert_counts(
+pub(in super::super) async fn assert_counts(
     database: &std::path::Path,
     attempts: usize,
     usage: usize,

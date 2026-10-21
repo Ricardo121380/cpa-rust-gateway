@@ -19,7 +19,7 @@ pub enum ToolSelection {
     None,
     /// At least one declared tool must be called.
     Required,
-    /// Only this declared function may be called, and at least one call is required.
+    /// Only this function may be called; the source protocol determines its exact cardinality.
     Named(String),
 }
 
@@ -41,6 +41,7 @@ pub struct ToolExecutionConstraints {
     pub(crate) selection: Option<ToolSelection>,
     pub(crate) declared: BTreeSet<FunctionIdentity>,
     pub(crate) web_search: bool,
+    pub(crate) single_named_call: bool,
 }
 
 impl ToolExecutionConstraints {
@@ -110,11 +111,14 @@ impl ToolExecutionConstraints {
             }
             _ => {}
         }
+        let single_named_call = source == ProtocolFormat::OpenAiResponses
+            && matches!(selection, Some(ToolSelection::Named(_)));
         Ok(Self {
             parallel,
             selection,
             declared,
             web_search,
+            single_named_call,
         })
     }
 
@@ -163,6 +167,7 @@ impl fmt::Debug for ToolExecutionConstraints {
             .field("selection", &self.selection)
             .field("declared_count", &self.declared.len())
             .field("web_search", &self.web_search)
+            .field("single_named_call", &self.single_named_call)
             .finish()
     }
 }

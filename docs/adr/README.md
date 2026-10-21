@@ -152,3 +152,5 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0117 Native hosted web search](ADR-0117-native-hosted-web-search.md) — `#62 C5` (Accepted bounded local protocol; independent Build activation remains blocked).
 
 - [ADR-0118 Native non-assistant input message IDs](ADR-0118-native-input-message-id.md) — `#62 C6` (Accepted bounded local compatibility contract; exact native forwarding and owned stored continuation; production activation remains blocked).
+
+- [ADR-0119 Independent controlled parallel function batches](ADR-0119-controlled-parallel-function-batches.md) — `#62 C2 remainder` (Accepted bounded local ParallelTools qualification, whole-batch completion and multi-result continuation; fixed Build activation remains blocked).

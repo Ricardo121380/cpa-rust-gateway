@@ -297,3 +297,9 @@ activate fixed Build namespaces, admit C4/C5/C6/#61 or change GitHub dependencie
 [ADR-0118](adr/ADR-0118-native-input-message-id.md) and [BC-PROTOCOL-012](contracts/BC-PROTOCOL-012-native-input-message-id.md) bind the closed input-ID contract to controlled native forwarding, JSON/SSE tool history, explicit and owned stored continuation, cross-kind uniqueness and independent field qualification. Existing owner/lineage rules remain; fixed Build activation, actual Codex, #61 and whole #62 are separate. No schema or payload-v1 change.
 
 C6 delivery and final runtime evidence: [2026-10-21 report](reports/cpar-62-c6-input-message-id-20261021.md).
+
+## #62 C2 remainder — bounded controlled ParallelTools (2026-10-21)
+
+| Contract / ADR | Implementation and validation |
+| --- | --- |
+| [BC-PROTOCOL-013](contracts/BC-PROTOCOL-013-controlled-parallel-functions.md), [ADR-0119](adr/ADR-0119-controlled-parallel-function-batches.md) | Independent private Build qualification plus actual RouteCompiler/factory; existing item/call maps and completion queue guard semantic/public done through whole terminal and applicable Usage; Responses forced named exactly-one. Public `parallel` matrix covers same-response flat/cross-namespace calls, interleaved byte-fragmented SSE, explicit/owned stored multi-result continuation, identities, counts, admission/failure/Usage/cancellation and no retry/root. Production Build, actual Codex and #61 remain independent. |

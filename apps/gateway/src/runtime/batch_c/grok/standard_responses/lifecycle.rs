@@ -13,6 +13,7 @@ mod disconnect;
 mod input_message_ids;
 mod messages;
 mod namespaces;
+mod parallel;
 mod recording_faults;
 mod search;
 
