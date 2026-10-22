@@ -272,7 +272,6 @@ print(json.dumps(rows))
                 except (FileNotFoundError, PermissionError):
                     pass
         self.check("no remaining gateway executable process", not remaining)
-        self.report["status"] = "PASS_BOUNDED"
 
 
 def main():
@@ -283,20 +282,25 @@ def main():
     os.umask(0o077)
     matrix = Matrix(args)
     try:
-        matrix.run()
+        try:
+            matrix.run()
+        finally:
+            try:
+                if matrix.process is not None:
+                    matrix.stop()
+            finally:
+                matrix.peer.shutdown()
+                matrix.peer.server_close()
+                matrix.peer_thread.join(timeout=5)
+                with socket.socket() as sock:
+                    matrix.check("controlled receiver listener and thread released", not matrix.peer_thread.is_alive()
+                        and sock.connect_ex(("127.0.0.1", 19443)) != 0)
+                matrix.check("all stock processes exited and were reaped", all(r.get("reaped") for r in matrix.report["processes"]))
+        matrix.report["status"] = "PASS_BOUNDED"
     except BaseException as error:
         matrix.report.update(status="FAIL", failure_type=type(error).__name__, failure=str(error))
         raise
     finally:
-        if matrix.process is not None:
-            matrix.stop()
-        matrix.peer.shutdown()
-        matrix.peer.server_close()
-        matrix.peer_thread.join(timeout=5)
-        with socket.socket() as sock:
-            matrix.check("controlled receiver listener and thread released", not matrix.peer_thread.is_alive()
-                and sock.connect_ex(("127.0.0.1", 19443)) != 0)
-        matrix.check("all stock processes exited and were reaped", all(r.get("reaped") for r in matrix.report["processes"]))
         matrix.save()
     print(json.dumps({"status": matrix.report["status"], "checks": len(matrix.report["checks"])}))
 
