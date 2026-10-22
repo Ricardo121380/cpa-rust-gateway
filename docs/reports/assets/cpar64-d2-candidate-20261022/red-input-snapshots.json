@@ -1,0 +1,17 @@
+[
+  {
+    "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar64-d2-20261022T072236Z/red-original-inputs/apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/messages/claude.rs",
+    "sha256": "97e7845f3fea54d1f7010c63ef72f72a7436274e6e533cae660359deecf05d14",
+    "bytes": 9719
+  },
+  {
+    "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar64-d2-20261022T072236Z/red-original-inputs/scripts/acceptance/cpar64-claude.py",
+    "sha256": "ab8cc45e3c64e2c5f6dd576b7737cf00cf0e5765c0f5a3f8bc45642505ba086c",
+    "bytes": 13903
+  },
+  {
+    "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar64-d2-20261022T072236Z/red-m2-inputs/apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/messages/claude/controls.rs",
+    "sha256": "ebd315bcb349ee8e8b8f869a4aee6e3e2c975cc728db9108f28e8827e2b4ec75",
+    "bytes": 8002
+  }
+]

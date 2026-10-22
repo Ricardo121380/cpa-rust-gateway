@@ -1,0 +1,15 @@
+{
+  "pid": 67747,
+  "rpc_alive": true,
+  "abort_sent_at_ms": 1792658280120,
+  "acknowledgement": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "cpar64-interrupt",
+      "response": {
+        "still_queued": []
+      }
+    }
+  }
+}

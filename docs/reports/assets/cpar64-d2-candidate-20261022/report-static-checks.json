@@ -1,0 +1,21 @@
+{
+  "code_candidate": "4015bd4542dbc52fde8984c14c01b34843ef3c59",
+  "scope": "staged evidence/report addition only",
+  "document_links": {
+    "status": "PASS",
+    "markdown_files": 1285
+  },
+  "contract_tests": {
+    "status": "PASS",
+    "resolved_references": 335
+  },
+  "staged_secret_scan": "PASS",
+  "staged_whitespace": "PASS",
+  "private_metadata_and_full_stdout_check": {
+    "status": "PASS",
+    "private_user_id_values_checked": 17,
+    "native_stdout_values_checked": 24,
+    "assets_checked": 66,
+    "private_values_or_complete_stdout_found": false
+  }
+}

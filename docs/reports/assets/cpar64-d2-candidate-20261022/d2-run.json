@@ -1,0 +1,17 @@
+{
+  "exit": 0,
+  "command": [
+    "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar64-d2-20261022T072236Z/target-full-4015bd45/debug/deps/gateway-b314458fd9b519fb",
+    "actual_claude_messages_d2_qualification",
+    "--ignored",
+    "--nocapture"
+  ],
+  "test_binary_sha256": "23e48a351c673f53d2f7a39ea93ee17a2ae311cff4ad38212480c05115145e73",
+  "target": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar64-d2-20261022T072236Z/target-full-4015bd45",
+  "diagnostic": false,
+  "observation_oracles": "PASS",
+  "client_success": true,
+  "compatibility": "PASS_LOCAL_CONTROLLED",
+  "client_install_and_copy_unchanged": true,
+  "claim": "isolated D2 candidate only; original Claude and fixed service remain separate"
+}

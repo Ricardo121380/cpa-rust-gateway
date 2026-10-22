@@ -1,0 +1,11 @@
+{
+  "checked_date": "2026-10-22 Asia/Shanghai",
+  "method": "web.run official primary pages and SDK source",
+  "sources": [
+    "https://code.claude.com/docs/en/env-vars",
+    "https://code.claude.com/docs/en/llm-gateway-protocol",
+    "https://code.claude.com/docs/en/model-config",
+    "https://raw.githubusercontent.com/anthropics/claude-agent-sdk-python/main/src/claude_agent_sdk/_internal/query.py"
+  ],
+  "raw_markdown_download": "403; no raw-byte snapshot claimed"
+}

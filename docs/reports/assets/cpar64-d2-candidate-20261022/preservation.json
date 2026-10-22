@@ -1,0 +1,207 @@
+{
+  "status": "PASS",
+  "baseline": "eeada0c403d21cb4b753c2a1c466f9da254a19aa",
+  "checked_head": "4015bd4542dbc52fde8984c14c01b34843ef3c59",
+  "inherited_files": 18,
+  "index_empty": true,
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "bytes_preserved": true,
+      "sha256_now": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+      "mode_unchanged": true,
+      "uid_unchanged": true,
+      "gid_unchanged": true,
+      "link_unchanged": true,
+      "owned_append_only": null,
+      "owned_append_bytes": 0
+    },
+    {
+      "path": "CONTEXT.md",
+      "bytes_preserved": true,
+      "sha256_now": "eaa545ede563d661387baff18ebd21e8acc3a9661000c4123eec6bf2d1779e21",
+      "mode_unchanged": true,
+      "uid_unchanged": true,
+      "gid_unchanged": true,
+      "link_unchanged": true,
+      "owned_append_only": null,
+      "owned_append_bytes": 0
+    },
+    {
+      "path": "README.md",
+      "bytes_preserved": true,
+      "sha256_now": "376de5be81e5b8ac7b0ad6ac25b4e186db18321a0cd89057d7432ef5524219f9",
+      "mode_unchanged": true,
+      "uid_unchanged": true,
+      "gid_unchanged": true,
+      "link_unchanged": true,
+      "owned_append_only": null,
+      "owned_append_bytes": 0
+    },
+    {
+      "path": "README.zh-CN.md",
+      "bytes_preserved": true,
+      "sha256_now": "d5ae62085c88f4200b19f973b675b10fad63c0e86ed42178969ec869bfbe3b76",
+      "mode_unchanged": true,
+      "uid_unchanged": true,
+      "gid_unchanged": true,
+      "link_unchanged": true,
+      "owned_append_only": null,
+      "owned_append_bytes": 0
+    },
+    {
+      "path": "docs/06-development-plan.md",
+      "bytes_preserved": true,
+      "sha256_now": "322ac4c20b44eedf1b3e7bdb3ed1bfc7b9e12c9cf2192b3b85ffe274061b3fe5",
+      "mode_unchanged": true,
+      "uid_unchanged": true,
+      "gid_unchanged": true,
+      "link_unchanged": true,
+      "owned_append_only": null,
+      "owned_append_bytes": 0
+    },
+    {
+      "path": "docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md",
+      "bytes_preserved": true,
+      "sha256_now": "ad35d32a70725f9da6b412c0100e920eb52cd560f67faefbb9013b3ad1834bcb",
+      "mode_unchanged": true,
+      "uid_unchanged": true,
+      "gid_unchanged": true,
+      "link_unchanged": true,
+      "owned_append_only": null,
+      "owned_append_bytes": 0
+    },
+    {
+      "path": "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+      "bytes_preserved": true,
+      "sha256_now": "a426616e9a4cbb875e3eb081e40160357433817306ff045ed5de3c3797c39131",
+      "mode_unchanged": true,
+      "uid_unchanged": true,
+      "gid_unchanged": true,
+      "link_unchanged": true,
+      "owned_append_only": null,
+      "owned_append_bytes": 0
+    },
+    {
+      "path": "docs/adr/ADR-0106-native-fidelity-profile.md",
+      "bytes_preserved": true,
+      "sha256_now": "8e770df75f08f2ce4c4471cfaa58365bc8e20715880dc7239e7d98438d530409",
+      "mode_unchanged": true,
+      "uid_unchanged": true,
+      "gid_unchanged": true,
+      "link_unchanged": true,
+      "owned_append_only": null,
+      "owned_append_bytes": 0
+    },
+    {
+      "path": "docs/adr/ADR-0107-standard-response-metadata-separation.md",
+      "bytes_preserved": true,
+      "sha256_now": "dad1f8391de1a6d82a0c280189346f1a065bc04ee84f88502859e766b485938e",
+      "mode_unchanged": true,
+      "uid_unchanged": true,
+      "gid_unchanged": true,
+      "link_unchanged": true,
+      "owned_append_only": null,
+      "owned_append_bytes": 0
+    },
+    {
+      "path": "docs/adr/ADR-0108-build-summary-standard-messages.md",
+      "bytes_preserved": true,
+      "sha256_now": "a8088457f16a6f60fbb13cd617594cb896f9c168a4dfe9122295602ade0f82ec",
+      "mode_unchanged": true,
+      "uid_unchanged": true,
+      "gid_unchanged": true,
+      "link_unchanged": true,
+      "owned_append_only": null,
+      "owned_append_bytes": 0
+    },
+    {
+      "path": "docs/adr/README.md",
+      "bytes_preserved": true,
+      "sha256_now": "c9dd068b78d3fc508b6ca2b670224eef19418ca8833a83e12dce44b139ae483f",
+      "mode_unchanged": true,
+      "uid_unchanged": true,
+      "gid_unchanged": true,
+      "link_unchanged": true,
+      "owned_append_only": true,
+      "owned_append_bytes": 247
+    },
+    {
+      "path": "docs/agents/domain.md",
+      "bytes_preserved": true,
+      "sha256_now": "143fbbb108382fe791a9a9a7b2f0c208d7a8b9a64f0250b3b172f1660c6f9b40",
+      "mode_unchanged": true,
+      "uid_unchanged": true,
+      "gid_unchanged": true,
+      "link_unchanged": true,
+      "owned_append_only": null,
+      "owned_append_bytes": 0
+    },
+    {
+      "path": "docs/agents/issue-tracker.md",
+      "bytes_preserved": true,
+      "sha256_now": "c95aff9dd13f35beb3646a2e01cf28559c1ceb0122e01515f354911385c312d0",
+      "mode_unchanged": true,
+      "uid_unchanged": true,
+      "gid_unchanged": true,
+      "link_unchanged": true,
+      "owned_append_only": null,
+      "owned_append_bytes": 0
+    },
+    {
+      "path": "docs/agents/triage-labels.md",
+      "bytes_preserved": true,
+      "sha256_now": "ef4786ebc27973fe8afd053bc91ff16038195c354f05d7456776ec6aeea2c721",
+      "mode_unchanged": true,
+      "uid_unchanged": true,
+      "gid_unchanged": true,
+      "link_unchanged": true,
+      "owned_append_only": null,
+      "owned_append_bytes": 0
+    },
+    {
+      "path": "docs/contracts/BC-PROTOCOL-009-codex-responses-controls.md",
+      "bytes_preserved": true,
+      "sha256_now": "6a1f887ec2e203c204e0a5b79e836dbc0621a93ff8534e5bbba5130931e00f3f",
+      "mode_unchanged": true,
+      "uid_unchanged": true,
+      "gid_unchanged": true,
+      "link_unchanged": true,
+      "owned_append_only": null,
+      "owned_append_bytes": 0
+    },
+    {
+      "path": "docs/engineering-roadmap.md",
+      "bytes_preserved": true,
+      "sha256_now": "0babeedb83b7c2138ab7e540ef8be4c2b0a0831a0710a0e00f5a9f861f28777b",
+      "mode_unchanged": true,
+      "uid_unchanged": true,
+      "gid_unchanged": true,
+      "link_unchanged": true,
+      "owned_append_only": null,
+      "owned_append_bytes": 0
+    },
+    {
+      "path": "docs/reports/cpar-62-64-client-field-plan-20261020.md",
+      "bytes_preserved": true,
+      "sha256_now": "26cb7b1a5af0ee25ed47f35ecac963433c9cd704830f181c9529f942571cac97",
+      "mode_unchanged": true,
+      "uid_unchanged": true,
+      "gid_unchanged": true,
+      "link_unchanged": true,
+      "owned_append_only": null,
+      "owned_append_bytes": 0
+    },
+    {
+      "path": "docs/traceability.md",
+      "bytes_preserved": true,
+      "sha256_now": "7c13a6d3f1bfc8f4f1c5e3ad89b218a358de964efc76f8ecc6c8dc61de113df1",
+      "mode_unchanged": true,
+      "uid_unchanged": true,
+      "gid_unchanged": true,
+      "link_unchanged": true,
+      "owned_append_only": true,
+      "owned_append_bytes": 418
+    }
+  ]
+}

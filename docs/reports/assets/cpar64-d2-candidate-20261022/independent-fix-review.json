@@ -1,0 +1,14 @@
+{
+  "candidate": "4015bd4542dbc52fde8984c14c01b34843ef3c59",
+  "reviewed_diff": "7c246c58...4015bd45",
+  "standards": {
+    "status": "complete",
+    "findings": 0,
+    "previous_smell": "duplicate assertion removed; original outer assertions retained"
+  },
+  "spec": {
+    "status": "complete",
+    "findings": 0
+  },
+  "scope": "three-file follow-up; writer-finished coherent private snapshot and authorized M4 readback; dynamic acceptance remains main-agent responsibility"
+}

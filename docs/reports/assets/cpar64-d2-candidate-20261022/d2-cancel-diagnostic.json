@@ -1,0 +1,24 @@
+{
+  "abort": {
+    "abort_sent_at_ms": 1792658280120,
+    "acknowledgement": {
+      "response": {
+        "request_id": "cpar64-interrupt",
+        "response": {
+          "still_queued": []
+        },
+        "subtype": "success"
+      },
+      "type": "control_response"
+    },
+    "pid": 67747,
+    "rpc_alive": true
+  },
+  "durable_outcome": "Cancelled",
+  "lease_after": 0,
+  "lease_before": 1,
+  "observed_at_ms": 1792658280131,
+  "peer_closed": 1,
+  "pid": 67747,
+  "same_pid_alive_at_abort": true
+}

@@ -1,0 +1,20 @@
+{
+  "candidate": "7c246c58bd2f0f399be65a4fd754d271b3a2087a",
+  "standards": {
+    "status": "complete",
+    "hard_findings": 0,
+    "smells": [
+      {
+        "kind": "Duplicated Code",
+        "location": "apps/gateway/src/runtime.rs:13654",
+        "description": "effort-only/mixed-reason assertions duplicated inside the projection closure and after it",
+        "remedy": "remove the inner duplicate, retain outer independent assertions"
+      }
+    ]
+  },
+  "spec": {
+    "status": "complete",
+    "findings": 0
+  },
+  "dynamic_acceptance": "not evaluated by reviewers"
+}

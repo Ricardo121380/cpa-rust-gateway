@@ -1,0 +1,93 @@
+{
+  "command": [
+    "/usr/bin/sandbox-exec",
+    "-f",
+    "/private/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/cpar64-d2-codex-pi-final-4015bd45/isolated.sb",
+    "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar64-d2-20261022T072236Z/target-full-4015bd45/debug/deps/gateway-b314458fd9b519fb",
+    "actual_cli_public_build_qualification",
+    "--ignored",
+    "--nocapture"
+  ],
+  "exit": 0,
+  "runner_status": "PASS",
+  "require_prompt_release": true,
+  "cancellations": {
+    "pi": {
+      "abort_to_release_upper_bound_ms": 9,
+      "alive_after_observation": {
+        "observed_at_ms": 1792658359174,
+        "pid": 79303,
+        "rpc_alive": true
+      },
+      "cli_alive_at_abort": true,
+      "cli_kept_alive": true,
+      "cli_pid": 79303,
+      "eventually_released_before_server_stop": true,
+      "lease_before_abort": {
+        "lease": 1,
+        "observed_at_ms": 1792658359154
+      },
+      "leases_after_first_second": 0,
+      "leases_at_observation_end": 0,
+      "observation_end_at_ms": 1792658359166,
+      "peer_close_at_observation_end": 1,
+      "release_observed_at_ms": 1792658359166,
+      "released_within_first_second": true,
+      "rpc_timeline": {
+        "abort_sent_at_ms": 1792658359157,
+        "delta_at_ms": 1792658359146,
+        "pid": 79303,
+        "rpc_aborted_at_ms": 1792658359162,
+        "rpc_alive": true
+      },
+      "total_observation_ms": 0
+    },
+    "codex": {
+      "abort_to_release_upper_bound_ms": 15,
+      "alive_after_observation": {
+        "observed_at_ms": 1792658367280,
+        "pid": 79467,
+        "rpc_alive": true
+      },
+      "cli_alive_at_abort": true,
+      "cli_kept_alive": true,
+      "cli_pid": 79467,
+      "eventually_released_before_server_stop": true,
+      "lease_before_abort": {
+        "lease": 1,
+        "observed_at_ms": 1792658367254
+      },
+      "leases_after_first_second": 0,
+      "leases_at_observation_end": 0,
+      "observation_end_at_ms": 1792658367277,
+      "peer_close_at_observation_end": 1,
+      "release_observed_at_ms": 1792658367277,
+      "released_within_first_second": true,
+      "rpc_timeline": {
+        "abort_sent_at_ms": 1792658367262,
+        "delta_at_ms": 1792658367249,
+        "pid": 79467,
+        "rpc_aborted_at_ms": 1792658367268,
+        "rpc_alive": true
+      },
+      "total_observation_ms": 0
+    }
+  },
+  "tcp_observer": false,
+  "selected_case": null,
+  "require_codex_success": true,
+  "codex_success_gate": {
+    "status": "PASS",
+    "checks": {
+      "cli_exit_zero": true,
+      "answer_tool_task_and_follow_up": true,
+      "five_incremental_public_responses": true,
+      "independent_receives_and_exact_accounting": true,
+      "two_correlated_tool_results": true,
+      "actual_tool_file_result": true
+    },
+    "missing_receipts": []
+  },
+  "installs_unchanged": true,
+  "claim": "fixed-version native clients, local controlled only; #62 remains open and fixed Build activation blocked"
+}

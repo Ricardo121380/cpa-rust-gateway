@@ -1,0 +1,72 @@
+{
+  "versions": {
+    "codex": {
+      "command": [
+        "/opt/homebrew/bin/codex",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "codex-cli 0.161.0\n",
+      "stderr": ""
+    },
+    "codex-native": {
+      "command": [
+        "/opt/homebrew/lib/node_modules/@openai/codex/vendor/aarch64-apple-darwin/bin/codex",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "codex-cli 0.161.0\n",
+      "stderr": ""
+    },
+    "pi-shell": {
+      "command": [
+        "/opt/homebrew/bin/pi",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "0.84.3\n",
+      "stderr": ""
+    },
+    "pi-declared-bin": {
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "0.84.3\n",
+      "stderr": ""
+    },
+    "node": {
+      "command": [
+        "/opt/homebrew/bin/node",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "v26.8.2\n",
+      "stderr": ""
+    }
+  },
+  "node": "/opt/homebrew/Cellar/node/26.8.2/bin/node",
+  "codex_actual_native": "/opt/homebrew/lib/node_modules/@openai/codex/vendor/aarch64-apple-darwin/bin/codex",
+  "codex_actual_native_sha256": "12ac11d2c7eee27cfae34393986d7b7c9ed0dea537cb749831cdd7033893e6de",
+  "pi_actual_entry": "/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/dist/cli.js",
+  "pi_declared_bin": {
+    "pi": "dist/bundle/cli.js"
+  },
+  "only_my_pi": {
+    "link": "../share/only-my-pi/current-stack/bin/pi",
+    "realpath": "/Users/huangrui/.local/share/only-my-pi/stacks/7444c7fb3a6a91bbe077ba2e15bd157b63265f368a480db8b81f959b43d9aea0/bin/pi",
+    "executed": false
+  },
+  "install_manifest_sha256": "3137abae151b090bfd6e62f5d4026de463a3cd4e2c22bfc79f36a3f9d2b2b8df",
+  "source_head": "4015bd4542dbc52fde8984c14c01b34843ef3c59",
+  "test_binary_sha256": "23e48a351c673f53d2f7a39ea93ee17a2ae311cff4ad38212480c05115145e73",
+  "runner_sha256": "cd4ac44b777c8037c236c1f4c20131124ad68f7a1cf0e6a03b5cc2169d0b3e18",
+  "manifests": {
+    "Cargo.toml": "1b1a37ce8d8fcafa51d379ffae2ff33fff091c5a48c0f3458e47b99c12b22355",
+    "Cargo.lock": "36564c0219707741d79ecb37d9fc4ee620ce2fe6801fdbe09b32fb4c8687c858",
+    "apps/gateway/Cargo.toml": "c0271c2ad72a8fcbdd419f12914d5c1db949531870e1cc142db0462c582d1108",
+    "rust-toolchain.toml": "8e390d6a0838315f972690f46ef8bae8b7ecc9ee6c1ed70140ef852869c2482e"
+  }
+}

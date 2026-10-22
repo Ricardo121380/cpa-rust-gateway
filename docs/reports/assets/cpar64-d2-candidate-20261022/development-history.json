@@ -1,0 +1,82 @@
+[
+  {
+    "log": "red-run.log",
+    "status": "EARLY_HARNESS_ABORT",
+    "note": "first launch stopped before client artifacts; empty log retained; second launch is the actual original RED"
+  },
+  {
+    "log": "red-run-2.log",
+    "status": "EXPECTED_RED",
+    "note": "unmodified original Claude generic400, no first response"
+  },
+  {
+    "log": "d2-shape-red.log",
+    "status": "EXPECTED_RED",
+    "note": "two env switches omit thinking/cache but effort remains, generic400 no recovery"
+  },
+  {
+    "log": "m2-public-red.log",
+    "status": "EXPECTED_RED",
+    "note": "public API still generic400 instead of field-specific local diagnosis"
+  },
+  {
+    "log": "d2-negotiation.log",
+    "status": "HARNESS_FAIL",
+    "note": "actual400+client-owned200; old five-request accounting oracle incorrectly reused for one-response shape probe"
+  },
+  {
+    "log": "d2-tools-first.log",
+    "status": "BUILD_FAIL",
+    "note": "test imports/type correction"
+  },
+  {
+    "log": "d2-tools-second.log",
+    "status": "BUILD_FAIL",
+    "note": "no request-decoder reexport; independent raw history oracle used without new dependency"
+  },
+  {
+    "log": "d2-tools-third.log",
+    "status": "FAIL",
+    "note": "normal tools passed; default Claude non-streaming fallback and repeated API retries; failure branch timed out"
+  },
+  {
+    "log": "d2-bounded-retries.log",
+    "status": "FAIL",
+    "note": "MAX_RETRIES=0 still allowed one non-streaming fallback"
+  },
+  {
+    "log": "d2-no-fallback.log",
+    "status": "PASS_DEVELOPMENT",
+    "note": "all four official settings; actual tools/failure/live-cancel all passed"
+  },
+  {
+    "log": "messages-regression.log",
+    "status": "BUILD_FAIL",
+    "note": "reqwest JSON feature absent; use existing string body API, no dependency added"
+  },
+  {
+    "log": "messages-regression-2.log",
+    "status": "PASS_DIRECTED",
+    "note": "31 passed,0 failed,2 ignored"
+  },
+  {
+    "log": "clippy-directed.log",
+    "status": "FAIL",
+    "note": "test renderer should borrow Value"
+  },
+  {
+    "log": "clippy-directed-2.log",
+    "status": "PASS_DIRECTED",
+    "note": "borrow existing fixture values"
+  },
+  {
+    "log": "review-fix-directed.log",
+    "status": "PASS_DIRECTED",
+    "note": "remove duplicated assertions without dropping outer tests"
+  },
+  {
+    "log": "d2-archive.log",
+    "status": "PASS_DEVELOPMENT",
+    "note": "coherent encrypted per-case snapshot retained and read back"
+  }
+]

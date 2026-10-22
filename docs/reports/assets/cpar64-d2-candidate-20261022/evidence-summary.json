@@ -1,0 +1,580 @@
+{
+  "candidate": "4015bd4542dbc52fde8984c14c01b34843ef3c59",
+  "final_claude_driver_binary_sha256": "23e48a351c673f53d2f7a39ea93ee17a2ae311cff4ad38212480c05115145e73",
+  "original_strict_shell_exit": 1,
+  "d2_strict_shell_exit": 0,
+  "codex_pi_strict_shell_exit": 0,
+  "d2": {
+    "d2-standard": {
+      "active_leases": 0,
+      "attempts": 5,
+      "background_requests": 0,
+      "client_exit": 0,
+      "client_pid": 67333,
+      "cost": "UNKNOWN",
+      "fixed_service": "NOT_RUN",
+      "independent_receives": 5,
+      "joins": [
+        {
+          "attempts": 0,
+          "kind": "negotiation",
+          "ledger": 0,
+          "m4_raw_readback": true,
+          "receiver": null,
+          "request_id": "p1-request-428e61f472cdf6f370f24a1396ebc171-0",
+          "usage": 0
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-428e61f472cdf6f370f24a1396ebc171-1:1",
+          "cost": "UNKNOWN",
+          "credential_id": "grok-1fb6b66d1292f041d270d17a3967ebc2",
+          "endpoint_id": "p12-krill-endpoint",
+          "execution_identity": {
+            "capabilities": {
+              "compact": true,
+              "continuation": true,
+              "parallel": false,
+              "reasoning": true,
+              "stored": true,
+              "websocket": true
+            },
+            "channel": "grok.build",
+            "config_revision": 0,
+            "config_version_id": "batch-c",
+            "credential_revision": 1,
+            "egress": {
+              "kind": "direct"
+            }
+          },
+          "history_predicate": true,
+          "ledger": 1,
+          "m4_raw_readback": true,
+          "outcome": "Succeeded",
+          "owner": "p12-runtime-client-key",
+          "receiver_ordinal": 0,
+          "request_id": "p1-request-428e61f472cdf6f370f24a1396ebc171-1",
+          "response_id": "response-64-0",
+          "summary_items": 2,
+          "upstream_id": "p12-runtime-upstream",
+          "upstream_model": "grok-4.5",
+          "usage": {
+            "cache_creation_tokens": null,
+            "cache_read_tokens": null,
+            "cached_tokens": 0,
+            "input_accounting": "inclusive",
+            "input_tokens": 20,
+            "output_tokens": 7,
+            "provenance": "measured",
+            "reasoning_tokens": null
+          },
+          "usage_source_event_id": "usage-attempt:f9e3424d78020f23ee43d8faa8f7cc44ab7d9137544a8cb32e8923323cff57cc"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-428e61f472cdf6f370f24a1396ebc171-2:1",
+          "cost": "UNKNOWN",
+          "credential_id": "grok-1fb6b66d1292f041d270d17a3967ebc2",
+          "endpoint_id": "p12-krill-endpoint",
+          "execution_identity": {
+            "capabilities": {
+              "compact": true,
+              "continuation": true,
+              "parallel": false,
+              "reasoning": true,
+              "stored": true,
+              "websocket": true
+            },
+            "channel": "grok.build",
+            "config_revision": 0,
+            "config_version_id": "batch-c",
+            "credential_revision": 1,
+            "egress": {
+              "kind": "direct"
+            }
+          },
+          "history_predicate": true,
+          "ledger": 1,
+          "m4_raw_readback": true,
+          "outcome": "Succeeded",
+          "owner": "p12-runtime-client-key",
+          "receiver_ordinal": 1,
+          "request_id": "p1-request-428e61f472cdf6f370f24a1396ebc171-2",
+          "response_id": "response-64-1",
+          "summary_items": 2,
+          "upstream_id": "p12-runtime-upstream",
+          "upstream_model": "grok-4.5",
+          "usage": {
+            "cache_creation_tokens": null,
+            "cache_read_tokens": null,
+            "cached_tokens": 0,
+            "input_accounting": "inclusive",
+            "input_tokens": 20,
+            "output_tokens": 7,
+            "provenance": "measured",
+            "reasoning_tokens": null
+          },
+          "usage_source_event_id": "usage-attempt:171750cedb1004651e72b5f61f5bd86433de0663b0035893922aaaa30e69427a"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-428e61f472cdf6f370f24a1396ebc171-3:1",
+          "cost": "UNKNOWN",
+          "credential_id": "grok-1fb6b66d1292f041d270d17a3967ebc2",
+          "endpoint_id": "p12-krill-endpoint",
+          "execution_identity": {
+            "capabilities": {
+              "compact": true,
+              "continuation": true,
+              "parallel": false,
+              "reasoning": true,
+              "stored": true,
+              "websocket": true
+            },
+            "channel": "grok.build",
+            "config_revision": 0,
+            "config_version_id": "batch-c",
+            "credential_revision": 1,
+            "egress": {
+              "kind": "direct"
+            }
+          },
+          "history_predicate": true,
+          "ledger": 1,
+          "m4_raw_readback": true,
+          "outcome": "Succeeded",
+          "owner": "p12-runtime-client-key",
+          "receiver_ordinal": 2,
+          "request_id": "p1-request-428e61f472cdf6f370f24a1396ebc171-3",
+          "response_id": "response-64-2",
+          "summary_items": 2,
+          "upstream_id": "p12-runtime-upstream",
+          "upstream_model": "grok-4.5",
+          "usage": {
+            "cache_creation_tokens": null,
+            "cache_read_tokens": null,
+            "cached_tokens": 0,
+            "input_accounting": "inclusive",
+            "input_tokens": 20,
+            "output_tokens": 7,
+            "provenance": "measured",
+            "reasoning_tokens": null
+          },
+          "usage_source_event_id": "usage-attempt:fff9c4bd77a219ee848514a3a914a9c77b20a33155b1f7f69cf4009f51689dde"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-428e61f472cdf6f370f24a1396ebc171-4:1",
+          "cost": "UNKNOWN",
+          "credential_id": "grok-1fb6b66d1292f041d270d17a3967ebc2",
+          "endpoint_id": "p12-krill-endpoint",
+          "execution_identity": {
+            "capabilities": {
+              "compact": true,
+              "continuation": true,
+              "parallel": false,
+              "reasoning": true,
+              "stored": true,
+              "websocket": true
+            },
+            "channel": "grok.build",
+            "config_revision": 0,
+            "config_version_id": "batch-c",
+            "credential_revision": 1,
+            "egress": {
+              "kind": "direct"
+            }
+          },
+          "history_predicate": true,
+          "ledger": 1,
+          "m4_raw_readback": true,
+          "outcome": "Succeeded",
+          "owner": "p12-runtime-client-key",
+          "receiver_ordinal": 3,
+          "request_id": "p1-request-428e61f472cdf6f370f24a1396ebc171-4",
+          "response_id": "response-64-3",
+          "summary_items": 2,
+          "upstream_id": "p12-runtime-upstream",
+          "upstream_model": "grok-4.5",
+          "usage": {
+            "cache_creation_tokens": null,
+            "cache_read_tokens": null,
+            "cached_tokens": 0,
+            "input_accounting": "inclusive",
+            "input_tokens": 20,
+            "output_tokens": 7,
+            "provenance": "measured",
+            "reasoning_tokens": null
+          },
+          "usage_source_event_id": "usage-attempt:ad0b8643f52359df91f9bad55700c8c55a3dc1a2fce338275ffb18d1bd6d933a"
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-428e61f472cdf6f370f24a1396ebc171-5:1",
+          "cost": "UNKNOWN",
+          "credential_id": "grok-1fb6b66d1292f041d270d17a3967ebc2",
+          "endpoint_id": "p12-krill-endpoint",
+          "execution_identity": {
+            "capabilities": {
+              "compact": true,
+              "continuation": true,
+              "parallel": false,
+              "reasoning": true,
+              "stored": true,
+              "websocket": true
+            },
+            "channel": "grok.build",
+            "config_revision": 0,
+            "config_version_id": "batch-c",
+            "credential_revision": 1,
+            "egress": {
+              "kind": "direct"
+            }
+          },
+          "history_predicate": true,
+          "ledger": 1,
+          "m4_raw_readback": true,
+          "outcome": "Succeeded",
+          "owner": "p12-runtime-client-key",
+          "receiver_ordinal": 4,
+          "request_id": "p1-request-428e61f472cdf6f370f24a1396ebc171-5",
+          "response_id": "response-64-4",
+          "summary_items": 2,
+          "upstream_id": "p12-runtime-upstream",
+          "upstream_model": "grok-4.5",
+          "usage": {
+            "cache_creation_tokens": null,
+            "cache_read_tokens": null,
+            "cached_tokens": 0,
+            "input_accounting": "inclusive",
+            "input_tokens": 20,
+            "output_tokens": 7,
+            "provenance": "measured",
+            "reasoning_tokens": null
+          },
+          "usage_source_event_id": "usage-attempt:ab850ef5b359e820d0c67a911b07f7a3f1715e958088dca6b9c841b6dd711955"
+        }
+      ],
+      "ledger": 5,
+      "metadata": "raw v2 readback on every Request",
+      "native_results": [
+        {
+          "is_error": false,
+          "subtype": "success",
+          "terminal_reason": "completed"
+        },
+        {
+          "is_error": false,
+          "subtype": "success",
+          "terminal_reason": "completed"
+        },
+        {
+          "is_error": false,
+          "subtype": "success",
+          "terminal_reason": "completed"
+        }
+      ],
+      "negotiation_rejections": 1,
+      "qualification": "PASS_LOCAL_CONTROLLED",
+      "real_provider": "NOT_RUN",
+      "requests": 6,
+      "scenario": "standard",
+      "summary": "encrypted full readback on all successful Attempts",
+      "usage": 5,
+      "evidence_sqlite_mode": "0o600"
+    },
+    "d2-failure": {
+      "active_leases": 0,
+      "attempts": 1,
+      "background_requests": 0,
+      "client_exit": 1,
+      "client_pid": 67550,
+      "cost": "UNKNOWN",
+      "fixed_service": "NOT_RUN",
+      "independent_receives": 1,
+      "joins": [
+        {
+          "attempts": 0,
+          "kind": "negotiation",
+          "ledger": 0,
+          "m4_raw_readback": true,
+          "receiver": null,
+          "request_id": "p1-request-bc0472b5d508fa74004df7a01e0aa2c1-0",
+          "usage": 0
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-bc0472b5d508fa74004df7a01e0aa2c1-1:1",
+          "cost": "UNKNOWN",
+          "credential_id": "grok-270ca06c5a94d45094ae62b7d963322c",
+          "endpoint_id": "p12-krill-endpoint",
+          "execution_identity": {
+            "capabilities": {
+              "compact": true,
+              "continuation": true,
+              "parallel": false,
+              "reasoning": true,
+              "stored": true,
+              "websocket": true
+            },
+            "channel": "grok.build",
+            "config_revision": 0,
+            "config_version_id": "batch-c",
+            "credential_revision": 1,
+            "egress": {
+              "kind": "direct"
+            }
+          },
+          "history_predicate": true,
+          "ledger": 1,
+          "m4_raw_readback": true,
+          "outcome": "Failed",
+          "owner": "p12-runtime-client-key",
+          "receiver_ordinal": 0,
+          "request_id": "p1-request-bc0472b5d508fa74004df7a01e0aa2c1-1",
+          "response_id": "response-61",
+          "summary_items": 0,
+          "upstream_id": "p12-runtime-upstream",
+          "upstream_model": "grok-4.5",
+          "usage": {
+            "cache_creation_tokens": null,
+            "cache_read_tokens": null,
+            "cached_tokens": null,
+            "input_accounting": "inclusive",
+            "input_tokens": 20,
+            "output_tokens": 7,
+            "provenance": "measured",
+            "reasoning_tokens": null
+          },
+          "usage_source_event_id": "usage-attempt:8aaf370551c5abcdefe8002653f2d29d0ff41578b611d8c3ff7b0545bfad175e"
+        }
+      ],
+      "ledger": 1,
+      "metadata": "raw v2 readback on every Request",
+      "native_results": [
+        {
+          "is_error": true,
+          "subtype": "success",
+          "terminal_reason": "api_error"
+        }
+      ],
+      "negotiation_rejections": 1,
+      "qualification": "PASS_LOCAL_CONTROLLED",
+      "real_provider": "NOT_RUN",
+      "requests": 2,
+      "scenario": "failure",
+      "summary": "encrypted full readback on all successful Attempts",
+      "usage": 1,
+      "evidence_sqlite_mode": "0o600"
+    },
+    "d2-cancel": {
+      "active_leases": 0,
+      "attempts": 1,
+      "background_requests": 0,
+      "client_exit": 1,
+      "client_pid": 67747,
+      "cost": "UNKNOWN",
+      "fixed_service": "NOT_RUN",
+      "independent_receives": 1,
+      "joins": [
+        {
+          "attempts": 0,
+          "kind": "negotiation",
+          "ledger": 0,
+          "m4_raw_readback": true,
+          "receiver": null,
+          "request_id": "p1-request-5c999db019ebbb3f8e06d335605cfa36-0",
+          "usage": 0
+        },
+        {
+          "attempt_id": "attempt:45:p1-request-5c999db019ebbb3f8e06d335605cfa36-1:1",
+          "cost": "UNKNOWN",
+          "credential_id": "grok-884c31c6c66d2c29f4860d068212859a",
+          "endpoint_id": "p12-krill-endpoint",
+          "execution_identity": {
+            "capabilities": {
+              "compact": true,
+              "continuation": true,
+              "parallel": false,
+              "reasoning": true,
+              "stored": true,
+              "websocket": true
+            },
+            "channel": "grok.build",
+            "config_revision": 0,
+            "config_version_id": "batch-c",
+            "credential_revision": 1,
+            "egress": {
+              "kind": "direct"
+            }
+          },
+          "history_predicate": true,
+          "ledger": 0,
+          "m4_raw_readback": true,
+          "outcome": "Cancelled",
+          "owner": "p12-runtime-client-key",
+          "receiver_ordinal": 0,
+          "request_id": "p1-request-5c999db019ebbb3f8e06d335605cfa36-1",
+          "response_id": "response-61",
+          "summary_items": 0,
+          "upstream_id": "p12-runtime-upstream",
+          "upstream_model": "grok-4.5",
+          "usage": null,
+          "usage_source_event_id": null
+        }
+      ],
+      "ledger": 0,
+      "metadata": "raw v2 readback on every Request",
+      "native_results": [
+        {
+          "is_error": true,
+          "subtype": "error_during_execution",
+          "terminal_reason": "aborted_streaming"
+        }
+      ],
+      "negotiation_rejections": 1,
+      "qualification": "PASS_LOCAL_CONTROLLED",
+      "real_provider": "NOT_RUN",
+      "requests": 2,
+      "scenario": "cancel",
+      "summary": "encrypted full readback on all successful Attempts",
+      "usage": 0,
+      "evidence_sqlite_mode": "0o600"
+    }
+  },
+  "regression": {
+    "pi-standard": {
+      "accounting": {
+        "attempts": 5,
+        "client_requests": 5,
+        "cost": "UNKNOWN",
+        "finished": 6,
+        "ledger": 5,
+        "outcome": "Succeeded",
+        "requests_including_negative_probe": 6,
+        "usage": 5
+      },
+      "correspondence_rows": 5
+    },
+    "pi-failure": {
+      "accounting": {
+        "attempts": 1,
+        "client_requests": 1,
+        "cost": "UNKNOWN",
+        "finished": 1,
+        "ledger": 1,
+        "outcome": "Failed",
+        "requests_including_negative_probe": 1,
+        "usage": 1
+      },
+      "correspondence_rows": 1
+    },
+    "pi-cancel": {
+      "accounting": {
+        "attempts": 1,
+        "client_requests": 1,
+        "cost": "UNKNOWN",
+        "finished": 1,
+        "ledger": 0,
+        "outcome": "Cancelled",
+        "requests_including_negative_probe": 1,
+        "usage": 0
+      },
+      "correspondence_rows": 1
+    },
+    "codex-unqualified": {
+      "accounting": {
+        "attempts": 0,
+        "client_requests": 1,
+        "cost": "UNKNOWN",
+        "finished": 1,
+        "ledger": 0,
+        "outcome": "Failed",
+        "requests_including_negative_probe": 1,
+        "usage": 0
+      },
+      "correspondence_rows": 0
+    },
+    "codex-standard": {
+      "accounting": {
+        "attempts": 5,
+        "client_requests": 5,
+        "cost": "UNKNOWN",
+        "finished": 5,
+        "ledger": 5,
+        "outcome": "Succeeded",
+        "requests_including_negative_probe": 5,
+        "usage": 5
+      },
+      "correspondence_rows": 5
+    },
+    "codex-failure": {
+      "accounting": {
+        "attempts": 1,
+        "client_requests": 1,
+        "cost": "UNKNOWN",
+        "finished": 1,
+        "ledger": 1,
+        "outcome": "Failed",
+        "requests_including_negative_probe": 1,
+        "usage": 1
+      },
+      "correspondence_rows": 1
+    },
+    "codex-cancel": {
+      "accounting": {
+        "attempts": 1,
+        "client_requests": 1,
+        "cost": "UNKNOWN",
+        "finished": 1,
+        "ledger": 0,
+        "outcome": "Cancelled",
+        "requests_including_negative_probe": 1,
+        "usage": 0
+      },
+      "correspondence_rows": 1
+    }
+  },
+  "original": {
+    "accounting": {
+      "attempts": 0,
+      "cost": "UNKNOWN",
+      "failed_requests": 2,
+      "ledger": 0,
+      "requests": 2,
+      "summaries": 0,
+      "usage": 0
+    },
+    "active_leases": 0,
+    "actual_inflight_cancellation": "BLOCKED_NO_DELTA_OR_LEASE",
+    "actual_summary_readback": "BLOCKED_NO_ATTEMPT",
+    "actual_tool_execution": "BLOCKED_BEFORE_FIRST_RESPONSE",
+    "compatibility": "BLOCKED",
+    "cost": "UNKNOWN",
+    "count_tokens": "NOT_OBSERVED",
+    "head_probe": "NOT_OBSERVED",
+    "independent_receives": 0,
+    "independent_tcp_accepts": 0,
+    "lease_release_transition": "NOT_OBSERVED_NO_LEASE",
+    "local_metadata_responsibility": "PASS_REQUEST_ONLY",
+    "metadata_receipts": [
+      {
+        "actual_attempts": 0,
+        "authenticated_raw_readback": true,
+        "owner": "p12-runtime-client-key",
+        "payload_version": 2,
+        "raw_field_sha256": "8786181e57df6da9da218d40a10ab371b5b3fda5334c72b3172c8459e43d745b",
+        "request_id": "p1-request-f67a7c3bc9c339792b673b41b8168b1b-0",
+        "source": "anthropic_messages_metadata",
+        "user_id_chars": 150
+      },
+      {
+        "actual_attempts": 0,
+        "authenticated_raw_readback": true,
+        "owner": "p12-runtime-client-key",
+        "payload_version": 2,
+        "raw_field_sha256": "8786181e57df6da9da218d40a10ab371b5b3fda5334c72b3172c8459e43d745b",
+        "request_id": "p1-request-f67a7c3bc9c339792b673b41b8168b1b-1",
+        "source": "anthropic_messages_metadata",
+        "user_id_chars": 150
+      }
+    ],
+    "no_lease_leak_before_cleanup": true,
+    "public_requests": 2,
+    "title": "NOT_OBSERVED"
+  }
+}

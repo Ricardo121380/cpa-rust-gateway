@@ -1,0 +1,20 @@
+[
+  "AGENTS.md",
+  "CONTEXT.md",
+  "README.md",
+  "README.zh-CN.md",
+  "docs/06-development-plan.md",
+  "docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md",
+  "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+  "docs/adr/ADR-0106-native-fidelity-profile.md",
+  "docs/adr/ADR-0107-standard-response-metadata-separation.md",
+  "docs/adr/ADR-0108-build-summary-standard-messages.md",
+  "docs/adr/README.md",
+  "docs/agents/domain.md",
+  "docs/agents/issue-tracker.md",
+  "docs/agents/triage-labels.md",
+  "docs/contracts/BC-PROTOCOL-009-codex-responses-controls.md",
+  "docs/engineering-roadmap.md",
+  "docs/reports/cpar-62-64-client-field-plan-20261020.md",
+  "docs/traceability.md"
+]

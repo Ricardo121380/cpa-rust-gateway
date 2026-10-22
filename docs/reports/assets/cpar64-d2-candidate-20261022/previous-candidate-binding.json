@@ -1,0 +1,9 @@
+{
+  "candidate": "7c246c58bd2f0f399be65a4fd754d271b3a2087a",
+  "validation_root": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar64-d2-full-20261022-7c246c58",
+  "fresh_target": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar64-d2-20261022T072236Z/target-full-7c246c58",
+  "input_count": 7307,
+  "input_sha256": "eaad8f2fc1eec9871c8b03af5419e9571183a0ec56b86b79267c2d8fe9b214bc",
+  "lock_sha256": "36564c0219707741d79ecb37d9fc4ee620ce2fe6801fdbe09b32fb4c8687c858",
+  "overlay_files": 18
+}

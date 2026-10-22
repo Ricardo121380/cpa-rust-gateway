@@ -1,0 +1,48 @@
+{
+  "accounting": {
+    "attempts": 0,
+    "cost": "UNKNOWN",
+    "failed_requests": 2,
+    "ledger": 0,
+    "requests": 2,
+    "summaries": 0,
+    "usage": 0
+  },
+  "active_leases": 0,
+  "actual_inflight_cancellation": "BLOCKED_NO_DELTA_OR_LEASE",
+  "actual_summary_readback": "BLOCKED_NO_ATTEMPT",
+  "actual_tool_execution": "BLOCKED_BEFORE_FIRST_RESPONSE",
+  "compatibility": "BLOCKED",
+  "cost": "UNKNOWN",
+  "count_tokens": "NOT_OBSERVED",
+  "head_probe": "NOT_OBSERVED",
+  "independent_receives": 0,
+  "independent_tcp_accepts": 0,
+  "lease_release_transition": "NOT_OBSERVED_NO_LEASE",
+  "local_metadata_responsibility": "PASS_REQUEST_ONLY",
+  "metadata_receipts": [
+    {
+      "actual_attempts": 0,
+      "authenticated_raw_readback": true,
+      "owner": "p12-runtime-client-key",
+      "payload_version": 2,
+      "raw_field_sha256": "8786181e57df6da9da218d40a10ab371b5b3fda5334c72b3172c8459e43d745b",
+      "request_id": "p1-request-f67a7c3bc9c339792b673b41b8168b1b-0",
+      "source": "anthropic_messages_metadata",
+      "user_id_chars": 150
+    },
+    {
+      "actual_attempts": 0,
+      "authenticated_raw_readback": true,
+      "owner": "p12-runtime-client-key",
+      "payload_version": 2,
+      "raw_field_sha256": "8786181e57df6da9da218d40a10ab371b5b3fda5334c72b3172c8459e43d745b",
+      "request_id": "p1-request-f67a7c3bc9c339792b673b41b8168b1b-1",
+      "source": "anthropic_messages_metadata",
+      "user_id_chars": 150
+    }
+  ],
+  "no_lease_leak_before_cleanup": true,
+  "public_requests": 2,
+  "title": "NOT_OBSERVED"
+}

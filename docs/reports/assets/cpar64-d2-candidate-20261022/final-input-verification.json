@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "candidate": "4015bd4542dbc52fde8984c14c01b34843ef3c59",
+  "input_count": 7307,
+  "before_manifest_sha256": "7f68ea2fc32647a9fa31ae2f47678132c97c7070c4a83ac9ce4ee46aaa126c81",
+  "after_manifest_sha256": "7f68ea2fc32647a9fa31ae2f47678132c97c7070c4a83ac9ce4ee46aaa126c81",
+  "bytes_modes_owners_links_unchanged": true,
+  "validation_head": "4015bd4542dbc52fde8984c14c01b34843ef3c59",
+  "lock_sha256": "36564c0219707741d79ecb37d9fc4ee620ce2fe6801fdbe09b32fb4c8687c858"
+}

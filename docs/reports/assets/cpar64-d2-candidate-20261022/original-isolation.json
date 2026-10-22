@@ -1,0 +1,7 @@
+{
+  "exit": 0,
+  "stdout": "[{\"network\": \"192.0.2.1\", \"port\": 443, \"errno\": 1}, {\"network\": \"2001:db8::1\", \"port\": 443, \"errno\": 1}, {\"network\": \"127.0.0.1\", \"port\": 55868, \"errno\": 1}, {\"probe\": \"real_home_read\", \"errno\": 1}, {\"probe\": \"outside_credential_read\", \"errno\": 1}, {\"probe\": \"outside_write\", \"errno\": 1}, {\"subprocess_denied\": true, \"exit\": 1}]\n",
+  "stderr": "python3: error: couldn't create cache file '/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/xcrun_db-lk5y3rIO' (errno=Operation not permitted)\npython3: error: couldn't create cache file '/var/folders/tk/90cjjmks0h1b2l13fry36ccm0000gn/T/xcrun_db-KVrfkMGe' (errno=Operation not permitted)\n",
+  "independent_uncontrolled_loopback_accepts": 0,
+  "outside_sentinel_unchanged": true
+}

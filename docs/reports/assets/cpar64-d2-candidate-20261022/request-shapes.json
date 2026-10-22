@@ -1,0 +1,391 @@
+{
+  "original_red": [
+    {
+      "status": 400,
+      "method": "POST",
+      "path_query": "/v1/messages?beta=true",
+      "model": "grok-4.5",
+      "thinking_present": true,
+      "context_management_present": true,
+      "any_cache_control": true,
+      "output_config": {
+        "effort": "high"
+      },
+      "root_keys": [
+        "context_management",
+        "max_tokens",
+        "messages",
+        "metadata",
+        "model",
+        "output_config",
+        "stream",
+        "system",
+        "thinking",
+        "tools"
+      ],
+      "metadata_present": true,
+      "request_sha256": "365e51bfe9efba47398b3761d2d01f3e27859b2ab6f26600497e4c513faf66c6",
+      "capture_complete": true,
+      "output_config_present": true
+    },
+    {
+      "status": 400,
+      "method": "POST",
+      "path_query": "/v1/messages?beta=true",
+      "model": "grok-4.5",
+      "thinking_present": true,
+      "context_management_present": true,
+      "any_cache_control": true,
+      "output_config": {
+        "effort": "high"
+      },
+      "root_keys": [
+        "context_management",
+        "max_tokens",
+        "messages",
+        "metadata",
+        "model",
+        "output_config",
+        "stream",
+        "system",
+        "thinking",
+        "tools"
+      ],
+      "metadata_present": true,
+      "request_sha256": "d71186d608b2cefd47a6d2d74dfe811576e43b2cf20df39b63c63a39193fb76c",
+      "capture_complete": true,
+      "output_config_present": true
+    }
+  ],
+  "two_switch_red": [
+    {
+      "status": 400,
+      "method": "POST",
+      "path_query": "/v1/messages?beta=true",
+      "model": "grok-4.5",
+      "thinking_present": false,
+      "context_management_present": false,
+      "any_cache_control": false,
+      "output_config": {
+        "effort": "high"
+      },
+      "root_keys": [
+        "max_tokens",
+        "messages",
+        "metadata",
+        "model",
+        "output_config",
+        "stream",
+        "system",
+        "tools"
+      ],
+      "metadata_present": true,
+      "request_sha256": "f61f26ea6a2f5bfc7245a82c9061ce5d4167bb73a99b3ed5f0c1cc6506924b0b",
+      "capture_complete": true,
+      "output_config_present": true
+    }
+  ],
+  "original_final": [
+    {
+      "status": 400,
+      "method": "POST",
+      "path_query": "/v1/messages?beta=true",
+      "model": "grok-4.5",
+      "thinking_present": true,
+      "context_management_present": true,
+      "any_cache_control": true,
+      "output_config": {
+        "effort": "high"
+      },
+      "root_keys": [
+        "context_management",
+        "max_tokens",
+        "messages",
+        "metadata",
+        "model",
+        "output_config",
+        "stream",
+        "system",
+        "thinking",
+        "tools"
+      ],
+      "metadata_present": true,
+      "request_sha256": "b00a21f6236eda9f029597dea98a58f40441b062be5a68db26d63ac9f2c2bee2",
+      "capture_complete": true,
+      "output_config_present": true
+    },
+    {
+      "status": 400,
+      "method": "POST",
+      "path_query": "/v1/messages?beta=true",
+      "model": "grok-4.5",
+      "thinking_present": true,
+      "context_management_present": true,
+      "any_cache_control": true,
+      "output_config": {
+        "effort": "high"
+      },
+      "root_keys": [
+        "context_management",
+        "max_tokens",
+        "messages",
+        "metadata",
+        "model",
+        "output_config",
+        "stream",
+        "system",
+        "thinking",
+        "tools"
+      ],
+      "metadata_present": true,
+      "request_sha256": "5ef54fbc32279b5ff2a20cbbecdfffe19f323ea0ee7a9cb07762e76804b947ae",
+      "capture_complete": true,
+      "output_config_present": true
+    }
+  ],
+  "d2_final_standard": [
+    {
+      "status": 400,
+      "method": "POST",
+      "path_query": "/v1/messages?beta=true",
+      "model": "grok-4.5",
+      "thinking_present": false,
+      "context_management_present": false,
+      "any_cache_control": false,
+      "output_config": {
+        "effort": "high"
+      },
+      "root_keys": [
+        "max_tokens",
+        "messages",
+        "metadata",
+        "model",
+        "output_config",
+        "stream",
+        "system",
+        "tools"
+      ],
+      "metadata_present": true,
+      "request_sha256": "4f6a392ba4a7c341b3b162b76625d21fb9cd8034068c24132403a5e17d41c0b5",
+      "capture_complete": true,
+      "output_config_present": true
+    },
+    {
+      "status": 200,
+      "method": "POST",
+      "path_query": "/v1/messages?beta=true",
+      "model": "grok-4.5",
+      "thinking_present": false,
+      "context_management_present": false,
+      "any_cache_control": false,
+      "output_config": null,
+      "root_keys": [
+        "max_tokens",
+        "messages",
+        "metadata",
+        "model",
+        "stream",
+        "system",
+        "tools"
+      ],
+      "metadata_present": true,
+      "request_sha256": "50879c6e0b6bedceac219f941a9d176f6538b3ab36e25878690dfdfb2608e3f6",
+      "capture_complete": true,
+      "output_config_present": false
+    },
+    {
+      "status": 200,
+      "method": "POST",
+      "path_query": "/v1/messages?beta=true",
+      "model": "grok-4.5",
+      "thinking_present": false,
+      "context_management_present": false,
+      "any_cache_control": false,
+      "output_config": null,
+      "root_keys": [
+        "max_tokens",
+        "messages",
+        "metadata",
+        "model",
+        "stream",
+        "system",
+        "tools"
+      ],
+      "metadata_present": true,
+      "request_sha256": "52e8914b101eac5b66cf4deba05d95ccb14f5db36b1a157869bde4ce17ba5dde",
+      "capture_complete": true,
+      "output_config_present": false
+    },
+    {
+      "status": 200,
+      "method": "POST",
+      "path_query": "/v1/messages?beta=true",
+      "model": "grok-4.5",
+      "thinking_present": false,
+      "context_management_present": false,
+      "any_cache_control": false,
+      "output_config": null,
+      "root_keys": [
+        "max_tokens",
+        "messages",
+        "metadata",
+        "model",
+        "stream",
+        "system",
+        "tools"
+      ],
+      "metadata_present": true,
+      "request_sha256": "09355a14e9a52bd39a79a0b9cadb538f63eb91c056e9248766a88f6ed32153b2",
+      "capture_complete": true,
+      "output_config_present": false
+    },
+    {
+      "status": 200,
+      "method": "POST",
+      "path_query": "/v1/messages?beta=true",
+      "model": "grok-4.5",
+      "thinking_present": false,
+      "context_management_present": false,
+      "any_cache_control": false,
+      "output_config": null,
+      "root_keys": [
+        "max_tokens",
+        "messages",
+        "metadata",
+        "model",
+        "stream",
+        "system",
+        "tools"
+      ],
+      "metadata_present": true,
+      "request_sha256": "143bab120534ad29bdff9dc18bfa5e5fa5844c390d9157ff77009d93f2f5a4bf",
+      "capture_complete": true,
+      "output_config_present": false
+    },
+    {
+      "status": 200,
+      "method": "POST",
+      "path_query": "/v1/messages?beta=true",
+      "model": "grok-4.5",
+      "thinking_present": false,
+      "context_management_present": false,
+      "any_cache_control": false,
+      "output_config": null,
+      "root_keys": [
+        "max_tokens",
+        "messages",
+        "metadata",
+        "model",
+        "stream",
+        "system",
+        "tools"
+      ],
+      "metadata_present": true,
+      "request_sha256": "bf63022231e3571483e9fa083ef2fc066fd07951fa1ca87bb2a0e91f8ffd36bb",
+      "capture_complete": true,
+      "output_config_present": false
+    }
+  ],
+  "d2_final_failure": [
+    {
+      "status": 400,
+      "method": "POST",
+      "path_query": "/v1/messages?beta=true",
+      "model": "grok-4.5",
+      "thinking_present": false,
+      "context_management_present": false,
+      "any_cache_control": false,
+      "output_config": {
+        "effort": "high"
+      },
+      "root_keys": [
+        "max_tokens",
+        "messages",
+        "metadata",
+        "model",
+        "output_config",
+        "stream",
+        "system",
+        "tools"
+      ],
+      "metadata_present": true,
+      "request_sha256": "32279c691121b06fb06f5bf7e6ce29600ed90a1cd147d29a5422ea0f4f61e7a9",
+      "capture_complete": true,
+      "output_config_present": true
+    },
+    {
+      "status": 200,
+      "method": "POST",
+      "path_query": "/v1/messages?beta=true",
+      "model": "grok-4.5",
+      "thinking_present": false,
+      "context_management_present": false,
+      "any_cache_control": false,
+      "output_config": null,
+      "root_keys": [
+        "max_tokens",
+        "messages",
+        "metadata",
+        "model",
+        "stream",
+        "system",
+        "tools"
+      ],
+      "metadata_present": true,
+      "request_sha256": "39c36591551aee6080297f23371f4c6a23b83d95dfc0a1f4c52858a21bf8a083",
+      "capture_complete": true,
+      "output_config_present": false
+    }
+  ],
+  "d2_final_cancel": [
+    {
+      "status": 400,
+      "method": "POST",
+      "path_query": "/v1/messages?beta=true",
+      "model": "grok-4.5",
+      "thinking_present": false,
+      "context_management_present": false,
+      "any_cache_control": false,
+      "output_config": {
+        "effort": "high"
+      },
+      "root_keys": [
+        "max_tokens",
+        "messages",
+        "metadata",
+        "model",
+        "output_config",
+        "stream",
+        "system",
+        "tools"
+      ],
+      "metadata_present": true,
+      "request_sha256": "b928e371478525c6943265e56d0676fc9c7ccddb89b4028f8cef5ad8ee8df07b",
+      "capture_complete": true,
+      "output_config_present": true
+    },
+    {
+      "status": 200,
+      "method": "POST",
+      "path_query": "/v1/messages?beta=true",
+      "model": "grok-4.5",
+      "thinking_present": false,
+      "context_management_present": false,
+      "any_cache_control": false,
+      "output_config": null,
+      "root_keys": [
+        "max_tokens",
+        "messages",
+        "metadata",
+        "model",
+        "stream",
+        "system",
+        "tools"
+      ],
+      "metadata_present": true,
+      "request_sha256": "15f805d0997621ff29796ddda001a55ad4a70d7bd0be0845fe54e67293301c45",
+      "capture_complete": false,
+      "output_config_present": false
+    }
+  ]
+}

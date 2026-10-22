@@ -1,0 +1,19 @@
+{
+  "entry": "/Users/huangrui/.local/bin/claude",
+  "link": "/Users/huangrui/.local/share/claude/versions/2.1.302",
+  "entry_mode": 493,
+  "actual": "/Users/huangrui/.local/share/claude/versions/2.1.302",
+  "sha256": "5262ce9de86243fed0d21edc39b271555d56780d0112e2b194439fe1c6662d37",
+  "mode": 493,
+  "architecture": "/Users/huangrui/.local/share/claude/versions/2.1.302: Mach-O 64-bit executable arm64",
+  "frozen": "/private/tmp/cpar64-original-final-20261022-4015bd45/claude",
+  "runtime": {
+    "--version": {
+      "exit": 0,
+      "stdout": "2.1.302 (Claude Code)\n",
+      "stderr": ""
+    }
+  },
+  "source_unchanged": true,
+  "frozen_unchanged": true
+}
