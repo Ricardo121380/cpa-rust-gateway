@@ -20,6 +20,8 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 type TestResult = Result<(), Box<dyn Error>>;
+#[path = "support/cpar66_export.rs"]
+mod cpar66_export;
 struct Directory(PathBuf);
 impl Directory {
     fn new() -> Result<Self, Box<dyn Error>> {
@@ -105,6 +107,33 @@ fn evidence(text: &str) -> Result<MessagesSummaryEvidence, Box<dyn Error>> {
     Ok(MessagesSummaryEvidence::try_new(MessagesSummarySource::BuildJson,ResponseId::try_new("response-63")?,MessagesSummaryCompleteness::CompletedResponse,1002,
         vec![MessagesSummaryItem {output_index:0,item:RawJson::from_json_string(json!({"id":"reason-a","type":"reasoning","status":"completed","summary":[{"type":"summary_text","text":text},{"type":"summary_text","text":"第二段 🐦"}]}).to_string())?},
             MessagesSummaryItem {output_index:2,item:RawJson::from_json_string(json!({"id":"reason-b","type":"reasoning","status":"completed","content":[],"summary":[]}).to_string())?}])?)
+}
+
+#[tokio::test]
+#[ignore = "explicit synthetic fixture export for #66 stock Linux readers"]
+async fn cpar66_export_summary_fixture() -> TestResult {
+    let dir = Directory::new()?;
+    let (queue, task) = writer(&dir, keys(1, &[1], false)?).await?;
+    let (request, attempt) = events("cpar66-summary", "owner")?;
+    admit(&queue, &request, &attempt).await;
+    let value = evidence("PRIVATE_CPAR66_SUMMARY")?;
+    let expected = serde_json::to_value(&value)?;
+    assert_eq!(
+        queue
+            .emit_summary_evidence_confirmed(attempt.clone(), value)
+            .await,
+        EventEmission::Persisted
+    );
+    drop(queue);
+    assert_eq!(task.await?.required_events_quarantined, 0);
+    cpar66_export::export(
+        &dir.db(),
+        "summary",
+        &json!([{
+            "command":"messages-summary-evidence", "owner":"owner", "request":request.request_id(),
+            "attempt":attempt.attempt_id(), "evidence":expected
+        }]),
+    )
 }
 async fn writer(
     dir: &Directory,

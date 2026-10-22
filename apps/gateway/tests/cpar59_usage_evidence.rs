@@ -18,6 +18,8 @@ use std::{
 };
 
 type TestResult = Result<(), Box<dyn Error>>;
+#[path = "support/cpar66_export.rs"]
+mod cpar66_export;
 const RAW: &str = r#"{ "input_tokens":3,"output_tokens":5,"zero":0,"null":null,"number":18446744073709551616123456789,"decimal":0.12345678901234567890123456789,"private":"PRIVATE_CPAR59" }"#;
 struct Directory(PathBuf);
 impl Directory {
@@ -152,6 +154,31 @@ fn now() -> Result<i64, Box<dyn Error>> {
     Ok(i64::try_from(
         SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis(),
     )?)
+}
+
+#[tokio::test]
+#[ignore = "explicit synthetic fixture export for #66 stock Linux readers"]
+async fn cpar66_export_usage_fixture() -> TestResult {
+    let dir = Directory::new()?;
+    let (queue, task) = start(&dir, Some(secrets(1, &[1], false)?)).await?;
+    let (request, attempt, usage) = events("cpar66-usage", "owner")?;
+    admit(&queue, &request, &attempt).await;
+    assert_eq!(
+        queue
+            .emit_usage_evidence_confirmed(usage, evidence(RAW)?)
+            .await,
+        EventEmission::Persisted
+    );
+    drop(queue);
+    assert_eq!(task.await?.required_events_quarantined, 0);
+    cpar66_export::export(
+        &dir.db(),
+        "usage",
+        &serde_json::json!([{
+            "command":"usage-evidence", "owner":"owner", "request":request.request_id(),
+            "attempt":attempt.attempt_id(), "raw":RAW
+        }]),
+    )
 }
 
 #[tokio::test]

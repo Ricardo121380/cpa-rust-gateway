@@ -19,6 +19,47 @@ fn request(id: &str) -> Result<RequestEvent, Box<dyn Error>> {
 fn evidence() -> Result<RequestMetadataEvidence, GatewayError> {
     RequestMetadataEvidence::try_new_anthropic(M4.into())
 }
+
+#[tokio::test]
+#[ignore = "explicit synthetic fixture export for #66 stock Linux readers"]
+async fn cpar66_export_metadata_fixture() -> TestResult {
+    let dir = Directory::new()?;
+    let (queue, task) = writer(&dir, keys(1, &[1], false)?).await?;
+    let mut expected = Vec::new();
+    for version in [1, 2] {
+        let req = if version == 1 {
+            super::request("cpar66-v1", "owner")?
+        } else {
+            request("cpar66-v2")?
+        };
+        let value = if version == 1 {
+            super::evidence()?
+        } else {
+            evidence()?
+        };
+        assert_eq!(
+            queue
+                .emit_request_metadata_confirmed(req.clone(), value)
+                .await,
+            EventEmission::Persisted
+        );
+        let attempt = attempt(&req, 1)?;
+        assert_eq!(
+            queue
+                .emit_confirmed(GatewayEvent::Attempt(attempt.clone()))
+                .await,
+            EventEmission::Persisted
+        );
+        expected.push(
+            json!({"command":"request-metadata-evidence", "version":version,
+            "owner":"owner", "request":req.request_id(), "attempt":attempt.attempt_id(),
+            "raw":if version == 1 { RAW } else { M4 }}),
+        );
+    }
+    drop(queue);
+    assert_eq!(task.await?.required_events_quarantined, 0);
+    cpar66_export::export(&dir.db(), "metadata", &json!(expected))
+}
 fn metadata_rows(dir: &Directory) -> Result<Vec<Value>, Box<dyn Error>> {
     let db = gateway_store::open(dir.db())?;
     let mut statement=db.prepare("SELECT request_id,client_key_id,created_at_ms,expires_at_ms,payload_version,key_version,ciphertext FROM request_metadata_evidence ORDER BY request_id")?;
