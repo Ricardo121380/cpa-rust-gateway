@@ -105,3 +105,4 @@ Real Provider, remote CI, release/deployment and #66/#67 remain outside this sli
 - `public_build_messages_m4_metadata_is_private`
 - `public_build_messages_local_controls_keep_two_tool_cycles`
 - `messages_metadata_v2_owner_recovery_and_legacy_coexistence`
+- `native_metadata_keeps_original_whitespace_escapes_and_opaque_string`

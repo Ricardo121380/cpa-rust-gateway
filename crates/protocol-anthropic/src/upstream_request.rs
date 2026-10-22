@@ -39,6 +39,15 @@ const THINKING_RESERVED_FIELDS: &[&str] = &["type"];
 /// Content-block type labels this codec owns; a retained opaque block may not reuse one.
 const KNOWN_BLOCK_TYPES: &[&str] = &["text", "tool_use", "tool_result"];
 
+/// Metadata is retained as a raw token by the decoder; preserve it on the native inverse too.
+#[derive(serde::Serialize)]
+struct RequestBody<'a> {
+    #[serde(flatten)]
+    fields: Map<String, Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    metadata: Option<&'a RawJson>,
+}
+
 /// Encodes one canonical request as a complete `Anthropic` Messages JSON request body.
 ///
 /// The caller supplies the already selected upstream model; the client-visible requested model is
@@ -99,7 +108,14 @@ pub fn encode_upstream_request(
         return Err(provider_protocol_error());
     }
 
-    serde_json::to_string(&Value::Object(root)).map_err(|_| internal_error())
+    let _ = root.remove("metadata");
+    serde_json::to_string(&RequestBody {
+        fields: root,
+        metadata: request
+            .extensions
+            .get(gateway_core::ANTHROPIC_MESSAGES_METADATA),
+    })
+    .map_err(|_| internal_error())
 }
 
 /// Requires the one `Anthropic` output limit using the inbound decoder's exact predicate.
@@ -498,6 +514,24 @@ mod tests {
                 "../../../tests/fixtures/anthropic/upstream-outbound-request.json"
             ))?
         );
+        Ok(())
+    }
+
+    #[test]
+    fn native_metadata_keeps_original_whitespace_escapes_and_opaque_string()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let metadata = r#"{ "user_id" : "{\"device_id\":1,\"device_id\":2} \u9e1f" }"#;
+        let inbound = format!(
+            r#"{{"model":"gateway-claude","max_tokens":8,"messages":[{{"role":"user","content":"question"}}],"metadata":{metadata}}}"#
+        );
+        let mut expected = decode_request(&inbound)?.request;
+        expected.requested_model = UPSTREAM_MODEL.to_owned();
+        for mode in [ResponseMode::NonStreaming, ResponseMode::Streaming] {
+            let encoded = encode_upstream_request(UPSTREAM_MODEL, &expected, mode)?;
+            let root: gateway_core::RawExtensions = serde_json::from_str(&encoded)?;
+            assert_eq!(root.get("metadata").ok_or("metadata")?.get(), metadata);
+            assert_eq!(decode_request(&encoded)?.request, expected);
+        }
         Ok(())
     }
 
