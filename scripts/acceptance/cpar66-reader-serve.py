@@ -179,7 +179,7 @@ print(json.dumps(rows))
             "--active-master-key-version", "1", "--client-key-id", owner or item["owner"],
             "--request-id", request or item["request"], "--attempt-id", attempt or item["attempt"], "--output", str(output)]
         result = subprocess.run(command, env=self.env, cwd=self.root, capture_output=True, timeout=15)
-        self.check(label + " no private stdout or error", not result.stdout and b"PRIVATE_" not in result.stderr)
+        self.reader_streams(result, label)
         self.report["reads"].append({"label": label, "command": item["command"], "request": item["request"],
             "binary_sha256": sha(self.binary), "exit": result.returncode})
         if wrong_key:
@@ -209,7 +209,15 @@ print(json.dumps(rows))
                 and record["client_key_id"] == item["owner"] and record["attempt"]["request_id"] == item["request"]
                 and record["attempt"]["attempt_id"] == item["attempt"] and record["execution"]["channel"] == "grok.build")
         again = subprocess.run(command, env=self.env, cwd=self.root, capture_output=True, timeout=15)
+        self.reader_streams(again, label + " overwrite")
         self.check(label + " overwrite refusal", again.returncode != 0 and json.loads(output.read_text()) == value)
+
+    def reader_streams(self, result, label):
+        # The existing reader emits a fixed, value-free acknowledgement on success.
+        # Require exact streams so neither evidence nor identifiers can leak through them.
+        expected = (b"evidence diagnostic written to private output\n", b"") if result.returncode == 0 else (
+            b"", b"gateway: private evidence diagnostic unavailable; no retention confirmation\n")
+        self.check(label + " exact value-free stdout and stderr", (result.stdout, result.stderr) == expected)
 
     def evidence_snapshot(self):
         with sqlite3.connect(self.db) as db:
