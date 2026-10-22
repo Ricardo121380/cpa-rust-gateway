@@ -13,3 +13,4 @@ RUN curl --fail --silent --show-error --location https://nodejs.org/dist/v24.19.
     && test "$(node --version)" = v24.19.0 \
     && test "$(rustc --version | cut -d ' ' -f 2)" = 1.97.1
 RUN cargo install --locked cargo-cyclonedx --version 0.5.9
+RUN rustup component add clippy rustfmt --toolchain 1.97.1
