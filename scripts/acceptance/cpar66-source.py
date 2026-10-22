@@ -84,13 +84,24 @@ def freeze(root, output):
         raise ValueError("checkout changed during source freeze")
     dirty = set(os.fsdecode(p) for p in (git(root, "diff", "HEAD", "--name-only", "-z")
         + git(root, "ls-files", "--others", "--exclude-standard", "-z")).split(b"\0") if p)
-    overlay = [{**row, "purpose": "explicit worktree overlay; retained as an actual source input"}
-        for row in rows if row["path"] in dirty]
+    git_modes = {}
+    for record in git(root, "ls-files", "--stage", "-z").split(b"\0"):
+        if record:
+            fields, name = record.split(b"\t", 1)
+            mode = int(fields.split()[0], 8)
+            git_modes[os.fsdecode(name)] = 0o777 if stat.S_ISLNK(mode) else mode & 0o777
+    attributes = {row["path"] for row in rows if row["path"] in git_modes
+        and row["mode"] != git_modes[row["path"]]}
+    overlay = [{**row, "git_status_overlay": row["path"] in dirty,
+        "permission_overlay": row["path"] in attributes,
+        "purpose": "actual worktree input; preserve content, permission bits and symlink target"}
+        for row in rows if row["path"] in dirty | attributes]
     (output / "overlay.json").write_bytes(encoded(overlay))
     binding = {"schema": "cpar66-local-source-v1", "base_commit": head,
         "tree": git(root, "rev-parse", "HEAD^{tree}").decode().strip(),
         "source_form": "base_commit_plus_overlay" if overlay else "git_tree",
         "source_date_epoch": epoch, "inputs": len(rows), "overlay_files": len(overlay),
+        "git_status_overlay_files": len(dirty), "permission_overlay_files": len(attributes),
         "input_manifest_sha256": digest(manifest.read_bytes()),
         "overlay_sha256": digest((output / "overlay.json").read_bytes()),
         "source_archive_sha256": digest((output / "source.tar").read_bytes()),
