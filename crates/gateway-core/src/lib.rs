@@ -33,7 +33,8 @@ pub use canonical_event::{
 };
 pub use canonical_request::CanonicalRequest;
 pub use error::{
-    ErrorScope, GatewayError, GatewayErrorCode, ModelIdentityRejection, ResponseProjectionRejection,
+    ErrorScope, GatewayError, GatewayErrorCode, ModelIdentityRejection, RequestRejection,
+    ResponseProjectionRejection,
 };
 pub use execution_identity::{AttemptExecutionIdentity, EffectiveCapabilities, ExecutionEgress};
 pub use gateway_event::{

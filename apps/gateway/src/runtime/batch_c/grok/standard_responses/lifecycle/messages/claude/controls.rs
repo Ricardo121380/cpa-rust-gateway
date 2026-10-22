@@ -7,6 +7,110 @@ fn request(streaming: bool) -> Value {
 }
 
 #[actix_web::test]
+async fn public_build_messages_effort_rejection_is_specific_and_preserves_request_only()
+-> TestResult {
+    for streaming in [false, true] {
+        let peer = ModelPeer::start_wire(streaming, tool_rounds::wire(1, streaming)?)?;
+        let fixture = lifecycle_fixture(MessagesTransport::new(&peer, 7)?)?;
+        let recording = Recording::start(&fixture, false)?;
+        let (url, server) = namespaces::listener(&fixture)?;
+        let mut body = request(streaming);
+        body["output_config"] = json!({"effort":"high"});
+        body["context_management"] = local_controls::keep_all();
+        let (status, id, bytes) = local_controls::send(
+            &fixture,
+            &url,
+            local_controls::with_metadata(&body, local_controls::METADATA),
+        )
+        .await?;
+        assert_eq!(status, 400);
+        assert_eq!(
+            serde_json::from_slice::<Value>(&bytes)?,
+            json!({"type":"error",
+            "error":{"type":"invalid_request_error", "message":
+                "output_config.effort: Extra inputs are not permitted by the current gateway conversion; no upstream request was sent"}})
+        );
+        local_controls::assert_metadata(&fixture, &id, local_controls::METADATA, 0)?;
+        assert_eq!(peer.accepted.load(Ordering::SeqCst), 0);
+        assert!(peer.requests.lock().map_err(|_| "receiver")?.is_empty());
+        assert_eq!(active_leases(&fixture), 0);
+        server.stop(false).await;
+        rejected_accounting(&recording.finish(&fixture, 0).await?).await?;
+    }
+    Ok(())
+}
+
+#[actix_web::test]
+async fn public_build_messages_effort_diagnostic_preserves_independent_rejections() -> TestResult {
+    for streaming in [false, true] {
+        let peer = ModelPeer::start_wire(streaming, tool_rounds::wire(1, streaming)?)?;
+        let fixture = lifecycle_fixture(MessagesTransport::new(&peer, 7)?)?;
+        let (url, server) = namespaces::listener(&fixture)?;
+        for (key, value) in [
+            ("thinking", json!({"type":"adaptive"})),
+            ("unknown_after_output", json!({"private":"never echo"})),
+            (
+                "output_config",
+                json!({"effort":"high","unknown":"private"}),
+            ),
+            ("output_config", json!({"effort":null})),
+            ("context_management", json!({"edits":[]})),
+            (
+                "messages",
+                json!([{"role":"user","content":[{"type":"text","text":"question","cache_control":{"type":"ephemeral"}}]}]),
+            ),
+        ] {
+            let mut body = request(streaming);
+            body["output_config"] = json!({"effort":"high"});
+            body[key] = value;
+            let (status, _, bytes) = local_controls::send(&fixture, &url, body.to_string()).await?;
+            assert_eq!(status, 400);
+            let error: Value = serde_json::from_slice(&bytes)?;
+            assert_eq!(error["error"]["message"], "the client request is invalid");
+            assert!(!String::from_utf8_lossy(&bytes).contains("private"));
+        }
+        let reply=reqwest::Client::builder().no_proxy().build()?.post(url.replace("/v1/responses","/v1/messages"))
+            .bearer_auth("synthetic-wrong-key").header("content-type","application/json").body(json!({"model":"grok-4.5","max_tokens":19,"messages":[{"role":"user","content":"question"}],"output_config":{"effort":"high"}}).to_string()).send().await?;
+        assert_eq!(reply.status(), reqwest::StatusCode::UNAUTHORIZED);
+        assert!(!reply.text().await?.contains("output_config.effort"));
+        assert_eq!(peer.accepted.load(Ordering::SeqCst), 0);
+        assert!(peer.requests.lock().map_err(|_| "receiver")?.is_empty());
+        assert_eq!(active_leases(&fixture), 0);
+        server.stop(false).await;
+    }
+    Ok(())
+}
+
+#[actix_web::test]
+async fn public_build_messages_missing_runtime_is_not_an_effort_rejection() -> TestResult {
+    let peer = ModelPeer::start_wire(false, tool_rounds::wire(1, false)?)?;
+    let (channel, secret) = native_channels()[0];
+    let fixture = fixture_with_configuration(
+        channel,
+        secret.as_bytes(),
+        false,
+        |config| {
+            config.public_models[0].model_name = "grok-4.5".into();
+            Ok(())
+        },
+        |endpoints| {
+            endpoints.clear();
+            Ok(())
+        },
+    )?;
+    let (url, server) = namespaces::listener(&fixture)?;
+    let mut body = request(false);
+    body["output_config"] = json!({"effort":"high"});
+    let (status, _, bytes) = local_controls::send(&fixture, &url, body.to_string()).await?;
+    assert_eq!(status, 503);
+    assert!(!String::from_utf8_lossy(&bytes).contains("output_config.effort"));
+    assert_eq!(peer.accepted.load(Ordering::SeqCst), 0);
+    assert_eq!(fixture.events.attempts()?, 0);
+    server.stop(false).await;
+    Ok(())
+}
+
+#[actix_web::test]
 async fn public_build_messages_observed_claude_controls_reject_before_send() -> TestResult {
     for streaming in [false, true] {
         for (key, value) in [

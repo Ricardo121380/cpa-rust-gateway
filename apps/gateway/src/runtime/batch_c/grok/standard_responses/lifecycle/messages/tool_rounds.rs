@@ -2,7 +2,7 @@
 use super::*;
 use sha2::{Digest, Sha256};
 
-fn output(round: usize) -> Value {
+pub(super) fn output(round: usize) -> Value {
     let original = super::super::super::tool_rounds::output(round);
     let mut items = vec![original[0].clone(), original[1].clone()];
     if round == 2 {
@@ -16,12 +16,19 @@ fn output(round: usize) -> Value {
     json!(items)
 }
 
+pub(super) fn wire(round: usize, streaming: bool) -> Result<String, Box<dyn Error>> {
+    wire_output(round, streaming, &output(round))
+}
+
 #[allow(
     clippy::too_many_lines,
-    reason = "one closed interleaved wire fixture keeps native part/item order auditable"
+    reason = "shared closed Messages wire fixture renderer"
 )]
-pub(super) fn wire(round: usize, streaming: bool) -> Result<String, Box<dyn Error>> {
-    let items = output(round);
+pub(super) fn wire_output(
+    round: usize,
+    streaming: bool,
+    items: &Value,
+) -> Result<String, Box<dyn Error>> {
     let items = items.as_array().ok_or("items")?;
     let mut terminal = response();
     terminal["usage"]["input_tokens_details"] = json!({"cached_tokens":0});

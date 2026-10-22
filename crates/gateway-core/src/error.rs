@@ -29,6 +29,14 @@ impl fmt::Display for ResponseProjectionRejection {
 }
 impl Error for ResponseProjectionRejection {}
 
+/// Closed, value-free reason for a request rejected by the gateway before dispatch.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RequestRejection {
+    /// All applicable conversions reject the Messages overall effort control.
+    MessagesEffortUnsupported,
+}
+
 /// Closed reasons for rejecting an unproven Build model identity, without native values.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -208,6 +216,8 @@ pub struct GatewayError {
     projection_rejection: Option<ResponseProjectionRejection>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     model_identity_rejection: Option<ModelIdentityRejection>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    request_rejection: Option<RequestRejection>,
 }
 
 impl GatewayError {
@@ -222,6 +232,7 @@ impl GatewayError {
             scope,
             projection_rejection: None,
             model_identity_rejection: None,
+            request_rejection: None,
         }
     }
 
@@ -233,6 +244,7 @@ impl GatewayError {
             scope: ErrorScope::Stream,
             projection_rejection: Some(reason),
             model_identity_rejection: None,
+            request_rejection: None,
         }
     }
 
@@ -254,6 +266,19 @@ impl GatewayError {
             scope,
             projection_rejection: None,
             model_identity_rejection: Some(reason),
+            request_rejection: None,
+        }
+    }
+
+    /// Reports only a proven local conversion rejection, never an upstream error.
+    #[must_use]
+    pub const fn messages_effort_unsupported() -> Self {
+        Self {
+            code: GatewayErrorCode::ClientRequestError,
+            scope: ErrorScope::Request,
+            projection_rejection: None,
+            model_identity_rejection: None,
+            request_rejection: Some(RequestRejection::MessagesEffortUnsupported),
         }
     }
 
@@ -284,6 +309,9 @@ impl GatewayError {
     /// Returns the fixed, secret-free diagnostic message for the error category.
     #[must_use]
     pub const fn safe_message(&self) -> &'static str {
+        if let Some(RequestRejection::MessagesEffortUnsupported) = self.request_rejection {
+            return "output_config.effort: Extra inputs are not permitted by the current gateway conversion; no upstream request was sent";
+        }
         if let Some(reason) = self.model_identity_rejection {
             return match reason {
                 ModelIdentityRejection::RequestMismatch => {

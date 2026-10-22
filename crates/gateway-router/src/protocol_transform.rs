@@ -154,6 +154,8 @@ pub enum ProtocolTransformRejection {
     LosslessBridgeProtocolMatch,
     /// A request-level opaque extension would be dropped by Canonical conversion.
     UnknownRequestExtensions,
+    /// Messages overall effort has no equivalent in the current cross-protocol conversion.
+    MessagesEffortUnsupported,
     /// A message-level opaque extension would be dropped by Canonical conversion.
     UnknownMessageExtensions,
     /// A text content-level opaque extension would be dropped by Canonical conversion.
@@ -389,7 +391,17 @@ pub fn project_protocol_request(
     let projected = if input.source == input.target {
         input.request.clone()
     } else {
-        project_cross_protocol(input.request, input.source, input.target)?
+        match project_cross_protocol(input.request, input.source, input.target) {
+            Ok(projected) => projected,
+            Err(ProtocolTransformRejection::MessagesEffortUnsupported) => {
+                // Diagnose effort only after the remaining body and capability checks pass.
+                // No modified request is returned, approved, leased or sent on this path.
+                validate_target_body(input.request, input.target)?;
+                capability_rejection(input, input.request)?;
+                return Err(ProtocolTransformRejection::MessagesEffortUnsupported);
+            }
+            Err(reason) => return Err(reason),
+        }
     };
     canonical_rejection(&projected, input.target)?;
     capability_rejection(input, &projected)?;
@@ -417,8 +429,8 @@ fn project_cross_protocol(
     }
 
     let mut projected = request.clone();
-    projected.extensions = project_root_extensions(request, source, target)?;
     projected.thinking = project_thinking(request.thinking.as_ref(), source, target)?;
+    projected.extensions = project_root_extensions(request, source, target)?;
     if target == ProtocolFormat::AnthropicMessages {
         project_messages_roles(&mut projected)?;
     }
@@ -465,6 +477,7 @@ fn project_root_extensions(
 ) -> Result<RawExtensions, ProtocolTransformRejection> {
     let source_tool_choice = tool_choice_name(source);
     let mut output_limit = None;
+    let mut unsupported_messages_effort = false;
     let controls = ToolExecutionConstraints::from_request(request, source)?;
     for (name, raw) in request.extensions.iter() {
         if is_output_limit_for(name, source) {
@@ -476,6 +489,18 @@ fn project_root_extensions(
             && name == crate::MESSAGES_CONTEXT_MANAGEMENT
         {
             // The complete closed policy/history predicate was checked before projection.
+        } else if source == ProtocolFormat::AnthropicMessages
+            && target == ProtocolFormat::OpenAiResponses
+            && name == "anthropic.messages.output_config"
+            && serde_json::from_str::<RawExtensions>(raw.get()).is_ok_and(|fields| {
+                fields.iter().count() == 1
+                    && fields
+                        .get("effort")
+                        .is_some_and(|effort| serde_json::from_str::<String>(effort.get()).is_ok())
+            })
+        {
+            // Keep inspecting every root member; unknown members must retain their rejection.
+            unsupported_messages_effort = true;
         } else if name == source_tool_choice
             || source != ProtocolFormat::AnthropicMessages
                 && name == tool_controls::parallel_name(source)
@@ -493,6 +518,13 @@ fn project_root_extensions(
             }
             return Err(ProtocolTransformRejection::UnknownRequestExtensions);
         }
+    }
+
+    if unsupported_messages_effort {
+        if let Some(raw) = &output_limit {
+            validate_output_limit(raw)?;
+        }
+        return Err(ProtocolTransformRejection::MessagesEffortUnsupported);
     }
 
     let mut projected = RawExtensions::default();
@@ -597,6 +629,13 @@ fn canonical_rejection(
     target: ProtocolFormat,
 ) -> Result<(), ProtocolTransformRejection> {
     validate_target_root_extensions(request, target)?;
+    validate_target_body(request, target)
+}
+
+fn validate_target_body(
+    request: &CanonicalRequest,
+    target: ProtocolFormat,
+) -> Result<(), ProtocolTransformRejection> {
     // Responses cache controls are typed, losslessly retained fields when the target is still
     // Responses. Cross-protocol projection rejects them earlier in `project_cross_protocol`, and
     // Chat/Messages targets continue to fail closed here.

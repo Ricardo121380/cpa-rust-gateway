@@ -158,3 +158,5 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0120 Bounded Codex history and external sandbox diagnostics](ADR-0120-bounded-codex-history-and-external-diagnostics.md) — `#62 combined original-client acceptance` (Accepted bounded local history qualification and encrypted diagnostic selector pair; fixed service activation remains blocked).
 
 - [ADR-0121 Local Messages request controls](ADR-0121-local-messages-request-controls.md) — `#64 M3/M4 only` (Accepted independent Claude recipient decision, keep-all identity, explicit payload v2/schema38; M1/M2/M5 and original Claude compatibility remain blocked).
+
+- [ADR-0122 Isolated Claude restricted candidate](ADR-0122-isolated-claude-restricted-candidate.md) — `#64 D2` (Accepted isolated evaluation only; exact local effort rejection and actual-client gates; first-release admission remains separate).

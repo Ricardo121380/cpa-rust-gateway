@@ -313,3 +313,7 @@ C2 remaining delivery and immutable runtime evidence: [2026-10-21 ParallelTools 
 ## #64 local Messages M3/M4 (2026-10-22)
 
 [ADR-0121](adr/ADR-0121-local-messages-request-controls.md) and [BC-PROTOCOL-015](contracts/BC-PROTOCOL-015-local-messages-request-controls.md) define the complete keep-all identity and independent Claude local metadata recipient duties. Production candidate qualification, pre-send confirmed Request/v2 evidence, standard JSON/SSE, explicit tools/history, authorized readback and schema38 recovery are required. Existing [BC-OBS-007](contracts/BC-OBS-007-messages-summary-evidence.md) summary and [BC-PROTOCOL-010](contracts/BC-PROTOCOL-010-local-codex-client-metadata.md) C4 remain independent. Original Claude, M1/M2/M5, #61, fixed Build/real Provider, #66/#67 and release gates are unchanged.
+
+## 2026-10-22 #64 independent D2 candidate
+
+[ADR-0122](adr/ADR-0122-isolated-claude-restricted-candidate.md) and [BC-PROTOCOL-016](contracts/BC-PROTOCOL-016-claude-restricted-candidate.md) define isolated current-client configuration, exact pre-send effort rejection, client-owned negotiation and strict real tools/failure/live-cancel evidence. Original #58/#64 and fixed-service/Provider/cost gates remain separate.

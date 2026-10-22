@@ -1896,18 +1896,28 @@ fn all_matching_candidates_reject_protocol(
     candidates: &[SnapshotRouteCandidate],
     exact_model: Option<&str>,
     project: impl Fn(&SnapshotRouteCandidate) -> Result<(), ProtocolTransformRejection>,
-) -> bool {
+) -> Option<GatewayError> {
     let mut rejected = false;
+    let mut effort_only = true;
     for candidate in candidates
         .iter()
         .filter(|candidate| exact_model.is_none_or(|model| candidate.upstream_model() == model))
     {
         match project(candidate) {
-            Ok(()) | Err(ProtocolTransformRejection::PairUnregistered) => return false,
-            Err(_) => rejected = true,
+            Ok(()) | Err(ProtocolTransformRejection::PairUnregistered) => return None,
+            Err(reason) => {
+                rejected = true;
+                effort_only &= reason == ProtocolTransformRejection::MessagesEffortUnsupported;
+            }
         }
     }
-    rejected
+    rejected.then(|| {
+        if effort_only {
+            GatewayError::messages_effort_unsupported()
+        } else {
+            GatewayError::new(GatewayErrorCode::ClientRequestError, ErrorScope::Request)
+        }
+    })
 }
 
 struct P12ChannelPinFacade {
@@ -2221,7 +2231,7 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
                 // incompatible request is a client error; never reclassify an attempted call.
                 if error.code() == GatewayErrorCode::CredentialUnavailable
                     && !exact_continuation
-                    && admission_snapshot.route(&route_id).is_some_and(|route| {
+                    && let Some(rejection) = admission_snapshot.route(&route_id).and_then(|route| {
                         all_matching_candidates_reject_protocol(
                             route.candidates(),
                             exact_upstream_model.as_deref(),
@@ -2229,7 +2239,7 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
                         )
                     })
                 {
-                    GatewayError::new(GatewayErrorCode::ClientRequestError, ErrorScope::Request)
+                    rejection
                 } else {
                     error
                 }
@@ -13638,32 +13648,71 @@ mod tests {
             candidate("compatible-unavailable", "model-a", 0)?,
         ];
         assert!(!candidates[1].is_hard_eligible());
-        assert!(!super::all_matching_candidates_reject_protocol(
-            &candidates,
-            None,
-            |candidate| {
+        assert!(
+            super::all_matching_candidates_reject_protocol(&candidates, None, |candidate| {
                 if candidate.id().as_str() == "compatible-unavailable" {
-                    Ok(())
+                    assert_eq!(
+            super::all_matching_candidates_reject_protocol(&candidates, None, |_| Err(
+                gateway_router::ProtocolTransformRejection::MessagesEffortUnsupported
+            )),
+            Some(GatewayError::messages_effort_unsupported())
+        );
+        assert_eq!(
+            super::all_matching_candidates_reject_protocol(&candidates, None, |candidate| Err(
+                if candidate.id().as_str() == "compatible-unavailable" {
+                    gateway_router::ProtocolTransformRejection::ThinkingUnsupported
+                } else {
+                    gateway_router::ProtocolTransformRejection::MessagesEffortUnsupported
+                }
+            )),
+            Some(GatewayError::new(GatewayErrorCode::ClientRequestError, ErrorScope::Request))
+        );
+        Ok(())
                 } else {
                     Err(gateway_router::ProtocolTransformRejection::ReasoningUnsupported)
                 }
-            }
-        ));
-        assert!(super::all_matching_candidates_reject_protocol(
-            &candidates,
-            None,
-            |_| Err(gateway_router::ProtocolTransformRejection::ReasoningUnsupported)
-        ));
-        assert!(!super::all_matching_candidates_reject_protocol(
-            &candidates,
-            None,
-            |_| Err(gateway_router::ProtocolTransformRejection::PairUnregistered)
-        ));
-        assert!(!super::all_matching_candidates_reject_protocol(
-            &candidates,
-            Some("other-model"),
-            |_| Err(gateway_router::ProtocolTransformRejection::ReasoningUnsupported)
-        ));
+            })
+            .is_none()
+        );
+        assert!(
+            super::all_matching_candidates_reject_protocol(&candidates, None, |_| Err(
+                gateway_router::ProtocolTransformRejection::ReasoningUnsupported
+            ))
+            .is_some()
+        );
+        assert!(
+            super::all_matching_candidates_reject_protocol(&candidates, None, |_| Err(
+                gateway_router::ProtocolTransformRejection::PairUnregistered
+            ))
+            .is_none()
+        );
+        assert!(
+            super::all_matching_candidates_reject_protocol(
+                &candidates,
+                Some("other-model"),
+                |_| Err(gateway_router::ProtocolTransformRejection::ReasoningUnsupported)
+            )
+            .is_none()
+        );
+        assert_eq!(
+            super::all_matching_candidates_reject_protocol(&candidates, None, |_| Err(
+                gateway_router::ProtocolTransformRejection::MessagesEffortUnsupported
+            )),
+            Some(GatewayError::messages_effort_unsupported())
+        );
+        assert_eq!(
+            super::all_matching_candidates_reject_protocol(&candidates, None, |candidate| Err(
+                if candidate.id().as_str() == "compatible-unavailable" {
+                    gateway_router::ProtocolTransformRejection::ThinkingUnsupported
+                } else {
+                    gateway_router::ProtocolTransformRejection::MessagesEffortUnsupported
+                }
+            )),
+            Some(GatewayError::new(
+                GatewayErrorCode::ClientRequestError,
+                ErrorScope::Request
+            ))
+        );
         Ok(())
     }
 

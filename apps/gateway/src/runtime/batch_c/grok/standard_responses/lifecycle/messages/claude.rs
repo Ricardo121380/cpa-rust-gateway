@@ -4,6 +4,7 @@ use super::*;
 use actix_web::middleware::from_fn;
 use sha2::{Digest, Sha256};
 mod controls;
+mod d2;
 
 #[actix_web::test]
 #[ignore = "requires the #64 frozen Claude executable and OS isolation runner"]

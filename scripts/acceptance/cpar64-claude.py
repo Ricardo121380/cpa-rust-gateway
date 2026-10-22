@@ -10,6 +10,10 @@ import socket
 import subprocess
 import sys
 import tempfile
+import queue
+import signal
+import threading
+import time
 from urllib.parse import urlsplit
 
 
@@ -106,6 +110,7 @@ def freeze(root):
         raise RuntimeError('this runner requires macOS Seatbelt')
     source = ENTRY.resolve(strict=True)
     before = {'entry': str(ENTRY), 'link': os.readlink(ENTRY) if ENTRY.is_symlink() else None,
+              'entry_mode': ENTRY.lstat().st_mode & 0o7777,
               'actual': str(source), 'sha256': digest(source), 'mode': source.stat().st_mode & 0o777,
               'architecture': subprocess.check_output(['/usr/bin/file', str(source)], text=True).strip()}
     binary = root / 'claude'
@@ -132,7 +137,113 @@ def freeze(root):
                       'actual': str(source), 'frozen': str(binary), 'isolation': 'PASS'}))
 
 
-def client(root, base):
+def publish(path, value):
+    pending = path.with_suffix('.pending')
+    pending.write_text(json.dumps(value, indent=2) + '\n')
+    pending.replace(path)
+
+
+def stream_client(command, root, fence, env, scenario):
+    command += ['--input-format', 'stream-json']
+    process = subprocess.Popen(['/usr/bin/sandbox-exec', '-f', str(fence), *command],
+        cwd=root / 'work', env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE, text=True, bufsize=1, start_new_session=True)
+    incoming = queue.Queue()
+    lines, errors, results, sent = [], [], [], []
+
+    def read_stdout():
+        for line in process.stdout:
+            lines.append(line)
+            incoming.put(json.loads(line))
+        incoming.put(None)
+
+    readers = [threading.Thread(target=read_stdout),
+               threading.Thread(target=lambda: errors.extend(process.stderr.readlines()))]
+    for reader in readers:
+        reader.start()
+
+    def send(value):
+        sent.append(value)
+        process.stdin.write(json.dumps(value) + '\n')
+        process.stdin.flush()
+
+    def until(predicate, timeout=30):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            row = incoming.get(timeout=max(0.01, deadline - time.monotonic()))
+            if row is None:
+                raise RuntimeError('actual Claude exited before the expected event')
+            if row.get('type') == 'result':
+                results.append(row)
+            if predicate(row):
+                return row
+        raise TimeoutError('actual Claude event deadline')
+
+    def wait_file(name):
+        deadline = time.monotonic() + 25
+        while not (root / name).exists():
+            if process.poll() is not None:
+                raise RuntimeError('same Claude PID exited during live cancellation')
+            if time.monotonic() >= deadline:
+                raise TimeoutError(name)
+            time.sleep(0.01)
+        if process.poll() is not None:
+            raise RuntimeError('same Claude PID must remain alive through release')
+
+    failure = None
+    try:
+        prompts = ['Read seed.txt with Read and tell me its value.',
+                   'Use Bash to read seed.txt, add one, write result.txt and print the result.',
+                   'What is in result.txt, and how does it relate to the original seed?']
+        if scenario != 'standard':
+            prompts = ['Answer briefly; do not run tools.']
+        for prompt in prompts:
+            send({'type': 'user', 'message': {'role': 'user', 'content': prompt}})
+            if scenario == 'cancel':
+                until(lambda row: row.get('type') == 'stream_event'
+                      and row.get('event', {}).get('type') == 'content_block_delta'
+                      and row['event'].get('delta', {}).get('text') == 'partial-61')
+                publish(root / 'cancel-ready', {'pid': process.pid, 'alive': process.poll() is None})
+                wait_file('cancel-proceed')
+                sent_at = time.time_ns() // 1_000_000
+                send({'type': 'control_request', 'request_id': 'cpar64-interrupt',
+                      'request': {'subtype': 'interrupt'}})
+                acknowledgement = until(lambda row: row.get('type') == 'control_response'
+                    and row.get('response', {}).get('request_id') == 'cpar64-interrupt')
+                if acknowledgement['response'].get('subtype') != 'success':
+                    raise RuntimeError('Claude rejected its native interrupt control')
+                publish(root / 'abort-complete', {'pid': process.pid,
+                    'rpc_alive': process.poll() is None, 'abort_sent_at_ms': sent_at,
+                    'acknowledgement': acknowledgement})
+                wait_file('cancel-observed')
+                publish(root / 'alive-through-release', {'pid': process.pid,
+                    'alive': process.poll() is None, 'observed_at_ms': time.time_ns() // 1_000_000})
+            else:
+                until(lambda row: row.get('type') == 'result')
+        process.stdin.close()
+        process.wait(timeout=10)
+    except Exception as error:
+        failure = f'{type(error).__name__}: {error}'
+    finally:
+        if process.poll() is None:
+            os.killpg(process.pid, signal.SIGTERM)
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                os.killpg(process.pid, signal.SIGKILL)
+                process.wait(timeout=5)
+        for reader in readers:
+            reader.join(timeout=5)
+        results = [row for line in lines if (row := json.loads(line)).get('type') == 'result']
+        publish(root / 'client.json', {'command': command, 'pid': process.pid,
+            'exit': process.returncode, 'stdout': ''.join(lines), 'stderr': ''.join(errors),
+            'sent': sent, 'results': results, 'driver_error': failure,
+            'scenario': scenario, 'frozen_unchanged': digest(command[0]) == json.loads((root.parent / 'client-identity.json').read_text())['sha256']})
+    if failure:
+        raise RuntimeError(failure)
+
+
+def client(root, base, scenario='observation'):
     root = Path(root).resolve(strict=True)
     identity = json.loads((root.parent / 'client-identity.json').read_text())
     binary = Path(identity['frozen'])
@@ -146,6 +257,9 @@ def client(root, base):
                ANTHROPIC_MODEL='grok-4.5', ANTHROPIC_DEFAULT_HAIKU_MODEL='grok-4.5',
                ANTHROPIC_DEFAULT_SONNET_MODEL='grok-4.5', ANTHROPIC_DEFAULT_OPUS_MODEL='grok-4.5',
                NO_PROXY='127.0.0.1,localhost')
+    if os.environ.get('CPAR64_D2') == '1':
+        env.update(DISABLE_PROMPT_CACHING='1', CLAUDE_CODE_DISABLE_THINKING='1',
+                   CLAUDE_CODE_MAX_RETRIES='0', CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK='1')
     fence = root / 'client.sb'
     fence.write_text(profile(root, endpoint.port) +
                      f'(allow file-read* (literal {json.dumps(str(binary))}))\n')
@@ -153,18 +267,21 @@ def client(root, base):
     (root / 'work/seed.txt').write_text('41\n')
     command = [str(binary), '--bare', '--print', '--no-session-persistence', '--verbose',
                '--output-format', 'stream-json', '--include-partial-messages',
-               '--model', 'grok-4.5', '--tools', 'Read,Bash', '--permission-mode', 'bypassPermissions',
-               'Tell me you are ready to inspect seed.txt.']
-    result = fenced(command, root, fence, env, timeout=65)
-    receipt = {'command': command, 'exit': result.returncode, 'stdout': result.stdout,
-               'stderr': result.stderr, 'frozen_unchanged': digest(binary) == identity['sha256']}
-    (root / 'client.json').write_text(json.dumps(receipt, indent=2) + '\n')
+               '--model', 'grok-4.5', '--tools', 'Read,Bash', '--permission-mode', 'bypassPermissions']
     public_env = {key: value for key, value in env.items() if key != 'ANTHROPIC_API_KEY'}
     public_env['credential_source'] = 'synthetic fixture key, value excluded'
     (root / 'configuration.json').write_text(json.dumps(public_env, indent=2) + '\n')
+    if scenario == 'observation':
+        command.append('Tell me you are ready to inspect seed.txt.')
+        result = fenced(command, root, fence, env, timeout=65)
+        receipt = {'command': command, 'exit': result.returncode, 'stdout': result.stdout,
+                   'stderr': result.stderr, 'frozen_unchanged': digest(binary) == identity['sha256']}
+        publish(root / 'client.json', receipt)
+    else:
+        stream_client(command, root, fence, env, scenario)
 
 
-def qualify(root, diagnostic, target):
+def qualify(root, diagnostic, target, d2=False):
     repository = Path(__file__).resolve().parents[2]
     env = dict(os.environ)
     env['CARGO_TARGET_DIR'] = str(Path(target).resolve() if target else repository / 'target/cpar64')
@@ -179,8 +296,9 @@ def qualify(root, diagnostic, target):
               'root': str(repository), 'inputs': [{'path': str(path.relative_to(repository)),
               'sha256': digest(path)} for path in sorted(set(inputs))]}
     (root / 'source-inputs.json').write_text(json.dumps(source, indent=2) + '\n')
+    test_name = 'actual_claude_messages_d2_qualification' if d2 else 'actual_claude_messages_build_observation'
     command = ['cargo', 'test', '--manifest-path', str(repository / 'Cargo.toml'), '--locked',
-               '-p', 'gateway', '--bin', 'gateway', 'actual_claude_messages_build_observation',
+               '-p', 'gateway', '--bin', 'gateway', test_name,
                '--no-run', '--message-format=json']
     build = subprocess.run(command, cwd=repository, env=env, capture_output=True, text=True, timeout=600)
     (root / 'build.log').write_text(build.stdout + build.stderr)
@@ -193,12 +311,15 @@ def qualify(root, diagnostic, target):
         raise RuntimeError('expected one exact test executable')
     runtime = isolated_env(root / 'harness')
     runtime['CPAR64_RUN'] = str(root)
-    run = [binaries[0], 'actual_claude_messages_build_observation', '--ignored', '--nocapture']
+    if d2:
+        runtime['CPAR64_D2'] = '1'
+    run = [binaries[0], test_name, '--ignored', '--nocapture']
     with (root / 'qualification.log').open('w') as log:
-        result = subprocess.run(run, cwd=root, env=runtime, stdout=log, stderr=subprocess.STDOUT, timeout=120)
-    observation_path = root / 'standard/observations.json'
+        result = subprocess.run(run, cwd=root, env=runtime, stdout=log, stderr=subprocess.STDOUT, timeout=240)
+    case = 'd2-standard' if d2 else 'standard'
+    observation_path = root / case / 'observations.json'
     observation = json.loads(observation_path.read_text()) if observation_path.exists() else {}
-    client_path = root / 'standard/client.json'
+    client_path = root / case / 'client.json'
     receipt = json.loads(client_path.read_text()) if client_path.exists() else {}
     results = [row for line in receipt.get('stdout', '').splitlines() if line.strip()
                and (row := json.loads(line)).get('type') == 'result']
@@ -209,27 +330,33 @@ def qualify(root, diagnostic, target):
     unchanged = (ENTRY.resolve() == Path(before['actual']) and digest(ENTRY) == before['sha256']
                  and (os.readlink(ENTRY) if ENTRY.is_symlink() else None) == before['link']
                  and ENTRY.stat().st_mode & 0o777 == before['mode']
+                 and ENTRY.lstat().st_mode & 0o7777 == before['entry_mode']
                  and digest(before['frozen']) == before['sha256'])
     (root / 'run.json').write_text(json.dumps({'exit': result.returncode, 'command': run,
         'test_binary_sha256': digest(binaries[0]), 'target': env['CARGO_TARGET_DIR'],
         'diagnostic': diagnostic, 'observation_oracles': 'PASS' if result.returncode == 0 else 'FAIL',
-        'client_success': success, 'compatibility': observation.get('compatibility', 'UNKNOWN'),
+        'client_success': success, 'compatibility': observation.get('qualification' if d2 else 'compatibility', 'UNKNOWN'),
         'client_install_and_copy_unchanged': unchanged,
-        'claim': 'observation success cannot qualify the tool loop, summary or in-flight cancellation'}, indent=2) + '\n')
+        'claim': ('isolated D2 candidate only; original Claude and fixed service remain separate'
+                  if d2 else 'observation success cannot qualify the tool loop, summary or in-flight cancellation')}, indent=2) + '\n')
     if result.returncode or not unchanged:
         raise RuntimeError('actual-client qualification failed; original evidence retained')
-    if not diagnostic:
+    if d2 and observation.get('qualification') == 'PASS_LOCAL_CONTROLLED' and success:
+        print('D2 actual-client controlled tool qualification PASS; original Claude remains separate.')
+    elif not diagnostic:
         raise RuntimeError('Claude compatibility BLOCKED; no complete success/tool/summary/cancel evidence')
-    print('Observation oracles PASS; actual Claude tool closure BLOCKED. See run.json.')
+    else:
+        print('Observation oracles PASS; actual Claude tool closure BLOCKED. See run.json.')
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 4 and sys.argv[1] == 'client':
-        client(sys.argv[2], sys.argv[3])
+    if len(sys.argv) in (4, 5) and sys.argv[1] == 'client':
+        client(sys.argv[2], sys.argv[3], sys.argv[4] if len(sys.argv) == 5 else 'observation')
         sys.exit(0)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', required=True)
     parser.add_argument('--identity-only', action='store_true')
+    parser.add_argument('--d2', action='store_true', help='isolated no-cache/no-thinking candidate')
     parser.add_argument('--diagnostic', action='store_true',
                         help='verify exact pre-send rejection; never reports client compatibility PASS')
     parser.add_argument('--target-dir', help='explicit isolated Cargo target; default is this worktree target/cpar64')
@@ -241,4 +368,4 @@ if __name__ == '__main__':
     root.mkdir(mode=0o700)
     freeze(root)
     if not args.identity_only:
-        qualify(root, args.diagnostic, args.target_dir)
+        qualify(root, args.diagnostic, args.target_dir, args.d2)
