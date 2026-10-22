@@ -13651,23 +13651,7 @@ mod tests {
         assert!(
             super::all_matching_candidates_reject_protocol(&candidates, None, |candidate| {
                 if candidate.id().as_str() == "compatible-unavailable" {
-                    assert_eq!(
-            super::all_matching_candidates_reject_protocol(&candidates, None, |_| Err(
-                gateway_router::ProtocolTransformRejection::MessagesEffortUnsupported
-            )),
-            Some(GatewayError::messages_effort_unsupported())
-        );
-        assert_eq!(
-            super::all_matching_candidates_reject_protocol(&candidates, None, |candidate| Err(
-                if candidate.id().as_str() == "compatible-unavailable" {
-                    gateway_router::ProtocolTransformRejection::ThinkingUnsupported
-                } else {
-                    gateway_router::ProtocolTransformRejection::MessagesEffortUnsupported
-                }
-            )),
-            Some(GatewayError::new(GatewayErrorCode::ClientRequestError, ErrorScope::Request))
-        );
-        Ok(())
+                    Ok(())
                 } else {
                     Err(gateway_router::ProtocolTransformRejection::ReasoningUnsupported)
                 }

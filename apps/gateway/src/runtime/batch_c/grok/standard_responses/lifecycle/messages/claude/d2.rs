@@ -81,6 +81,19 @@ async fn actual_claude_messages_d2_qualification() -> TestResult {
         let released = wait_until(|| active_leases(&fixture) == 0).await;
         handle.stop(false).await;
         let database = recording.finish(&fixture, 0).await?;
+        // Retain a coherent encrypted database before the fixture's temporary directory drops.
+        // Billing readback below uses this private copy and the same production materializer.
+        let archive = directory.join("evidence.sqlite3");
+        gateway_store::open(&database)?.execute(
+            "VACUUM INTO ?1",
+            [archive.to_str().ok_or("private evidence path")?],
+        )?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&archive, std::fs::Permissions::from_mode(0o600))?;
+        }
+        let database = archive;
         export_capture(&ingress, &directory)?;
         std::fs::write(
             directory.join("upstream.json"),

@@ -98,6 +98,19 @@ pub(super) async fn verify(
         let raw: gateway_core::RawExtensions = serde_json::from_slice(&row.request_bytes)?;
         let metadata = raw.get("metadata").ok_or("actual M4")?;
         local_controls::assert_metadata(fixture, id, metadata.get(), attempts.len())?;
+        let archived = gateway_store::request_metadata::SqliteRequestMetadataReader::open(
+            database,
+            test_secret_store()?,
+        )?
+        .get_owned(
+            request.client_key_id(),
+            request.request_id(),
+            attempts.first().map(|a| a.attempt_id()),
+            system_now_ms_runtime()?,
+        )?
+        .ok_or("archived private M4 evidence")?;
+        assert_eq!(archived.record.evidence.raw_json(), metadata.get());
+        assert_eq!(archived.attempts.len(), attempts.len());
         let private: Value = serde_json::from_str(metadata.get())?;
         let user = private["user_id"].as_str().ok_or("opaque user")?;
         assert!(!String::from_utf8_lossy(&row.wire).contains(user));
