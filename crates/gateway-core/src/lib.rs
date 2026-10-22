@@ -59,7 +59,8 @@ pub use native_usage::{MAX_NATIVE_USAGE_BYTES, NativeUsageEvidence, NativeUsageS
 pub use raw_extension::{RawExtensionError, RawExtensions, RawJson};
 pub use request_context::RequestContext;
 pub use request_metadata::{
-    CODEX_CLIENT_METADATA, MAX_REQUEST_METADATA_BYTES, RequestMetadataEvidence,
+    ANTHROPIC_MESSAGES_METADATA, CODEX_CLIENT_METADATA, MAX_REQUEST_METADATA_BYTES,
+    RequestMetadataEvidence, RequestMetadataSource,
 };
 pub use retry_gate::{TransparentRetryGate, TransparentRetryGateFuture};
 pub use thinking::{InvalidThinkingEffort, Thinking, ThinkingEffort};

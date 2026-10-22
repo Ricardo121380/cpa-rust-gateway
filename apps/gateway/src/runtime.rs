@@ -1932,19 +1932,25 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
         &self,
         execution: &mut ResponsesExecution,
     ) -> Result<Option<gateway_core::RequestMetadataEvidence>, GatewayError> {
-        if execution
+        let codex = execution
             .request()
             .extensions
             .get(gateway_core::CODEX_CLIENT_METADATA)
-            .is_none()
-        {
+            .is_some();
+        let messages = execution
+            .request()
+            .extensions
+            .get(gateway_core::ANTHROPIC_MESSAGES_METADATA)
+            .is_some();
+        if !codex && !messages {
             return Ok(None);
         }
         let rejected =
             || GatewayError::new(GatewayErrorCode::ClientRequestError, ErrorScope::Request);
         if !self.snapshot_is_current()
             || execution.context().client_key_id().is_none()
-            || execution.client_protocol() != ProtocolFormat::OpenAiResponses
+            || codex && (messages || execution.client_protocol() != ProtocolFormat::OpenAiResponses)
+            || messages && execution.client_protocol() != ProtocolFormat::AnthropicMessages
             || execution.client_transport() != ResponsesClientTransport::Http
         {
             return Err(rejected());
@@ -1968,11 +1974,15 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
         if candidates.is_empty()
             || candidates.iter().any(|candidate| {
                 candidate.protocol_format() != Some(ProtocolFormat::OpenAiResponses)
-                    || !matches!(
-                        candidate.transform_mode(),
-                        gateway_router::SnapshotTransformMode::Canonical
-                            | gateway_router::SnapshotTransformMode::CanonicalBridge
-                    )
+                    || messages
+                        && candidate.transform_mode()
+                            != gateway_router::SnapshotTransformMode::CanonicalBridge
+                    || codex
+                        && !matches!(
+                            candidate.transform_mode(),
+                            gateway_router::SnapshotTransformMode::Canonical
+                                | gateway_router::SnapshotTransformMode::CanonicalBridge
+                        )
                     || !self
                         .endpoints
                         .get(candidate.endpoint_id())
@@ -4785,6 +4795,20 @@ impl EndpointAttemptDriver {
         candidate: &SnapshotRouteCandidate,
         target: ProtocolFormat,
     ) -> Result<(), ProtocolTransformRejection> {
+        if self
+            .request
+            .extensions
+            .get(gateway_router::MESSAGES_CONTEXT_MANAGEMENT)
+            .is_some()
+            && (self.client_protocol != ProtocolFormat::AnthropicMessages
+                || self.client_transport != ResponsesClientTransport::Http
+                || target != ProtocolFormat::OpenAiResponses
+                || candidate.transform_mode()
+                    != gateway_router::SnapshotTransformMode::CanonicalBridge
+                || !matches!(runtime.adapter, EndpointAdapter::GrokBuildResponses))
+        {
+            return Err(ProtocolTransformRejection::UnknownRequestExtensions);
+        }
         let namespaces =
             protocol_openai_responses::requires_tool_identity_qualification(&self.request);
         let search = protocol_openai_responses::web_search::requires_qualification(&self.request);

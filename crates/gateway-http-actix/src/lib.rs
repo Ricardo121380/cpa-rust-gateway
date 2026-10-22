@@ -2078,9 +2078,6 @@ async fn responses(
         owned_continuation,
         false,
     );
-    let metadata = state.executor.prepare_request_metadata(&mut execution);
-    // Replay roots contain only the executable request, after local-only fields are consumed.
-    let canonical_request_for_store = decoded.store.then(|| execution.request().clone());
     let request_event = RequestEvent::new(
         request_id.clone(),
         client_key_id.clone(),
@@ -2092,38 +2089,19 @@ async fn responses(
         decoded.mode == ResponseMode::Streaming,
     )
     .with_started_at_ms(request_start.1);
-    let admission = match &metadata {
-        Ok(Some(evidence)) => {
-            usage_observer
-                .event_sink
-                .emit_request_metadata_confirmed(request_event, evidence.clone())
-                .await
-        }
-        _ => {
-            usage_observer
-                .event_sink
-                .emit_confirmed(GatewayEvent::Request(request_event))
-                .await
-        }
-    };
-    let admission_result = if matches!(&metadata, Ok(Some(_)))
-        && admission != gateway_core::EventEmission::Persisted
+    if let Err(error) = confirm_request_metadata(
+        state.executor.as_ref(),
+        &usage_observer,
+        &mut execution,
+        request_event,
+    )
+    .await
     {
-        Err(GatewayError::new(
-            GatewayErrorCode::RecordingUnavailable,
-            ErrorScope::Internal,
-        ))
-    } else {
-        admission.into_result()
-    };
-    if let Err(error) = admission_result {
         usage_observer.fail(&error);
         return pre_header_error(&error);
     }
-    if let Err(error) = metadata {
-        usage_observer.fail(&error);
-        return pre_header_error(&error);
-    }
+    // Replay roots contain only the executable request, after local-only fields are consumed.
+    let canonical_request_for_store = decoded.store.then(|| execution.request().clone());
     let response = async {
         if let Err(error) = execution.request().validate_tool_history() {
             usage_observer.fail(&error);
@@ -2545,6 +2523,37 @@ async fn delete_stored_response(
         )
 }
 
+async fn confirm_request_metadata(
+    executor: &dyn ResponsesExecutor,
+    observer: &UsageEventObserver,
+    execution: &mut ResponsesExecution,
+    request: RequestEvent,
+) -> Result<(), GatewayError> {
+    let metadata = executor.prepare_request_metadata(execution);
+    let admission = match &metadata {
+        Ok(Some(evidence)) => {
+            observer
+                .event_sink
+                .emit_request_metadata_confirmed(request, evidence.clone())
+                .await
+        }
+        _ => {
+            observer
+                .event_sink
+                .emit_confirmed(GatewayEvent::Request(request))
+                .await
+        }
+    };
+    if matches!(&metadata, Ok(Some(_))) && admission != gateway_core::EventEmission::Persisted {
+        return Err(GatewayError::new(
+            GatewayErrorCode::RecordingUnavailable,
+            ErrorScope::Internal,
+        ));
+    }
+    admission.into_result()?;
+    metadata.map(|_| ())
+}
+
 #[allow(clippy::too_many_lines)] // Preserve the admission-to-delivery observation sequence.
 async fn messages(
     request: HttpRequest,
@@ -2599,7 +2608,12 @@ async fn messages(
             .await;
         }
     };
-    if let Err(error) = decoded.request.validate_tool_history() {
+    let has_local_metadata = decoded
+        .request
+        .extensions
+        .get(gateway_core::ANTHROPIC_MESSAGES_METADATA)
+        .is_some();
+    if !has_local_metadata && let Err(error) = decoded.request.validate_tool_history() {
         return pre_header_anthropic_error(&error);
     }
     let requested_model = decoded.request.requested_model.clone();
@@ -2623,44 +2637,54 @@ async fn messages(
         Arc::clone(&state.event_sink),
         request_start,
     );
-    let admission = usage_observer
-        .event_sink
-        .emit_confirmed(GatewayEvent::Request(
-            RequestEvent::new(
-                request_id.clone(),
-                client_key_id,
-                access_group_id,
-                GatewayProtocol::AnthropicMessages,
-                requested_model,
-                public_model.clone(),
-                route_alias,
-                decoded.mode == AnthropicResponseMode::Streaming,
-            )
-            .with_started_at_ms(request_start.1),
-        ))
-        .await;
-    if let Err(error) = admission.into_result() {
-        usage_observer.fail(&error);
-        return pre_header_anthropic_error(&error);
-    }
+    let request_event = RequestEvent::new(
+        request_id.clone(),
+        client_key_id,
+        access_group_id,
+        GatewayProtocol::AnthropicMessages,
+        requested_model,
+        public_model.clone(),
+        route_alias,
+        decoded.mode == AnthropicResponseMode::Streaming,
+    )
+    .with_started_at_ms(request_start.1);
+    let (sender, stream) = bounded_canonical_stream(state.stream_capacity);
+    let retry_gate: Arc<dyn TransparentRetryGate> = Arc::new(stream.control());
+    let response_mode = match decoded.mode {
+        AnthropicResponseMode::NonStreaming => ResponsesResponseMode::NonStreaming,
+        AnthropicResponseMode::Streaming => ResponsesResponseMode::Streaming,
+    };
+    let mut execution = ResponsesExecution::new_for_protocol(
+        context,
+        decoded.request,
+        gateway_router::ProtocolFormat::AnthropicMessages,
+        Arc::from(body.as_bytes()),
+        route.route_id,
+        response_mode,
+        retry_gate,
+    )
+    .with_exact_upstream_model(route.exact_upstream_model)
+    .with_route_snapshot(route.snapshot);
     let response = async {
-        let (sender, stream) = bounded_canonical_stream(state.stream_capacity);
-        let retry_gate: Arc<dyn TransparentRetryGate> = Arc::new(stream.control());
-        let response_mode = match decoded.mode {
-            AnthropicResponseMode::NonStreaming => ResponsesResponseMode::NonStreaming,
-            AnthropicResponseMode::Streaming => ResponsesResponseMode::Streaming,
-        };
-        let execution = ResponsesExecution::new_for_protocol(
-            context,
-            decoded.request,
-            gateway_router::ProtocolFormat::AnthropicMessages,
-            Arc::from(body.as_bytes()),
-            route.route_id,
-            response_mode,
-            retry_gate,
+        if let Err(error) = confirm_request_metadata(
+            state.executor.as_ref(),
+            &usage_observer,
+            &mut execution,
+            request_event,
         )
-        .with_exact_upstream_model(route.exact_upstream_model)
-        .with_route_snapshot(route.snapshot);
+        .await
+        {
+            usage_observer.fail(&error);
+            return pre_header_anthropic_error(&error);
+        }
+        if has_local_metadata && let Err(error) = execution.request().validate_tool_history() {
+            usage_observer.fail(&error);
+            return pre_header_anthropic_error(&error);
+        }
+        let Ok(context_kept) = gateway_router::messages_keep_all(execution.request()) else {
+            usage_observer.fail(&client_request_error());
+            return pre_header_anthropic_error(&client_request_error());
+        };
         let mut source = match state
             .executor
             .execute_routed(
@@ -2688,7 +2712,7 @@ async fn messages(
             }
         };
         let metadata = match AnthropicResponseMetadata::try_new(public_model) {
-            Ok(metadata) => metadata,
+            Ok(metadata) => metadata.with_context_kept(context_kept),
             Err(error) => {
                 usage_observer.fail(&error);
                 return pre_header_anthropic_error(&error);

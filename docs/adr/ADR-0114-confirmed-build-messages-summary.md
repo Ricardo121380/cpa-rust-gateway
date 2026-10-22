@@ -104,3 +104,7 @@ all referenced external key versions, and a compatible reader; verify reopen, se
 processes, key rotation, exclusive expiry and an isolated encrypted restore. Never operationally
 drop the table or restore only an old binary. This ADR authorizes no production restore, real
 Provider, new paid budget, deployment, release or change to GitHub dependencies.
+
+The request-side M3/M4 subset is independently specified by
+[ADR-0121](ADR-0121-local-messages-request-controls.md). Its identity rule and Request-bound
+Claude metadata do not extend summary omission rights or permit M1/M2/M5 controls.

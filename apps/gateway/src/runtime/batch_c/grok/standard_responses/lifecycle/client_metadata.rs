@@ -339,16 +339,27 @@ async fn public_build_c4_rejects_unknown_invalid_duplicate_and_overbound_metadat
 }
 
 #[derive(Clone, Copy)]
-enum ReceiptFault {
+pub(super) enum ReceiptFault {
     Replay,
     Conflict,
     Lost,
+    Enqueued,
+    Disabled,
+    QueueFull,
 }
-struct MetadataFault {
-    inner: Arc<dyn GatewayEventSink>,
-    fault: ReceiptFault,
+pub(super) struct MetadataFault {
+    pub(super) inner: Arc<dyn GatewayEventSink>,
+    pub(super) fault: ReceiptFault,
 }
 impl GatewayEventSink for MetadataFault {
+    fn emit_summary_evidence_confirmed(
+        &self,
+        attempt: gateway_core::AttemptEvent,
+        evidence: gateway_core::MessagesSummaryEvidence,
+    ) -> gateway_core::EventEmissionFuture<'_> {
+        self.inner
+            .emit_summary_evidence_confirmed(attempt, evidence)
+    }
     fn try_emit(&self, event: GatewayEvent) -> EventEmission {
         self.inner.try_emit(event)
     }
@@ -370,16 +381,24 @@ impl GatewayEventSink for MetadataFault {
             }
             match self.fault {
                 ReceiptFault::Lost => EventEmission::PersistenceUnavailable,
+                ReceiptFault::Enqueued => EventEmission::Enqueued,
+                ReceiptFault::Disabled => EventEmission::Disabled,
+                ReceiptFault::QueueFull => EventEmission::RequiredQueueFull,
                 ReceiptFault::Replay => {
                     self.inner
                         .emit_request_metadata_confirmed(request, evidence)
                         .await
                 }
                 ReceiptFault::Conflict => {
-                    let changed = gateway_core::RequestMetadataEvidence::try_new(format!(
-                        " {}",
-                        evidence.raw_json()
-                    ));
+                    let raw = format!(" {}", evidence.raw_json());
+                    let changed = match evidence.source() {
+                        gateway_core::RequestMetadataSource::CodexClientMetadata => {
+                            gateway_core::RequestMetadataEvidence::try_new(raw)
+                        }
+                        gateway_core::RequestMetadataSource::AnthropicMessagesMetadata => {
+                            gateway_core::RequestMetadataEvidence::try_new_anthropic(raw)
+                        }
+                    };
                     match changed {
                         Ok(changed) => {
                             self.inner
@@ -492,13 +511,21 @@ async fn public_build_c4_recording_faults_never_send_or_report_success() -> Test
     Ok(())
 }
 
-struct HeldMetadata {
-    inner: Arc<dyn GatewayEventSink>,
-    entered: tokio::sync::Notify,
-    release: tokio::sync::Notify,
-    submissions: AtomicUsize,
+pub(super) struct HeldMetadata {
+    pub(super) inner: Arc<dyn GatewayEventSink>,
+    pub(super) entered: tokio::sync::Notify,
+    pub(super) release: tokio::sync::Notify,
+    pub(super) submissions: AtomicUsize,
 }
 impl GatewayEventSink for HeldMetadata {
+    fn emit_summary_evidence_confirmed(
+        &self,
+        attempt: gateway_core::AttemptEvent,
+        evidence: gateway_core::MessagesSummaryEvidence,
+    ) -> gateway_core::EventEmissionFuture<'_> {
+        self.inner
+            .emit_summary_evidence_confirmed(attempt, evidence)
+    }
     fn try_emit(&self, event: GatewayEvent) -> EventEmission {
         self.inner.try_emit(event)
     }

@@ -168,3 +168,24 @@ summary, error, cancellation and ownership boundaries remain. No C4/C5/C6 or cos
 - `build_parallel_requires_independent_qualification`
 - `public_build_parallel_json_and_interleaved_sse_keep_explicit_and_stored_cycles`
 - `public_build_parallel_usage_confirmation_failure_never_completes`
+
+## 2026-10-22 local Messages M3/M4 successor
+
+[ADR-0121](../adr/ADR-0121-local-messages-request-controls.md) and
+[BC-PROTOCOL-015](BC-PROTOCOL-015-local-messages-request-controls.md) define only standard Messages
+HTTP + actual GrokBuildResponses + Responses upstream + CanonicalBridge. M3 validates the sole
+keep:all edit and entire valid reasoning-free history on every request, including tool-result
+blocks, before projecting an unchanged history without a native Build control. JSON/final SSE
+reports applied_edits=[] without invented clearing statistics. Actual candidate admission is
+rechecked before lease/send. Other targets/adapters/modes do not inherit local consumption.
+
+M4 is consumed only after nonempty all-matching-candidate qualification. Its exact raw field,
+opaque user_id, explicit Claude v2 source and authenticated Messages Request commit before
+execution. M1/M2/M5 and invalid M3 can then reject with Request-only evidence. Unknown fields,
+other native history, thinking/cache/effort, capabilities and source Usage retain strict rules.
+
+- `public_build_messages_m3_identity_is_local`
+- `public_build_messages_m4_metadata_is_private`
+- `public_build_messages_local_controls_keep_two_tool_cycles`
+- `public_build_messages_m3_rechecks_later_history`
+- `public_build_messages_m4_request_only_preserves_m1_m2_m5_blockers`

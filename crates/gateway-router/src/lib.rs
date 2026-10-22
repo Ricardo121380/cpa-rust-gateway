@@ -10,6 +10,7 @@ mod compatible_egress_runtime;
 mod compatible_endpoint_runtime;
 mod credential_scheduler;
 mod execution_lineage;
+mod messages_controls;
 mod protocol_transform;
 mod provider_egress_state;
 mod provider_scoped_selector;
@@ -62,6 +63,7 @@ pub use execution_lineage::{
 };
 pub use gateway_catalog::CapabilitySet;
 pub use gateway_core::TransparentRetryGate as AttemptRetryGate;
+pub use messages_controls::{MESSAGES_CONTEXT_MANAGEMENT, messages_keep_all};
 pub use protocol_transform::{
     NativePayloadAvailability, ProjectedProtocolRequest, ProtocolFormat,
     ProtocolTransformAdmission, ProtocolTransformInput, ProtocolTransformRejection,
@@ -290,21 +292,26 @@ impl ResponsesExecution {
     /// The caller must confirm the returned evidence before executing this handoff.
     ///
     /// # Errors
-    /// Rejects invalid C4 shapes without changing the execution request.
+    /// Rejects invalid source-specific shapes without changing the execution request.
     pub fn take_request_metadata(
         &mut self,
     ) -> Result<Option<gateway_core::RequestMetadataEvidence>, GatewayError> {
-        let Some(raw) = self
-            .request
-            .extensions
-            .get(gateway_core::CODEX_CLIENT_METADATA)
-        else {
+        let field = match self.client_protocol {
+            ProtocolFormat::OpenAiResponses => gateway_core::CODEX_CLIENT_METADATA,
+            ProtocolFormat::AnthropicMessages => gateway_core::ANTHROPIC_MESSAGES_METADATA,
+            ProtocolFormat::OpenAiChatCompletions => return Ok(None),
+        };
+        let Some(raw) = self.request.extensions.get(field) else {
             return Ok(None);
         };
-        let evidence = gateway_core::RequestMetadataEvidence::try_new(raw.get().to_owned())?;
+        let evidence = if self.client_protocol == ProtocolFormat::AnthropicMessages {
+            gateway_core::RequestMetadataEvidence::try_new_anthropic(raw.get().to_owned())?
+        } else {
+            gateway_core::RequestMetadataEvidence::try_new(raw.get().to_owned())?
+        };
         let mut remaining = gateway_core::RawExtensions::default();
         for (name, value) in self.request.extensions.iter() {
-            if name != gateway_core::CODEX_CLIENT_METADATA {
+            if name != field {
                 remaining.try_insert(name, value.clone()).map_err(|_| {
                     GatewayError::new(
                         gateway_core::GatewayErrorCode::ClientRequestError,
@@ -496,11 +503,12 @@ pub trait ResponsesExecutor: Send + Sync {
         &self,
         execution: &mut ResponsesExecution,
     ) -> Result<Option<gateway_core::RequestMetadataEvidence>, GatewayError> {
-        if execution
-            .request()
-            .extensions
-            .get(gateway_core::CODEX_CLIENT_METADATA)
-            .is_some()
+        if [
+            gateway_core::CODEX_CLIENT_METADATA,
+            gateway_core::ANTHROPIC_MESSAGES_METADATA,
+        ]
+        .into_iter()
+        .any(|field| execution.request().extensions.get(field).is_some())
         {
             return Err(GatewayError::new(
                 gateway_core::GatewayErrorCode::ClientRequestError,

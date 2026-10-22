@@ -211,6 +211,9 @@ pub(super) fn client_result(bytes: &[u8], streaming: bool) -> Result<Value, Box<
                 result["stop_reason"] = frame["delta"]["stop_reason"].clone();
                 result["stop_sequence"] = frame["delta"]["stop_sequence"].clone();
                 result["usage"] = frame["usage"].clone();
+                if let Some(context) = frame.get("context_management") {
+                    result["context_management"] = context.clone();
+                }
             }
             _ => {}
         }
@@ -221,6 +224,14 @@ pub(super) fn client_result(bytes: &[u8], streaming: bool) -> Result<Value, Box<
 
 #[actix_web::test]
 async fn public_build_messages_json_and_sse_keep_two_standard_tool_cycles() -> TestResult {
+    run_cycles(false).await
+}
+
+#[allow(
+    clippy::too_many_lines,
+    reason = "one public dialogue retains ordered native histories, summary receipts and JSON/SSE parity together"
+)]
+pub(super) async fn run_cycles(local: bool) -> TestResult {
     let mut json_results = None;
     for (streaming, size) in [(false, 31), (true, 1), (true, 7), (true, 31)] {
         let peer = ModelPeer::start_sequence(
@@ -231,26 +242,29 @@ async fn public_build_messages_json_and_sse_keep_two_standard_tool_cycles() -> T
         )?;
         let fixture = lifecycle_fixture(MessagesTransport::new(&peer, size)?)?;
         let recording = Recording::start(&fixture, false)?;
-        let app = test::init_service(
-            App::new()
-                .app_data(web::Data::new(fixture.state.clone()))
-                .configure(gateway_http_actix::configure),
-        )
-        .await;
+        let (url, server) = namespaces::listener(&fixture)?;
         let mut history = vec![json!({"role":"user","content":"question"})];
         let mut results = Vec::new();
         for round in 0..5 {
-            let body = json!({"model":"p12-test-model","max_tokens":19,"stream":streaming,"messages":history,
+            let mut body = json!({"model":"p12-test-model","max_tokens":19,"stream":streaming,"messages":history,
                 "tools":[{"name":"lookup","input_schema":{"type":"object"}}]});
-            let reply = test::call_service(
-                &app,
-                test::TestRequest::post()
-                    .uri("/v1/messages")
-                    .insert_header(("authorization", format!("Bearer {}", fixture.key)))
-                    .set_json(body)
-                    .to_request(),
-            )
-            .await;
+            let raw_metadata = local_controls::METADATA
+                .replace("PRIVATE_SESSION", &format!("PRIVATE_SESSION_{round}"));
+            let encoded = if local {
+                body["context_management"] = local_controls::keep_all();
+                local_controls::with_metadata(&body, &raw_metadata)
+            } else {
+                body.to_string()
+            };
+            let reply = reqwest::Client::builder()
+                .no_proxy()
+                .build()?
+                .post(url.replace("/v1/responses", "/v1/messages"))
+                .bearer_auth(&fixture.key)
+                .header("content-type", "application/json")
+                .body(encoded)
+                .send()
+                .await?;
             let status = reply.status();
             let request_id = reply
                 .headers()
@@ -258,16 +272,21 @@ async fn public_build_messages_json_and_sse_keep_two_standard_tool_cycles() -> T
                 .ok_or("id")?
                 .to_str()?
                 .to_owned();
-            let bytes = test::read_body(reply).await;
+            let bytes = reply.bytes().await?;
             assert_eq!(
                 status,
-                StatusCode::OK,
+                reqwest::StatusCode::OK,
                 "{}",
                 String::from_utf8_lossy(&bytes)
             );
             assert!(!String::from_utf8_lossy(&bytes).contains("计划"));
             assert!(!String::from_utf8_lossy(&bytes).contains("thinking"));
             let result = client_result(&bytes, streaming)?;
+            local_controls::assert_context(&bytes, streaming, local)?;
+            assert!(!String::from_utf8_lossy(&bytes).contains("M4_PRIVATE"));
+            if local {
+                local_controls::assert_metadata(&fixture, &request_id, &raw_metadata, 1)?;
+            }
             assert_eq!(result["model"], "grok-4.5");
             assert_eq!(result["usage"]["input_tokens"], 20);
             assert_eq!(result["usage"]["output_tokens"], 7);
@@ -322,6 +341,12 @@ async fn public_build_messages_json_and_sse_keep_two_standard_tool_cycles() -> T
             assert_eq!(request.body["model"], "grok-4.5");
             assert_eq!(request.model_override, "grok-4.5");
             assert_eq!(request.body["max_output_tokens"], 19);
+            assert_eq!(request.body["input"], local_controls::expected_input(round));
+            assert!(
+                request.body.get("metadata").is_none()
+                    && request.body.get("context_management").is_none()
+            );
+            assert!(!String::from_utf8_lossy(&request.wire).contains("M4_PRIVATE"));
             let history_wire = request.body["input"].to_string();
             assert!(
                 !history_wire.contains("reason-")
@@ -386,7 +411,7 @@ async fn public_build_messages_json_and_sse_keep_two_standard_tool_cycles() -> T
             )?;
             eprintln!(
                 "CPAR63_RECEIPT {}",
-                json!({"synthetic":true,"streaming":streaming,"chunk_bytes":size,"round":round,
+                json!({"synthetic":true,"local_m3_m4":local,"metadata_raw_readback":local,"context_kept":local,"streaming":streaming,"chunk_bytes":size,"round":round,
                 "request_id":request_id,"attempt_id":record.attempt.attempt_id(),"owner":record.client_key_id,
                 "response_id":record.evidence.response_id(),"source":record.evidence.source(),
                 "completeness":record.evidence.completeness(),"summary_items":summary_items,"reader_authenticated":true,
@@ -402,13 +427,18 @@ async fn public_build_messages_json_and_sse_keep_two_standard_tool_cycles() -> T
         } else {
             json_results = Some(results);
         }
-        drop(app);
+        server.stop(false).await;
         let database = recording.finish(&fixture, 0).await?;
         accounting(&database, 5).await?;
+        let joins = super::super::cli::assert_accounting(&database, "messages", "standard")?;
+        eprintln!(
+            "CPAR64_LOCAL_JOINS {}",
+            json!({"local_m3_m4":local,"streaming":streaming,"fragment_bytes":size,"joins":joins})
+        );
         assert_eq!(active_leases(&fixture), 0);
         eprintln!(
             "CPAR63_ACCOUNTING {}",
-            json!({"synthetic":true,"streaming":streaming,"chunk_bytes":size,
+            json!({"synthetic":true,"local_m3_m4":local,"streaming":streaming,"chunk_bytes":size,
             "receives":peer.requests.lock().map_err(|_|"receiver")?.len(),"requests":5,"attempts":5,"usage_rows":5,
             "ledger_rows":5,"active_leases":active_leases(&fixture),"cost":"UNKNOWN"})
         );

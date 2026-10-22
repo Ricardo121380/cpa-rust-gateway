@@ -6,7 +6,7 @@ use crate::{
     secret_store::{EncryptedSecret, KeyVersion, SecretStore},
 };
 use gateway_core::{
-    AttemptEvent, AttemptId, ClientKeyId, GatewayEvent, GatewayProtocol, RequestEvent, RequestId,
+    AttemptEvent, AttemptId, ClientKeyId, GatewayEvent, RequestEvent, RequestId,
     RequestMetadataEvidence,
 };
 use rusqlite::{Connection, OpenFlags, OptionalExtension, Transaction, params};
@@ -21,11 +21,11 @@ pub const REQUEST_METADATA_TTL_MS: i64 = 30 * 24 * 60 * 60 * 1000;
 #[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct RequestMetadataRecord {
-    /// New evidence payload version, independent of older payload v1 formats.
+    /// V1 Codex C4, or V2 Claude M4; never a different field hidden inside v1.
     pub version: u16,
     /// Original authenticated Request, including owner and server Request ID.
     pub request: RequestEvent,
-    /// Complete original C4 field and internal string.
+    /// Complete original source-specific field and opaque strings.
     pub evidence: RequestMetadataEvidence,
 }
 impl fmt::Debug for RequestMetadataRecord {
@@ -58,14 +58,23 @@ fn load(connection: &Connection, request: &str) -> StoreResult<Option<Row>> {
     connection.query_row("SELECT client_key_id,created_at_ms,expires_at_ms,payload_version,key_version,ciphertext FROM request_metadata_evidence WHERE request_id=?1",[request],|r|Ok(Row {owner:r.get(0)?,created:r.get(1)?,expires:r.get(2)?,version:r.get(3)?,key:r.get(4)?,ciphertext:r.get(5)?})).optional().map_err(StoreError::from)
 }
 fn aad(request: &str, row: &Row) -> StoreResult<Vec<u8>> {
-    if row.version != 1
+    if !matches!(row.version, 1 | 2)
         || row.created < 0
         || row.created.checked_add(REQUEST_METADATA_TTL_MS) != Some(row.expires)
     {
         return Err(invalid());
     }
-    let mut bytes = b"cpar:request-metadata:v1\0".to_vec();
-    for value in [row.owner.as_str(), request] {
+    let mut bytes = if row.version == 1 {
+        b"cpar:request-metadata:v1\0".to_vec()
+    } else {
+        b"cpar:request-metadata:v2\0".to_vec()
+    };
+    let source = if row.version == 2 {
+        vec!["anthropic_messages_metadata", "anthropic_messages"]
+    } else {
+        Vec::new()
+    };
+    for value in source.into_iter().chain([row.owner.as_str(), request]) {
         bytes.extend_from_slice(
             &u32::try_from(value.len())
                 .map_err(|_| invalid())?
@@ -93,19 +102,19 @@ fn open_row(secrets: &SecretStore, request: &str, row: &Row) -> StoreResult<Requ
         .map_err(|_| invalid())?;
     let record: RequestMetadataRecord =
         serde_json::from_slice(plain.as_bytes()).map_err(|_| invalid())?;
-    if record.version != 1
+    if i64::from(record.version) != row.version
+        || record.version != record.evidence.source().payload_version()
+        || record.request.protocol() != record.evidence.source().protocol()
         || record.request.client_key_id().as_str() != row.owner
         || record.request.request_id().as_str() != request
     {
         return Err(invalid());
     }
-    RequestMetadataEvidence::try_new(record.evidence.raw_json().to_owned())
-        .map_err(|_| invalid())?;
+    record.evidence.validate().map_err(|_| invalid())?;
     Ok(record)
 }
 fn verify_request(connection: &Connection, request: &RequestEvent) -> StoreResult<()> {
-    if request.protocol() != GatewayProtocol::OpenAiResponses
-        || request.started_at_ms().is_none()
+    if request.started_at_ms().is_none()
         || read_event(connection, "request", request.request_id().as_str())?
             != GatewayEvent::Request(request.clone())
     {
@@ -210,10 +219,13 @@ pub(crate) fn append(
     secrets: &SecretStore,
     source_existed: bool,
 ) -> StoreResult<()> {
-    RequestMetadataEvidence::try_new(evidence.raw_json().to_owned()).map_err(|_| invalid())?;
+    evidence.validate().map_err(|_| invalid())?;
+    if request.protocol() != evidence.source().protocol() {
+        return Err(invalid());
+    }
     verify_request(transaction, request)?;
     let record = RequestMetadataRecord {
-        version: 1,
+        version: evidence.source().payload_version(),
         request: request.clone(),
         evidence: evidence.clone(),
     };
@@ -239,7 +251,7 @@ pub(crate) fn append(
         expires: created
             .checked_add(REQUEST_METADATA_TTL_MS)
             .ok_or_else(invalid)?,
-        version: 1,
+        version: i64::from(record.version),
         key: secrets.active_key_version().as_sqlite_i64(),
         ciphertext: None,
     };
@@ -247,8 +259,8 @@ pub(crate) fn append(
     let encrypted = secrets
         .seal(plain.as_slice(), &aad(request.request_id().as_str(), &row)?)
         .map_err(|_| invalid())?;
-    transaction.execute("INSERT INTO request_metadata_evidence(request_id,client_key_id,created_at_ms,expires_at_ms,payload_version,key_version,ciphertext) VALUES (?1,?2,?3,?4,1,?5,?6)",
-        params![request.request_id().as_str(),row.owner,row.created,row.expires,encrypted.key_version().as_sqlite_i64(),encrypted.ciphertext()])?;
+    transaction.execute("INSERT INTO request_metadata_evidence(request_id,client_key_id,created_at_ms,expires_at_ms,payload_version,key_version,ciphertext) VALUES (?1,?2,?3,?4,?5,?6,?7)",
+        params![request.request_id().as_str(),row.owner,row.created,row.expires,row.version,encrypted.key_version().as_sqlite_i64(),encrypted.ciphertext()])?;
     Ok(())
 }
 

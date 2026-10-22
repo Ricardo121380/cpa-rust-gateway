@@ -8,7 +8,8 @@ mod peer;
 mod tool_loop;
 use http::assert_presend_rejections;
 pub(super) use http::capture;
-use oracles::{assert_accounting, assert_history, assert_public};
+pub(super) use oracles::assert_accounting;
+use oracles::{assert_history, assert_public};
 use peer::scripted_peer;
 
 #[derive(Default)]

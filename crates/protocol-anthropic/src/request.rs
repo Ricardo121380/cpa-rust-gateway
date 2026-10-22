@@ -161,7 +161,21 @@ fn decode_canonical_request(
         |value| decode_tools(value, &mut cache_controls),
     )?;
     let thinking = root.get("thinking").map(decode_thinking).transpose()?;
-    let extensions = extensions_except(root, ROOT_FIELDS, "anthropic.messages.")?;
+    // Metadata has a byte-exact local retention contract. Other unknown fields retain their
+    // existing decoded representation; duplicate names have already been rejected recursively.
+    let raw_root: RawExtensions =
+        serde_json::from_str(input).map_err(|_| client_request_error())?;
+    let mut extensions = RawExtensions::default();
+    for (name, raw) in extensions_except(root, ROOT_FIELDS, "anthropic.messages.")?.iter() {
+        let raw = if name == gateway_core::ANTHROPIC_MESSAGES_METADATA {
+            raw_root.get("metadata").ok_or_else(client_request_error)?
+        } else {
+            raw
+        };
+        extensions
+            .try_insert(name, raw.clone())
+            .map_err(|_| client_request_error())?;
+    }
 
     Ok((
         CanonicalRequest {

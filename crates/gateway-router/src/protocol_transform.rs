@@ -364,6 +364,21 @@ pub fn project_protocol_request(
         return Err(rejection);
     }
 
+    if input
+        .request
+        .extensions
+        .get(crate::MESSAGES_CONTEXT_MANAGEMENT)
+        .is_some()
+    {
+        if input.source != ProtocolFormat::AnthropicMessages
+            || input.target != ProtocolFormat::OpenAiResponses
+            || input.mode != SnapshotTransformMode::CanonicalBridge
+        {
+            return Err(ProtocolTransformRejection::UnknownRequestExtensions);
+        }
+        crate::messages_keep_all(input.request)?;
+    }
+
     ToolExecutionConstraints::from_request(input.request, input.source)?;
     if input.mode == SnapshotTransformMode::Passthrough {
         canonical_rejection(input.request, input.source)?;
@@ -456,6 +471,11 @@ fn project_root_extensions(
             if output_limit.replace(raw.clone()).is_some() {
                 return Err(ProtocolTransformRejection::OutputLimitCollision);
             }
+        } else if source == ProtocolFormat::AnthropicMessages
+            && target == ProtocolFormat::OpenAiResponses
+            && name == crate::MESSAGES_CONTEXT_MANAGEMENT
+        {
+            // The complete closed policy/history predicate was checked before projection.
         } else if name == source_tool_choice
             || source != ProtocolFormat::AnthropicMessages
                 && name == tool_controls::parallel_name(source)

@@ -108,3 +108,10 @@ release and deployment remain separate acceptance layers.
 - `public_build_messages_cancel_pending_summary_keeps_native_complete_delivery_cancelled`
 
 - `messages_summary_expired_gc_replay_never_recreates_payload`
+
+## Independent local request controls
+
+[BC-PROTOCOL-015](BC-PROTOCOL-015-local-messages-request-controls.md) adds only the qualified M3
+identity rule and pre-send confirmed M4 Request evidence. Summary payload/AAD/table, terminal
+confirmation, Usage and cancellation duties above remain. M4 is neither a hidden summary nor
+an upstream identifier; diagnostic readback never restores native thinking history.

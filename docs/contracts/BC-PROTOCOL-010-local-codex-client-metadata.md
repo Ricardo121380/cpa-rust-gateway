@@ -166,3 +166,11 @@ GitHub writes/push/merge, release and deployment are outside this slice.
 - `request_metadata_legacy_unknown_restore_and_private_cli_reopen`
 - `request_metadata_missing_writer_and_confirmation_timeout_fail_closed`
 - `request_metadata_actual_writer_kill_restart_preserves_capture`
+
+## Independent Claude successor
+
+[ADR-0121](../adr/ADR-0121-local-messages-request-controls.md) and
+[BC-PROTOCOL-015](BC-PROTOCOL-015-local-messages-request-controls.md) separately admit Claude M4.
+Schema38 retains every existing v1 ciphertext and receipt; new readers retain this Codex contract.
+Claude uses explicit source/protocol-bound v2, never the Codex payload v1. Old schema37 binaries
+reject schema38. This contract grants no Claude, M1/M2/M5 or upstream activation permission.

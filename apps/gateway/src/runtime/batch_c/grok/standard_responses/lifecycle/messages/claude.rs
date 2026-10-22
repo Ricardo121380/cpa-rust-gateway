@@ -87,6 +87,7 @@ async fn actual_claude_messages_build_observation() -> TestResult {
     )?;
     let accounting = rejected_accounting(&database).await?;
     let rows = ingress.lock().map_err(|_| "ingress")?;
+    let mut metadata_receipts = Vec::new();
     assert_eq!(accounting["requests"], json!(rows.len()));
     assert!(
         !rows.is_empty(),
@@ -102,6 +103,35 @@ async fn actual_claude_messages_build_observation() -> TestResult {
             json!({"type":"error",
             "error":{"type":"invalid_request_error","message":"the client request is invalid"}})
         );
+        let headers: Vec<(String, Vec<u8>)> = serde_json::from_value(row.response_headers.clone())?;
+        let id = std::str::from_utf8(
+            &headers
+                .iter()
+                .find(|(name, _)| name == "x-request-id")
+                .ok_or("request id")?
+                .1,
+        )?;
+        let raw: gateway_core::RawExtensions = serde_json::from_slice(&row.request_bytes)?;
+        let metadata = raw.get("metadata").ok_or("observed Claude M4")?;
+        local_controls::assert_metadata(&fixture, id, metadata.get(), 0)?;
+        let decoded: Value = serde_json::from_str(metadata.get())?;
+        let user = decoded["user_id"]
+            .as_str()
+            .ok_or("observed opaque user_id")?;
+        assert!(!user.is_empty());
+        assert!(!String::from_utf8_lossy(&row.wire).contains(user));
+        assert!(
+            !serde_json::to_string(
+                &events
+                    .iter()
+                    .map(gateway_store::event_store::StoredGatewayEvent::event)
+                    .collect::<Vec<_>>()
+            )?
+            .contains(user)
+        );
+        metadata_receipts.push(json!({"request_id":id,"owner":"p12-runtime-client-key","payload_version":2,
+            "source":"anthropic_messages_metadata","raw_field_sha256":format!("{:x}",Sha256::digest(metadata.get().as_bytes())),
+            "user_id_chars":user.chars().count(),"authenticated_raw_readback":true,"actual_attempts":0}));
     }
     assert!(received.is_empty());
     assert_eq!(peer.accepted.load(Ordering::SeqCst), 0);
@@ -111,6 +141,7 @@ async fn actual_claude_messages_build_observation() -> TestResult {
             "independent_receives":received.len(),"active_leases":active_leases(&fixture),
             "independent_tcp_accepts":peer.accepted.load(Ordering::SeqCst),
             "public_requests":rows.len(),"accounting":accounting,
+            "metadata_receipts":metadata_receipts,"local_metadata_responsibility":"PASS_REQUEST_ONLY",
             "no_lease_leak_before_cleanup":released,"lease_release_transition":"NOT_OBSERVED_NO_LEASE",
             "cost":"UNKNOWN", "compatibility":"BLOCKED",
             "actual_tool_execution":"BLOCKED_BEFORE_FIRST_RESPONSE",

@@ -7,6 +7,7 @@ use gateway_store::{
     event_store::{AsyncSqliteEventWriter, EventWriterConfig},
     messages_summary::MessagesSummaryRecord,
     native_usage::NativeUsageRecord,
+    request_metadata::RequestMetadataRecord,
     secret_store::{KeyVersion, MasterKeyRing, SecretStore},
 };
 use serde::Deserialize;
@@ -48,7 +49,7 @@ async fn cpar65_operator_job() -> Result<(), Box<dyn Error>> {
             output.write_all(&artifact)?;
             output.sync_all()?;
         }
-        "replay_summary" | "replay_usage" => replay(&job).await?,
+        "replay_summary" | "replay_usage" | "replay_metadata" => replay(&job).await?,
         _ => return Err("unsupported operator action".into()),
     }
     Ok(())
@@ -83,6 +84,12 @@ async fn replay(job: &Job) -> Result<(), Box<dyn Error>> {
                 record.attempt.with_execution_identity(record.execution),
                 record.evidence,
             )
+            .await
+    } else if job.action == "replay_metadata" {
+        let record: RequestMetadataRecord =
+            serde_json::from_value(private["record"]["record"].clone())?;
+        queue
+            .emit_request_metadata_confirmed(record.request, record.evidence)
             .await
     } else {
         let record: NativeUsageRecord = serde_json::from_value(private["record"].clone())?;

@@ -1,6 +1,6 @@
 //! Observable CLI, native history, exact Attempt and durable ledger oracles.
 use super::*;
-pub(super) fn assert_accounting(
+pub(in super::super) fn assert_accounting(
     database: &std::path::Path,
     client: &str,
     scenario: &str,

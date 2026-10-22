@@ -86,3 +86,8 @@ write, release, production restore or deployment.
 The original sandbox selector restriction is narrowly superseded by the authorized
 [ADR-0120](ADR-0120-bounded-codex-history-and-external-diagnostics.md) external diagnostic pair.
 All retention, recipient and authority boundaries above remain.
+
+The independently authorized Claude M4 successor is
+[ADR-0121](ADR-0121-local-messages-request-controls.md). It adds an explicit Messages source,
+payload v2 and schema38 while retaining this Codex v1 payload/AAD unchanged. This is a separate
+limited recipient decision, not a generalization from Codex C4 or ADR-0120.

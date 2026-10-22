@@ -4,6 +4,7 @@ use gateway_store::messages_summary::{MessagesSummaryRecord, SqliteMessagesSumma
 mod cancellation;
 mod claude;
 mod failures;
+mod local_controls;
 mod policy;
 mod tool_rounds;
 
@@ -78,6 +79,10 @@ impl GrokBuildTransport for MessagesTransport {
                 request.url(),
                 "https://cli-chat-proxy.grok.com/v1/responses"
             );
+            for (name, value) in request.headers() {
+                assert!(!name.contains("metadata") && !name.contains("user-id"));
+                assert!(!value.contains("M4_PRIVATE"));
+            }
             let streaming = serde_json::from_slice::<Value>(request.body())
                 .map_err(|_| internal_error())?["stream"]
                 == true;

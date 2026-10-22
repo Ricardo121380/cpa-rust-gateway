@@ -12,6 +12,7 @@ use crate::json::{internal_error, stream_protocol_error};
 #[derive(Clone, Eq, PartialEq)]
 pub struct AnthropicResponseMetadata {
     model: String,
+    context_kept: bool,
 }
 
 impl AnthropicResponseMetadata {
@@ -25,7 +26,17 @@ impl AnthropicResponseMetadata {
         if model.is_empty() {
             return Err(internal_error());
         }
-        Ok(Self { model })
+        Ok(Self {
+            model,
+            context_kept: false,
+        })
+    }
+
+    /// Records a composition-confirmed local keep-all identity rule, with no applied edits.
+    #[must_use]
+    pub const fn with_context_kept(mut self, kept: bool) -> Self {
+        self.context_kept = kept;
+        self
     }
 
     /// Returns the selected public model label.
@@ -40,6 +51,7 @@ impl fmt::Debug for AnthropicResponseMetadata {
         formatter
             .debug_struct("AnthropicResponseMetadata")
             .field("model", &"<redacted>")
+            .field("context_kept", &self.context_kept)
             .finish()
     }
 }
@@ -342,7 +354,7 @@ impl Assembly {
             }
             CanonicalEvent::ToolCallEnd(end) => self.finish_tool(&end.call_id, end.arguments.get()),
             CanonicalEvent::MessageEnd(_) => self.end_message(),
-            CanonicalEvent::ResponseEnd(end) => self.end_response(end),
+            CanonicalEvent::ResponseEnd(end) => self.end_response(end, metadata),
             CanonicalEvent::StreamError(error) => {
                 self.terminal = TerminalPhase::Failed;
                 Ok(vec![frame("error", encode_error(&error.error))])
@@ -881,6 +893,7 @@ impl Assembly {
     fn end_response(
         &mut self,
         end: &gateway_core::ResponseEnd,
+        metadata: &AnthropicResponseMetadata,
     ) -> Result<Vec<SseFrame>, GatewayError> {
         if self.message != MessagePhase::Ended || self.terminal != TerminalPhase::Open {
             return Err(stream_protocol_error());
@@ -894,15 +907,16 @@ impl Assembly {
         self.stop_reason = Some(stop_reason.to_owned());
         self.stop_sequence.clone_from(&end.stop_sequence);
         self.terminal = TerminalPhase::Completed;
+        let mut delta = json!({
+            "type": "message_delta",
+            "delta": {"stop_reason": stop_reason, "stop_sequence": end.stop_sequence},
+            "usage": output_usage
+        });
+        if metadata.context_kept {
+            delta["context_management"] = json!({"applied_edits":[]});
+        }
         Ok(vec![
-            frame(
-                "message_delta",
-                json!({
-                    "type": "message_delta",
-                    "delta": {"stop_reason": stop_reason, "stop_sequence": end.stop_sequence},
-                    "usage": output_usage
-                }),
-            ),
+            frame("message_delta", delta),
             frame("message_stop", json!({"type": "message_stop"})),
         ])
     }
@@ -922,7 +936,7 @@ impl Assembly {
             .stop_reason
             .as_deref()
             .ok_or_else(stream_protocol_error)?;
-        Ok(json!({
+        let mut response = json!({
             "id": id,
             "type": "message",
             "role": "assistant",
@@ -931,7 +945,11 @@ impl Assembly {
             "stop_reason": stop_reason,
             "stop_sequence": self.stop_sequence,
             "usage": completed_usage_value(usage)?
-        }))
+        });
+        if metadata.context_kept {
+            response["context_management"] = json!({"applied_edits":[]});
+        }
+        Ok(response)
     }
 }
 

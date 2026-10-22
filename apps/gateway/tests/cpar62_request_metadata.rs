@@ -19,6 +19,8 @@ use std::{
 };
 type TestResult = Result<(), Box<dyn Error>>;
 const RAW: &str = r#"{ "session_id":"PRIVATE_C4_STORAGE", "x-codex-turn-metadata":"{ \"session_id\":\"PRIVATE_C4_STORAGE\", \"request_kind\":\"turn\", \"auto_review_enabled\":true, \"node_repl_disabled\":false, \"model\":\"client-assertion\" }" }"#;
+#[path = "request_metadata/messages.rs"]
+mod messages;
 struct Directory(PathBuf);
 impl Directory {
     fn new() -> Result<Self, Box<dyn Error>> {

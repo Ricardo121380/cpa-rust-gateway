@@ -13,11 +13,6 @@ async fn public_build_messages_observed_claude_controls_reject_before_send() -> 
             ("thinking", json!({"type":"adaptive"})),
             ("thinking", json!({"type":"adaptive","display":"updates"})),
             ("output_config", json!({"effort":"high"})),
-            ("metadata", json!({"user_id":"synthetic-user"})),
-            (
-                "context_management",
-                json!({"edits":[{"type":"clear_thinking_20251015","keep":"all"}]}),
-            ),
             (
                 "messages",
                 json!([{"role":"user","content":[{"type":"text","text":"question",
