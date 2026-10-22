@@ -1,0 +1,80 @@
+{
+  "status": "FAIL_ACTUAL_INPUTS_MISSING",
+  "method": "git archive HEAD (same Git-ref-only boundary as existing reproducibility script)",
+  "archive_sha256": "65a94f9aa8e77e4d6da86ad98d34b9224506452425490c05489f97e44d3328fd",
+  "expected_inherited": 18,
+  "mismatches": [
+    {
+      "path": "AGENTS.md",
+      "reason": "different_bytes"
+    },
+    {
+      "path": "CONTEXT.md",
+      "reason": "missing"
+    },
+    {
+      "path": "README.md",
+      "reason": "different_bytes"
+    },
+    {
+      "path": "README.zh-CN.md",
+      "reason": "different_bytes"
+    },
+    {
+      "path": "docs/06-development-plan.md",
+      "reason": "different_bytes"
+    },
+    {
+      "path": "docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md",
+      "reason": "different_bytes"
+    },
+    {
+      "path": "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+      "reason": "different_bytes"
+    },
+    {
+      "path": "docs/adr/ADR-0106-native-fidelity-profile.md",
+      "reason": "different_bytes"
+    },
+    {
+      "path": "docs/adr/ADR-0107-standard-response-metadata-separation.md",
+      "reason": "missing"
+    },
+    {
+      "path": "docs/adr/ADR-0108-build-summary-standard-messages.md",
+      "reason": "missing"
+    },
+    {
+      "path": "docs/adr/README.md",
+      "reason": "different_bytes"
+    },
+    {
+      "path": "docs/agents/domain.md",
+      "reason": "missing"
+    },
+    {
+      "path": "docs/agents/issue-tracker.md",
+      "reason": "missing"
+    },
+    {
+      "path": "docs/agents/triage-labels.md",
+      "reason": "missing"
+    },
+    {
+      "path": "docs/contracts/BC-PROTOCOL-009-codex-responses-controls.md",
+      "reason": "different_bytes"
+    },
+    {
+      "path": "docs/engineering-roadmap.md",
+      "reason": "missing"
+    },
+    {
+      "path": "docs/reports/cpar-62-64-client-field-plan-20261020.md",
+      "reason": "missing"
+    },
+    {
+      "path": "docs/traceability.md",
+      "reason": "different_bytes"
+    }
+  ]
+}

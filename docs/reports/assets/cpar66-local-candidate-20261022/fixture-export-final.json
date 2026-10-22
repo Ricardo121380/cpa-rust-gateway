@@ -1,0 +1,22 @@
+{
+  "candidate": "1a8b6fc4e7d6697092b97d138dd1d79bfb88de5e",
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "--package",
+    "gateway",
+    "--test",
+    "cpar59_usage_evidence",
+    "--test",
+    "cpar62_request_metadata",
+    "--test",
+    "cpar63_messages_summary",
+    "cpar66_export",
+    "--",
+    "--ignored",
+    "--nocapture"
+  ],
+  "exit": 0,
+  "node": "24.19.0"
+}

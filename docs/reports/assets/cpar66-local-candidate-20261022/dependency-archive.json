@@ -1,0 +1,33 @@
+{
+  "command": [
+    "docker",
+    "--host",
+    "unix:///Volumes/Asgard/Colima/cpar66-local-20261022/docker.sock",
+    "run",
+    "--name",
+    "cpar66-dependency-export",
+    "--pull=never",
+    "--network",
+    "none",
+    "--read-only",
+    "--cap-drop",
+    "ALL",
+    "--mount",
+    "type=volume,source=cpar66-build-20261022,target=/work,readonly",
+    "sha256:eca0fa3b1a319ee5ddaab9a3804af488536c51fe4125506cb1b8bc0039003aea",
+    "tar",
+    "-cf",
+    "-",
+    "-C",
+    "/work",
+    "cargo/registry/cache",
+    "cargo/registry/index",
+    "npm-cache/_cacache",
+    "preparation"
+  ],
+  "exit": 0,
+  "file": "dependency-cache.tar",
+  "bytes": 86343680,
+  "sha256": "6e016ed5d9752fc5204197fa6942b1d9133aaf915b7577993d8cd0a9ebacb3d1",
+  "scope": "fresh task registry .crate archives/index, npm content-addressed cache and preparation receipts; generated targets excluded"
+}

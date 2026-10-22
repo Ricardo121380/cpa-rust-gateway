@@ -1,0 +1,13 @@
+{
+  "status": "ABORTED_INPUT_MODE_PREFLIGHT",
+  "root_pid": 12752,
+  "owned_descendants": [
+    12752,
+    13046,
+    13063,
+    13068,
+    17955
+  ],
+  "cwd_verified": true,
+  "reason": "15 actual file modes differ from Git checkout; final Full must use exact input metadata"
+}

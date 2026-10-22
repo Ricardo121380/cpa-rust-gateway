@@ -1,0 +1,76 @@
+{
+  "scope": "read-only static Standards and Spec reviews; dynamic qualification separately evidenced",
+  "final_candidate": "737fd040e983bef329be27b5cf48b4f6986a5772",
+  "base_range": "550e3872f90c4be672ac45b9bda14b3839598276...93f6d66439e6f36736be34477836d5d5cf7fe76e",
+  "initial": {
+    "standards": {
+      "agent": "/root/cpar66_standards",
+      "status": "complete",
+      "hard_violations": 0,
+      "smells": 0,
+      "evidence_defects": 1
+    },
+    "spec": {
+      "agent": "/root/cpar66_spec",
+      "status": "complete",
+      "missing": 0,
+      "scope_overreach": 0,
+      "defects": 1
+    }
+  },
+  "unique_findings": [
+    {
+      "priority": "P2",
+      "finding": "PASS_BOUNDED could survive failed final cleanup",
+      "fix_commit": "654c7b18d7b9be8d1b80d799980309a188bd5974",
+      "status": "FIXED",
+      "verification": [
+        "red-cleanup-status.json",
+        "green-cleanup-status.json",
+        "cleanup static followup",
+        "actual final Linux cleanup required"
+      ]
+    }
+  ],
+  "followups": [
+    {
+      "agent": "/root/cpar66_cleanup_fix_review",
+      "status": "complete",
+      "standards_findings": 0,
+      "spec_findings": 0,
+      "scope": "cleanup status and pinned components static review"
+    },
+    {
+      "agent": "/root/cpar66_source_fix_review",
+      "status": "partial",
+      "standards_findings": 0,
+      "spec_findings": 0,
+      "limitation": "probe supplied with ambiguous path; archive/probe not independently verified"
+    },
+    {
+      "agent": "/root/cpar66_final_source_review",
+      "status": "complete",
+      "standards_findings": 0,
+      "spec_findings": 0,
+      "scope": "source script13/+2 diff, independent archive/input/overlay/lock hashes;33=18+15;0600tar sample; root source-boundary-probe receipt"
+    },
+    {
+      "agent": "/root/cpar66_final_driver_review",
+      "status": "complete",
+      "standards_findings": 0,
+      "spec_findings": 0,
+      "scope": "exact stream oracle vs existing reader/CLI/privacy contracts; overwrite rejection retained"
+    }
+  ],
+  "early_scouts": {
+    "/root/p12_artifact_map": "PARTIAL_INTERRUPTED_NO_RESULT",
+    "/root/reader_recovery_map": "PARTIAL_INTERRUPTED_NO_RESULT"
+  },
+  "remaining_static_findings": 0,
+  "limitations": [
+    "no separate third-party model or Claude CLI was invoked",
+    "review findings do not replace Full or actual runtime qualification",
+    "source probe symlink mutation was rejected by mode first; link comparison separately present in code"
+  ],
+  "source_link_target_followup": "source-link-target-probe.json separately proves link-target-only rejection"
+}

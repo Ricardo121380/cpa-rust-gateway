@@ -1,0 +1,66 @@
+[
+  {
+    "command": [
+      "ruby",
+      "--version"
+    ],
+    "exit": 0,
+    "output": [
+      "ruby 2.6.10p210 (2022-04-12 revision 67958) [universal.arm64e-darwin26]"
+    ]
+  },
+  {
+    "command": [
+      "python3",
+      "--version"
+    ],
+    "exit": 0,
+    "output": [
+      "Python 3.9.6"
+    ]
+  },
+  {
+    "command": [
+      "bash",
+      "--version"
+    ],
+    "exit": 0,
+    "output": [
+      "GNU bash, version 3.2.57(1)-release (arm64-apple-darwin26)",
+      "Copyright (C) 2007 Free Software Foundation, Inc."
+    ]
+  },
+  {
+    "command": [
+      "tar",
+      "--version"
+    ],
+    "exit": 0,
+    "output": [
+      "bsdtar 3.5.3 - libarchive 3.7.4 zlib/1.2.12 liblzma/5.4.3 bz2lib/1.0.8 "
+    ]
+  },
+  {
+    "command": [
+      "colima",
+      "version"
+    ],
+    "exit": 0,
+    "output": [
+      "colima version 0.10.1",
+      "git commit: ed905203afdbc6fd4eae6cc301918099ff31e86e"
+    ]
+  },
+  {
+    "command": [
+      "docker",
+      "version",
+      "--format",
+      "{{.Client.Version}}"
+    ],
+    "exit": 1,
+    "output": [
+      "29.3.0"
+    ]
+  }
+]

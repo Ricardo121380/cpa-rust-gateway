@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+  "oci_embedded_binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+  "manifest_sha256": "aff99e88cb24a7cf3f1489f0a712c3e37e83af76e29bb5768a9a552fcd255e0c",
+  "oci_sha256": "e4503dca17842ba3869758ac5e914a13be43c23428ff0cc7981dde2d07385f94",
+  "docker_archive_sha256": "3d630e8f146cf5bb8916365c262bc5be629a93e9c0f8878e063445393ad45e65",
+  "signing": "NOT_RUN",
+  "cryptographic_verification": "NOT_RUN"
+}

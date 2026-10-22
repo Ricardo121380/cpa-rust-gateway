@@ -1,0 +1,55 @@
+{
+  "checked_at": "2026-10-22T13:59:58.379367+00:00",
+  "read_only": true,
+  "issues": [
+    {
+      "number": 61,
+      "state": "OPEN",
+      "updatedAt": "2026-10-18T15:19:58Z",
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/61"
+    },
+    {
+      "number": 62,
+      "state": "OPEN",
+      "updatedAt": "2026-10-19T08:21:40Z",
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/62"
+    },
+    {
+      "number": 64,
+      "state": "OPEN",
+      "updatedAt": "2026-10-20T02:56:33Z",
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/64"
+    },
+    {
+      "number": 65,
+      "state": "OPEN",
+      "updatedAt": "2026-10-20T05:30:24Z",
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/65"
+    },
+    {
+      "number": 66,
+      "state": "OPEN",
+      "updatedAt": "2026-10-18T06:24:41Z",
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/66"
+    },
+    {
+      "number": 67,
+      "state": "OPEN",
+      "updatedAt": "2026-10-18T06:24:45Z",
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/67"
+    }
+  ],
+  "dependencies_files": [
+    "github-final-66-blocked_by.json",
+    "github-final-66-blocking.json"
+  ],
+  "blocked_by": [
+    62,
+    64,
+    65
+  ],
+  "blocking": [
+    67
+  ],
+  "baseline_final_body_title_state_labels_assignees_equal": true
+}

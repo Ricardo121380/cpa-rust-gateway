@@ -1,0 +1,9 @@
+{
+  "status": "FAIL_RETAINED",
+  "candidate": "1a8b6fc4e7d6697092b97d138dd1d79bfb88de5e",
+  "failure": "qualification driver incorrectly required zero stdout on successful readers",
+  "contract": "BC-OBS-006/007 forbid private plaintext, while existing usage_evidence.rs:132 emits a fixed value-free acknowledgement",
+  "correction": "exact success acknowledgement or exact generic error; private stdout remains forbidden",
+  "product_change": false,
+  "cleanup_checks": "PASS; two actual processes reaped, data/admin/receiver listeners released"
+}

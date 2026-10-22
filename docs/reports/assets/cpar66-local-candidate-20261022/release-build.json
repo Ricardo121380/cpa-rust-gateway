@@ -1,0 +1,28 @@
+{
+  "command": [
+    "docker",
+    "--host",
+    "unix:///Volumes/Asgard/Colima/cpar66-local-20261022/docker.sock",
+    "run",
+    "--name",
+    "cpar66-release-build-737fd040",
+    "--pull=never",
+    "--platform",
+    "linux/arm64",
+    "--network",
+    "none",
+    "--security-opt",
+    "no-new-privileges",
+    "--mount",
+    "type=volume,source=cpar66-build-20261022,target=/work",
+    "--mount",
+    "type=bind,source=/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/source-candidate,target=/input,readonly",
+    "sha256:eca0fa3b1a319ee5ddaab9a3804af488536c51fe4125506cb1b8bc0039003aea",
+    "bash",
+    "-c",
+    "tar -xOf /input/source.tar scripts/acceptance/cpar66-build.sh > /tmp/cpar66-build.sh; exec bash /tmp/cpar66-build.sh"
+  ],
+  "image_id": "sha256:eca0fa3b1a319ee5ddaab9a3804af488536c51fe4125506cb1b8bc0039003aea",
+  "exit": 0,
+  "scope": "one final source 737fd040 complete offline native release build; independent same-input reproducibility NOT_RUN"
+}

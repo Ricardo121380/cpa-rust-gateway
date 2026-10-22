@@ -1,0 +1,10 @@
+{
+  "status": "PASS_BOUNDED",
+  "checks": [
+    {
+      "name": "controlled receiver listener and thread released",
+      "pass": false
+    }
+  ],
+  "processes": []
+}

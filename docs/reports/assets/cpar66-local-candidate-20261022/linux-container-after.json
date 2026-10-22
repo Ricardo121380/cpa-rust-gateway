@@ -1,0 +1,273 @@
+[
+    {
+        "Id": "40b9834bc757e84228ed5ab2acd4d296f2667495a7fa6c6ea384a3ff7d06ceef",
+        "Created": "2026-10-22T14:08:21.660958165Z",
+        "Path": "bash",
+        "Args": [
+            "/source/scripts/acceptance/cpar66-linux-envelope.sh"
+        ],
+        "State": {
+            "Status": "exited",
+            "Running": false,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 0,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-10-22T14:08:21.742469023Z",
+            "FinishedAt": "2026-10-22T14:08:27.614727785Z"
+        },
+        "Image": "sha256:eca0fa3b1a319ee5ddaab9a3804af488536c51fe4125506cb1b8bc0039003aea",
+        "ResolvConfPath": "/var/lib/docker/containers/40b9834bc757e84228ed5ab2acd4d296f2667495a7fa6c6ea384a3ff7d06ceef/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/40b9834bc757e84228ed5ab2acd4d296f2667495a7fa6c6ea384a3ff7d06ceef/hostname",
+        "HostsPath": "/var/lib/docker/containers/40b9834bc757e84228ed5ab2acd4d296f2667495a7fa6c6ea384a3ff7d06ceef/hosts",
+        "LogPath": "/var/lib/docker/containers/40b9834bc757e84228ed5ab2acd4d296f2667495a7fa6c6ea384a3ff7d06ceef/40b9834bc757e84228ed5ab2acd4d296f2667495a7fa6c6ea384a3ff7d06ceef-json.log",
+        "Name": "/cpar66-reader-serve-final-737fd040",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "docker-default",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": null,
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "none",
+            "PortBindings": {},
+            "RestartPolicy": {
+                "Name": "no",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": [
+                "CAP_CHOWN",
+                "CAP_DAC_OVERRIDE",
+                "CAP_NET_ADMIN",
+                "CAP_SETGID",
+                "CAP_SETPCAP",
+                "CAP_SETUID"
+            ],
+            "CapDrop": [
+                "ALL"
+            ],
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": true,
+            "SecurityOpt": [
+                "no-new-privileges"
+            ],
+            "Tmpfs": {
+                "/run": "rw,nosuid,nodev,size=16777216",
+                "/tmp": "rw,nosuid,nodev,mode=1777,size=67108864"
+            },
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": [],
+            "BlkioDeviceReadBps": [],
+            "BlkioDeviceWriteBps": [],
+            "BlkioDeviceReadIOps": [],
+            "BlkioDeviceWriteIOps": [],
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": [],
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": 256,
+            "Ulimits": [],
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "Mounts": [
+                {
+                    "Type": "volume",
+                    "Source": "cpar66-runtime-final-20261022",
+                    "Target": "/work"
+                },
+                {
+                    "Type": "bind",
+                    "Source": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/runtime-source",
+                    "Target": "/source",
+                    "ReadOnly": true
+                },
+                {
+                    "Type": "bind",
+                    "Source": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/unsigned-artifact",
+                    "Target": "/artifact",
+                    "ReadOnly": true
+                },
+                {
+                    "Type": "bind",
+                    "Source": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/fixtures-final",
+                    "Target": "/fixtures",
+                    "ReadOnly": true
+                }
+            ],
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "Storage": {
+            "RootFS": {
+                "Snapshot": {
+                    "Name": "overlayfs"
+                }
+            }
+        },
+        "Mounts": [
+            {
+                "Type": "volume",
+                "Name": "cpar66-runtime-final-20261022",
+                "Source": "/var/lib/docker/volumes/cpar66-runtime-final-20261022/_data",
+                "Destination": "/work",
+                "Driver": "local",
+                "Mode": "z",
+                "RW": true,
+                "Propagation": ""
+            },
+            {
+                "Type": "bind",
+                "Source": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/runtime-source",
+                "Destination": "/source",
+                "Mode": "",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/unsigned-artifact",
+                "Destination": "/artifact",
+                "Mode": "",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/fixtures-final",
+                "Destination": "/fixtures",
+                "Mode": "",
+                "RW": false,
+                "Propagation": "rprivate"
+            }
+        ],
+        "Config": {
+            "Hostname": "40b9834bc757",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "PATH=/usr/local/cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "RUSTUP_HOME=/usr/local/rustup",
+                "CARGO_HOME=/usr/local/cargo",
+                "RUST_VERSION=1.97.1"
+            ],
+            "Cmd": [
+                "bash",
+                "/source/scripts/acceptance/cpar66-linux-envelope.sh"
+            ],
+            "Image": "sha256:eca0fa3b1a319ee5ddaab9a3804af488536c51fe4125506cb1b8bc0039003aea",
+            "Volumes": null,
+            "WorkingDir": "",
+            "Entrypoint": null,
+            "Labels": {
+                "org.opencontainers.image.source": "https://github.com/rust-lang/docker-rust"
+            }
+        },
+        "NetworkSettings": {
+            "SandboxID": "",
+            "SandboxKey": "",
+            "Ports": {},
+            "Networks": {
+                "none": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "10ba31dcde34741aad2133138fcfaa345169494efa2a30a6d94d5b57fd13dc84",
+                    "EndpointID": "",
+                    "Gateway": "",
+                    "IPAddress": "",
+                    "MacAddress": "",
+                    "IPPrefixLen": 0,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": null
+                }
+            }
+        },
+        "ImageManifestDescriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:e66606c099a035527c14f75d02a52d0fe7c5b1cad5d6ed7c4af4ed67932254cc",
+            "size": 2028,
+            "platform": {
+                "architecture": "arm64",
+                "os": "linux"
+            }
+        }
+    }
+]

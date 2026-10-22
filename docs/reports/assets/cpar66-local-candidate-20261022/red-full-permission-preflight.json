@@ -1,0 +1,80 @@
+{
+  "status": "FAIL_INPUT_MODE_MISMATCH",
+  "mismatches": [
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/codex-pi-run.json",
+      "actual_mode": 384,
+      "git_checkout_mode": 420
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/d2-abort-complete.json",
+      "actual_mode": 384,
+      "git_checkout_mode": 420
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/d2-alive-through-release.json",
+      "actual_mode": 384,
+      "git_checkout_mode": 420
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/d2-cancel-diagnostic.json",
+      "actual_mode": 384,
+      "git_checkout_mode": 420
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/d2-cancel-isolation.json",
+      "actual_mode": 384,
+      "git_checkout_mode": 420
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/d2-cancel-observations.json",
+      "actual_mode": 384,
+      "git_checkout_mode": 420
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/d2-failure-isolation.json",
+      "actual_mode": 384,
+      "git_checkout_mode": 420
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/d2-failure-observations.json",
+      "actual_mode": 384,
+      "git_checkout_mode": 420
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/d2-isolation.json",
+      "actual_mode": 384,
+      "git_checkout_mode": 420
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/d2-run.json",
+      "actual_mode": 384,
+      "git_checkout_mode": 420
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/d2-standard-isolation.json",
+      "actual_mode": 384,
+      "git_checkout_mode": 420
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/d2-standard-observations.json",
+      "actual_mode": 384,
+      "git_checkout_mode": 420
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/original-isolation.json",
+      "actual_mode": 384,
+      "git_checkout_mode": 420
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/original-observations.json",
+      "actual_mode": 384,
+      "git_checkout_mode": 420
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/original-run.json",
+      "actual_mode": 384,
+      "git_checkout_mode": 420
+    }
+  ]
+}

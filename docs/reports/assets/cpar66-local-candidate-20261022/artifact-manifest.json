@@ -1,0 +1,33 @@
+{
+  "schema_version": "cpa-rust-gateway-artifact-manifest-v1",
+  "revision": "737fd040e983bef329be27b5cf48b4f6986a5772",
+  "rust_toolchain": "1.97.1",
+  "target": "aarch64-unknown-linux-gnu",
+  "files": [
+    {
+      "name": "gateway-aarch64-unknown-linux-gnu",
+      "bytes": 19958960,
+      "sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2"
+    },
+    {
+      "name": "gateway-build-metadata.json",
+      "bytes": 261,
+      "sha256": "e603c554cb818ccde8a16bb1aa6451497d355152d090b13ffcc644ec97f738cb"
+    },
+    {
+      "name": "gateway-image.oci.tar",
+      "bytes": 41244160,
+      "sha256": "e4503dca17842ba3869758ac5e914a13be43c23428ff0cc7981dde2d07385f94"
+    },
+    {
+      "name": "gateway-sbom.cdx.json",
+      "bytes": 209362,
+      "sha256": "8dd60d22dec5b093e55c108534eb7f9e2b2920e6552fdcc3e579808dacbd885a"
+    },
+    {
+      "name": "signing-identity.json",
+      "bytes": 295,
+      "sha256": "b3366b12c40998650c63999b5f041f1c2a787f965f8aa20413aa6c1b8bc10509"
+    }
+  ]
+}

@@ -1,0 +1,386 @@
+{
+  "schema": "cpar66-local-candidate-binding-v1",
+  "status": "PASS_LOCAL_PREPARATION_BOUNDED",
+  "output_root": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022",
+  "code_candidate": "737fd040e983bef329be27b5cf48b4f6986a5772",
+  "source_form": "base_commit_plus_overlay",
+  "source": [
+    {
+      "path": "source-candidate/source.tar",
+      "bytes": 276715520,
+      "sha256": "6117221bd1fe960b63adbcc33029b2fc91c82fe222ecd1eab1cc86df21be88d3"
+    },
+    {
+      "path": "source-candidate/input-manifest.json",
+      "bytes": 2080541,
+      "sha256": "bbd89a90c1e1deb470a0fd46bfd68196f89cc4d5325cbacef0cb4d728f65e9cd"
+    },
+    {
+      "path": "source-candidate/overlay.json",
+      "bytes": 13889,
+      "sha256": "a33a04b2fbed604323e91e17b9630c8d229882f9bdf95fc9644c0fd72bd510c3"
+    },
+    {
+      "path": "source-candidate/source-binding.json",
+      "bytes": 862,
+      "sha256": "1456e15bec93016595a576e2ded8d125af10a657fb6911c2ddd518202ad56dca"
+    },
+    {
+      "path": "overlay-purpose.json",
+      "bytes": 16988,
+      "sha256": "cdb581393e049f023402248029a4da0b306e7f93a58de2351f2b015ac4c675bd"
+    }
+  ],
+  "environment": [
+    {
+      "path": "builder-image.docker.tar",
+      "bytes": 767972352,
+      "sha256": "b4830227209eb9a6192c571932d989ec00a9ddd4f017cdc639ff4d62a8b96321"
+    },
+    {
+      "path": "dependency-cache.tar",
+      "bytes": 86343680,
+      "sha256": "6e016ed5d9752fc5204197fa6942b1d9133aaf915b7577993d8cd0a9ebacb3d1"
+    },
+    {
+      "path": "builder-archive.json",
+      "bytes": 315,
+      "sha256": "6f5f485c46244d6a878c2e026a63eaba3dc0553585e558a22cd44b4fe9f9bceb"
+    },
+    {
+      "path": "dependency-archive.json",
+      "bytes": 880,
+      "sha256": "443ac1ab06197ce37d3b8d80f3ebd2f9cf81f26725e8830ce8832d2ab8695cd1"
+    },
+    {
+      "path": "builder-final-image.json",
+      "bytes": 2001,
+      "sha256": "a9fccb6ff5662908505102bf53912c6f43876486a61820f2c0b0178788e1e4bb"
+    },
+    {
+      "path": "builder-provenance-inventory.json",
+      "bytes": 948,
+      "sha256": "d13c993a0f60300e55dc546dff3a9ddd5df616c7694de3a2d17667eb986d321c"
+    },
+    {
+      "path": "assembly-host-tools.json",
+      "bytes": 1078,
+      "sha256": "545fffa7281056ccae44d58fa62291bba926d05a6f5132a9a65a6397f6fd8a90"
+    },
+    {
+      "path": "build-runtime-versions.txt",
+      "bytes": 746,
+      "sha256": "bb5e1bbffc8b8582c01eebb7b60530a13d04b461f8bab5074e5fff146fef7704"
+    },
+    {
+      "path": "runtime-system-packages.txt",
+      "bytes": 177,
+      "sha256": "ccda5ffa63266908c5ee228353f0833d5e5933406180fd2f8e4120c51db1f36f"
+    },
+    {
+      "path": "locked-registry-and-release-features.json",
+      "bytes": 63763,
+      "sha256": "02d9d719116f41f8774719b5b98666d13179eb10b1d34c20b1fe2c9a6b65441f"
+    },
+    {
+      "path": "buildkit-image-inspect.json",
+      "bytes": 7182,
+      "sha256": "1a5b8bbd6c4586af586498c12b782179a7aa10f5f31a8e9b2e3666160313e056"
+    }
+  ],
+  "build_and_assembly": [
+    {
+      "path": "release-build.json",
+      "bytes": 1002,
+      "sha256": "4965f158ec5fd50785e3dd82da62b359305d9fa085c390914e90876c0ef6db8a"
+    },
+    {
+      "path": "release-build.log",
+      "bytes": 11547,
+      "sha256": "138615867ee08ab56762b241a0ebd06b00558af6cb21c9c0f3221102529541a6"
+    },
+    {
+      "path": "release-build-container.json",
+      "bytes": 8268,
+      "sha256": "393188822b8720a4fcadcc00d0704a42e24ea36a5a353d10049419cb61579c80"
+    },
+    {
+      "path": "assemble-p12-final.py",
+      "bytes": 4366,
+      "sha256": "387a62d38f55574717ed7981a6df4a276312da53d887b13521cadf4466e9d8a5"
+    },
+    {
+      "path": "assembly-commands.json",
+      "bytes": 6009,
+      "sha256": "836827e6b8c74ba447f11edcdc904df0857dfedabd0ff538c8b9a817c5b606a6"
+    },
+    {
+      "path": "oci-binary-binding.json",
+      "bytes": 545,
+      "sha256": "2f4c9362feed66f71513fb9bffd484811549d96b8f14fdcc96f519e3c868a874"
+    },
+    {
+      "path": "oci-image-inspect.json",
+      "bytes": 2430,
+      "sha256": "6d74049158d01ddb7c466e9a542daa4eb7dcb3ee49039d1f22044ae64f41d5c1"
+    },
+    {
+      "path": "strict-unsigned-verifier.log",
+      "bytes": 119,
+      "sha256": "15e5692e1eeb3e77d510bdbb9a2405f0ad113e27f0bc3f711aa5a050f2868004"
+    },
+    {
+      "path": "artifact-negative-summary.json",
+      "bytes": 1155,
+      "sha256": "db9d34c9ec175eb616fdec5e20d7405abb90e9430fa6072f4f9b2a9b6cda2d17"
+    },
+    {
+      "path": "build-output/elf-header.txt",
+      "bytes": 961,
+      "sha256": "95779ed2ef97bf975ab6b3e16b09ca2ed73978eb5a8d939abac6f58a95bde557"
+    },
+    {
+      "path": "build-output/elf-dynamic.txt",
+      "bytes": 1686,
+      "sha256": "94a1946b003d449127d8411463c5a1c1aae3f00067886ff6fa1a558caccf0b0e"
+    },
+    {
+      "path": "build-output/ldd.txt",
+      "bytes": 377,
+      "sha256": "5af624799423324c2d3f3b1945b55de84670b35db2fcf6a2721fd1dfbe59315b"
+    },
+    {
+      "path": "build-output/help.txt",
+      "bytes": 2457,
+      "sha256": "f221ae4895b496c6ef6ee39729f3604cda4f1cc3f894fcf0fcb9ebcb9cdc3a36"
+    }
+  ],
+  "unsigned_artifact": [
+    {
+      "path": "unsigned-artifact/artifact-manifest.json",
+      "bytes": 1016,
+      "sha256": "aff99e88cb24a7cf3f1489f0a712c3e37e83af76e29bb5768a9a552fcd255e0c"
+    },
+    {
+      "path": "unsigned-artifact/gateway-aarch64-unknown-linux-gnu",
+      "bytes": 19958960,
+      "sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2"
+    },
+    {
+      "path": "unsigned-artifact/gateway-build-metadata.json",
+      "bytes": 261,
+      "sha256": "e603c554cb818ccde8a16bb1aa6451497d355152d090b13ffcc644ec97f738cb"
+    },
+    {
+      "path": "unsigned-artifact/gateway-image.oci.tar",
+      "bytes": 41244160,
+      "sha256": "e4503dca17842ba3869758ac5e914a13be43c23428ff0cc7981dde2d07385f94"
+    },
+    {
+      "path": "unsigned-artifact/gateway-sbom.cdx.json",
+      "bytes": 209362,
+      "sha256": "8dd60d22dec5b093e55c108534eb7f9e2b2920e6552fdcc3e579808dacbd885a"
+    },
+    {
+      "path": "unsigned-artifact/signing-identity.json",
+      "bytes": 295,
+      "sha256": "b3366b12c40998650c63999b5f041f1c2a787f965f8aa20413aa6c1b8bc10509"
+    }
+  ],
+  "runtime": [
+    {
+      "path": "linux-run-command.json",
+      "bytes": 1638,
+      "sha256": "e41b82bc455c1f576b48e373a5cfb54376764926231f958bca8b092fa4fecbc4"
+    },
+    {
+      "path": "linux-qualification.log",
+      "bytes": 42,
+      "sha256": "0f8506061a7874fc0192220049e2c76d4ed7867b2544b645383a59ad49f6a1b9"
+    },
+    {
+      "path": "linux-run/qualification.json",
+      "bytes": 22791,
+      "sha256": "a6a521956a91dd31ab13948de8255a4c2a599e1d194aff2f04c3e79b0eb06ee5"
+    },
+    {
+      "path": "linux-final-summary.json",
+      "bytes": 807,
+      "sha256": "59330b2b1e1a1eb4f025f47ff4e8904c182cff098c418cd63bb8bb67b213c8ed"
+    },
+    {
+      "path": "linux-container-after.json",
+      "bytes": 9732,
+      "sha256": "a123775bfa785c5e8402954e03d3debad657c3e1da4e6e73b98b7e902c101ead"
+    },
+    {
+      "path": "cleanup.json",
+      "bytes": 10439,
+      "sha256": "fddbaafea7ad65c8912d4ebe72140909d2e9cf5cd9a299526105152342f98a60"
+    }
+  ],
+  "verification": [
+    {
+      "path": "full-summary.json",
+      "bytes": 335,
+      "sha256": "14215ab79dc28d8301e45829cfcfda0c5a35eedc2bd2892a2611b3dc08890530"
+    },
+    {
+      "path": "full-check.md",
+      "bytes": 1852,
+      "sha256": "19d76825a0d89b754cf9199b5cdb86b7227bb615ba685e308479d1051f835288"
+    },
+    {
+      "path": "full.log",
+      "bytes": 339432,
+      "sha256": "f45339b9fe7a8752aa93b3eacfa76649fdad14848ba4035e7af01c6da46c3720"
+    },
+    {
+      "path": "verification-reuse.json",
+      "bytes": 903,
+      "sha256": "39cd3b42806b1042e4e3edc00fdb0c9f490e5ee8cfbedce6c5ed8b251d48791b"
+    },
+    {
+      "path": "fixture-export-final.json",
+      "bytes": 388,
+      "sha256": "ca4ed096ebc30d8071ca498f4b80e71c9c4d295e453cda3db739e2e9b0726ee2"
+    },
+    {
+      "path": "fixture-export-final.log",
+      "bytes": 2669,
+      "sha256": "511a1b8cd7ae8811bcaf1756444e63f1eeb9c70f1c8bd0ff1cc17ed7f6f4a5e2"
+    },
+    {
+      "path": "source-final-verification.json",
+      "bytes": 1262,
+      "sha256": "9b0bd499466cb3eff5193b32ac6115b7a8526a39c51cd1791834edf50e0cff75"
+    },
+    {
+      "path": "source-boundary-probe.json",
+      "bytes": 707,
+      "sha256": "fb3e7e3699eed43d1e1c38d1982b1914905b02c84753f9a587a3166a116027a9"
+    },
+    {
+      "path": "source-link-target-probe.json",
+      "bytes": 218,
+      "sha256": "37e438da136abd0b3ff8b934fc15508b8fa8a610ac310e76b3b88ffdd587eaed"
+    },
+    {
+      "path": "reader-stream-boundary.json",
+      "bytes": 683,
+      "sha256": "a22f5dd1e27bdcd0deec27fd320c64afc0896d2c28929e623be9cb7f70143af5"
+    },
+    {
+      "path": "reviews.json",
+      "bytes": 2623,
+      "sha256": "809fd0b0d960d27e31bcb2d1d1eeffbe113c4d1d0f9bbc5e4d282b4223ec61ce"
+    },
+    {
+      "path": "preservation-final-before-docs.json",
+      "bytes": 1764,
+      "sha256": "0e7e57dc2d0c7d599fed61818b380decd8fd9ff5c2b06193c189b82ade406710"
+    },
+    {
+      "path": "github-final-state.json",
+      "bytes": 1384,
+      "sha256": "e3f30daaad054a856a466d5047afe49acd1ee3eef98185439b499dfb76a7afc8"
+    },
+    {
+      "path": "development-history.json",
+      "bytes": 3184,
+      "sha256": "47281f3e7e52e6261d5833fced70119f43c678c95b91c515116ed2e9b4773c73"
+    },
+    {
+      "path": "code-slice.json",
+      "bytes": 1302,
+      "sha256": "8a78a8dd0d42ca82afe1fc580d30b5005cfd865ff5c779ba27e9f10f53de1281"
+    }
+  ],
+  "private_synthetic_fixture_hashes": [
+    {
+      "path": "fixtures-final/metadata/1.key",
+      "mode": "0o600",
+      "bytes": 32,
+      "sha256": "72cd6e8422c407fb6d098690f1130b7ded7ec2f7f5e1d30bd9d521f015363793"
+    },
+    {
+      "path": "fixtures-final/metadata/control.sqlite3",
+      "mode": "0o600",
+      "bytes": 774144,
+      "sha256": "2f4c077d31c5e09fa18c24bf998bcf9a162927482e6672a54ff7226f566a3ff3"
+    },
+    {
+      "path": "fixtures-final/metadata/expected.json",
+      "mode": "0o600",
+      "bytes": 740,
+      "sha256": "55eccab10a5979bd1dbcfc6c3d720dfc0e414997b60eaef02998a92ea6a5e0d0"
+    },
+    {
+      "path": "fixtures-final/summary/1.key",
+      "mode": "0o600",
+      "bytes": 32,
+      "sha256": "72cd6e8422c407fb6d098690f1130b7ded7ec2f7f5e1d30bd9d521f015363793"
+    },
+    {
+      "path": "fixtures-final/summary/control.sqlite3",
+      "mode": "0o600",
+      "bytes": 774144,
+      "sha256": "9c6eedc0566e5d2a208f7a5a12b5ac4a88eb808c2b87cbc6479b3293e778128a"
+    },
+    {
+      "path": "fixtures-final/summary/expected.json",
+      "mode": "0o600",
+      "bytes": 1048,
+      "sha256": "ed1d7f9a1b173057c7fef77a3fb22c4f10170bba77a9987b213ccacb71ea15b1"
+    },
+    {
+      "path": "fixtures-final/usage/1.key",
+      "mode": "0o600",
+      "bytes": 32,
+      "sha256": "72cd6e8422c407fb6d098690f1130b7ded7ec2f7f5e1d30bd9d521f015363793"
+    },
+    {
+      "path": "fixtures-final/usage/control.sqlite3",
+      "mode": "0o600",
+      "bytes": 774144,
+      "sha256": "e32da57962ac8ff5d93e45926fc2bf15e0162bc61a0d0ccc9f790b62ed8882f9"
+    },
+    {
+      "path": "fixtures-final/usage/expected.json",
+      "mode": "0o600",
+      "bytes": 354,
+      "sha256": "d67342f99dd4525a09b57e875fa6c34f61f78cb193c5f993f86956e27aedc7ad"
+    }
+  ],
+  "build_parameters": {
+    "target": "aarch64-unknown-linux-gnu",
+    "platform": "linux/arm64",
+    "rust": "1.97.1",
+    "node": "24.19.0",
+    "cargo_cyclonedx": "0.5.9",
+    "source_date_epoch": 1792677294,
+    "command": "scripts/build-release.sh -> cargo build --release --locked --workspace",
+    "cargo_build_jobs": 2,
+    "cargo_incremental": 0,
+    "cargo_net_offline": true,
+    "npm_offline": true,
+    "network": "none",
+    "controlled_test_support": false,
+    "gated_features": "default release features; provider-grok features=[]"
+  },
+  "gates": {
+    "stock_linux_reader_serve": "PASS_BOUNDED",
+    "strict_unsigned_p12": "PASS",
+    "same_input_reproducibility": "NOT_RUN",
+    "three_clients_with_this_binary": "NOT_RUN",
+    "fixed_build_service": "BLOCKED",
+    "github_write_push_remote_ci": "NOT_RUN",
+    "sigstore_signing": "NOT_RUN",
+    "cryptographic_verification": "NOT_RUN",
+    "real_provider_67": "NOT_RUN",
+    "release_deploy": "NOT_RUN",
+    "D2_first_release": "NOT_DECIDED",
+    "cost_in_usd_ticks": "NOT_ADMITTED"
+  },
+  "documentation_head": "subsequent documentation commit does not redefine tested source or binary"
+}

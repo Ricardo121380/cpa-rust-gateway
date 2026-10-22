@@ -1,0 +1,36 @@
+{
+  "status": "PASS",
+  "scope": "targeted driver stream oracle, not Linux qualification",
+  "cases": [
+    {
+      "case": "fixed success",
+      "accepted": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "case": "fixed error",
+      "accepted": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "case": "private stdout",
+      "accepted": false,
+      "expected": false,
+      "pass": true
+    },
+    {
+      "case": "private stderr",
+      "accepted": false,
+      "expected": false,
+      "pass": true
+    },
+    {
+      "case": "unexpected acknowledgement",
+      "accepted": false,
+      "expected": false,
+      "pass": true
+    }
+  ]
+}

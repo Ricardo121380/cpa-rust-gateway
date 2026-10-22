@@ -1,0 +1,96 @@
+{
+  "scope": "all owned retained RED/FAIL/ABORTED and successor evidence; no historical failures erased",
+  "initial_record": [
+    {
+      "phase": "cold image pull direct",
+      "status": "FAIL",
+      "cause": "Docker Hub TLS/EOF",
+      "evidence": "pull-0.log"
+    },
+    {
+      "phase": "host Node archive extraction",
+      "status": "FAIL",
+      "cause": "host Python3.9 tarfile lacks filter argument; verified archive extracted with system tar",
+      "resolution": "same verified bytes; no dependency change"
+    },
+    {
+      "phase": "fixture development export",
+      "status": "PASS",
+      "node": "inherited system Node26; synthetic data only, not product build qualification",
+      "evidence": "fixture-export.json"
+    }
+  ],
+  "events": [
+    {
+      "status": "FAIL_EXPECTED",
+      "name": "ref-only misses18 overlays",
+      "evidence": "red-ref-only-source.json"
+    },
+    {
+      "status": "ABORTED",
+      "name": "15 inherited modes differed at8fe preflight",
+      "evidence": [
+        "red-full-permission-preflight.json",
+        "aborted-full-input-preflight.json"
+      ],
+      "resolution": "actual mode overlay; fresh final Full/source/targets"
+    },
+    {
+      "status": "FAIL_EXPECTED",
+      "name": "cleanup fault persisted stale PASS",
+      "evidence": "red-cleanup-status.json",
+      "resolution": "654c7b18; green-cleanup-status.json"
+    },
+    {
+      "status": "FAIL_EXPECTED",
+      "name": "two-file artifact incomplete",
+      "evidence": "red-two-file-artifact.log",
+      "resolution": "exact complete unsigned six files with strict verifier"
+    },
+    {
+      "status": "FAIL",
+      "name": "old candidate1a8 reader oracle incorrectly forbade fixed acknowledgement",
+      "evidence": [
+        "linux-run.red-reader-stdout-1a8b6fc4/qualification.json",
+        "red-reader-stdout.json"
+      ],
+      "resolution": "737fd040 exact value-free stream oracle"
+    },
+    {
+      "status": "PASS_DEVELOPMENT_ONLY",
+      "name": "corrected oracle with prior binary",
+      "evidence": "linux-probe-run/qualification.json",
+      "not_final_qualification": true
+    },
+    {
+      "status": "PASS",
+      "name": "final737 offline release6m34s",
+      "evidence": "release-build.log",
+      "reproducibility": "NOT_RUN"
+    },
+    {
+      "status": "PASS",
+      "name": "final strict unsigned set and five negatives",
+      "evidence": [
+        "strict-unsigned-verifier.log",
+        "artifact-negative-summary.json"
+      ]
+    },
+    {
+      "status": "PASS_BOUNDED",
+      "name": "final delivered binary Linux144checks5serve22reader cases",
+      "evidence": "linux-run/qualification.json"
+    },
+    {
+      "status": "PASS",
+      "name": "owned resources released, old environments unchanged",
+      "evidence": "cleanup.json"
+    }
+  ],
+  "operational_corrections": [
+    "initial secret-scan.py path typo; correct secret-scan.sh --all completed successfully",
+    "Python JSON-lines/container image-shape preflight corrections occurred before mutations; did not change source or acceptance checks"
+  ],
+  "independent_same_input_builds": "NOT_RUN",
+  "old_source_artifacts_preserved_suffix": ".prior-1a8b6fc4"
+}

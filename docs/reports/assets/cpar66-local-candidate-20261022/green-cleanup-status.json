@@ -1,0 +1,12 @@
+{
+  "status": "FAIL",
+  "checks": [
+    {
+      "name": "controlled receiver listener and thread released",
+      "pass": false
+    }
+  ],
+  "processes": [],
+  "failure_type": "AssertionError",
+  "failure": "controlled receiver listener and thread released"
+}

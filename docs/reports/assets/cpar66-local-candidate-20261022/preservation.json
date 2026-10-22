@@ -1,0 +1,79 @@
+{
+  "status": "PASS",
+  "inherited": [
+    {
+      "path": "AGENTS.md",
+      "preserved": true
+    },
+    {
+      "path": "CONTEXT.md",
+      "preserved": true
+    },
+    {
+      "path": "README.md",
+      "preserved": true
+    },
+    {
+      "path": "README.zh-CN.md",
+      "preserved": true
+    },
+    {
+      "path": "docs/06-development-plan.md",
+      "preserved": true
+    },
+    {
+      "path": "docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md",
+      "preserved": true
+    },
+    {
+      "path": "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+      "preserved": true
+    },
+    {
+      "path": "docs/adr/ADR-0106-native-fidelity-profile.md",
+      "preserved": true
+    },
+    {
+      "path": "docs/adr/ADR-0107-standard-response-metadata-separation.md",
+      "preserved": true
+    },
+    {
+      "path": "docs/adr/ADR-0108-build-summary-standard-messages.md",
+      "preserved": true
+    },
+    {
+      "path": "docs/adr/README.md",
+      "preserved": true
+    },
+    {
+      "path": "docs/agents/domain.md",
+      "preserved": true
+    },
+    {
+      "path": "docs/agents/issue-tracker.md",
+      "preserved": true
+    },
+    {
+      "path": "docs/agents/triage-labels.md",
+      "preserved": true
+    },
+    {
+      "path": "docs/contracts/BC-PROTOCOL-009-codex-responses-controls.md",
+      "preserved": true
+    },
+    {
+      "path": "docs/engineering-roadmap.md",
+      "preserved": true
+    },
+    {
+      "path": "docs/reports/cpar-62-64-client-field-plan-20261020.md",
+      "preserved": true
+    },
+    {
+      "path": "docs/traceability.md",
+      "preserved": true
+    }
+  ],
+  "checks": "bytes/mode/type/symlink-target/uid/gid",
+  "note": "33-overlay inventory also independently verified from final source"
+}

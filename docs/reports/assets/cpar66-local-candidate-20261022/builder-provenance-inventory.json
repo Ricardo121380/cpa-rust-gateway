@@ -1,0 +1,35 @@
+{
+  "status": "PASS",
+  "files": [
+    {
+      "path": "builder-provenance/inrelease-sha256.txt",
+      "bytes": 422,
+      "sha256": "c8d2e2fb5f5405be35d6af82332b4ca446f5718b493a50085bddb17894e5b7f5"
+    },
+    {
+      "path": "builder-provenance/packages.tsv",
+      "bytes": 13446,
+      "sha256": "6c660816a369cc961db674e3cfde5fc04895def1e99b94b1d2e21b82ad8567b1"
+    },
+    {
+      "path": "cyclonedx.txt",
+      "bytes": 32,
+      "sha256": "b973b12146c8c66df2041078e7d319e79dc93cab01aa91fe31659e949ff7be86"
+    },
+    {
+      "path": "node.txt",
+      "bytes": 9,
+      "sha256": "b7677d3ec37ee1897ba07dc2cfe8292fe421c9ac93396cca5bbece486d1a2a41"
+    },
+    {
+      "path": "npm.txt",
+      "bytes": 8,
+      "sha256": "a38e383f1e9080b0dd9001481f6e56b341000de90a05061b66734350ad3adc41"
+    },
+    {
+      "path": "rustc.txt",
+      "bytes": 197,
+      "sha256": "6c427c11d6d5e217066999d86447291da4f7aab462151b8e6064ab230dc0aecf"
+    }
+  ]
+}

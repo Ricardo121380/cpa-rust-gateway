@@ -1,0 +1,20 @@
+{
+  "archive_uid_gid": 0,
+  "base_commit": "737fd040e983bef329be27b5cf48b4f6986a5772",
+  "cargo_lock_sha256": "36564c0219707741d79ecb37d9fc4ee620ce2fe6801fdbe09b32fb4c8687c858",
+  "git_status_overlay_files": 18,
+  "input_manifest_sha256": "bbd89a90c1e1deb470a0fd46bfd68196f89cc4d5325cbacef0cb4d728f65e9cd",
+  "inputs": 7380,
+  "node": "24.19.0",
+  "overlay_files": 33,
+  "overlay_sha256": "a33a04b2fbed604323e91e17b9630c8d229882f9bdf95fc9644c0fd72bd510c3",
+  "permission_overlay_files": 15,
+  "reproducibility": "NOT_RUN",
+  "rust_toolchain": "1.97.1",
+  "schema": "cpar66-local-source-v1",
+  "source_archive_sha256": "6117221bd1fe960b63adbcc33029b2fc91c82fe222ecd1eab1cc86df21be88d3",
+  "source_date_epoch": 1792677294,
+  "source_form": "base_commit_plus_overlay",
+  "target": "aarch64-unknown-linux-gnu",
+  "tree": "60c951023d5ea81fd732256101deab0a8771375d"
+}

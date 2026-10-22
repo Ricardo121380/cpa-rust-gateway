@@ -1,0 +1,29 @@
+{
+  "status": "PASS",
+  "revision": "737fd040e983bef329be27b5cf48b4f6986a5772",
+  "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+  "manifest_sha256": "aff99e88cb24a7cf3f1489f0a712c3e37e83af76e29bb5768a9a552fcd255e0c",
+  "checks": 144,
+  "serve_processes": 5,
+  "reader_cases": 22,
+  "overwrite_rejections": 6,
+  "reader_execs": 28,
+  "privacy_files_checked": 34,
+  "privacy_directories_checked": 7,
+  "ordinary_logs_scanned": 8,
+  "secret_values_not_printed": true,
+  "container_exit": 0,
+  "container_running": false,
+  "container_pid": 0,
+  "network_mode": "none",
+  "published_ports": false,
+  "receiver": [
+    {
+      "method": "GET",
+      "path": "/cpar66-envelope-probe"
+    }
+  ],
+  "schema": 38,
+  "real_provider": "NOT_RUN",
+  "reproducibility": "NOT_RUN"
+}

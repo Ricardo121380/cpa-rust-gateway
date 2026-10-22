@@ -1,0 +1,58 @@
+{
+  "Id": "sha256:eca0fa3b1a319ee5ddaab9a3804af488536c51fe4125506cb1b8bc0039003aea",
+  "RepoTags": [
+    "cpar66-builder:complete"
+  ],
+  "RepoDigests": [
+    "cpar66-builder@sha256:eca0fa3b1a319ee5ddaab9a3804af488536c51fe4125506cb1b8bc0039003aea"
+  ],
+  "Comment": "buildkit.dockerfile.v0",
+  "Created": "2026-10-22T21:13:57.777828644+08:00",
+  "Config": {
+    "Env": [
+      "PATH=/usr/local/cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "RUSTUP_HOME=/usr/local/rustup",
+      "CARGO_HOME=/usr/local/cargo",
+      "RUST_VERSION=1.97.1"
+    ],
+    "Cmd": [
+      "bash"
+    ],
+    "Labels": {
+      "org.opencontainers.image.source": "https://github.com/rust-lang/docker-rust"
+    }
+  },
+  "Architecture": "arm64",
+  "Os": "linux",
+  "Size": 767954003,
+  "RootFS": {
+    "Type": "layers",
+    "Layers": [
+      "sha256:fc7ac19cfb2d64221e26478ffac9248cfff72f76adbb89ca5e362b37cc21c84a",
+      "sha256:c1cf7a9b7c84052ffa15e8621c27a229e6d79203dee6c5ebb63ce76230f7349e",
+      "sha256:304cc516c4dc516b48304bc637d27673284810a377052ad62afaaf10a4c6eade",
+      "sha256:1e8e95cb952a3e771723a664bbbed69f265681b196a5ab90a07e635bce808dd4",
+      "sha256:9e06278045289c508d268cde4ae53588cc3be431daf4f5d6856d6d5a1f6cf247",
+      "sha256:e01dd45842cc7b12ada5bb3cd908a00c4daadc409c673bd065edc8d051bbc7c4",
+      "sha256:80f902182440922acafbeb78b07205ff7ab92fcabbed3dbfd18671180a982c9c",
+      "sha256:39c318075358f57daa08e6a9f8038c00d091816eb7ce886c80fbebb8da4cb3a3",
+      "sha256:2b707ad04f0d86090a6921676713f4627ecfbc1a02fb9005474e017463d66f8c"
+    ]
+  },
+  "Metadata": {
+    "LastTagTime": "2026-10-22T13:13:58.427603493Z"
+  },
+  "Descriptor": {
+    "mediaType": "application/vnd.oci.image.index.v1+json",
+    "digest": "sha256:eca0fa3b1a319ee5ddaab9a3804af488536c51fe4125506cb1b8bc0039003aea",
+    "size": 856
+  },
+  "Identity": {
+    "Build": [
+      {
+        "Ref": "m5lhobhdmwn1np7r78iby0m56",
+        "CreatedAt": "2026-10-22T21:13:58.553493702+08:00"
+      }
+    ]
+  }
+}

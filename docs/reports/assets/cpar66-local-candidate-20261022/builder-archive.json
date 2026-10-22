@@ -1,0 +1,7 @@
+{
+  "image_id": "sha256:eca0fa3b1a319ee5ddaab9a3804af488536c51fe4125506cb1b8bc0039003aea",
+  "file": "builder-image.docker.tar",
+  "bytes": 767972352,
+  "sha256": "b4830227209eb9a6192c571932d989ec00a9ddd4f017cdc639ff4d62a8b96321",
+  "purpose": "retained exact task-owned builder input before environment release"
+}

@@ -1,0 +1,189 @@
+[
+  {
+    "name": "build-metadata",
+    "command": [
+      "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/runtime-source/scripts/p12-release-artifact.rb",
+      "build-metadata",
+      "--revision",
+      "737fd040e983bef329be27b5cf48b4f6986a5772",
+      "--rust-toolchain",
+      "1.97.1",
+      "--target",
+      "aarch64-unknown-linux-gnu",
+      "--version",
+      "0.1.0",
+      "--output",
+      "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/unsigned-artifact/gateway-build-metadata.json"
+    ],
+    "exit": 0
+  },
+  {
+    "name": "red-two-file-artifact",
+    "command": [
+      "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/runtime-source/scripts/p12-release-artifact.rb",
+      "manifest",
+      "--artifact-dir",
+      "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/red-two-file-artifact",
+      "--revision",
+      "737fd040e983bef329be27b5cf48b4f6986a5772",
+      "--rust-toolchain",
+      "1.97.1",
+      "--target",
+      "aarch64-unknown-linux-gnu",
+      "--version",
+      "0.1.0",
+      "--output",
+      "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/red-two-file-artifact/artifact-manifest.json"
+    ],
+    "exit": 1
+  },
+  {
+    "name": "expected-signing-identity",
+    "command": [
+      "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/runtime-source/scripts/p12-release-artifact.rb",
+      "identity",
+      "--repository",
+      "Ricardo121380/cpa-rust-gateway",
+      "--workflow-path",
+      ".github/workflows/release-artifact.yml",
+      "--ref",
+      "refs/heads/feature/62-client-metadata",
+      "--output",
+      "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/unsigned-artifact/signing-identity.json"
+    ],
+    "exit": 0
+  },
+  {
+    "name": "oci-build",
+    "command": [
+      "docker",
+      "--host",
+      "unix:///Volumes/Asgard/Colima/cpar66-local-20261022/docker.sock",
+      "buildx",
+      "build",
+      "--builder",
+      "cpar66-release",
+      "--platform",
+      "linux/arm64",
+      "--file",
+      "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/runtime-source/Dockerfile",
+      "--provenance=false",
+      "--build-arg",
+      "RELEASE_REVISION=737fd040e983bef329be27b5cf48b4f6986a5772",
+      "--build-arg",
+      "RELEASE_VERSION=0.1.0",
+      "--build-arg",
+      "RELEASE_RUST_VERSION=1.97.1",
+      "--build-arg",
+      "RELEASE_TARGET=aarch64-unknown-linux-gnu",
+      "--build-arg",
+      "RELEASE_BASE_IMAGE=debian:bookworm-slim@sha256:9b67294679b30e5d6ab257b40594feeb4a4b81f7fcf4131f4decf0d6a212a9b0",
+      "--build-arg",
+      "HTTP_PROXY=http://192.168.5.2:7897",
+      "--build-arg",
+      "HTTPS_PROXY=http://192.168.5.2:7897",
+      "--output",
+      "type=oci,dest=/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/unsigned-artifact/gateway-image.oci.tar,name=cpar66-candidate:737fd040",
+      "--output",
+      "type=docker,dest=/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/gateway-image.docker.tar,name=cpar66-candidate:737fd040",
+      "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/release-image-context"
+    ],
+    "exit": 0
+  },
+  {
+    "name": "manifest",
+    "command": [
+      "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/runtime-source/scripts/p12-release-artifact.rb",
+      "manifest",
+      "--artifact-dir",
+      "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/unsigned-artifact",
+      "--revision",
+      "737fd040e983bef329be27b5cf48b4f6986a5772",
+      "--rust-toolchain",
+      "1.97.1",
+      "--target",
+      "aarch64-unknown-linux-gnu",
+      "--version",
+      "0.1.0",
+      "--output",
+      "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/unsigned-artifact/artifact-manifest.json"
+    ],
+    "exit": 0
+  },
+  {
+    "name": "strict-unsigned-verifier",
+    "command": [
+      "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/runtime-source/scripts/p12-release-artifact.rb",
+      "verify",
+      "--artifact-dir",
+      "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/unsigned-artifact",
+      "--revision",
+      "737fd040e983bef329be27b5cf48b4f6986a5772",
+      "--rust-toolchain",
+      "1.97.1",
+      "--target",
+      "aarch64-unknown-linux-gnu",
+      "--version",
+      "0.1.0"
+    ],
+    "exit": 0
+  },
+  {
+    "name": "oci-docker-load",
+    "command": [
+      "docker",
+      "--host",
+      "unix:///Volumes/Asgard/Colima/cpar66-local-20261022/docker.sock",
+      "load",
+      "--input",
+      "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/gateway-image.docker.tar"
+    ],
+    "exit": 0
+  },
+  {
+    "name": "oci-runtime-help",
+    "command": [
+      "docker",
+      "--host",
+      "unix:///Volumes/Asgard/Colima/cpar66-local-20261022/docker.sock",
+      "run",
+      "--rm",
+      "--pull=never",
+      "--network",
+      "none",
+      "--read-only",
+      "--user",
+      "65532:65532",
+      "cpar66-candidate:737fd040",
+      "--help"
+    ],
+    "exit": 0
+  },
+  {
+    "name": "oci-byte-container",
+    "command": [
+      "docker",
+      "--host",
+      "unix:///Volumes/Asgard/Colima/cpar66-local-20261022/docker.sock",
+      "create",
+      "--name",
+      "cpar66-oci-byte-readback-737fd040",
+      "--network",
+      "none",
+      "cpar66-candidate:737fd040"
+    ],
+    "exit": 0
+  },
+  {
+    "name": "oci-byte-readback",
+    "command": [
+      "docker",
+      "--host",
+      "unix:///Volumes/Asgard/Colima/cpar66-local-20261022/docker.sock",
+      "cp",
+      "cpar66-oci-byte-readback-737fd040:/usr/local/bin/gateway",
+      "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/oci-gateway-readback"
+    ],
+    "exit": 0
+  }
+]

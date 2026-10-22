@@ -1,0 +1,7 @@
+ca-certificates 20230311+deb12u1
+iptables 1.8.9-2
+libc6 2.36-9+deb12u14
+libgcc-s1 12.2.0-14+deb12u1
+libstdc++6 12.2.0-14+deb12u1
+python3 3.11.2-1+b1
+util-linux 2.38.1-5+deb12u3

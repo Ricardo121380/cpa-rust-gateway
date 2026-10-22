@@ -1,0 +1,310 @@
+{
+  "status": "PASS",
+  "scope": "only cpar66-local-20261022 resources",
+  "started_at": "2026-10-22T14:13:31.362637+00:00",
+  "commands": [
+    {
+      "command": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-local-20261022/docker.sock",
+        "rm",
+        "40b9834bc757e84228ed5ab2acd4d296f2667495a7fa6c6ea384a3ff7d06ceef"
+      ],
+      "exit": 0,
+      "stdout": "40b9834bc757e84228ed5ab2acd4d296f2667495a7fa6c6ea384a3ff7d06ceef\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-local-20261022/docker.sock",
+        "rm",
+        "0a6b27c92c0933eb9a0bf9d8d7aeb585884d08f29ddf36f857eaa6bb7e0b3c7d"
+      ],
+      "exit": 0,
+      "stdout": "0a6b27c92c0933eb9a0bf9d8d7aeb585884d08f29ddf36f857eaa6bb7e0b3c7d\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-local-20261022/docker.sock",
+        "rm",
+        "6638da7af212d891bf90602b13cd5c8a56b342a46f3ce64027ef444994b49aaa"
+      ],
+      "exit": 0,
+      "stdout": "6638da7af212d891bf90602b13cd5c8a56b342a46f3ce64027ef444994b49aaa\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-local-20261022/docker.sock",
+        "rm",
+        "8623c03b0cc104841d3015d7d860845c89391a60d5e89c23fbb0cc696abc78b6"
+      ],
+      "exit": 0,
+      "stdout": "8623c03b0cc104841d3015d7d860845c89391a60d5e89c23fbb0cc696abc78b6\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-local-20261022/docker.sock",
+        "rm",
+        "b0005119cceac3979e24be5e236b2ccfe01480cc92c8829979eb73c881309840"
+      ],
+      "exit": 0,
+      "stdout": "b0005119cceac3979e24be5e236b2ccfe01480cc92c8829979eb73c881309840\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-local-20261022/docker.sock",
+        "rm",
+        "2c8c7a3b07ce9eb5cba05efa34bf549ab0b2d6de29a6a90e77ee98c799b25e0d"
+      ],
+      "exit": 0,
+      "stdout": "2c8c7a3b07ce9eb5cba05efa34bf549ab0b2d6de29a6a90e77ee98c799b25e0d\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-local-20261022/docker.sock",
+        "rm",
+        "a02731a5840cdcad76feaa007a7858d36f4c98860666039c80b0396f5ca51346"
+      ],
+      "exit": 0,
+      "stdout": "a02731a5840cdcad76feaa007a7858d36f4c98860666039c80b0396f5ca51346\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-local-20261022/docker.sock",
+        "rm",
+        "2c9415477a81a891b4d950420471cd09f96b7ef1021f7499d0dd30969289913d"
+      ],
+      "exit": 0,
+      "stdout": "2c9415477a81a891b4d950420471cd09f96b7ef1021f7499d0dd30969289913d\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-local-20261022/docker.sock",
+        "rm",
+        "293068ca935bead00fb25da5828d9aef558a0277a607874ae34e7277d1ec4bbb"
+      ],
+      "exit": 0,
+      "stdout": "293068ca935bead00fb25da5828d9aef558a0277a607874ae34e7277d1ec4bbb\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-local-20261022/docker.sock",
+        "rm",
+        "2ef99b2648a808ccb6b79572d59855bea054c87004afb7e4523b1c8318f2ba58"
+      ],
+      "exit": 0,
+      "stdout": "2ef99b2648a808ccb6b79572d59855bea054c87004afb7e4523b1c8318f2ba58\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-local-20261022/docker.sock",
+        "buildx",
+        "rm",
+        "cpar66-release"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "cpar66-release removed\n"
+    },
+    {
+      "command": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-local-20261022/docker.sock",
+        "volume",
+        "rm",
+        "cpar66-build-20261022"
+      ],
+      "exit": 0,
+      "stdout": "cpar66-build-20261022\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-local-20261022/docker.sock",
+        "volume",
+        "rm",
+        "cpar66-runtime-20261022"
+      ],
+      "exit": 0,
+      "stdout": "cpar66-runtime-20261022\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-local-20261022/docker.sock",
+        "volume",
+        "rm",
+        "cpar66-runtime-final-20261022"
+      ],
+      "exit": 0,
+      "stdout": "cpar66-runtime-final-20261022\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-local-20261022/docker.sock",
+        "volume",
+        "rm",
+        "cpar66-runtime-probe-20261022"
+      ],
+      "exit": 0,
+      "stdout": "cpar66-runtime-probe-20261022\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "colima",
+        "--profile",
+        "cpar66-local-20261022",
+        "stop"
+      ],
+      "exit": 0,
+      "stdout": "Stopping 'docker.service', but its triggering units are still active:\ndocker.socket\ncolima-cpar66-local-20261022\ntime=\"2026-10-22T22:13:43+08:00\" level=info msg=\"Sending SIGINT to hostagent process 3858\"\ntime=\"2026-10-22T22:13:43+08:00\" level=info msg=\"Waiting for the host agent and the driver processes to shut down\"\ntime=\"2026-10-22T22:13:43+08:00\" level=info msg=\"[hostagent] Received SIGINT, shutting down the host agent\"\ntime=\"2026-10-22T22:13:43+08:00\" level=info msg=\"[hostagent] Shutting down the host agent\"\ntime=\"2026-10-22T22:13:43+08:00\" level=info msg=\"[hostagent] Stopping forwarding \\\"/var/run/docker.sock\\\" (guest) to \\\"/Users/huangrui/.colima/cpar66-local-20261022/docker.sock\\\" (host)\"\ntime=\"2026-10-22T22:13:43+08:00\" level=info msg=\"[hostagent] Stopping forwarding \\\"/var/run/containerd/containerd.sock\\\" (guest) to \\\"/Users/huangrui/.colima/cpar66-local-20261022/containerd.sock\\\" (host)\"\ntime=\"2026-10-22T22:13:43+08:00\" level=info msg=\"[hostagent] Unmounting disk \\\"colima-cpar66-local-20261022\\\"\"\ntime=\"2026-10-22T22:13:43+08:00\" level=info msg=\"[hostagent] Shutting down VZ\"\ntime=\"2026-10-22T22:13:46+08:00\" level=info msg=\"[hostagent] [VZ] - vm state change: stopped\"\ntime=\"2026-10-22T22:13:47+08:00\" level=info msg=\"Waiting for the instance to shut down\"\ntime=\"2026-10-22T22:13:47+08:00\" level=info msg=\"The instance colima-cpar66-local-20261022 has shut down\"\n",
+      "stderr": "time=\"2026-10-22T22:13:41+08:00\" level=info msg=\"stopping colima [profile=cpar66-local-20261022]\"\ntime=\"2026-10-22T22:13:41+08:00\" level=info msg=\"stopping ...\" context=docker\ntime=\"2026-10-22T22:13:41+08:00\" level=info msg=\"stopping ...\" context=vm\ntime=\"2026-10-22T22:13:48+08:00\" level=info msg=done\n"
+    },
+    {
+      "command": [
+        "colima",
+        "--profile",
+        "cpar66-local-20261022",
+        "delete",
+        "--data",
+        "--force"
+      ],
+      "exit": 0,
+      "stdout": "time=\"2026-10-22T22:13:49+08:00\" level=info msg=\"The vz driver process seems already stopped\"\ntime=\"2026-10-22T22:13:49+08:00\" level=warning msg=\"Failed to unlock disk \\\"colima-cpar66-local-20261022\\\". To use, run `limactl disk unlock colima-cpar66-local-20261022`\"\ntime=\"2026-10-22T22:13:49+08:00\" level=info msg=\"The host agent process seems already stopped\"\ntime=\"2026-10-22T22:13:49+08:00\" level=info msg=\"Removing *.pid *.sock *.tmp under \\\"/Volumes/Asgard/Colima/_lima/colima-cpar66-local-20261022\\\"\"\ntime=\"2026-10-22T22:13:49+08:00\" level=info msg=\"Deleted \\\"colima-cpar66-local-20261022\\\" (\\\"/Volumes/Asgard/Colima/_lima/colima-cpar66-local-20261022\\\")\"\n",
+      "stderr": "time=\"2026-10-22T22:13:48+08:00\" level=info msg=\"deleting colima [profile=cpar66-local-20261022]\"\ntime=\"2026-10-22T22:13:49+08:00\" level=info msg=\"deleting container data\"\ntime=\"2026-10-22T22:13:49+08:00\" level=info msg=done\n"
+    }
+  ],
+  "container_ids_after": [],
+  "volumes_after": [],
+  "stopped_profiles": [
+    {
+      "name": "default",
+      "status": "Stopped",
+      "arch": "aarch64",
+      "cpus": 4,
+      "memory": 8589934592,
+      "disk": 42949672960
+    },
+    {
+      "name": "cpar-acceptance-20261010",
+      "status": "Stopped",
+      "arch": "aarch64",
+      "cpus": 4,
+      "memory": 6442450944,
+      "disk": 42949672960
+    },
+    {
+      "name": "cpar66-local-20261022",
+      "status": "Stopped",
+      "arch": "aarch64",
+      "cpus": 4,
+      "memory": 6442450944,
+      "disk": 42949672960
+    },
+    {
+      "name": "omp-pi130-01-20261018",
+      "status": "Stopped",
+      "arch": "aarch64",
+      "cpus": 2,
+      "memory": 3221225472,
+      "disk": 12884901888
+    }
+  ],
+  "finished_at": "2026-10-22T14:13:49.965601+00:00",
+  "profiles_after": [
+    {
+      "name": "default",
+      "status": "Stopped",
+      "arch": "aarch64",
+      "cpus": 4,
+      "memory": 8589934592,
+      "disk": 42949672960
+    },
+    {
+      "name": "cpar-acceptance-20261010",
+      "status": "Stopped",
+      "arch": "aarch64",
+      "cpus": 4,
+      "memory": 6442450944,
+      "disk": 42949672960
+    },
+    {
+      "name": "omp-pi130-01-20261018",
+      "status": "Stopped",
+      "arch": "aarch64",
+      "cpus": 2,
+      "memory": 3221225472,
+      "disk": 12884901888
+    }
+  ],
+  "global_docker_context": "default",
+  "task_socket_exists": false,
+  "task_profile_exists": false,
+  "old_profiles_unchanged": true,
+  "retained_inputs": [
+    "builder-image.docker.tar",
+    "dependency-cache.tar",
+    "source-candidate",
+    "unsigned-artifact",
+    "private_linux_runs_and_receipts"
+  ],
+  "shared_or_old_environment_mutations": false,
+  "host_listeners_after": [
+    {
+      "port": 19180,
+      "listening": false
+    },
+    {
+      "port": 19181,
+      "listening": false
+    },
+    {
+      "port": 19443,
+      "listening": false
+    },
+    {
+      "port": 19999,
+      "listening": false
+    }
+  ],
+  "task_vm_agent_pids_after": []
+}

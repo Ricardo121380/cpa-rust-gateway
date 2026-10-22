@@ -1,0 +1,36 @@
+{
+  "status": "PASS",
+  "sources": [
+    {
+      "label": "final-main",
+      "source": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020",
+      "manifest": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/source-candidate/input-manifest.json",
+      "exit": 0,
+      "result": {
+        "status": "PASS",
+        "inputs": 7380
+      }
+    },
+    {
+      "label": "final-extracted",
+      "source": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/runtime-source",
+      "manifest": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/source-candidate/input-manifest.json",
+      "exit": 0,
+      "result": {
+        "status": "PASS",
+        "inputs": 7380
+      }
+    },
+    {
+      "label": "full-worktree",
+      "source": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar66-full-20261022-1a8b6fc4",
+      "manifest": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/source-candidate.prior-1a8b6fc4/input-manifest.json",
+      "exit": 0,
+      "result": {
+        "status": "PASS",
+        "inputs": 7380
+      }
+    }
+  ],
+  "permission_overlay_15_unchanged_since_dependency_input": true
+}

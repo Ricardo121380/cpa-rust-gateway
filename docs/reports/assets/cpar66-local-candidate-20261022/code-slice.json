@@ -1,0 +1,24 @@
+{
+  "initial_head": "550e3872f90c4be672ac45b9bda14b3839598276",
+  "final_candidate": "737fd040e983bef329be27b5cf48b4f6986a5772",
+  "commits": [
+    "737fd040e983bef329be27b5cf48b4f6986a5772 fix(acceptance): verify value-free reader acknowledgement",
+    "1a8b6fc4e7d6697092b97d138dd1d79bfb88de5e Include actual permission overlays in the frozen #66 source inputs",
+    "8fe1e2a75477bbbcf4c2e8d47a6c5ab53849ab6b Prepare pinned Rust components before the offline candidate build",
+    "654c7b18d7b9be8d1b80d799980309a188bd5974 Keep #66 qualification fail-closed through final resource cleanup",
+    "93f6d66439e6f36736be34477836d5d5cf7fe76e Prepare #66 traceable ARM64 candidate and stock reader/serve qualification"
+  ],
+  "owned_paths": [
+    "apps/gateway/tests/cpar59_usage_evidence.rs",
+    "apps/gateway/tests/cpar62_request_metadata.rs",
+    "apps/gateway/tests/cpar63_messages_summary.rs",
+    "apps/gateway/tests/request_metadata/messages.rs",
+    "apps/gateway/tests/support/cpar66_export.rs",
+    "scripts/acceptance/cpar66-build.sh",
+    "scripts/acceptance/cpar66-builder.Dockerfile",
+    "scripts/acceptance/cpar66-linux-envelope.sh",
+    "scripts/acceptance/cpar66-reader-serve.py",
+    "scripts/acceptance/cpar66-source.py"
+  ],
+  "production_protocol_schema_dependency_changes": false
+}

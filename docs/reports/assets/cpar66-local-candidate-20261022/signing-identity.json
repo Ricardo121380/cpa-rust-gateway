@@ -1,0 +1,5 @@
+{
+  "schema_version": "cpa-rust-gateway-signing-identity-v1",
+  "certificate_identity": "https://github.com/Ricardo121380/cpa-rust-gateway/.github/workflows/release-artifact.yml@refs/heads/feature/62-client-metadata",
+  "certificate_oidc_issuer": "https://token.actions.githubusercontent.com"
+}

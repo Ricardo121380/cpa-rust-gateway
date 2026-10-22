@@ -1,0 +1,28 @@
+{
+  "status": "PASS",
+  "scope": "isolated synthetic source snapshot tests, not Linux runtime",
+  "checks": [
+    {
+      "name": "tracked dirty untracked executable symlink and mode-only input snapshot",
+      "pass": true
+    },
+    {
+      "name": "reject altered bytes",
+      "pass": true,
+      "exit": 1,
+      "error": "ValueError: source input mismatch: README.md (bytes)"
+    },
+    {
+      "name": "reject altered mode",
+      "pass": true,
+      "exit": 1,
+      "error": "ValueError: source input mismatch: protected.md (mode)"
+    },
+    {
+      "name": "reject altered symlink",
+      "pass": true,
+      "exit": 1,
+      "error": "ValueError: source input mismatch: link (mode)"
+    }
+  ]
+}

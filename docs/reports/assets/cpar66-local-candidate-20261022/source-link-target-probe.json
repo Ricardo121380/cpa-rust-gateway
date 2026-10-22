@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "scope": "owned synthetic snapshot only",
+  "mode_preserved": "0o777",
+  "target_length_preserved": true,
+  "expected_rejection": "ValueError: source input mismatch: link (link)",
+  "exit": 1
+}

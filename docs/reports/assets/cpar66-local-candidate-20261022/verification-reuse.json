@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "final_candidate": "737fd040e983bef329be27b5cf48b4f6986a5772",
+  "full_candidate": "1a8b6fc4e7d6697092b97d138dd1d79bfb88de5e",
+  "full_input_diff": [
+    "scripts/acceptance/cpar66-reader-serve.py"
+  ],
+  "full_rust_fixture_lock_toolchain_and_spa_inputs_identical": true,
+  "full": "45/45 PASS; Rust1659/0/21; yanked query UNKNOWN_TIMEOUT",
+  "final_driver_validation": [
+    "py_compile",
+    "five stream boundary cases",
+    "static independent review",
+    "fresh final stock-binary Linux qualification required"
+  ],
+  "historical_client_candidate": "4015bd4542dbc52fde8984c14c01b34843ef3c59",
+  "historical_client_product_inputs": 849,
+  "historical_product_diff": [],
+  "historical_client_reuse": "same product Rust/lock/toolchain/SPA/build identity inputs except explicit embedded candidate revision; original controlled evidence only, not new Linux-client executions"
+}

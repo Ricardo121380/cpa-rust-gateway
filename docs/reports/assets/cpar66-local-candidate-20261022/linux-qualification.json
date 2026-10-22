@@ -1,0 +1,897 @@
+{
+  "scope": "stock_linux_arm64_reader_serve_only",
+  "status": "PASS_BOUNDED",
+  "real_provider": "NOT_RUN",
+  "signing": "NOT_RUN",
+  "cost_in_usd_ticks": "NOT_ADMITTED",
+  "checks": [
+    {
+      "name": "manifest binds actual binary",
+      "pass": true
+    },
+    {
+      "name": "embedded revision",
+      "pass": true
+    },
+    {
+      "name": "embedded rust-version",
+      "pass": true
+    },
+    {
+      "name": "embedded target",
+      "pass": true
+    },
+    {
+      "name": "unprivileged capability-free process tree",
+      "pass": true
+    },
+    {
+      "name": "no host credential or engine mount",
+      "pass": true
+    },
+    {
+      "name": "kernel firewall rules retained",
+      "pass": true
+    },
+    {
+      "name": "child IPv4 IPv6 and live unrelated loopback denied",
+      "pass": true
+    },
+    {
+      "name": "owned local receiver reachable",
+      "pass": true
+    },
+    {
+      "name": "read-only root and artifact writes refused",
+      "pass": true
+    },
+    {
+      "name": "empty-state actual process executable equals delivered binary",
+      "pass": true
+    },
+    {
+      "name": "empty-state gateway inherits OS isolation",
+      "pass": true
+    },
+    {
+      "name": "empty-state schema38",
+      "pass": true
+    },
+    {
+      "name": "empty-state separate health management auth",
+      "pass": true
+    },
+    {
+      "name": "empty-state data auth",
+      "pass": true
+    },
+    {
+      "name": "new state empty control plane",
+      "pass": true
+    },
+    {
+      "name": "old serve exited and PID absent",
+      "pass": true
+    },
+    {
+      "name": "graceful writer drain",
+      "pass": true
+    },
+    {
+      "name": "listener released 19180",
+      "pass": true
+    },
+    {
+      "name": "listener released 19181",
+      "pass": true
+    },
+    {
+      "name": "metadata-adopt actual process executable equals delivered binary",
+      "pass": true
+    },
+    {
+      "name": "metadata-adopt gateway inherits OS isolation",
+      "pass": true
+    },
+    {
+      "name": "metadata-adopt schema38",
+      "pass": true
+    },
+    {
+      "name": "metadata-adopt separate health management auth",
+      "pass": true
+    },
+    {
+      "name": "metadata-adopt data auth",
+      "pass": true
+    },
+    {
+      "name": "metadata-authorized exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "metadata-authorized exclusive private output",
+      "pass": true
+    },
+    {
+      "name": "metadata-authorized retained",
+      "pass": true
+    },
+    {
+      "name": "metadata-authorized v1/v2 exact source owner raw and actual Attempt",
+      "pass": true
+    },
+    {
+      "name": "metadata-authorized overwrite exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "metadata-authorized overwrite refusal",
+      "pass": true
+    },
+    {
+      "name": "metadata-foreign-owner exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "metadata-foreign-owner exclusive private output",
+      "pass": true
+    },
+    {
+      "name": "metadata-foreign-owner exact unknown",
+      "pass": true
+    },
+    {
+      "name": "metadata-wrong-request exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "metadata-wrong-request exclusive private output",
+      "pass": true
+    },
+    {
+      "name": "metadata-wrong-request exact unknown",
+      "pass": true
+    },
+    {
+      "name": "metadata-wrong-attempt exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "metadata-wrong-attempt exclusive private output",
+      "pass": true
+    },
+    {
+      "name": "metadata-wrong-attempt exact unknown",
+      "pass": true
+    },
+    {
+      "name": "metadata-wrong-key exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "metadata-wrong-key key refusal without output",
+      "pass": true
+    },
+    {
+      "name": "metadata-authorized exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "metadata-authorized exclusive private output",
+      "pass": true
+    },
+    {
+      "name": "metadata-authorized retained",
+      "pass": true
+    },
+    {
+      "name": "metadata-authorized v1/v2 exact source owner raw and actual Attempt",
+      "pass": true
+    },
+    {
+      "name": "metadata-authorized overwrite exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "metadata-authorized overwrite refusal",
+      "pass": true
+    },
+    {
+      "name": "metadata-foreign-owner exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "metadata-foreign-owner exclusive private output",
+      "pass": true
+    },
+    {
+      "name": "metadata-foreign-owner exact unknown",
+      "pass": true
+    },
+    {
+      "name": "metadata-wrong-request exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "metadata-wrong-request exclusive private output",
+      "pass": true
+    },
+    {
+      "name": "metadata-wrong-request exact unknown",
+      "pass": true
+    },
+    {
+      "name": "metadata-wrong-attempt exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "metadata-wrong-attempt exclusive private output",
+      "pass": true
+    },
+    {
+      "name": "metadata-wrong-attempt exact unknown",
+      "pass": true
+    },
+    {
+      "name": "metadata-wrong-key exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "metadata-wrong-key key refusal without output",
+      "pass": true
+    },
+    {
+      "name": "old serve exited and PID absent",
+      "pass": true
+    },
+    {
+      "name": "graceful writer drain",
+      "pass": true
+    },
+    {
+      "name": "listener released 19180",
+      "pass": true
+    },
+    {
+      "name": "listener released 19181",
+      "pass": true
+    },
+    {
+      "name": "metadata-new-process-restart actual process executable equals delivered binary",
+      "pass": true
+    },
+    {
+      "name": "metadata-new-process-restart gateway inherits OS isolation",
+      "pass": true
+    },
+    {
+      "name": "metadata-new-process-restart schema38",
+      "pass": true
+    },
+    {
+      "name": "metadata-new-process-restart separate health management auth",
+      "pass": true
+    },
+    {
+      "name": "metadata-new-process-restart data auth",
+      "pass": true
+    },
+    {
+      "name": "new gateway process adopts persisted control state",
+      "pass": true
+    },
+    {
+      "name": "encrypted evidence unchanged across actual process restart",
+      "pass": true
+    },
+    {
+      "name": "restart-authorized exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "restart-authorized exclusive private output",
+      "pass": true
+    },
+    {
+      "name": "restart-authorized retained",
+      "pass": true
+    },
+    {
+      "name": "restart-authorized v1/v2 exact source owner raw and actual Attempt",
+      "pass": true
+    },
+    {
+      "name": "restart-authorized overwrite exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "restart-authorized overwrite refusal",
+      "pass": true
+    },
+    {
+      "name": "restart-authorized exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "restart-authorized exclusive private output",
+      "pass": true
+    },
+    {
+      "name": "restart-authorized retained",
+      "pass": true
+    },
+    {
+      "name": "restart-authorized v1/v2 exact source owner raw and actual Attempt",
+      "pass": true
+    },
+    {
+      "name": "restart-authorized overwrite exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "restart-authorized overwrite refusal",
+      "pass": true
+    },
+    {
+      "name": "old serve exited and PID absent",
+      "pass": true
+    },
+    {
+      "name": "graceful writer drain",
+      "pass": true
+    },
+    {
+      "name": "listener released 19180",
+      "pass": true
+    },
+    {
+      "name": "listener released 19181",
+      "pass": true
+    },
+    {
+      "name": "usage-adopt actual process executable equals delivered binary",
+      "pass": true
+    },
+    {
+      "name": "usage-adopt gateway inherits OS isolation",
+      "pass": true
+    },
+    {
+      "name": "usage-adopt schema38",
+      "pass": true
+    },
+    {
+      "name": "usage-adopt separate health management auth",
+      "pass": true
+    },
+    {
+      "name": "usage-adopt data auth",
+      "pass": true
+    },
+    {
+      "name": "usage-authorized exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "usage-authorized exclusive private output",
+      "pass": true
+    },
+    {
+      "name": "usage-authorized retained",
+      "pass": true
+    },
+    {
+      "name": "usage-authorized exact native Usage bytes and identity",
+      "pass": true
+    },
+    {
+      "name": "usage-authorized overwrite exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "usage-authorized overwrite refusal",
+      "pass": true
+    },
+    {
+      "name": "usage-foreign-owner exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "usage-foreign-owner exclusive private output",
+      "pass": true
+    },
+    {
+      "name": "usage-foreign-owner exact unknown",
+      "pass": true
+    },
+    {
+      "name": "usage-wrong-request exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "usage-wrong-request exclusive private output",
+      "pass": true
+    },
+    {
+      "name": "usage-wrong-request exact unknown",
+      "pass": true
+    },
+    {
+      "name": "usage-wrong-attempt exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "usage-wrong-attempt exclusive private output",
+      "pass": true
+    },
+    {
+      "name": "usage-wrong-attempt exact unknown",
+      "pass": true
+    },
+    {
+      "name": "usage-wrong-key exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "usage-wrong-key key refusal without output",
+      "pass": true
+    },
+    {
+      "name": "old serve exited and PID absent",
+      "pass": true
+    },
+    {
+      "name": "graceful writer drain",
+      "pass": true
+    },
+    {
+      "name": "listener released 19180",
+      "pass": true
+    },
+    {
+      "name": "listener released 19181",
+      "pass": true
+    },
+    {
+      "name": "summary-adopt actual process executable equals delivered binary",
+      "pass": true
+    },
+    {
+      "name": "summary-adopt gateway inherits OS isolation",
+      "pass": true
+    },
+    {
+      "name": "summary-adopt schema38",
+      "pass": true
+    },
+    {
+      "name": "summary-adopt separate health management auth",
+      "pass": true
+    },
+    {
+      "name": "summary-adopt data auth",
+      "pass": true
+    },
+    {
+      "name": "summary-authorized exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "summary-authorized exclusive private output",
+      "pass": true
+    },
+    {
+      "name": "summary-authorized retained",
+      "pass": true
+    },
+    {
+      "name": "summary-authorized complete ordered summary and execution identity",
+      "pass": true
+    },
+    {
+      "name": "summary-authorized overwrite exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "summary-authorized overwrite refusal",
+      "pass": true
+    },
+    {
+      "name": "summary-foreign-owner exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "summary-foreign-owner exclusive private output",
+      "pass": true
+    },
+    {
+      "name": "summary-foreign-owner exact unknown",
+      "pass": true
+    },
+    {
+      "name": "summary-wrong-request exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "summary-wrong-request exclusive private output",
+      "pass": true
+    },
+    {
+      "name": "summary-wrong-request exact unknown",
+      "pass": true
+    },
+    {
+      "name": "summary-wrong-attempt exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "summary-wrong-attempt exclusive private output",
+      "pass": true
+    },
+    {
+      "name": "summary-wrong-attempt exact unknown",
+      "pass": true
+    },
+    {
+      "name": "summary-wrong-key exact value-free stdout and stderr",
+      "pass": true
+    },
+    {
+      "name": "summary-wrong-key key refusal without output",
+      "pass": true
+    },
+    {
+      "name": "old serve exited and PID absent",
+      "pass": true
+    },
+    {
+      "name": "graceful writer drain",
+      "pass": true
+    },
+    {
+      "name": "listener released 19180",
+      "pass": true
+    },
+    {
+      "name": "listener released 19181",
+      "pass": true
+    },
+    {
+      "name": "no inference or background Provider receives",
+      "pass": true
+    },
+    {
+      "name": "private identifiers absent from ordinary logs",
+      "pass": true
+    },
+    {
+      "name": "delivered binary unchanged after all runs",
+      "pass": true
+    },
+    {
+      "name": "no remaining gateway executable process",
+      "pass": true
+    },
+    {
+      "name": "controlled receiver listener and thread released",
+      "pass": true
+    },
+    {
+      "name": "all stock processes exited and were reaped",
+      "pass": true
+    }
+  ],
+  "processes": [
+    {
+      "label": "empty-state",
+      "pid": 24,
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "argv": [
+        "serve",
+        "--state-dir",
+        "/work/run/state",
+        "--credential-dir",
+        "/work/run/credentials",
+        "--master-key-dir",
+        "/work/run/keys",
+        "--active-master-key-version",
+        "1",
+        "--data-listen",
+        "127.0.0.1:19180",
+        "--management-listen",
+        "127.0.0.1:19181",
+        "--background-provider-tasks",
+        "disabled"
+      ],
+      "executable": "/artifact/gateway-aarch64-unknown-linux-gnu",
+      "start_time": "481174",
+      "exit_code": 0,
+      "reaped": true
+    },
+    {
+      "label": "metadata-adopt",
+      "pid": 34,
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "argv": [
+        "serve",
+        "--state-dir",
+        "/work/run/state",
+        "--credential-dir",
+        "/work/run/credentials",
+        "--master-key-dir",
+        "/work/run/keys",
+        "--active-master-key-version",
+        "1",
+        "--data-listen",
+        "127.0.0.1:19180",
+        "--management-listen",
+        "127.0.0.1:19181",
+        "--background-provider-tasks",
+        "disabled"
+      ],
+      "executable": "/artifact/gateway-aarch64-unknown-linux-gnu",
+      "start_time": "481358",
+      "exit_code": 0,
+      "reaped": true
+    },
+    {
+      "label": "metadata-new-process-restart",
+      "pid": 56,
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "argv": [
+        "serve",
+        "--state-dir",
+        "/work/run/state",
+        "--credential-dir",
+        "/work/run/credentials",
+        "--master-key-dir",
+        "/work/run/keys",
+        "--active-master-key-version",
+        "1",
+        "--data-listen",
+        "127.0.0.1:19180",
+        "--management-listen",
+        "127.0.0.1:19181",
+        "--background-provider-tasks",
+        "disabled"
+      ],
+      "executable": "/artifact/gateway-aarch64-unknown-linux-gnu",
+      "start_time": "481503",
+      "exit_code": 0,
+      "reaped": true
+    },
+    {
+      "label": "usage-adopt",
+      "pid": 70,
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "argv": [
+        "serve",
+        "--state-dir",
+        "/work/run/state",
+        "--credential-dir",
+        "/work/run/credentials",
+        "--master-key-dir",
+        "/work/run/keys",
+        "--active-master-key-version",
+        "1",
+        "--data-listen",
+        "127.0.0.1:19180",
+        "--management-listen",
+        "127.0.0.1:19181",
+        "--background-provider-tasks",
+        "disabled"
+      ],
+      "executable": "/artifact/gateway-aarch64-unknown-linux-gnu",
+      "start_time": "481557",
+      "exit_code": 0,
+      "reaped": true
+    },
+    {
+      "label": "summary-adopt",
+      "pid": 86,
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "argv": [
+        "serve",
+        "--state-dir",
+        "/work/run/state",
+        "--credential-dir",
+        "/work/run/credentials",
+        "--master-key-dir",
+        "/work/run/keys",
+        "--active-master-key-version",
+        "1",
+        "--data-listen",
+        "127.0.0.1:19180",
+        "--management-listen",
+        "127.0.0.1:19181",
+        "--background-provider-tasks",
+        "disabled"
+      ],
+      "executable": "/artifact/gateway-aarch64-unknown-linux-gnu",
+      "start_time": "481613",
+      "exit_code": 0,
+      "reaped": true
+    }
+  ],
+  "reads": [
+    {
+      "label": "metadata-authorized",
+      "command": "request-metadata-evidence",
+      "request": "cpar66-v1",
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "exit": 0
+    },
+    {
+      "label": "metadata-foreign-owner",
+      "command": "request-metadata-evidence",
+      "request": "cpar66-v1",
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "exit": 0
+    },
+    {
+      "label": "metadata-wrong-request",
+      "command": "request-metadata-evidence",
+      "request": "cpar66-v1",
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "exit": 0
+    },
+    {
+      "label": "metadata-wrong-attempt",
+      "command": "request-metadata-evidence",
+      "request": "cpar66-v1",
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "exit": 0
+    },
+    {
+      "label": "metadata-wrong-key",
+      "command": "request-metadata-evidence",
+      "request": "cpar66-v1",
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "exit": 1
+    },
+    {
+      "label": "metadata-authorized",
+      "command": "request-metadata-evidence",
+      "request": "cpar66-v2",
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "exit": 0
+    },
+    {
+      "label": "metadata-foreign-owner",
+      "command": "request-metadata-evidence",
+      "request": "cpar66-v2",
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "exit": 0
+    },
+    {
+      "label": "metadata-wrong-request",
+      "command": "request-metadata-evidence",
+      "request": "cpar66-v2",
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "exit": 0
+    },
+    {
+      "label": "metadata-wrong-attempt",
+      "command": "request-metadata-evidence",
+      "request": "cpar66-v2",
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "exit": 0
+    },
+    {
+      "label": "metadata-wrong-key",
+      "command": "request-metadata-evidence",
+      "request": "cpar66-v2",
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "exit": 1
+    },
+    {
+      "label": "restart-authorized",
+      "command": "request-metadata-evidence",
+      "request": "cpar66-v1",
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "exit": 0
+    },
+    {
+      "label": "restart-authorized",
+      "command": "request-metadata-evidence",
+      "request": "cpar66-v2",
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "exit": 0
+    },
+    {
+      "label": "usage-authorized",
+      "command": "usage-evidence",
+      "request": "request-cpar66-usage",
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "exit": 0
+    },
+    {
+      "label": "usage-foreign-owner",
+      "command": "usage-evidence",
+      "request": "request-cpar66-usage",
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "exit": 0
+    },
+    {
+      "label": "usage-wrong-request",
+      "command": "usage-evidence",
+      "request": "request-cpar66-usage",
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "exit": 0
+    },
+    {
+      "label": "usage-wrong-attempt",
+      "command": "usage-evidence",
+      "request": "request-cpar66-usage",
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "exit": 0
+    },
+    {
+      "label": "usage-wrong-key",
+      "command": "usage-evidence",
+      "request": "request-cpar66-usage",
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "exit": 1
+    },
+    {
+      "label": "summary-authorized",
+      "command": "messages-summary-evidence",
+      "request": "request-cpar66-summary",
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "exit": 0
+    },
+    {
+      "label": "summary-foreign-owner",
+      "command": "messages-summary-evidence",
+      "request": "request-cpar66-summary",
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "exit": 0
+    },
+    {
+      "label": "summary-wrong-request",
+      "command": "messages-summary-evidence",
+      "request": "request-cpar66-summary",
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "exit": 0
+    },
+    {
+      "label": "summary-wrong-attempt",
+      "command": "messages-summary-evidence",
+      "request": "request-cpar66-summary",
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "exit": 0
+    },
+    {
+      "label": "summary-wrong-key",
+      "command": "messages-summary-evidence",
+      "request": "request-cpar66-summary",
+      "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+      "exit": 1
+    }
+  ],
+  "network": [
+    {
+      "host": "192.0.2.1",
+      "errno": 101
+    },
+    {
+      "host": "2001:db8::1",
+      "errno": 101
+    },
+    {
+      "host": "127.0.0.1",
+      "errno": 111
+    }
+  ],
+  "snapshots": {},
+  "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+  "manifest_sha256": "aff99e88cb24a7cf3f1489f0a712c3e37e83af76e29bb5768a9a552fcd255e0c",
+  "revision": "737fd040e983bef329be27b5cf48b4f6986a5772",
+  "receiver": [
+    {
+      "method": "GET",
+      "path": "/cpar66-envelope-probe"
+    }
+  ]
+}

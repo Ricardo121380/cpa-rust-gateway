@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "exit": 0,
+  "candidate": "1a8b6fc4e7d6697092b97d138dd1d79bfb88de5e",
+  "steps_pass": 45,
+  "rust_passed": 1659,
+  "rust_failed": 0,
+  "rust_ignored": 21,
+  "yanked_query": "UNKNOWN_TIMEOUT",
+  "advisory_status": "PASS",
+  "full_log_sha256": "f45339b9fe7a8752aa93b3eacfa76649fdad14848ba4035e7af01c6da46c3720"
+}
