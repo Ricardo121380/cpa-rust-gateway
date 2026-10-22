@@ -1,0 +1,44 @@
+{
+  "checked_at_utc": "2026-10-22T04:32:09.110593+00:00",
+  "mode": "read_only",
+  "issues": [
+    {
+      "issue": 61,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/61",
+      "state": "open",
+      "updated_at": "2026-10-18T15:19:58Z",
+      "body_unchanged": true,
+      "body_sha256": "85c7ecd73fe765a898bd3e336cd8933149379f2cf506310bb15044a528fb0b08",
+      "blocked_by": "- #59：Grok Build 失败请求的完整加密诊断闭环\n- #60：Grok Build 模型身份三段核对与准确拒绝"
+    },
+    {
+      "issue": 62,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/62",
+      "state": "open",
+      "updated_at": "2026-10-19T08:21:40Z",
+      "body_unchanged": true,
+      "body_sha256": "dc3652f066e9832623fdd0a257343ec2f07071e2ea1eddd196c8baefc548e02e",
+      "blocked_by": "- #61：标准 Responses 的 JSON、SSE 与工具闭环"
+    },
+    {
+      "issue": 63,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/63",
+      "state": "open",
+      "updated_at": "2026-10-19T11:27:11Z",
+      "body_unchanged": true,
+      "body_sha256": "c60d73054a8e0ecad57509a71660e664aae211b3fd37ebae1b3f929304d840cf",
+      "blocked_by": "- #61：标准 Responses 的 JSON、SSE 与工具闭环"
+    },
+    {
+      "issue": 64,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/64",
+      "state": "open",
+      "updated_at": "2026-10-20T02:56:33Z",
+      "body_unchanged": true,
+      "body_sha256": "38039a4df432041df7de4d9159c5f65ebb1473c0e60774d15ae84dfb021d9356",
+      "blocked_by": "- #63：标准 Messages 的摘要留存与 JSON、SSE 工具闭环"
+    }
+  ],
+  "dependency_chain": "64 -> 63 -> 61",
+  "writes": 0
+}

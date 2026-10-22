@@ -1,0 +1,33 @@
+{
+  "candidate": "9035551dcef79e130e17f7591fa3ca8a0ff3a265",
+  "source_inputs_unchanged": true,
+  "input_count": 7271,
+  "before_sha256": "6d8d2a49589bcda7e7a791cc5ffe0d9afd339387addeeef8dea49488b41ed033",
+  "after_sha256": "6d8d2a49589bcda7e7a791cc5ffe0d9afd339387addeeef8dea49488b41ed033",
+  "inherited_original_preserved": [
+    "AGENTS.md",
+    "CONTEXT.md",
+    "README.md",
+    "README.zh-CN.md",
+    "docs/06-development-plan.md",
+    "docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md",
+    "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+    "docs/adr/ADR-0106-native-fidelity-profile.md",
+    "docs/adr/ADR-0107-standard-response-metadata-separation.md",
+    "docs/adr/ADR-0108-build-summary-standard-messages.md",
+    "docs/adr/README.md",
+    "docs/agents/domain.md",
+    "docs/agents/issue-tracker.md",
+    "docs/agents/triage-labels.md",
+    "docs/contracts/BC-PROTOCOL-009-codex-responses-controls.md",
+    "docs/engineering-roadmap.md",
+    "docs/reports/cpar-62-64-client-field-plan-20261020.md",
+    "docs/traceability.md"
+  ],
+  "owned_appends_only": [
+    "docs/adr/README.md",
+    "docs/traceability.md"
+  ],
+  "index_empty": true,
+  "front_end_source_changed": false
+}

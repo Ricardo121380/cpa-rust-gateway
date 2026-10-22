@@ -1,0 +1,15 @@
+{
+  "candidate": "9035551dcef79e130e17f7591fa3ca8a0ff3a265",
+  "tree": "e2fc15ef12e2ea36017c082f4f20342df7a6b653",
+  "source": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar64-m34-full-20261022-9035551d",
+  "target": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar64-local-controls-20261022/target-full-9035551d",
+  "overlay_files": 18,
+  "input_count": 7271,
+  "input_manifest_sha256": "6d8d2a49589bcda7e7a791cc5ffe0d9afd339387addeeef8dea49488b41ed033",
+  "manifest_lock": {
+    "Cargo.toml": "1b1a37ce8d8fcafa51d379ffae2ff33fff091c5a48c0f3458e47b99c12b22355",
+    "Cargo.lock": "36564c0219707741d79ecb37d9fc4ee620ce2fe6801fdbe09b32fb4c8687c858",
+    "web/prism/package.json": "c7e04ca0624909505b7b031c595b88885a79e92c396feee34f054970fe956988",
+    "web/prism/package-lock.json": "0ed3bda6fa6ee996408383bcad93d9c959cfe862fff11bbe005d0e8b061a3b4f"
+  }
+}

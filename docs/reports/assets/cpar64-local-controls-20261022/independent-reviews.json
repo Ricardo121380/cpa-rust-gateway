@@ -1,0 +1,41 @@
+{
+  "base": "4099d260fd40fa63ad328844c06fa677705b488b",
+  "candidate": "32da5424383d6ad4b6939fa02e073f174a7736ae",
+  "read_only": true,
+  "main_spot_checks": [
+    "crates/gateway-http-actix/src/lib.rs:2526",
+    "crates/gateway-store/src/request_metadata.rs:60",
+    "crates/gateway-store/migrations/0038_messages_request_metadata.up.sql:1",
+    "crates/gateway-store/migrations/0038_messages_request_metadata.down.sql:1"
+  ],
+  "standards": {
+    "agent": "/root/review_m34_standards",
+    "status": "PASS_STATIC",
+    "findings": [],
+    "scope": "36 committed files; inherited documentation changes excluded",
+    "checked": [
+      "actual candidate qualification",
+      "raw token and privacy",
+      "Persisted-only execution barrier",
+      "v1 unchanged, v2 AAD and schema38 migration/rollback",
+      "Request-only versus actual-client BLOCKED distinction"
+    ],
+    "tests_executed_by_reviewer": false
+  },
+  "spec": {
+    "agent": "/root/review_m34_spec",
+    "status": "PASS_STATIC",
+    "findings": [],
+    "checked": [
+      "M3 closed edit and complete history including tool-result native blocks",
+      "JSON/final SSE applied_edits=[]",
+      "M4 scalar/raw limits and raw preservation",
+      "all exact-model matching actual candidates",
+      "Request/private evidence persistence and Request-only failures",
+      "source/version/protocol and actual Attempt authorization",
+      "independent positives and zero receiver negatives, recovery coverage"
+    ],
+    "tests_executed_by_reviewer": false
+  },
+  "summary": "0 Standards findings, 0 Spec findings; dynamic acceptance is separately run by main"
+}

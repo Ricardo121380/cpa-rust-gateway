@@ -1,0 +1,1140 @@
+{
+  "candidate": "9035551dcef79e130e17f7591fa3ca8a0ff3a265",
+  "suite": "11 passed / 0 failed / 0 ignored",
+  "test_binary_sha256": "86c089c3de0e289a61f8de5deb12bf383fcb869aee34fff017ae4e4e2e8576e1",
+  "records": {
+    "CPAR64_LOCAL_STATUS": [
+      {
+        "accepts": 1,
+        "m3": true,
+        "m4": false,
+        "receives": 1,
+        "status": 200,
+        "streaming": false
+      },
+      {
+        "accepts": 1,
+        "m3": true,
+        "m4": false,
+        "receives": 1,
+        "status": 200,
+        "streaming": true
+      },
+      {
+        "accepts": 1,
+        "m3": false,
+        "m4": true,
+        "receives": 1,
+        "status": 200,
+        "streaming": false
+      },
+      {
+        "accepts": 1,
+        "m3": true,
+        "m4": false,
+        "receives": 1,
+        "status": 200,
+        "streaming": true
+      },
+      {
+        "accepts": 1,
+        "m3": false,
+        "m4": true,
+        "receives": 1,
+        "status": 200,
+        "streaming": true
+      },
+      {
+        "accepts": 1,
+        "m3": true,
+        "m4": false,
+        "receives": 1,
+        "status": 200,
+        "streaming": true
+      },
+      {
+        "accepts": 1,
+        "m3": false,
+        "m4": true,
+        "receives": 1,
+        "status": 200,
+        "streaming": true
+      },
+      {
+        "accepts": 1,
+        "m3": false,
+        "m4": true,
+        "receives": 1,
+        "status": 200,
+        "streaming": true
+      }
+    ],
+    "CPAR63_RECEIPT": [
+      {
+        "attempt_id": "attempt:45:p1-request-45f73426e47e436a1e6055231a39de7f-0:1",
+        "chunk_bytes": 31,
+        "ciphertext_bytes": 1336,
+        "ciphertext_sha256": "980d8ebc000f628a492f7fb023ba5156d973cca7026db3c71283b81c768667c9",
+        "completeness": "completed_response",
+        "context_kept": true,
+        "cost": "UNKNOWN",
+        "input_tokens": 20,
+        "key_version": 1,
+        "local_m3_m4": true,
+        "metadata_raw_readback": true,
+        "model_override": "grok-4.5",
+        "output_tokens": 7,
+        "owner": "p12-runtime-client-key",
+        "public_model": "grok-4.5",
+        "reader_authenticated": true,
+        "receive_count": 1,
+        "received_upstream_model": "grok-4.5",
+        "request_id": "p1-request-45f73426e47e436a1e6055231a39de7f-0",
+        "response_id": "response-61",
+        "round": 0,
+        "source": "build_json",
+        "streaming": false,
+        "summary_items": [
+          {
+            "body_present": false,
+            "item_id": "reason-0",
+            "item_sha256": "9c4ff919dedd6e1bda7ed93c29e360b6442f3c2fc60349ef33216d4ba1c22fd6",
+            "output_index": 0,
+            "part_count": 2
+          },
+          {
+            "body_present": true,
+            "item_id": "reason-b-0",
+            "item_sha256": "389ff6a4d9b2c060afb63f3eb3a6183f327281a84fad5979a6fdf7165442592f",
+            "output_index": 2,
+            "part_count": 1
+          }
+        ],
+        "synthetic": true,
+        "visible_history_only_verified": true
+      },
+      {
+        "attempt_id": "attempt:45:p1-request-45f73426e47e436a1e6055231a39de7f-1:1",
+        "chunk_bytes": 31,
+        "ciphertext_bytes": 1336,
+        "ciphertext_sha256": "c6bd85c02d14508950e1f6d36b680caca593dd3c2a5902f70615d66ceff9fbf3",
+        "completeness": "completed_response",
+        "context_kept": true,
+        "cost": "UNKNOWN",
+        "input_tokens": 20,
+        "key_version": 1,
+        "local_m3_m4": true,
+        "metadata_raw_readback": true,
+        "model_override": "grok-4.5",
+        "output_tokens": 7,
+        "owner": "p12-runtime-client-key",
+        "public_model": "grok-4.5",
+        "reader_authenticated": true,
+        "receive_count": 2,
+        "received_upstream_model": "grok-4.5",
+        "request_id": "p1-request-45f73426e47e436a1e6055231a39de7f-1",
+        "response_id": "response-61",
+        "round": 1,
+        "source": "build_json",
+        "streaming": false,
+        "summary_items": [
+          {
+            "body_present": false,
+            "item_id": "reason-1",
+            "item_sha256": "4429baa7d4f65d740d0b02bda0ed5e14169794ca1b54254a8fdf5e73e87bffca",
+            "output_index": 0,
+            "part_count": 2
+          },
+          {
+            "body_present": true,
+            "item_id": "reason-b-1",
+            "item_sha256": "36127839437017c217fbcab35006e9230432f6359f32cf59b1f13850603c7bca",
+            "output_index": 2,
+            "part_count": 1
+          }
+        ],
+        "synthetic": true,
+        "visible_history_only_verified": true
+      },
+      {
+        "attempt_id": "attempt:45:p1-request-45f73426e47e436a1e6055231a39de7f-2:1",
+        "chunk_bytes": 31,
+        "ciphertext_bytes": 1336,
+        "ciphertext_sha256": "e5f2e8cb7c09108479754e32581cf6eef6925452c9f5ae953221a09db801b004",
+        "completeness": "completed_response",
+        "context_kept": true,
+        "cost": "UNKNOWN",
+        "input_tokens": 20,
+        "key_version": 1,
+        "local_m3_m4": true,
+        "metadata_raw_readback": true,
+        "model_override": "grok-4.5",
+        "output_tokens": 7,
+        "owner": "p12-runtime-client-key",
+        "public_model": "grok-4.5",
+        "reader_authenticated": true,
+        "receive_count": 3,
+        "received_upstream_model": "grok-4.5",
+        "request_id": "p1-request-45f73426e47e436a1e6055231a39de7f-2",
+        "response_id": "response-61",
+        "round": 2,
+        "source": "build_json",
+        "streaming": false,
+        "summary_items": [
+          {
+            "body_present": false,
+            "item_id": "reason-2",
+            "item_sha256": "ae7e16a3dffab356cd1feba98363f15cbc68bcb5f7db819dac31cee5ccc2af71",
+            "output_index": 0,
+            "part_count": 2
+          },
+          {
+            "body_present": true,
+            "item_id": "reason-b-2",
+            "item_sha256": "91464bdc1f25ad5bd197a5a6fc5f79121ae018696c7727101c25cfa82b72f724",
+            "output_index": 2,
+            "part_count": 1
+          }
+        ],
+        "synthetic": true,
+        "visible_history_only_verified": true
+      },
+      {
+        "attempt_id": "attempt:45:p1-request-45f73426e47e436a1e6055231a39de7f-3:1",
+        "chunk_bytes": 31,
+        "ciphertext_bytes": 1336,
+        "ciphertext_sha256": "98a286d72cd16ccbf33c9fc3105ac40d9a0561f0aba6770fc29eabe008e20381",
+        "completeness": "completed_response",
+        "context_kept": true,
+        "cost": "UNKNOWN",
+        "input_tokens": 20,
+        "key_version": 1,
+        "local_m3_m4": true,
+        "metadata_raw_readback": true,
+        "model_override": "grok-4.5",
+        "output_tokens": 7,
+        "owner": "p12-runtime-client-key",
+        "public_model": "grok-4.5",
+        "reader_authenticated": true,
+        "receive_count": 4,
+        "received_upstream_model": "grok-4.5",
+        "request_id": "p1-request-45f73426e47e436a1e6055231a39de7f-3",
+        "response_id": "response-61",
+        "round": 3,
+        "source": "build_json",
+        "streaming": false,
+        "summary_items": [
+          {
+            "body_present": false,
+            "item_id": "reason-3",
+            "item_sha256": "3c00ac9eadc7148e08c8fcda3685af51c678857c10698e8b83feffc715238d5c",
+            "output_index": 0,
+            "part_count": 2
+          },
+          {
+            "body_present": true,
+            "item_id": "reason-b-3",
+            "item_sha256": "c821a137c214428118b1d3c7f2026d1e4971f9cefc898730352bd321c21fd06f",
+            "output_index": 2,
+            "part_count": 1
+          }
+        ],
+        "synthetic": true,
+        "visible_history_only_verified": true
+      },
+      {
+        "attempt_id": "attempt:45:p1-request-45f73426e47e436a1e6055231a39de7f-4:1",
+        "chunk_bytes": 31,
+        "ciphertext_bytes": 1336,
+        "ciphertext_sha256": "b6c933ad59110d76a8a23de37dac4e58154e36a5af29b02458d667baddc6354a",
+        "completeness": "completed_response",
+        "context_kept": true,
+        "cost": "UNKNOWN",
+        "input_tokens": 20,
+        "key_version": 1,
+        "local_m3_m4": true,
+        "metadata_raw_readback": true,
+        "model_override": "grok-4.5",
+        "output_tokens": 7,
+        "owner": "p12-runtime-client-key",
+        "public_model": "grok-4.5",
+        "reader_authenticated": true,
+        "receive_count": 5,
+        "received_upstream_model": "grok-4.5",
+        "request_id": "p1-request-45f73426e47e436a1e6055231a39de7f-4",
+        "response_id": "response-61",
+        "round": 4,
+        "source": "build_json",
+        "streaming": false,
+        "summary_items": [
+          {
+            "body_present": false,
+            "item_id": "reason-4",
+            "item_sha256": "e5e54382ee54b59112d6ead59677669feaf255b9c36c4f0f0cd1fa64541f7999",
+            "output_index": 0,
+            "part_count": 2
+          },
+          {
+            "body_present": true,
+            "item_id": "reason-b-4",
+            "item_sha256": "e496ff35b1d35e8396f10e8df224f98c385357cdaa3fa169bcfad72d4e4b019e",
+            "output_index": 2,
+            "part_count": 1
+          }
+        ],
+        "synthetic": true,
+        "visible_history_only_verified": true
+      },
+      {
+        "attempt_id": "attempt:45:p1-request-738680fed2850f6e64c40ddd752a5296-0:1",
+        "chunk_bytes": 1,
+        "ciphertext_bytes": 1335,
+        "ciphertext_sha256": "ddcbb2a301d72a35014fb1e64d6971126ceadfc2f8696f3f9f9ba041b205999e",
+        "completeness": "completed_response",
+        "context_kept": true,
+        "cost": "UNKNOWN",
+        "input_tokens": 20,
+        "key_version": 1,
+        "local_m3_m4": true,
+        "metadata_raw_readback": true,
+        "model_override": "grok-4.5",
+        "output_tokens": 7,
+        "owner": "p12-runtime-client-key",
+        "public_model": "grok-4.5",
+        "reader_authenticated": true,
+        "receive_count": 1,
+        "received_upstream_model": "grok-4.5",
+        "request_id": "p1-request-738680fed2850f6e64c40ddd752a5296-0",
+        "response_id": "response-61",
+        "round": 0,
+        "source": "build_sse",
+        "streaming": true,
+        "summary_items": [
+          {
+            "body_present": false,
+            "item_id": "reason-0",
+            "item_sha256": "9c4ff919dedd6e1bda7ed93c29e360b6442f3c2fc60349ef33216d4ba1c22fd6",
+            "output_index": 0,
+            "part_count": 2
+          },
+          {
+            "body_present": true,
+            "item_id": "reason-b-0",
+            "item_sha256": "389ff6a4d9b2c060afb63f3eb3a6183f327281a84fad5979a6fdf7165442592f",
+            "output_index": 2,
+            "part_count": 1
+          }
+        ],
+        "synthetic": true,
+        "visible_history_only_verified": true
+      },
+      {
+        "attempt_id": "attempt:45:p1-request-738680fed2850f6e64c40ddd752a5296-1:1",
+        "chunk_bytes": 1,
+        "ciphertext_bytes": 1335,
+        "ciphertext_sha256": "68a820197b45d5b03b478151aa8a2b86555c5f748c89272ac40af3988cf35326",
+        "completeness": "completed_response",
+        "context_kept": true,
+        "cost": "UNKNOWN",
+        "input_tokens": 20,
+        "key_version": 1,
+        "local_m3_m4": true,
+        "metadata_raw_readback": true,
+        "model_override": "grok-4.5",
+        "output_tokens": 7,
+        "owner": "p12-runtime-client-key",
+        "public_model": "grok-4.5",
+        "reader_authenticated": true,
+        "receive_count": 2,
+        "received_upstream_model": "grok-4.5",
+        "request_id": "p1-request-738680fed2850f6e64c40ddd752a5296-1",
+        "response_id": "response-61",
+        "round": 1,
+        "source": "build_sse",
+        "streaming": true,
+        "summary_items": [
+          {
+            "body_present": false,
+            "item_id": "reason-1",
+            "item_sha256": "4429baa7d4f65d740d0b02bda0ed5e14169794ca1b54254a8fdf5e73e87bffca",
+            "output_index": 0,
+            "part_count": 2
+          },
+          {
+            "body_present": true,
+            "item_id": "reason-b-1",
+            "item_sha256": "36127839437017c217fbcab35006e9230432f6359f32cf59b1f13850603c7bca",
+            "output_index": 2,
+            "part_count": 1
+          }
+        ],
+        "synthetic": true,
+        "visible_history_only_verified": true
+      },
+      {
+        "attempt_id": "attempt:45:p1-request-738680fed2850f6e64c40ddd752a5296-2:1",
+        "chunk_bytes": 1,
+        "ciphertext_bytes": 1335,
+        "ciphertext_sha256": "0d309a6b60ac4b9f5a56df66dad7973e711d23a04b537fe3ecb546c11efdf3ee",
+        "completeness": "completed_response",
+        "context_kept": true,
+        "cost": "UNKNOWN",
+        "input_tokens": 20,
+        "key_version": 1,
+        "local_m3_m4": true,
+        "metadata_raw_readback": true,
+        "model_override": "grok-4.5",
+        "output_tokens": 7,
+        "owner": "p12-runtime-client-key",
+        "public_model": "grok-4.5",
+        "reader_authenticated": true,
+        "receive_count": 3,
+        "received_upstream_model": "grok-4.5",
+        "request_id": "p1-request-738680fed2850f6e64c40ddd752a5296-2",
+        "response_id": "response-61",
+        "round": 2,
+        "source": "build_sse",
+        "streaming": true,
+        "summary_items": [
+          {
+            "body_present": false,
+            "item_id": "reason-2",
+            "item_sha256": "ae7e16a3dffab356cd1feba98363f15cbc68bcb5f7db819dac31cee5ccc2af71",
+            "output_index": 0,
+            "part_count": 2
+          },
+          {
+            "body_present": true,
+            "item_id": "reason-b-2",
+            "item_sha256": "91464bdc1f25ad5bd197a5a6fc5f79121ae018696c7727101c25cfa82b72f724",
+            "output_index": 2,
+            "part_count": 1
+          }
+        ],
+        "synthetic": true,
+        "visible_history_only_verified": true
+      },
+      {
+        "attempt_id": "attempt:45:p1-request-738680fed2850f6e64c40ddd752a5296-3:1",
+        "chunk_bytes": 1,
+        "ciphertext_bytes": 1335,
+        "ciphertext_sha256": "dfd16de12a30eda4b72dc4abd1f8893d5dfd40f8b332129083823ac5d9686261",
+        "completeness": "completed_response",
+        "context_kept": true,
+        "cost": "UNKNOWN",
+        "input_tokens": 20,
+        "key_version": 1,
+        "local_m3_m4": true,
+        "metadata_raw_readback": true,
+        "model_override": "grok-4.5",
+        "output_tokens": 7,
+        "owner": "p12-runtime-client-key",
+        "public_model": "grok-4.5",
+        "reader_authenticated": true,
+        "receive_count": 4,
+        "received_upstream_model": "grok-4.5",
+        "request_id": "p1-request-738680fed2850f6e64c40ddd752a5296-3",
+        "response_id": "response-61",
+        "round": 3,
+        "source": "build_sse",
+        "streaming": true,
+        "summary_items": [
+          {
+            "body_present": false,
+            "item_id": "reason-3",
+            "item_sha256": "3c00ac9eadc7148e08c8fcda3685af51c678857c10698e8b83feffc715238d5c",
+            "output_index": 0,
+            "part_count": 2
+          },
+          {
+            "body_present": true,
+            "item_id": "reason-b-3",
+            "item_sha256": "c821a137c214428118b1d3c7f2026d1e4971f9cefc898730352bd321c21fd06f",
+            "output_index": 2,
+            "part_count": 1
+          }
+        ],
+        "synthetic": true,
+        "visible_history_only_verified": true
+      },
+      {
+        "attempt_id": "attempt:45:p1-request-738680fed2850f6e64c40ddd752a5296-4:1",
+        "chunk_bytes": 1,
+        "ciphertext_bytes": 1335,
+        "ciphertext_sha256": "7a9aa8722214d7efb753a89a4a1614521027f431d6a4ea41776077fc929886fa",
+        "completeness": "completed_response",
+        "context_kept": true,
+        "cost": "UNKNOWN",
+        "input_tokens": 20,
+        "key_version": 1,
+        "local_m3_m4": true,
+        "metadata_raw_readback": true,
+        "model_override": "grok-4.5",
+        "output_tokens": 7,
+        "owner": "p12-runtime-client-key",
+        "public_model": "grok-4.5",
+        "reader_authenticated": true,
+        "receive_count": 5,
+        "received_upstream_model": "grok-4.5",
+        "request_id": "p1-request-738680fed2850f6e64c40ddd752a5296-4",
+        "response_id": "response-61",
+        "round": 4,
+        "source": "build_sse",
+        "streaming": true,
+        "summary_items": [
+          {
+            "body_present": false,
+            "item_id": "reason-4",
+            "item_sha256": "e5e54382ee54b59112d6ead59677669feaf255b9c36c4f0f0cd1fa64541f7999",
+            "output_index": 0,
+            "part_count": 2
+          },
+          {
+            "body_present": true,
+            "item_id": "reason-b-4",
+            "item_sha256": "e496ff35b1d35e8396f10e8df224f98c385357cdaa3fa169bcfad72d4e4b019e",
+            "output_index": 2,
+            "part_count": 1
+          }
+        ],
+        "synthetic": true,
+        "visible_history_only_verified": true
+      },
+      {
+        "attempt_id": "attempt:45:p1-request-b9f69a18fcd4880bf6291a55318540da-0:1",
+        "chunk_bytes": 7,
+        "ciphertext_bytes": 1335,
+        "ciphertext_sha256": "b5c2c8c89dd2239d6ef15a3321c67be4add6739161c7a5ba16376a31a700c085",
+        "completeness": "completed_response",
+        "context_kept": true,
+        "cost": "UNKNOWN",
+        "input_tokens": 20,
+        "key_version": 1,
+        "local_m3_m4": true,
+        "metadata_raw_readback": true,
+        "model_override": "grok-4.5",
+        "output_tokens": 7,
+        "owner": "p12-runtime-client-key",
+        "public_model": "grok-4.5",
+        "reader_authenticated": true,
+        "receive_count": 1,
+        "received_upstream_model": "grok-4.5",
+        "request_id": "p1-request-b9f69a18fcd4880bf6291a55318540da-0",
+        "response_id": "response-61",
+        "round": 0,
+        "source": "build_sse",
+        "streaming": true,
+        "summary_items": [
+          {
+            "body_present": false,
+            "item_id": "reason-0",
+            "item_sha256": "9c4ff919dedd6e1bda7ed93c29e360b6442f3c2fc60349ef33216d4ba1c22fd6",
+            "output_index": 0,
+            "part_count": 2
+          },
+          {
+            "body_present": true,
+            "item_id": "reason-b-0",
+            "item_sha256": "389ff6a4d9b2c060afb63f3eb3a6183f327281a84fad5979a6fdf7165442592f",
+            "output_index": 2,
+            "part_count": 1
+          }
+        ],
+        "synthetic": true,
+        "visible_history_only_verified": true
+      },
+      {
+        "attempt_id": "attempt:45:p1-request-b9f69a18fcd4880bf6291a55318540da-1:1",
+        "chunk_bytes": 7,
+        "ciphertext_bytes": 1335,
+        "ciphertext_sha256": "1777098d0e67bf9f7441a3c30ab1a3aa3c6920852b0c219fe376789d3efa1803",
+        "completeness": "completed_response",
+        "context_kept": true,
+        "cost": "UNKNOWN",
+        "input_tokens": 20,
+        "key_version": 1,
+        "local_m3_m4": true,
+        "metadata_raw_readback": true,
+        "model_override": "grok-4.5",
+        "output_tokens": 7,
+        "owner": "p12-runtime-client-key",
+        "public_model": "grok-4.5",
+        "reader_authenticated": true,
+        "receive_count": 2,
+        "received_upstream_model": "grok-4.5",
+        "request_id": "p1-request-b9f69a18fcd4880bf6291a55318540da-1",
+        "response_id": "response-61",
+        "round": 1,
+        "source": "build_sse",
+        "streaming": true,
+        "summary_items": [
+          {
+            "body_present": false,
+            "item_id": "reason-1",
+            "item_sha256": "4429baa7d4f65d740d0b02bda0ed5e14169794ca1b54254a8fdf5e73e87bffca",
+            "output_index": 0,
+            "part_count": 2
+          },
+          {
+            "body_present": true,
+            "item_id": "reason-b-1",
+            "item_sha256": "36127839437017c217fbcab35006e9230432f6359f32cf59b1f13850603c7bca",
+            "output_index": 2,
+            "part_count": 1
+          }
+        ],
+        "synthetic": true,
+        "visible_history_only_verified": true
+      },
+      {
+        "attempt_id": "attempt:45:p1-request-b9f69a18fcd4880bf6291a55318540da-2:1",
+        "chunk_bytes": 7,
+        "ciphertext_bytes": 1335,
+        "ciphertext_sha256": "2491a9bcac8af4c8dd0859d94005d90229c17b5b8f1701040ef43b747b022aad",
+        "completeness": "completed_response",
+        "context_kept": true,
+        "cost": "UNKNOWN",
+        "input_tokens": 20,
+        "key_version": 1,
+        "local_m3_m4": true,
+        "metadata_raw_readback": true,
+        "model_override": "grok-4.5",
+        "output_tokens": 7,
+        "owner": "p12-runtime-client-key",
+        "public_model": "grok-4.5",
+        "reader_authenticated": true,
+        "receive_count": 3,
+        "received_upstream_model": "grok-4.5",
+        "request_id": "p1-request-b9f69a18fcd4880bf6291a55318540da-2",
+        "response_id": "response-61",
+        "round": 2,
+        "source": "build_sse",
+        "streaming": true,
+        "summary_items": [
+          {
+            "body_present": false,
+            "item_id": "reason-2",
+            "item_sha256": "ae7e16a3dffab356cd1feba98363f15cbc68bcb5f7db819dac31cee5ccc2af71",
+            "output_index": 0,
+            "part_count": 2
+          },
+          {
+            "body_present": true,
+            "item_id": "reason-b-2",
+            "item_sha256": "91464bdc1f25ad5bd197a5a6fc5f79121ae018696c7727101c25cfa82b72f724",
+            "output_index": 2,
+            "part_count": 1
+          }
+        ],
+        "synthetic": true,
+        "visible_history_only_verified": true
+      },
+      {
+        "attempt_id": "attempt:45:p1-request-b9f69a18fcd4880bf6291a55318540da-3:1",
+        "chunk_bytes": 7,
+        "ciphertext_bytes": 1335,
+        "ciphertext_sha256": "db56508018ebd61cf9c0b832b94223a00b500056b6e9e426c585ad00d1da5b89",
+        "completeness": "completed_response",
+        "context_kept": true,
+        "cost": "UNKNOWN",
+        "input_tokens": 20,
+        "key_version": 1,
+        "local_m3_m4": true,
+        "metadata_raw_readback": true,
+        "model_override": "grok-4.5",
+        "output_tokens": 7,
+        "owner": "p12-runtime-client-key",
+        "public_model": "grok-4.5",
+        "reader_authenticated": true,
+        "receive_count": 4,
+        "received_upstream_model": "grok-4.5",
+        "request_id": "p1-request-b9f69a18fcd4880bf6291a55318540da-3",
+        "response_id": "response-61",
+        "round": 3,
+        "source": "build_sse",
+        "streaming": true,
+        "summary_items": [
+          {
+            "body_present": false,
+            "item_id": "reason-3",
+            "item_sha256": "3c00ac9eadc7148e08c8fcda3685af51c678857c10698e8b83feffc715238d5c",
+            "output_index": 0,
+            "part_count": 2
+          },
+          {
+            "body_present": true,
+            "item_id": "reason-b-3",
+            "item_sha256": "c821a137c214428118b1d3c7f2026d1e4971f9cefc898730352bd321c21fd06f",
+            "output_index": 2,
+            "part_count": 1
+          }
+        ],
+        "synthetic": true,
+        "visible_history_only_verified": true
+      },
+      {
+        "attempt_id": "attempt:45:p1-request-b9f69a18fcd4880bf6291a55318540da-4:1",
+        "chunk_bytes": 7,
+        "ciphertext_bytes": 1335,
+        "ciphertext_sha256": "4c48a0e50e83677d9fea80b7f8c941eead25b8c68c206dfb12ab34fc9bd805d2",
+        "completeness": "completed_response",
+        "context_kept": true,
+        "cost": "UNKNOWN",
+        "input_tokens": 20,
+        "key_version": 1,
+        "local_m3_m4": true,
+        "metadata_raw_readback": true,
+        "model_override": "grok-4.5",
+        "output_tokens": 7,
+        "owner": "p12-runtime-client-key",
+        "public_model": "grok-4.5",
+        "reader_authenticated": true,
+        "receive_count": 5,
+        "received_upstream_model": "grok-4.5",
+        "request_id": "p1-request-b9f69a18fcd4880bf6291a55318540da-4",
+        "response_id": "response-61",
+        "round": 4,
+        "source": "build_sse",
+        "streaming": true,
+        "summary_items": [
+          {
+            "body_present": false,
+            "item_id": "reason-4",
+            "item_sha256": "e5e54382ee54b59112d6ead59677669feaf255b9c36c4f0f0cd1fa64541f7999",
+            "output_index": 0,
+            "part_count": 2
+          },
+          {
+            "body_present": true,
+            "item_id": "reason-b-4",
+            "item_sha256": "e496ff35b1d35e8396f10e8df224f98c385357cdaa3fa169bcfad72d4e4b019e",
+            "output_index": 2,
+            "part_count": 1
+          }
+        ],
+        "synthetic": true,
+        "visible_history_only_verified": true
+      },
+      {
+        "attempt_id": "attempt:45:p1-request-77641d98fc8e3af7f62f89a4db297328-0:1",
+        "chunk_bytes": 31,
+        "ciphertext_bytes": 1335,
+        "ciphertext_sha256": "1d26f87503521bd0fdc03275cb793e3111ec465002f8c3bd78f08fbeb93b21a0",
+        "completeness": "completed_response",
+        "context_kept": true,
+        "cost": "UNKNOWN",
+        "input_tokens": 20,
+        "key_version": 1,
+        "local_m3_m4": true,
+        "metadata_raw_readback": true,
+        "model_override": "grok-4.5",
+        "output_tokens": 7,
+        "owner": "p12-runtime-client-key",
+        "public_model": "grok-4.5",
+        "reader_authenticated": true,
+        "receive_count": 1,
+        "received_upstream_model": "grok-4.5",
+        "request_id": "p1-request-77641d98fc8e3af7f62f89a4db297328-0",
+        "response_id": "response-61",
+        "round": 0,
+        "source": "build_sse",
+        "streaming": true,
+        "summary_items": [
+          {
+            "body_present": false,
+            "item_id": "reason-0",
+            "item_sha256": "9c4ff919dedd6e1bda7ed93c29e360b6442f3c2fc60349ef33216d4ba1c22fd6",
+            "output_index": 0,
+            "part_count": 2
+          },
+          {
+            "body_present": true,
+            "item_id": "reason-b-0",
+            "item_sha256": "389ff6a4d9b2c060afb63f3eb3a6183f327281a84fad5979a6fdf7165442592f",
+            "output_index": 2,
+            "part_count": 1
+          }
+        ],
+        "synthetic": true,
+        "visible_history_only_verified": true
+      },
+      {
+        "attempt_id": "attempt:45:p1-request-77641d98fc8e3af7f62f89a4db297328-1:1",
+        "chunk_bytes": 31,
+        "ciphertext_bytes": 1335,
+        "ciphertext_sha256": "c3a51210f8366a0b25aedd2ea91d1c3512d241289ad4dbe389a8c26f50d050d3",
+        "completeness": "completed_response",
+        "context_kept": true,
+        "cost": "UNKNOWN",
+        "input_tokens": 20,
+        "key_version": 1,
+        "local_m3_m4": true,
+        "metadata_raw_readback": true,
+        "model_override": "grok-4.5",
+        "output_tokens": 7,
+        "owner": "p12-runtime-client-key",
+        "public_model": "grok-4.5",
+        "reader_authenticated": true,
+        "receive_count": 2,
+        "received_upstream_model": "grok-4.5",
+        "request_id": "p1-request-77641d98fc8e3af7f62f89a4db297328-1",
+        "response_id": "response-61",
+        "round": 1,
+        "source": "build_sse",
+        "streaming": true,
+        "summary_items": [
+          {
+            "body_present": false,
+            "item_id": "reason-1",
+            "item_sha256": "4429baa7d4f65d740d0b02bda0ed5e14169794ca1b54254a8fdf5e73e87bffca",
+            "output_index": 0,
+            "part_count": 2
+          },
+          {
+            "body_present": true,
+            "item_id": "reason-b-1",
+            "item_sha256": "36127839437017c217fbcab35006e9230432f6359f32cf59b1f13850603c7bca",
+            "output_index": 2,
+            "part_count": 1
+          }
+        ],
+        "synthetic": true,
+        "visible_history_only_verified": true
+      },
+      {
+        "attempt_id": "attempt:45:p1-request-77641d98fc8e3af7f62f89a4db297328-2:1",
+        "chunk_bytes": 31,
+        "ciphertext_bytes": 1335,
+        "ciphertext_sha256": "5713ae703347c18449807e212d29e14157825ac542cb6d2a5e560d329b9e3f36",
+        "completeness": "completed_response",
+        "context_kept": true,
+        "cost": "UNKNOWN",
+        "input_tokens": 20,
+        "key_version": 1,
+        "local_m3_m4": true,
+        "metadata_raw_readback": true,
+        "model_override": "grok-4.5",
+        "output_tokens": 7,
+        "owner": "p12-runtime-client-key",
+        "public_model": "grok-4.5",
+        "reader_authenticated": true,
+        "receive_count": 3,
+        "received_upstream_model": "grok-4.5",
+        "request_id": "p1-request-77641d98fc8e3af7f62f89a4db297328-2",
+        "response_id": "response-61",
+        "round": 2,
+        "source": "build_sse",
+        "streaming": true,
+        "summary_items": [
+          {
+            "body_present": false,
+            "item_id": "reason-2",
+            "item_sha256": "ae7e16a3dffab356cd1feba98363f15cbc68bcb5f7db819dac31cee5ccc2af71",
+            "output_index": 0,
+            "part_count": 2
+          },
+          {
+            "body_present": true,
+            "item_id": "reason-b-2",
+            "item_sha256": "91464bdc1f25ad5bd197a5a6fc5f79121ae018696c7727101c25cfa82b72f724",
+            "output_index": 2,
+            "part_count": 1
+          }
+        ],
+        "synthetic": true,
+        "visible_history_only_verified": true
+      },
+      {
+        "attempt_id": "attempt:45:p1-request-77641d98fc8e3af7f62f89a4db297328-3:1",
+        "chunk_bytes": 31,
+        "ciphertext_bytes": 1335,
+        "ciphertext_sha256": "0f160bee8f0d405db36b56b62059cc361a9af0bd636ca2a1764c80ebbfd63f8b",
+        "completeness": "completed_response",
+        "context_kept": true,
+        "cost": "UNKNOWN",
+        "input_tokens": 20,
+        "key_version": 1,
+        "local_m3_m4": true,
+        "metadata_raw_readback": true,
+        "model_override": "grok-4.5",
+        "output_tokens": 7,
+        "owner": "p12-runtime-client-key",
+        "public_model": "grok-4.5",
+        "reader_authenticated": true,
+        "receive_count": 4,
+        "received_upstream_model": "grok-4.5",
+        "request_id": "p1-request-77641d98fc8e3af7f62f89a4db297328-3",
+        "response_id": "response-61",
+        "round": 3,
+        "source": "build_sse",
+        "streaming": true,
+        "summary_items": [
+          {
+            "body_present": false,
+            "item_id": "reason-3",
+            "item_sha256": "3c00ac9eadc7148e08c8fcda3685af51c678857c10698e8b83feffc715238d5c",
+            "output_index": 0,
+            "part_count": 2
+          },
+          {
+            "body_present": true,
+            "item_id": "reason-b-3",
+            "item_sha256": "c821a137c214428118b1d3c7f2026d1e4971f9cefc898730352bd321c21fd06f",
+            "output_index": 2,
+            "part_count": 1
+          }
+        ],
+        "synthetic": true,
+        "visible_history_only_verified": true
+      },
+      {
+        "attempt_id": "attempt:45:p1-request-77641d98fc8e3af7f62f89a4db297328-4:1",
+        "chunk_bytes": 31,
+        "ciphertext_bytes": 1335,
+        "ciphertext_sha256": "617207bd28e92e4f55ee05140228dc422c66c2dd6ecdbb957c231846c10b689e",
+        "completeness": "completed_response",
+        "context_kept": true,
+        "cost": "UNKNOWN",
+        "input_tokens": 20,
+        "key_version": 1,
+        "local_m3_m4": true,
+        "metadata_raw_readback": true,
+        "model_override": "grok-4.5",
+        "output_tokens": 7,
+        "owner": "p12-runtime-client-key",
+        "public_model": "grok-4.5",
+        "reader_authenticated": true,
+        "receive_count": 5,
+        "received_upstream_model": "grok-4.5",
+        "request_id": "p1-request-77641d98fc8e3af7f62f89a4db297328-4",
+        "response_id": "response-61",
+        "round": 4,
+        "source": "build_sse",
+        "streaming": true,
+        "summary_items": [
+          {
+            "body_present": false,
+            "item_id": "reason-4",
+            "item_sha256": "e5e54382ee54b59112d6ead59677669feaf255b9c36c4f0f0cd1fa64541f7999",
+            "output_index": 0,
+            "part_count": 2
+          },
+          {
+            "body_present": true,
+            "item_id": "reason-b-4",
+            "item_sha256": "e496ff35b1d35e8396f10e8df224f98c385357cdaa3fa169bcfad72d4e4b019e",
+            "output_index": 2,
+            "part_count": 1
+          }
+        ],
+        "synthetic": true,
+        "visible_history_only_verified": true
+      }
+    ],
+    "CPAR63_ACCOUNTING": [
+      {
+        "active_leases": 0,
+        "attempts": 5,
+        "chunk_bytes": 31,
+        "cost": "UNKNOWN",
+        "ledger_rows": 5,
+        "local_m3_m4": true,
+        "receives": 5,
+        "requests": 5,
+        "streaming": false,
+        "synthetic": true,
+        "usage_rows": 5
+      },
+      {
+        "active_leases": 0,
+        "attempts": 5,
+        "chunk_bytes": 1,
+        "cost": "UNKNOWN",
+        "ledger_rows": 5,
+        "local_m3_m4": true,
+        "receives": 5,
+        "requests": 5,
+        "streaming": true,
+        "synthetic": true,
+        "usage_rows": 5
+      },
+      {
+        "active_leases": 0,
+        "attempts": 5,
+        "chunk_bytes": 7,
+        "cost": "UNKNOWN",
+        "ledger_rows": 5,
+        "local_m3_m4": true,
+        "receives": 5,
+        "requests": 5,
+        "streaming": true,
+        "synthetic": true,
+        "usage_rows": 5
+      },
+      {
+        "active_leases": 0,
+        "attempts": 5,
+        "chunk_bytes": 31,
+        "cost": "UNKNOWN",
+        "ledger_rows": 5,
+        "local_m3_m4": true,
+        "receives": 5,
+        "requests": 5,
+        "streaming": true,
+        "synthetic": true,
+        "usage_rows": 5
+      }
+    ],
+    "CPAR64_M4_FAULT": [
+      {
+        "confirmation_timeout": "NOT_APPLICABLE",
+        "fault": "missing-writer",
+        "late_commit_cannot_change_failure": false,
+        "receive": 0,
+        "status": 503,
+        "streaming": false
+      },
+      {
+        "confirmation_timeout": "NOT_APPLICABLE",
+        "fault": "missing-key",
+        "late_commit_cannot_change_failure": false,
+        "receive": 0,
+        "status": 503,
+        "streaming": false
+      },
+      {
+        "confirmation_timeout": "NOT_APPLICABLE",
+        "fault": "conflict",
+        "late_commit_cannot_change_failure": false,
+        "receive": 0,
+        "status": 503,
+        "streaming": false
+      },
+      {
+        "confirmation_timeout": "NOT_APPLICABLE",
+        "fault": "lost",
+        "late_commit_cannot_change_failure": false,
+        "receive": 0,
+        "status": 503,
+        "streaming": false
+      },
+      {
+        "confirmation_timeout": "UNKNOWN",
+        "fault": "locked",
+        "late_commit_cannot_change_failure": true,
+        "receive": 0,
+        "status": 503,
+        "streaming": false
+      },
+      {
+        "confirmation_timeout": "NOT_APPLICABLE",
+        "fault": "replay",
+        "late_commit_cannot_change_failure": false,
+        "receive": 1,
+        "status": 200,
+        "streaming": false
+      },
+      {
+        "confirmation_timeout": "NOT_APPLICABLE",
+        "fault": "enqueued",
+        "late_commit_cannot_change_failure": false,
+        "receive": 0,
+        "status": 503,
+        "streaming": false
+      },
+      {
+        "confirmation_timeout": "NOT_APPLICABLE",
+        "fault": "disabled",
+        "late_commit_cannot_change_failure": false,
+        "receive": 0,
+        "status": 503,
+        "streaming": false
+      },
+      {
+        "confirmation_timeout": "NOT_APPLICABLE",
+        "fault": "queue-full",
+        "late_commit_cannot_change_failure": false,
+        "receive": 0,
+        "status": 503,
+        "streaming": false
+      },
+      {
+        "confirmation_timeout": "NOT_APPLICABLE",
+        "fault": "missing-writer",
+        "late_commit_cannot_change_failure": false,
+        "receive": 0,
+        "status": 503,
+        "streaming": true
+      },
+      {
+        "confirmation_timeout": "NOT_APPLICABLE",
+        "fault": "missing-key",
+        "late_commit_cannot_change_failure": false,
+        "receive": 0,
+        "status": 503,
+        "streaming": true
+      },
+      {
+        "confirmation_timeout": "NOT_APPLICABLE",
+        "fault": "conflict",
+        "late_commit_cannot_change_failure": false,
+        "receive": 0,
+        "status": 503,
+        "streaming": true
+      },
+      {
+        "confirmation_timeout": "NOT_APPLICABLE",
+        "fault": "lost",
+        "late_commit_cannot_change_failure": false,
+        "receive": 0,
+        "status": 503,
+        "streaming": true
+      },
+      {
+        "confirmation_timeout": "UNKNOWN",
+        "fault": "locked",
+        "late_commit_cannot_change_failure": true,
+        "receive": 0,
+        "status": 503,
+        "streaming": true
+      },
+      {
+        "confirmation_timeout": "NOT_APPLICABLE",
+        "fault": "replay",
+        "late_commit_cannot_change_failure": false,
+        "receive": 1,
+        "status": 200,
+        "streaming": true
+      },
+      {
+        "confirmation_timeout": "NOT_APPLICABLE",
+        "fault": "enqueued",
+        "late_commit_cannot_change_failure": false,
+        "receive": 0,
+        "status": 503,
+        "streaming": true
+      },
+      {
+        "confirmation_timeout": "NOT_APPLICABLE",
+        "fault": "disabled",
+        "late_commit_cannot_change_failure": false,
+        "receive": 0,
+        "status": 503,
+        "streaming": true
+      },
+      {
+        "confirmation_timeout": "NOT_APPLICABLE",
+        "fault": "queue-full",
+        "late_commit_cannot_change_failure": false,
+        "receive": 0,
+        "status": 503,
+        "streaming": true
+      }
+    ]
+  },
+  "independent_single_successes": 8,
+  "combined_requests": 20,
+  "combined_variants": 4,
+  "full_effective_history_oracle": "local_controls::expected_input and exact accounting joins",
+  "private_values": "synthetic fixtures only; original actual-client metadata excluded"
+}

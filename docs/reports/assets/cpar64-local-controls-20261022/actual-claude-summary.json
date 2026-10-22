@@ -1,0 +1,128 @@
+{
+  "candidate": "9035551dcef79e130e17f7591fa3ca8a0ff3a265",
+  "private_archive": "/private/tmp/cpar64-m34-9035551d-final-20261022",
+  "outer_strict_runner_exit": 1,
+  "run": {
+    "exit": 0,
+    "command": [
+      "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar64-local-controls-20261022/target-full-9035551d/debug/deps/gateway-b314458fd9b519fb",
+      "actual_claude_messages_build_observation",
+      "--ignored",
+      "--nocapture"
+    ],
+    "test_binary_sha256": "86c089c3de0e289a61f8de5deb12bf383fcb869aee34fff017ae4e4e2e8576e1",
+    "target": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar64-local-controls-20261022/target-full-9035551d",
+    "diagnostic": false,
+    "observation_oracles": "PASS",
+    "client_success": false,
+    "compatibility": "BLOCKED",
+    "client_install_and_copy_unchanged": true,
+    "claim": "observation success cannot qualify the tool loop, summary or in-flight cancellation"
+  },
+  "identity": {
+    "entry": "/Users/huangrui/.local/bin/claude",
+    "link": "/Users/huangrui/.local/share/claude/versions/2.1.302",
+    "actual": "/Users/huangrui/.local/share/claude/versions/2.1.302",
+    "sha256": "5262ce9de86243fed0d21edc39b271555d56780d0112e2b194439fe1c6662d37",
+    "mode": 493,
+    "architecture": "/Users/huangrui/.local/share/claude/versions/2.1.302: Mach-O 64-bit executable arm64",
+    "frozen": "/private/tmp/cpar64-m34-9035551d-final-20261022/claude",
+    "source_unchanged": true,
+    "frozen_unchanged": true
+  },
+  "runtime_version": {
+    "exit": 0,
+    "stdout": "2.1.302 (Claude Code)\n",
+    "stderr": ""
+  },
+  "isolation": {
+    "exit": 0,
+    "probes": [
+      {
+        "network": "192.0.2.1",
+        "port": 443,
+        "errno": 1
+      },
+      {
+        "network": "2001:db8::1",
+        "port": 443,
+        "errno": 1
+      },
+      {
+        "network": "127.0.0.1",
+        "port": 62735,
+        "errno": 1
+      },
+      {
+        "probe": "real_home_read",
+        "errno": 1
+      },
+      {
+        "probe": "outside_credential_read",
+        "errno": 1
+      },
+      {
+        "probe": "outside_write",
+        "errno": 1
+      },
+      {
+        "subprocess_denied": true,
+        "exit": 1
+      }
+    ],
+    "independent_uncontrolled_loopback_accepts": 0,
+    "outside_sentinel_unchanged": true
+  },
+  "observations": {
+    "accounting": {
+      "attempts": 0,
+      "cost": "UNKNOWN",
+      "failed_requests": 2,
+      "ledger": 0,
+      "requests": 2,
+      "summaries": 0,
+      "usage": 0
+    },
+    "active_leases": 0,
+    "actual_inflight_cancellation": "BLOCKED_NO_DELTA_OR_LEASE",
+    "actual_summary_readback": "BLOCKED_NO_ATTEMPT",
+    "actual_tool_execution": "BLOCKED_BEFORE_FIRST_RESPONSE",
+    "compatibility": "BLOCKED",
+    "cost": "UNKNOWN",
+    "count_tokens": "NOT_OBSERVED",
+    "head_probe": "NOT_OBSERVED",
+    "independent_receives": 0,
+    "independent_tcp_accepts": 0,
+    "lease_release_transition": "NOT_OBSERVED_NO_LEASE",
+    "local_metadata_responsibility": "PASS_REQUEST_ONLY",
+    "metadata_receipts": [
+      {
+        "actual_attempts": 0,
+        "authenticated_raw_readback": true,
+        "owner": "p12-runtime-client-key",
+        "payload_version": 2,
+        "raw_field_sha256": "512735b13e579c2b0e9690eb48105c1b707d6c78e02fb7dbd133edba2418b762",
+        "request_id": "p1-request-cfa0fcc6252142f82e431e99c18c46d7-0",
+        "source": "anthropic_messages_metadata",
+        "user_id_chars": 150
+      },
+      {
+        "actual_attempts": 0,
+        "authenticated_raw_readback": true,
+        "owner": "p12-runtime-client-key",
+        "payload_version": 2,
+        "raw_field_sha256": "512735b13e579c2b0e9690eb48105c1b707d6c78e02fb7dbd133edba2418b762",
+        "request_id": "p1-request-cfa0fcc6252142f82e431e99c18c46d7-1",
+        "source": "anthropic_messages_metadata",
+        "user_id_chars": 150
+      }
+    ],
+    "no_lease_leak_before_cleanup": true,
+    "public_requests": 2,
+    "title": "NOT_OBSERVED"
+  },
+  "original_driver_unchanged": true,
+  "driver_sha256": "ab8cc45e3c64e2c5f6dd576b7737cf00cf0e5765c0f5a3f8bc45642505ba086c",
+  "source_manifest_sha256": "4e8f4eecb33dcb92f5d866088cafdd4c6f5fcc5e181a79a540a9590bb1dad780",
+  "raw_metadata_published": false
+}

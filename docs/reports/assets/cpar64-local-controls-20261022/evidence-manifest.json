@@ -1,0 +1,169 @@
+{
+  "candidate": "9035551dcef79e130e17f7591fa3ca8a0ff3a265",
+  "created_at_utc": "2026-10-22T05:01:52.629103+00:00",
+  "files": [
+    {
+      "path": "actual-claude-summary.json",
+      "bytes": 4206,
+      "sha256": "da8a4e24798025bd80f25e8480b7f122c740275ac652d33093455aaecbdf236a"
+    },
+    {
+      "path": "actual-codex-pi-summary.json",
+      "bytes": 35708,
+      "sha256": "9e0babe02f192d0ff112c8e26997613b2371e168981c26333a9d30745fe51616"
+    },
+    {
+      "path": "audit-yank-followup.log",
+      "bytes": 447,
+      "sha256": "ba63f81fe8c4e38b2546c50b5563d4cc2bbf8c5c0f6e9aa1c7d476dae3b91324"
+    },
+    {
+      "path": "baseline.json",
+      "bytes": 6054,
+      "sha256": "c75211c662177834e1570ceadfec230ebc9dd33f70b9fb3344c60338c7c24037"
+    },
+    {
+      "path": "candidate-binding.json",
+      "bytes": 877,
+      "sha256": "8d44db1517da3ec093a14954fd1e195c5ad0fb120900f319f241fcb08c4604a4"
+    },
+    {
+      "path": "commands.md",
+      "bytes": 3698,
+      "sha256": "2a667321afffe616eead33e4b4cdce4599776a8684e9298e0b0a69b5ed23678d"
+    },
+    {
+      "path": "development-history.json",
+      "bytes": 9042,
+      "sha256": "23ab24a276d1b21881ca9b295a823871acfb7e0ca0024e11b768ce4649061c28"
+    },
+    {
+      "path": "environment.json",
+      "bytes": 418,
+      "sha256": "2df6acef120d8f245efe01426d19cb6682b0a3bf52547d44ec3e8643fe27676e"
+    },
+    {
+      "path": "failed-full-source-preservation.json",
+      "bytes": 137,
+      "sha256": "05069de081ad4cc3574e4ffd7c92e3e9140c13073d49272171b5ac7b2529d3ed"
+    },
+    {
+      "path": "full-check.md",
+      "bytes": 1849,
+      "sha256": "1acca633b30b872ebcfe540cfc00e0b19cbc46823df81d7a7adfea962edb638f"
+    },
+    {
+      "path": "full-failed-32da5424.log.gz",
+      "bytes": 34853,
+      "sha256": "b71e818b6c0b4a5d435e5c29f3c8d2dde17cb76b6a53dae207075de826b00968"
+    },
+    {
+      "path": "full-failed-32da5424.md",
+      "bytes": 1409,
+      "sha256": "808862af9c467e9dd9ae6b49bcaf4e58cb1cf1131f872cb0df60e24def804d5c"
+    },
+    {
+      "path": "full-summary.json",
+      "bytes": 915,
+      "sha256": "3aa871e57a1aee83fa69ce345dfb42f1d116d2f3021e5995b6f77de814231c18"
+    },
+    {
+      "path": "full.log.gz",
+      "bytes": 56417,
+      "sha256": "9db3479687c914a02c9b85dc982e3e2a2f9e51774cd8f01568917c5ee59ee24d"
+    },
+    {
+      "path": "github-status.json",
+      "bytes": 1717,
+      "sha256": "5ada9d40bb968d33ddf0e4d71e708869f522615413e99c7dce9ee6f7f26a4417"
+    },
+    {
+      "path": "independent-fix-reviews.json",
+      "bytes": 1411,
+      "sha256": "ec3e77aa5a348b1115a9f4b0f3c38dc9ad608bba93918a960fa007d6c52fe697"
+    },
+    {
+      "path": "independent-reviews.json",
+      "bytes": 1629,
+      "sha256": "c2cd36264b746ee8f40ac5badead4a75637e4ace5d2ef79d611f972eefe5c4ed"
+    },
+    {
+      "path": "native-codec-regression-fix.log.gz",
+      "bytes": 1534,
+      "sha256": "a224a319ba092100daeb66ecbe69926a4d156749c469fac1bbacae64684513c0"
+    },
+    {
+      "path": "overlay.json",
+      "bytes": 4083,
+      "sha256": "f19d068854ee542d5338fdbd76931b0faaaa017ab1e8950ccd3dd44ced6fa93b"
+    },
+    {
+      "path": "preservation.json",
+      "bytes": 1217,
+      "sha256": "71ac773f9df3f834cef555658c19232ee1bdee51cd0d447fcacdcadd1928f0bc"
+    },
+    {
+      "path": "process-recovery-summary.json",
+      "bytes": 106379,
+      "sha256": "aa9db577a6cafa110f5ec2bd3c64f4a9badbc2b2c9f5fec2f12ef575b98881ff"
+    },
+    {
+      "path": "protocol-acceptance.log.gz",
+      "bytes": 4507,
+      "sha256": "615dd3517152a622dbbdf3645bdda948ef3de1b9969a108a1ec244e8c1bddd4c"
+    },
+    {
+      "path": "protocol-receipts.json",
+      "bytes": 37746,
+      "sha256": "61615ab405e16fa64628a5d0c50018f0df89d92640f741654071f8f992d4e41a"
+    },
+    {
+      "path": "red-inputs.json.gz",
+      "bytes": 2390,
+      "sha256": "b6d59de81f8bda253fb5ce419efa3603ed5500260b1586dd44aaf331ad973e0c"
+    },
+    {
+      "path": "red-public-m3-m4.log.gz",
+      "bytes": 3711,
+      "sha256": "f6e7ee32a95397c7bf03c5979a7f1cbc5ce007a7256b8ffa8be051606cbcabd7"
+    },
+    {
+      "path": "schema37-binding.json",
+      "bytes": 839,
+      "sha256": "e9771c4bff3eb0f44025bafaa3c24c5fe9ce4502699cceb28df98c4b0ba242ad"
+    },
+    {
+      "path": "source-inputs.json.gz",
+      "bytes": 380002,
+      "sha256": "5311084b1c5ae0676e78030aded4865f65f720b3b438a2412436940ff6bbbffc"
+    },
+    {
+      "path": "strict-cli-oracle.log",
+      "bytes": 337,
+      "sha256": "80814319d0a0cc0b9c96beec289b68107e7bfef5b6b7e1b8b344df518b4f9c4d"
+    },
+    {
+      "path": "verification-summary.json",
+      "bytes": 1074,
+      "sha256": "b47f6b3d6c363a9ce7788e96ca685d8d584a6d68e51eae54b4b8ef4e7586cafd"
+    }
+  ],
+  "private_material_excluded": [
+    "raw actual-client request bodies",
+    "decrypted actual metadata values",
+    "key material",
+    "SQLite state",
+    "encrypted backup contents"
+  ],
+  "source": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020",
+  "report": {
+    "path": "../../cpar-64-local-controls-20261022.md",
+    "sha256": "fbf7c3f03c8c8d84579c8cf653560d201300fe99b2492abdc6d40bb65fba1dd6"
+  },
+  "privacy_check": {
+    "actual_Claude_user_id_values_checked": 2,
+    "present_in_plain_or_decompressed_assets": false,
+    "raw_requests_keys_databases_excluded": true,
+    "escaped_representations_checked": 4
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "source": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar64-metadata-schema37-4099",
+  "head": "4099d260fd40fa63ad328844c06fa677705b488b",
+  "tree": "e5bdd35cbcec0ccdd835d7629c6ccd3daf36ff5e",
+  "status": "",
+  "binary": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar64-local-controls-20261022/target-schema37/debug/gateway",
+  "binary_sha256": "6f98a54ab06cf70bb8ee64de7f3cbb9065416ce62b92e021b94d1f8e39d965d8",
+  "manifest_lock": {
+    "Cargo.toml": "1b1a37ce8d8fcafa51d379ffae2ff33fff091c5a48c0f3458e47b99c12b22355",
+    "Cargo.lock": "36564c0219707741d79ecb37d9fc4ee620ce2fe6801fdbe09b32fb4c8687c858"
+  },
+  "build_log_sha256": "2f69505ec0e8ecefe0af87aa1ef378fc7963a3d60f31a0317de6d28e637e7e95",
+  "scope": "freshly built exact baseline schema37 old-reader/process fixture, no historical binary inference"
+}

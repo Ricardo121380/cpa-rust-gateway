@@ -1,0 +1,8 @@
+test_common_missing_fields_cannot_pass (__main__.C4PresenceTests) ... ok
+test_later_absence_needs_independent_no_capture_proof (__main__.C4PresenceTests) ... ok
+test_present_field_needs_exact_raw_readback (__main__.C4PresenceTests) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.000s
+
+OK

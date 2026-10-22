@@ -1,0 +1,152 @@
+{
+  "head": "4099d260fd40fa63ad328844c06fa677705b488b",
+  "branch": "feature/62-client-metadata",
+  "status": "# branch.oid 4099d260fd40fa63ad328844c06fa677705b488b\n# branch.head feature/62-client-metadata\n1 .M N... 100644 100644 100644 3b18c91af7af82e6a0bc4abfd2f612e11628c78d 3b18c91af7af82e6a0bc4abfd2f612e11628c78d AGENTS.md\n1 .M N... 100644 100644 100644 b832fb54a838e75dbb97ab64971353d728a6430c b832fb54a838e75dbb97ab64971353d728a6430c README.md\n1 .M N... 100644 100644 100644 e6e06039a13d721e822107329d81411b56f78039 e6e06039a13d721e822107329d81411b56f78039 README.zh-CN.md\n1 .M N... 100644 100644 100644 eb2cd88543f6cad3ed6b15f2dfa44d8b495ca087 eb2cd88543f6cad3ed6b15f2dfa44d8b495ca087 docs/06-development-plan.md\n1 .M N... 100644 100644 100644 e510fe5504e57301824c10544f45f836afe66fb2 e510fe5504e57301824c10544f45f836afe66fb2 docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md\n1 .M N... 100644 100644 100644 f71ed2fe768f59110fde45b121a08555eadf1141 f71ed2fe768f59110fde45b121a08555eadf1141 docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md\n1 .M N... 100644 100644 100644 a6abdbf8915f3ae1faa9cddc3096b68380b2bfa2 a6abdbf8915f3ae1faa9cddc3096b68380b2bfa2 docs/adr/ADR-0106-native-fidelity-profile.md\n1 .M N... 100644 100644 100644 77518651bb828745bd05ca92a23d14152e2c5490 77518651bb828745bd05ca92a23d14152e2c5490 docs/adr/README.md\n1 .M N... 100644 100644 100644 6bdf169159cd559492e6db35960a3118f406c41f 6bdf169159cd559492e6db35960a3118f406c41f docs/contracts/BC-PROTOCOL-009-codex-responses-controls.md\n1 .M N... 100644 100644 100644 cb9e9d6ef63ca92b68a60b2308128017cbd6659d cb9e9d6ef63ca92b68a60b2308128017cbd6659d docs/traceability.md\n? CONTEXT.md\n? docs/adr/ADR-0107-standard-response-metadata-separation.md\n? docs/adr/ADR-0108-build-summary-standard-messages.md\n? docs/agents/\n? docs/engineering-roadmap.md\n? docs/reports/cpar-62-64-client-field-plan-20261020.md\n",
+  "index_sha256": "0f1e17388e72062b3370d0baf8a4795426001dc8b075d9b119ebd0db04a96b0c",
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "810c5eac53766af3011d8e6b5ce0a6b783ec1cd0b291805547a063790345d002",
+      "mode": 420,
+      "symlink": null,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "CONTEXT.md",
+      "sha256": "eaa545ede563d661387baff18ebd21e8acc3a9661000c4123eec6bf2d1779e21",
+      "mode": 420,
+      "symlink": null,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "README.md",
+      "sha256": "376de5be81e5b8ac7b0ad6ac25b4e186db18321a0cd89057d7432ef5524219f9",
+      "mode": 420,
+      "symlink": null,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "README.zh-CN.md",
+      "sha256": "d5ae62085c88f4200b19f973b675b10fad63c0e86ed42178969ec869bfbe3b76",
+      "mode": 420,
+      "symlink": null,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/06-development-plan.md",
+      "sha256": "322ac4c20b44eedf1b3e7bdb3ed1bfc7b9e12c9cf2192b3b85ffe274061b3fe5",
+      "mode": 420,
+      "symlink": null,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md",
+      "sha256": "ad35d32a70725f9da6b412c0100e920eb52cd560f67faefbb9013b3ad1834bcb",
+      "mode": 420,
+      "symlink": null,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+      "sha256": "a426616e9a4cbb875e3eb081e40160357433817306ff045ed5de3c3797c39131",
+      "mode": 420,
+      "symlink": null,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/adr/ADR-0106-native-fidelity-profile.md",
+      "sha256": "8e770df75f08f2ce4c4471cfaa58365bc8e20715880dc7239e7d98438d530409",
+      "mode": 420,
+      "symlink": null,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/adr/ADR-0107-standard-response-metadata-separation.md",
+      "sha256": "dad1f8391de1a6d82a0c280189346f1a065bc04ee84f88502859e766b485938e",
+      "mode": 420,
+      "symlink": null,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/adr/ADR-0108-build-summary-standard-messages.md",
+      "sha256": "a8088457f16a6f60fbb13cd617594cb896f9c168a4dfe9122295602ade0f82ec",
+      "mode": 420,
+      "symlink": null,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/adr/README.md",
+      "sha256": "876ef8f725d263c8b1164bc8ae62405086b8197eb7617a54b4a966558355093f",
+      "mode": 420,
+      "symlink": null,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/agents/domain.md",
+      "sha256": "143fbbb108382fe791a9a9a7b2f0c208d7a8b9a64f0250b3b172f1660c6f9b40",
+      "mode": 420,
+      "symlink": null,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/agents/issue-tracker.md",
+      "sha256": "c95aff9dd13f35beb3646a2e01cf28559c1ceb0122e01515f354911385c312d0",
+      "mode": 420,
+      "symlink": null,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/agents/triage-labels.md",
+      "sha256": "ef4786ebc27973fe8afd053bc91ff16038195c354f05d7456776ec6aeea2c721",
+      "mode": 420,
+      "symlink": null,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/contracts/BC-PROTOCOL-009-codex-responses-controls.md",
+      "sha256": "6a1f887ec2e203c204e0a5b79e836dbc0621a93ff8534e5bbba5130931e00f3f",
+      "mode": 420,
+      "symlink": null,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/engineering-roadmap.md",
+      "sha256": "0babeedb83b7c2138ab7e540ef8be4c2b0a0831a0710a0e00f5a9f861f28777b",
+      "mode": 420,
+      "symlink": null,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/reports/cpar-62-64-client-field-plan-20261020.md",
+      "sha256": "26cb7b1a5af0ee25ed47f35ecac963433c9cd704830f181c9529f942571cac97",
+      "mode": 420,
+      "symlink": null,
+      "uid": 501,
+      "gid": 20
+    },
+    {
+      "path": "docs/traceability.md",
+      "sha256": "3737189ec95179fbf8ce4bb31fd0f6e468bb45f4fcbcf84fed6a7193a4c9dd45",
+      "mode": 420,
+      "symlink": null,
+      "uid": 501,
+      "gid": 20
+    }
+  ]
+}

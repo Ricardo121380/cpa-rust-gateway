@@ -1,0 +1,160 @@
+{
+  "original_red_base": "4099d260fd40fa63ad328844c06fa677705b488b",
+  "red_inputs": [
+    "red-local-controls.rs",
+    "red-module.patch"
+  ],
+  "first_candidate": "32da5424383d6ad4b6939fa02e073f174a7736ae",
+  "first_full": "FAIL_PRESERVED",
+  "regression": "native Messages inverse reserialized retained raw metadata; unchanged old Canonical equality failed",
+  "fixed_candidate": "9035551dcef79e130e17f7591fa3ca8a0ff3a265",
+  "fix": "retain raw metadata in native serializer; original assertion retained; add explicit opaque/escape inverse regression",
+  "logs": [
+    {
+      "file": "red-public-m3-m4.log",
+      "sha256": "13b1de28615031456b7d126e340011123eac86dda7a41b5de777efee21f6c9f3",
+      "rust_results": [
+        "test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 306 filtered out; finished in 0.57s"
+      ],
+      "failed_steps": []
+    },
+    {
+      "file": "full-final-32da5424.log",
+      "sha256": "3122c3350800a383d0f2f21fcd09503cb23a6fcfff88e7dcc5dd8446de1fbdda",
+      "rust_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s",
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 313 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 201.65s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.88s",
+        "test result: ok. 9 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 2.01s",
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.85s",
+        "test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s",
+        "test result: ok. 111 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.70s",
+        "test result: ok. 49 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 99 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.03s",
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.84s",
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 53 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 13.04s",
+        "test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s",
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s",
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s",
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s",
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s",
+        "test result: ok. 4 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.03s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.01s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.56s",
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s",
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s",
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+        "test result: ok. 12 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 7 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 190 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s",
+        "test result: ok. 110 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 13.60s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s",
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s",
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.11s",
+        "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "test result: ok. 42 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.82s",
+        "test result: FAILED. 32 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s"
+      ],
+      "failed_steps": [
+        "check: Rust tests failed with status 101"
+      ]
+    },
+    {
+      "file": "full-final-32da5424.md",
+      "sha256": "808862af9c467e9dd9ae6b49bcaf4e58cb1cf1131f872cb0df60e24def804d5c",
+      "rust_results": [],
+      "failed_steps": []
+    },
+    {
+      "file": "native-codec-regression-fix.log",
+      "sha256": "d407fcc2b9e20b3ed9452b650b394d7689e7f1488e5b8ce6707d64119d01478f",
+      "rust_results": [
+        "test result: ok. 34 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s"
+      ],
+      "failed_steps": []
+    },
+    {
+      "file": "native-codec-clippy-fix.log",
+      "sha256": "3945c3a58945d1763c05f0e4b2a2dedcccee6739371f94654170856bb64c70ad",
+      "rust_results": [],
+      "failed_steps": []
+    },
+    {
+      "file": "affected-lifecycle-final.log",
+      "sha256": "c19f2e00d38e8e976891abeff6e81d3190798038a75c7784d5a13caf07b55642",
+      "rust_results": [
+        "test result: FAILED. 80 passed; 1 failed; 2 ignored; 0 measured; 234 filtered out; finished in 120.82s"
+      ],
+      "failed_steps": []
+    },
+    {
+      "file": "candidates-directed-6.log",
+      "sha256": "0f37bc72763dccdee96294ad3418f61df6117a43e9e3b976872ebd0800a1d93b",
+      "rust_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 316 filtered out; finished in 1.77s"
+      ],
+      "failed_steps": []
+    },
+    {
+      "file": "affected-storage-final.log",
+      "sha256": "b50d62e00887de04e11ee1113c91e3c9fd35c29ffb3a50b366bb2ce94085c9db",
+      "rust_results": [
+        "test result: ok. 9 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 2.16s"
+      ],
+      "failed_steps": []
+    },
+    {
+      "file": "affected-clippy-final.log",
+      "sha256": "fd3ddb9532b5e4ab14e8515b7e362816cd902ae0448583051c02dcc9ebfb1929",
+      "rust_results": [],
+      "failed_steps": []
+    }
+  ],
+  "other_development_logs_preserved": [
+    "candidates-directed-2.log",
+    "candidates-directed-3.log",
+    "candidates-directed-4.log",
+    "candidates-directed-5.log",
+    "candidates-final-directed.log",
+    "clippy-fifth.log",
+    "clippy-first.log",
+    "clippy-fourth.log",
+    "clippy-second.log",
+    "clippy-third.log",
+    "combined-first.log",
+    "green-m3-m4.log",
+    "green-m4-first.log",
+    "local-matrix-first.log",
+    "local-matrix-fourth.log",
+    "local-matrix-second.log",
+    "local-matrix-third.log",
+    "messages-directed-second.log",
+    "messages-directed.log",
+    "old-source-worktree.log",
+    "process-dev-1.log",
+    "process-support-build.log",
+    "schema37-cargo-build.log",
+    "schema37-npm-build.log",
+    "storage-first.log",
+    "storage-second.log",
+    "strict-cli-oracle-final.log"
+  ]
+}

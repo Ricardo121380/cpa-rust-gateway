@@ -1,0 +1,32 @@
+{
+  "candidate": "9035551dcef79e130e17f7591fa3ca8a0ff3a265",
+  "full_script_exit": 0,
+  "full_steps_passed": 45,
+  "full_steps_failed": 0,
+  "rust": {
+    "passed": 1656,
+    "failed": 0,
+    "ignored": 17
+  },
+  "overlay": true,
+  "overlay_files": 18,
+  "source_inputs": 7271,
+  "source_unchanged": true,
+  "first_full": {
+    "candidate": "32da5424383d6ad4b6939fa02e073f174a7736ae",
+    "exit": 101,
+    "status": "FAIL_PRESERVED",
+    "reason": "native inverse lost raw metadata representation; fixed without weakening old assertion"
+  },
+  "rustsec": {
+    "audit_exit": 0,
+    "advisory_count": 1348,
+    "lock_dependencies": 366,
+    "advisory_scan": "PASS_TOOL_EXIT_ZERO",
+    "cargo_deny": "advisories ok, bans ok, licenses ok, sources ok",
+    "registry_yanked_query": "UNKNOWN_TIMEOUT",
+    "focused_followup_exit": 0,
+    "focused_followup_query": "UNKNOWN_TIMEOUT"
+  },
+  "not_a_bare_tree_full": true
+}

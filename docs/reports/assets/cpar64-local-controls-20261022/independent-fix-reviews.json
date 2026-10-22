@@ -1,0 +1,35 @@
+{
+  "base": "32da5424383d6ad4b6939fa02e073f174a7736ae",
+  "candidate": "9035551dcef79e130e17f7591fa3ca8a0ff3a265",
+  "scope": "2 committed files plus raw decoder/core interaction; cumulative with independent-reviews.json",
+  "standards": {
+    "agent": "/root/review_m34_fix_standards",
+    "status": "PASS_STATIC",
+    "findings": [],
+    "checked": [
+      "pure codec boundaries",
+      "specific raw-field serialization without new interface/dependency",
+      "unchanged namespace/collision/output-limit/cache-retention guards",
+      "original full Canonical and outbound fixture assertions retained"
+    ]
+  },
+  "spec": {
+    "agent": "/root/review_m34_fix_spec",
+    "status": "PASS_STATIC",
+    "findings": [],
+    "checked": [
+      "raw whitespace/escapes/opaque inner string preserved",
+      "exactly one metadata field; absent stays absent",
+      "consumed M4 is not reinserted or forwarded by native encoder",
+      "M1/M2/M5/history/model/Usage admission unchanged"
+    ]
+  },
+  "dynamic_tests_by_reviewers": false,
+  "main_spot_check": [
+    "crates/protocol-anthropic/src/upstream_request.rs:42",
+    "crates/protocol-anthropic/src/upstream_request.rs:100",
+    "crates/protocol-anthropic/src/upstream_request.rs:499",
+    "crates/protocol-anthropic/src/upstream_request.rs:520"
+  ],
+  "summary": "0 Standards findings; 0 Spec findings; final Full and clients separately verified by main"
+}
