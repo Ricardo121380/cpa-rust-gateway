@@ -1,0 +1,135 @@
+{
+  "status": "PASS",
+  "artifact_source": "737fd040e983bef329be27b5cf48b4f6986a5772",
+  "artifact_manifest_sha256": "aff99e88cb24a7cf3f1489f0a712c3e37e83af76e29bb5768a9a552fcd255e0c",
+  "oci_archive_sha256": "e4503dca17842ba3869758ac5e914a13be43c23428ff0cc7981dde2d07385f94",
+  "docker_archive_sha256": "3d630e8f146cf5bb8916365c262bc5be629a93e9c0f8878e063445393ad45e65",
+  "config_digest": "sha256:a8a678ffbc333d47a27f32f234578b6c04c75ad4e59f970f57f334f6de983f2a",
+  "manifest_digest": "sha256:5a1b901db4ecdd31cccca59093a7fbcef53414fe9bc3c4205997ab6ce61214f9",
+  "config": {
+    "architecture": "arm64",
+    "config": {
+      "User": "65532:65532",
+      "Env": [
+        "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      ],
+      "Entrypoint": [
+        "/usr/local/bin/gateway"
+      ],
+      "WorkingDir": "/nonexistent",
+      "Labels": {
+        "org.opencontainers.image.base.name": "debian:bookworm-slim@sha256:9b67294679b30e5d6ab257b40594feeb4a4b81f7fcf4131f4decf0d6a212a9b0",
+        "org.opencontainers.image.revision": "737fd040e983bef329be27b5cf48b4f6986a5772",
+        "org.opencontainers.image.rust.toolchain": "1.97.1",
+        "org.opencontainers.image.target": "aarch64-unknown-linux-gnu",
+        "org.opencontainers.image.title": "cpa-rust-gateway",
+        "org.opencontainers.image.version": "0.1.0"
+      }
+    },
+    "created": "2026-10-22T14:06:49.867373615Z",
+    "history": [
+      {
+        "created": "2026-07-13T00:00:00Z",
+        "created_by": "# debian.sh --arch 'arm64' out/ 'bookworm' '@1783900800'",
+        "comment": "debuerreotype 0.17"
+      },
+      {
+        "created": "2026-10-22T14:06:49.773098564Z",
+        "created_by": "ARG RELEASE_REVISION",
+        "comment": "buildkit.dockerfile.v0",
+        "empty_layer": true
+      },
+      {
+        "created": "2026-10-22T14:06:49.773098564Z",
+        "created_by": "ARG RELEASE_VERSION",
+        "comment": "buildkit.dockerfile.v0",
+        "empty_layer": true
+      },
+      {
+        "created": "2026-10-22T14:06:49.773098564Z",
+        "created_by": "ARG RELEASE_RUST_VERSION",
+        "comment": "buildkit.dockerfile.v0",
+        "empty_layer": true
+      },
+      {
+        "created": "2026-10-22T14:06:49.773098564Z",
+        "created_by": "ARG RELEASE_TARGET",
+        "comment": "buildkit.dockerfile.v0",
+        "empty_layer": true
+      },
+      {
+        "created": "2026-10-22T14:06:49.773098564Z",
+        "created_by": "ARG RELEASE_BASE_IMAGE",
+        "comment": "buildkit.dockerfile.v0",
+        "empty_layer": true
+      },
+      {
+        "created": "2026-10-22T14:06:49.773098564Z",
+        "created_by": "LABEL org.opencontainers.image.title=cpa-rust-gateway org.opencontainers.image.revision=737fd040e983bef329be27b5cf48b4f6986a5772 org.opencontainers.image.version=0.1.0 org.opencontainers.image.rust.toolchain=1.97.1 org.opencontainers.image.target=aarch64-unknown-linux-gnu org.opencontainers.image.base.name=debian:bookworm-slim@sha256:9b67294679b30e5d6ab257b40594feeb4a4b81f7fcf4131f4decf0d6a212a9b0",
+        "comment": "buildkit.dockerfile.v0",
+        "empty_layer": true
+      },
+      {
+        "created": "2026-10-22T14:06:49.773098564Z",
+        "created_by": "RUN |5 RELEASE_REVISION=737fd040e983bef329be27b5cf48b4f6986a5772 RELEASE_VERSION=0.1.0 RELEASE_RUST_VERSION=1.97.1 RELEASE_TARGET=aarch64-unknown-linux-gnu RELEASE_BASE_IMAGE=debian:bookworm-slim@sha256:9b67294679b30e5d6ab257b40594feeb4a4b81f7fcf4131f4decf0d6a212a9b0 /bin/sh -c apt-get update     && apt-get install --no-install-recommends --yes ca-certificates libssl3     && rm -rf /var/lib/apt/lists/* # buildkit",
+        "comment": "buildkit.dockerfile.v0"
+      },
+      {
+        "created": "2026-10-22T14:06:49.846239466Z",
+        "created_by": "COPY --chown=65532:65532 /gateway /usr/local/bin/gateway # buildkit",
+        "comment": "buildkit.dockerfile.v0"
+      },
+      {
+        "created": "2026-10-22T14:06:49.846239466Z",
+        "created_by": "USER 65532:65532",
+        "comment": "buildkit.dockerfile.v0",
+        "empty_layer": true
+      },
+      {
+        "created": "2026-10-22T14:06:49.867373615Z",
+        "created_by": "WORKDIR /nonexistent",
+        "comment": "buildkit.dockerfile.v0"
+      },
+      {
+        "created": "2026-10-22T14:06:49.867373615Z",
+        "created_by": "ENTRYPOINT [\"/usr/local/bin/gateway\"]",
+        "comment": "buildkit.dockerfile.v0",
+        "empty_layer": true
+      }
+    ],
+    "os": "linux",
+    "rootfs": {
+      "type": "layers",
+      "diff_ids": [
+        "sha256:12cdff3b039e28c684ffd2097ff5a66df274a8500966a1431038b05f50bcf096",
+        "sha256:9d246ddf37cd124f9252bab114d46437682774373fe76ef60175c3439d6648e6",
+        "sha256:7a0b14cc0a85ded16a4da612b3a095753c7f595eb139bd3545b785f598b377df",
+        "sha256:c7fa24810bf8cb2e469a05125a78409ee662fac27ca1d6d98937e231cc5e1edd"
+      ]
+    }
+  },
+  "layers": [
+    {
+      "digest": "sha256:53bb9e501f1803aca595be8d902a62cea6bf4d996ce6f7dfe16c1c97be343e6c",
+      "bytes": 28117255,
+      "diff_id": "sha256:12cdff3b039e28c684ffd2097ff5a66df274a8500966a1431038b05f50bcf096"
+    },
+    {
+      "digest": "sha256:af0b1ed4a920ca7f97a7fbf7d9dfdf1b1a70ed46c48ff1ba53eb5ce6550c24f4",
+      "bytes": 3352667,
+      "diff_id": "sha256:9d246ddf37cd124f9252bab114d46437682774373fe76ef60175c3439d6648e6"
+    },
+    {
+      "digest": "sha256:2165ab51ebcd63fb32518a29ac2512e901c0280350fd49068e404e9e57c05bdc",
+      "bytes": 9760537,
+      "diff_id": "sha256:7a0b14cc0a85ded16a4da612b3a095753c7f595eb139bd3545b785f598b377df"
+    },
+    {
+      "digest": "sha256:219f6164f16685a262852f42f68ed7983ee0257bed222323b8332f78a935a81e",
+      "bytes": 107,
+      "diff_id": "sha256:c7fa24810bf8cb2e469a05125a78409ee662fac27ca1d6d98937e231cc5e1edd"
+    }
+  ],
+  "image_gateway_digest": "sha256:17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+  "signed": false
+}

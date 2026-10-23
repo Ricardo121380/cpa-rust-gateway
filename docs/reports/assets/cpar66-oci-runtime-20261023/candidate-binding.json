@@ -1,0 +1,228 @@
+{
+  "schema": "cpar66-unchanged-oci-qualification-v1",
+  "status": "PASS_LOCAL_OCI",
+  "opening_head": "44bada2c70f910d758e56e7e4820af234fa0a8a9",
+  "artifact_source": "737fd040e983bef329be27b5cf48b4f6986a5772",
+  "artifact_source_form": "previous base commit plus 18 Git-state and 15 permission overlays",
+  "original_candidate_binding_sha256": "e5ebb92b46c11ae7b72bb4b16b3bba5685b1e45ab075b5521c289089c970dfaa",
+  "original_source_binding_sha256": "1456e15bec93016595a576e2ded8d125af10a657fb6911c2ddd518202ad56dca",
+  "original_source_archive_sha256": "6117221bd1fe960b63adbcc33029b2fc91c82fe222ecd1eab1cc86df21be88d3",
+  "artifact_manifest_sha256": "aff99e88cb24a7cf3f1489f0a712c3e37e83af76e29bb5768a9a552fcd255e0c",
+  "oci_archive_sha256": "e4503dca17842ba3869758ac5e914a13be43c23428ff0cc7981dde2d07385f94",
+  "docker_archive_sha256": "3d630e8f146cf5bb8916365c262bc5be629a93e9c0f8878e063445393ad45e65",
+  "binary_sha256": "17c1fd546d1a8fbb7d310bc3f62a872f23b9d1b5b3f8195e383fc9f86162bdf2",
+  "actual_image_id": "sha256:5a1b901db4ecdd31cccca59093a7fbcef53414fe9bc3c4205997ab6ce61214f9",
+  "oci_manifest_digest": "sha256:5a1b901db4ecdd31cccca59093a7fbcef53414fe9bc3c4205997ab6ce61214f9",
+  "oci_config_digest": "sha256:a8a678ffbc333d47a27f32f234578b6c04c75ad4e59f970f57f334f6de983f2a",
+  "acceptance_code": "f8d28c6b0f8f66e60cbc1359ea5aaf8fa896d920",
+  "acceptance_source_binding": {
+    "archive_uid_gid": 0,
+    "base_commit": "f8d28c6b0f8f66e60cbc1359ea5aaf8fa896d920",
+    "cargo_lock_sha256": "36564c0219707741d79ecb37d9fc4ee620ce2fe6801fdbe09b32fb4c8687c858",
+    "git_status_overlay_files": 18,
+    "input_manifest_sha256": "f7aa10aba5f9833856c3f286cbdec1bdacbb34ccedd228459702f903836c13e5",
+    "inputs": 7440,
+    "node": "24.19.0",
+    "overlay_files": 33,
+    "overlay_sha256": "a33a04b2fbed604323e91e17b9630c8d229882f9bdf95fc9644c0fd72bd510c3",
+    "permission_overlay_files": 15,
+    "reproducibility": "NOT_RUN",
+    "rust_toolchain": "1.97.1",
+    "schema": "cpar66-local-source-v1",
+    "source_archive_sha256": "e2b8e14f7b44e31e9e25d14df2312c207d1214247bd6f310323924cac263e60e",
+    "source_date_epoch": 1792717333,
+    "source_form": "base_commit_plus_overlay",
+    "target": "aarch64-unknown-linux-gnu",
+    "tree": "f4656ec65bf13fe98ea65a31d7e24e5c4c4160a2"
+  },
+  "acceptance_scripts": [
+    {
+      "name": "cpar66-reader-serve.py",
+      "sha256": "c7c6ef893ca41bd4a9edf752bc4a75c1e44be602b27b4481ad4f36e393c63b55"
+    },
+    {
+      "name": "cpar65-process-recovery.py",
+      "sha256": "df14f68579434ee3badec53e412310387445336852eae04608edc255c13e5aa3"
+    },
+    {
+      "name": "cpar66-oci.py",
+      "sha256": "57fc284cd6e89947e39c52c9eab91b2d087e38203826d80d3de13c42e27ae907"
+    }
+  ],
+  "actual_runtime": {
+    "checks": 290,
+    "serve_lifecycles": 6,
+    "serve_containers": 5,
+    "reader_containers": 28,
+    "containers_total": 34,
+    "receiver": [
+      {
+        "method": "GET",
+        "path": "/cpar66-envelope-probe"
+      }
+    ],
+    "runtime_status": "PASS_RUNTIME_PENDING_CONTROLLER_CLEANUP",
+    "final_status": "PASS_LOCAL_OCI"
+  },
+  "Full": {
+    "code_candidate": "f8d28c6b0f8f66e60cbc1359ea5aaf8fa896d920",
+    "host": "Darwin 27.0.0 arm64",
+    "target": "aarch64-apple-darwin",
+    "steps": 45,
+    "rust": {
+      "passed": 1659,
+      "failed": 0,
+      "ignored": 21
+    },
+    "source_verify": "7440 PASS before/after"
+  },
+  "qualification_states": {
+    "original_p12_unsigned": "PASS",
+    "original_binding_56_files": "PASS",
+    "builder_stock_binary": "HISTORICAL_PASS_144_OF_144",
+    "current_oci": "PASS_LOCAL_OCI_290_OF_290",
+    "controlled_three_clients": "HISTORICAL_REUSED_ONLY",
+    "current_oci_actual_clients": "NOT_RUN",
+    "Full": "PASS_45_OF_45",
+    "Standards": "PASS_0_FINDINGS",
+    "Spec": "PASS_0_FINDINGS",
+    "environment_cleanup": "PASS",
+    "docs": "PASS_7_OF_7",
+    "D2_first_adoption": "NOT_DECIDED",
+    "cost_in_usd_ticks": "NOT_ADMITTED",
+    "fixed_build_service": "BLOCKED",
+    "issue66": "OPEN_BLOCKED_BY_62_64_65",
+    "issue67": "NOT_STARTED",
+    "same_input_reproducibility": "NOT_RUN",
+    "remote_ci": "NOT_RUN",
+    "signing": "NOT_RUN",
+    "cryptographic_verification": "NOT_RUN",
+    "push_github_write_release_deploy": "NOT_RUN",
+    "old_remote_environment": "NOT_TOUCHED"
+  },
+  "private_materials": "fixtures, credentials, keys, DB and plaintext remain only in task-owned external 0700/0600 output; not in Git",
+  "documentation_head": "subsequent evidence-only commit does not redefine product artifact or acceptance code",
+  "public_receipts": [
+    {
+      "path": "artifact-manifest.json",
+      "bytes": 1016,
+      "sha256": "aff99e88cb24a7cf3f1489f0a712c3e37e83af76e29bb5768a9a552fcd255e0c"
+    },
+    {
+      "path": "controller-terminal.json",
+      "bytes": 8453,
+      "sha256": "0f29642cab10c7aeddcd958dbfd86c52b17b50c1dc0a2f51a2a5f15c539f515b"
+    },
+    {
+      "path": "development-history.json",
+      "bytes": 3948,
+      "sha256": "677c24e97f4fc552948c9a13990f1de0add6f5558c74b6bbf289b3774cdcc1e3"
+    },
+    {
+      "path": "docs-check.md",
+      "bytes": 397,
+      "sha256": "9679634128cad34afaef9c1b29fb041e20dcca3382b325434ef65940cee75357"
+    },
+    {
+      "path": "docs-result.json",
+      "bytes": 520,
+      "sha256": "cc1eda7ce5205456c458aca9c6b4c812c5f2caba1d4f401e58da42d17c164969"
+    },
+    {
+      "path": "environment-cleanup.json",
+      "bytes": 15952,
+      "sha256": "ab7074a84d307fd1e228f9fb5651a7a4f94be7d988f72308124365198866bb43"
+    },
+    {
+      "path": "full-check.md",
+      "bytes": 1851,
+      "sha256": "8effc288c26dd1441b95859378a734b7548db16e7d92066505a6152a562cef63"
+    },
+    {
+      "path": "full-summary.json",
+      "bytes": 2459,
+      "sha256": "1ef7a0b96e7b29b57f353d6bc39c5d5e38762e27a69364850d618e3d1c941819"
+    },
+    {
+      "path": "full.log.gz",
+      "bytes": 56361,
+      "sha256": "68afeb59e6d32f1d6b77e2fb1a4e833ee8fc31ed1ee1c68b0ea74d11e7e58d7a"
+    },
+    {
+      "path": "github-baseline.json",
+      "bytes": 8505,
+      "sha256": "642f3137d841e78d72d5dd0969a36a917feabacb7f105b211358973185a75230"
+    },
+    {
+      "path": "github-final-state.json",
+      "bytes": 834,
+      "sha256": "0d4ca91954fa93aa6c83e92922c77880d5d74b17dbbc39658cb58890e37ce556"
+    },
+    {
+      "path": "image-binding.json",
+      "bytes": 5889,
+      "sha256": "8391d41ed7a925ad7ac819c13d2276ce530d4ae8385d63fc55db0151b36c40a4"
+    },
+    {
+      "path": "input-manifest.json.gz",
+      "bytes": 389724,
+      "sha256": "8bfa46c1951560e004b2abd23dcb3c02f0cd8f6b5f65d7d4e525241e5e911e40"
+    },
+    {
+      "path": "loaded-image.json",
+      "bytes": 2008,
+      "sha256": "6475227d8ddfc8d4d4d6f8642f91b754374e8f81fe3ea7101780dba31f0824e6"
+    },
+    {
+      "path": "original-candidate-reverified.json",
+      "bytes": 12113,
+      "sha256": "8050fde2e047ca9b67fb859a602259f97cf48417f7502f7af3f4a7cd41c1cffb"
+    },
+    {
+      "path": "overlay.json",
+      "bytes": 13889,
+      "sha256": "a33a04b2fbed604323e91e17b9630c8d229882f9bdf95fc9644c0fd72bd510c3"
+    },
+    {
+      "path": "preservation-code.json",
+      "bytes": 5948,
+      "sha256": "9ee2a4434b2b35bb8871049b1338e8164c42bbe792b0d7b8f7840284781949b7"
+    },
+    {
+      "path": "preservation-final.json",
+      "bytes": 6142,
+      "sha256": "5c982190b7c98a63fc456491a7418976c8751f88619de082b4749db07b277d2f"
+    },
+    {
+      "path": "review-spec.md",
+      "bytes": 1896,
+      "sha256": "8109076689c7ed82afa152b6b4ae6103c5fa8eb74fabb7ff7ada1111c1fac527"
+    },
+    {
+      "path": "review-standards.md",
+      "bytes": 1694,
+      "sha256": "4c00960a9cad4e55141dcbd5381840dd78427e8855b046dca098db05a4df179b"
+    },
+    {
+      "path": "run.json",
+      "bytes": 5821,
+      "sha256": "654d51ede9a8c7dbb74d3c68daa43d9dfc981e922500122407838e64fbd9fea8"
+    },
+    {
+      "path": "runtime-qualification.json",
+      "bytes": 265532,
+      "sha256": "1ee52ccc9d7968755b116151bec927da7f791aa135c85126708be11e24472f80"
+    },
+    {
+      "path": "source-binding.json",
+      "bytes": 862,
+      "sha256": "b9c59ac243b3ce2a30abae8edbbdc7bc3df983513adcd9f7a64d021494755a4c"
+    },
+    {
+      "path": "targeted-validation.json",
+      "bytes": 1399,
+      "sha256": "e1edcdd4c232b960b5391aea658d38b53f4732b2c7c27571939247199317cf7e"
+    }
+  ],
+  "report_sha256": "6a0722dca60e9570ddd4cb874c90ea7e4e98b91c2c6202c8865ba95131603aef"
+}

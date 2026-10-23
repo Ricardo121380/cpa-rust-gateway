@@ -1,0 +1,61 @@
+{
+  "status": "PASS",
+  "code_candidate": "f8d28c6b0f8f66e60cbc1359ea5aaf8fa896d920",
+  "source_form": "base_commit_plus_overlay",
+  "worktree": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/validation/cpar66-oci-full-20261023",
+  "source_binding": {
+    "archive_uid_gid": 0,
+    "base_commit": "f8d28c6b0f8f66e60cbc1359ea5aaf8fa896d920",
+    "cargo_lock_sha256": "36564c0219707741d79ecb37d9fc4ee620ce2fe6801fdbe09b32fb4c8687c858",
+    "git_status_overlay_files": 18,
+    "input_manifest_sha256": "f7aa10aba5f9833856c3f286cbdec1bdacbb34ccedd228459702f903836c13e5",
+    "inputs": 7440,
+    "node": "24.19.0",
+    "overlay_files": 33,
+    "overlay_sha256": "a33a04b2fbed604323e91e17b9630c8d229882f9bdf95fc9644c0fd72bd510c3",
+    "permission_overlay_files": 15,
+    "reproducibility": "NOT_RUN",
+    "rust_toolchain": "1.97.1",
+    "schema": "cpar66-local-source-v1",
+    "source_archive_sha256": "e2b8e14f7b44e31e9e25d14df2312c207d1214247bd6f310323924cac263e60e",
+    "source_date_epoch": 1792717333,
+    "source_form": "base_commit_plus_overlay",
+    "target": "aarch64-unknown-linux-gnu",
+    "tree": "f4656ec65bf13fe98ea65a31d7e24e5c4c4160a2"
+  },
+  "host": "Darwin 27.0.0 arm64",
+  "rust_host_target": "aarch64-apple-darwin",
+  "artifact_target": "aarch64-unknown-linux-gnu",
+  "argv": [
+    "env",
+    "PATH=/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/tools/node-v24.19.0-darwin-arm64/bin:/Users/huangrui/.cargo/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "CARGO_TARGET_DIR=/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-oci-runtime-20261023/target-full",
+    "CARGO_BUILD_JOBS=2",
+    "CARGO_INCREMENTAL=0",
+    "CHECK_REPORT_PATH=/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-oci-runtime-20261023/full-check.md",
+    "bash",
+    "scripts/check.sh",
+    "full"
+  ],
+  "exit": 0,
+  "gate_steps_passed": 45,
+  "rust": {
+    "passed": 1659,
+    "failed": 0,
+    "ignored": 21
+  },
+  "source_verify_before_and_after": {
+    "status": "PASS",
+    "inputs": 7440
+  },
+  "full_log_sha256": "d319f129d4b86da6e043fe3bc9b34e23bc748ef1951a3ba1849bb49ae7b04af4",
+  "rustsec": {
+    "dependency_policy": "PASS",
+    "advisory_audit": "PASS",
+    "audit_exit": 0,
+    "current_yanked_timeout_warning_observed": false,
+    "historical_yanked_state": "UNKNOWN_TIMEOUT remains in the 2026-10-22 evidence; not rewritten",
+    "independent_extra_yanked_experiment": "NOT_RUN"
+  },
+  "remote_ci": "NOT_RUN"
+}

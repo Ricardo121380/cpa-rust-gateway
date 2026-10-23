@@ -1,0 +1,110 @@
+{
+  "product_changed": false,
+  "runs": {
+    "original-01": {
+      "status": "FAIL",
+      "failure_type": "AssertionError",
+      "failure": "controller failed",
+      "runtime_status": "FAIL",
+      "runtime_failure_type": "PermissionError",
+      "runtime_failure": "[Errno 1] Operation not permitted: '/work/run/state'",
+      "checks": 6,
+      "failed_checks": [],
+      "scripts": [
+        {
+          "name": "cpar66-reader-serve.py",
+          "sha256": "c7c6ef893ca41bd4a9edf752bc4a75c1e44be602b27b4481ad4f36e393c63b55"
+        },
+        {
+          "name": "cpar65-process-recovery.py",
+          "sha256": "df14f68579434ee3badec53e412310387445336852eae04608edc255c13e5aa3"
+        },
+        {
+          "name": "cpar66-oci.py",
+          "sha256": "c0dd6e328d11da6dd00065f323e9fcdd22be910a0257651fac8597445b434f21"
+        }
+      ],
+      "run_sha256": "37260205f71cb8a26da81679e2b1bebf909b574b3ed1baec67a4348350a62d27",
+      "runtime_sha256": "9a13fb470894b5f6f7120cca45094504994c004352608bfc3f5667fd2ed91bd9"
+    },
+    "original-02": {
+      "status": "FAIL",
+      "failure_type": "AssertionError",
+      "failure": "controller failed",
+      "runtime_status": "FAIL",
+      "runtime_failure_type": "TimeoutError",
+      "runtime_failure": "timed out",
+      "checks": 522,
+      "failed_checks": [],
+      "scripts": [
+        {
+          "name": "cpar66-reader-serve.py",
+          "sha256": "c7c6ef893ca41bd4a9edf752bc4a75c1e44be602b27b4481ad4f36e393c63b55"
+        },
+        {
+          "name": "cpar65-process-recovery.py",
+          "sha256": "df14f68579434ee3badec53e412310387445336852eae04608edc255c13e5aa3"
+        },
+        {
+          "name": "cpar66-oci.py",
+          "sha256": "bcb680d27ce17d83dc996d44a22b544507a4103a12920d8a2d68fd3dadfe9fff"
+        }
+      ],
+      "run_sha256": "313ea99afa678c2d4304e6b9266ae081264ff8a1967b8049483eb25791194e3a",
+      "runtime_sha256": "c4f215f3acaba73258b13d696beab9fd3fd9bf124a02061768f0ff354717c9e5"
+    },
+    "original-03": {
+      "status": "PASS_LOCAL_OCI",
+      "failure_type": null,
+      "failure": null,
+      "runtime_status": "PASS_RUNTIME_PENDING_CONTROLLER_CLEANUP",
+      "runtime_failure_type": null,
+      "runtime_failure": null,
+      "checks": 289,
+      "failed_checks": [],
+      "scripts": [
+        {
+          "name": "cpar66-reader-serve.py",
+          "sha256": "c7c6ef893ca41bd4a9edf752bc4a75c1e44be602b27b4481ad4f36e393c63b55"
+        },
+        {
+          "name": "cpar65-process-recovery.py",
+          "sha256": "df14f68579434ee3badec53e412310387445336852eae04608edc255c13e5aa3"
+        },
+        {
+          "name": "cpar66-oci.py",
+          "sha256": "a730c017b7cac9812e022aa45c8322dd6599b2bb45510e7d4b2a6aeb574df816"
+        }
+      ],
+      "run_sha256": "8ec5d640e4012d0c6967c3f288f50d43150ca8f6071d4d09bc6616b466b5f711",
+      "runtime_sha256": "eaa6af005086b155bf1bc5d45fe1f6a5b37aca5458cb185b9aa4ed0d18c97671"
+    },
+    "final-f8d28c6b": {
+      "status": "PASS_LOCAL_OCI",
+      "failure_type": null,
+      "failure": null,
+      "runtime_status": "PASS_RUNTIME_PENDING_CONTROLLER_CLEANUP",
+      "runtime_failure_type": null,
+      "runtime_failure": null,
+      "checks": 290,
+      "failed_checks": [],
+      "scripts": [
+        {
+          "name": "cpar66-reader-serve.py",
+          "sha256": "c7c6ef893ca41bd4a9edf752bc4a75c1e44be602b27b4481ad4f36e393c63b55"
+        },
+        {
+          "name": "cpar65-process-recovery.py",
+          "sha256": "df14f68579434ee3badec53e412310387445336852eae04608edc255c13e5aa3"
+        },
+        {
+          "name": "cpar66-oci.py",
+          "sha256": "57fc284cd6e89947e39c52c9eab91b2d087e38203826d80d3de13c42e27ae907"
+        }
+      ],
+      "run_sha256": "654d51ede9a8c7dbb74d3c68daa43d9dfc981e922500122407838e64fbd9fea8",
+      "runtime_sha256": "1ee52ccc9d7968755b116151bec927da7f791aa135c85126708be11e24472f80"
+    }
+  },
+  "original_failure_materials_preserved": true
+}

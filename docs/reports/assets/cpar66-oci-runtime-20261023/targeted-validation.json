@@ -1,0 +1,41 @@
+{
+  "status": "PASS",
+  "acceptance_code": "f8d28c6b0f8f66e60cbc1359ea5aaf8fa896d920",
+  "tests": {
+    "argv": [
+      "python3",
+      "scripts/acceptance/test-cpar66-oci.py",
+      "--artifact",
+      "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/unsigned-artifact",
+      "--docker-archive",
+      "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/gateway-image.docker.tar"
+    ],
+    "exit": 0,
+    "output": ".....\n----------------------------------------------------------------------\nRan 5 tests in 2.009s\n\nOK\n",
+    "script_sha256": "a70b7156a5bc11c47bdb437fa5814f1ed30103131adafdf49d6b38c3e36afde9"
+  },
+  "p12": {
+    "argv": [
+      "ruby",
+      "scripts/p12-release-artifact.rb",
+      "verify",
+      "--artifact-dir",
+      "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/unsigned-artifact",
+      "--revision",
+      "737fd040e983bef329be27b5cf48b4f6986a5772",
+      "--rust-toolchain",
+      "1.97.1",
+      "--target",
+      "aarch64-unknown-linux-gnu",
+      "--version",
+      "0.1.0"
+    ],
+    "exit": 0,
+    "output": "p12-artifact: verified /Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/unsigned-artifact\n"
+  },
+  "document_startup_bash_blocks": {
+    "count": 2,
+    "bash_syntax": "PASS",
+    "additional_runtime_execution": "NOT_RUN"
+  }
+}

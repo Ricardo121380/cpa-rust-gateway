@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "gate_steps": 7,
+  "argv": [
+    "bash",
+    "scripts/check.sh",
+    "docs"
+  ],
+  "code_candidate": "f8d28c6b0f8f66e60cbc1359ea5aaf8fa896d920",
+  "scope": "staged owned documentation plus preserved actual worktree; no new product runtime",
+  "report_sha256": "9679634128cad34afaef9c1b29fb041e20dcca3382b325434ef65940cee75357",
+  "log_sha256": "a64d589a08aefa266cbd1076e39fc5b963df0feb03945cdc96c552a3604c6867",
+  "staged_secret_and_diff_check": "required again after final receipt generation"
+}

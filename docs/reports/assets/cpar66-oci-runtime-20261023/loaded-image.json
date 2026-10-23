@@ -1,0 +1,54 @@
+{
+  "Id": "sha256:5a1b901db4ecdd31cccca59093a7fbcef53414fe9bc3c4205997ab6ce61214f9",
+  "RepoTags": [
+    "cpar66-candidate:737fd040"
+  ],
+  "RepoDigests": [
+    "cpar66-candidate@sha256:5a1b901db4ecdd31cccca59093a7fbcef53414fe9bc3c4205997ab6ce61214f9"
+  ],
+  "Comment": "buildkit.dockerfile.v0",
+  "Created": "2026-10-22T14:06:49.867373615Z",
+  "Config": {
+    "User": "65532:65532",
+    "Env": [
+      "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    ],
+    "Entrypoint": [
+      "/usr/local/bin/gateway"
+    ],
+    "WorkingDir": "/nonexistent",
+    "Labels": {
+      "org.opencontainers.image.base.name": "debian:bookworm-slim@sha256:9b67294679b30e5d6ab257b40594feeb4a4b81f7fcf4131f4decf0d6a212a9b0",
+      "org.opencontainers.image.revision": "737fd040e983bef329be27b5cf48b4f6986a5772",
+      "org.opencontainers.image.rust.toolchain": "1.97.1",
+      "org.opencontainers.image.target": "aarch64-unknown-linux-gnu",
+      "org.opencontainers.image.title": "cpa-rust-gateway",
+      "org.opencontainers.image.version": "0.1.0"
+    }
+  },
+  "Architecture": "arm64",
+  "Os": "linux",
+  "Size": 41235081,
+  "RootFS": {
+    "Type": "layers",
+    "Layers": [
+      "sha256:12cdff3b039e28c684ffd2097ff5a66df274a8500966a1431038b05f50bcf096",
+      "sha256:9d246ddf37cd124f9252bab114d46437682774373fe76ef60175c3439d6648e6",
+      "sha256:7a0b14cc0a85ded16a4da612b3a095753c7f595eb139bd3545b785f598b377df",
+      "sha256:c7fa24810bf8cb2e469a05125a78409ee662fac27ca1d6d98937e231cc5e1edd"
+    ]
+  },
+  "Metadata": {
+    "LastTagTime": "2026-10-23T01:03:17.567180799Z"
+  },
+  "Descriptor": {
+    "mediaType": "application/vnd.oci.image.manifest.v1+json",
+    "digest": "sha256:5a1b901db4ecdd31cccca59093a7fbcef53414fe9bc3c4205997ab6ce61214f9",
+    "size": 1054,
+    "annotations": {
+      "io.containerd.image.name": "docker.io/library/cpar66-candidate:737fd040",
+      "org.opencontainers.image.created": "2026-10-22T14:06:50Z",
+      "org.opencontainers.image.ref.name": "737fd040"
+    }
+  }
+}

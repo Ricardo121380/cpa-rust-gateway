@@ -1,0 +1,218 @@
+{
+  "status": "PASS_LOCAL_OCI",
+  "commands": [
+    {
+      "argv": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-oci-20261023/docker.sock",
+        "load",
+        "--input",
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/gateway-image.docker.tar"
+      ],
+      "exit": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-oci-20261023/docker.sock",
+        "image",
+        "inspect",
+        "sha256:5a1b901db4ecdd31cccca59093a7fbcef53414fe9bc3c4205997ab6ce61214f9"
+      ],
+      "exit": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-oci-20261023/docker.sock",
+        "image",
+        "inspect",
+        "sha256:eca0fa3b1a319ee5ddaab9a3804af488536c51fe4125506cb1b8bc0039003aea"
+      ],
+      "exit": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-oci-20261023/docker.sock",
+        "volume",
+        "create",
+        "--label",
+        "cpar66.owned=cpar66-oci-1d3ebe1fee88",
+        "cpar66-oci-1d3ebe1fee88-work"
+      ],
+      "exit": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-oci-20261023/docker.sock",
+        "create",
+        "--name",
+        "cpar66-oci-1d3ebe1fee88-controller",
+        "--pull=never",
+        "--platform",
+        "linux/arm64",
+        "--network",
+        "none",
+        "--pid=host",
+        "--read-only",
+        "--cap-drop",
+        "ALL",
+        "--cap-add",
+        "NET_ADMIN",
+        "--cap-add",
+        "CHOWN",
+        "--cap-add",
+        "DAC_OVERRIDE",
+        "--cap-add",
+        "FOWNER",
+        "--cap-add",
+        "SYS_PTRACE",
+        "--security-opt",
+        "no-new-privileges",
+        "--pids-limit",
+        "256",
+        "--tmpfs",
+        "/tmp:rw,nosuid,nodev,size=64m",
+        "--mount",
+        "type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock",
+        "--mount",
+        "type=volume,src=cpar66-oci-1d3ebe1fee88-work,dst=/work",
+        "--mount",
+        "type=bind,src=/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-oci-runtime-20261023/final-f8d28c6b/driver,dst=/driver,readonly",
+        "--mount",
+        "type=bind,src=/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-oci-runtime-20261023/final-f8d28c6b/fixtures,dst=/fixtures,readonly",
+        "--mount",
+        "type=bind,src=/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/unsigned-artifact,dst=/artifact,readonly",
+        "sha256:eca0fa3b1a319ee5ddaab9a3804af488536c51fe4125506cb1b8bc0039003aea",
+        "python3",
+        "/driver/cpar66-oci.py",
+        "--inside",
+        "--artifact",
+        "/artifact",
+        "--fixtures",
+        "/fixtures",
+        "--output",
+        "/work/run",
+        "--image",
+        "sha256:5a1b901db4ecdd31cccca59093a7fbcef53414fe9bc3c4205997ab6ce61214f9",
+        "--helper-image",
+        "sha256:eca0fa3b1a319ee5ddaab9a3804af488536c51fe4125506cb1b8bc0039003aea",
+        "--volume",
+        "cpar66-oci-1d3ebe1fee88-work",
+        "--controller",
+        "cpar66-oci-1d3ebe1fee88-controller"
+      ],
+      "exit": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-oci-20261023/docker.sock",
+        "start",
+        "--attach",
+        "cpar66-oci-1d3ebe1fee88-controller"
+      ],
+      "exit": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-oci-20261023/docker.sock",
+        "cp",
+        "cpar66-oci-1d3ebe1fee88-controller:/work/run",
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-oci-runtime-20261023/final-f8d28c6b/runtime"
+      ],
+      "exit": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-oci-20261023/docker.sock",
+        "inspect",
+        "cpar66-oci-1d3ebe1fee88-controller"
+      ],
+      "exit": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-oci-20261023/docker.sock",
+        "ps",
+        "-aq",
+        "--filter",
+        "label=cpar66.owned=cpar66-oci-1d3ebe1fee88-controller"
+      ],
+      "exit": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-oci-20261023/docker.sock",
+        "rm",
+        "--force",
+        "cpar66-oci-1d3ebe1fee88-controller"
+      ],
+      "exit": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-oci-20261023/docker.sock",
+        "inspect",
+        "cpar66-oci-1d3ebe1fee88-controller"
+      ],
+      "exit": 1
+    },
+    {
+      "argv": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-oci-20261023/docker.sock",
+        "volume",
+        "rm",
+        "cpar66-oci-1d3ebe1fee88-work"
+      ],
+      "exit": 0
+    },
+    {
+      "argv": [
+        "docker",
+        "--host",
+        "unix:///Volumes/Asgard/Colima/cpar66-oci-20261023/docker.sock",
+        "volume",
+        "inspect",
+        "cpar66-oci-1d3ebe1fee88-work"
+      ],
+      "exit": 1
+    }
+  ],
+  "product_changed": false,
+  "script_inputs": [
+    {
+      "name": "cpar66-reader-serve.py",
+      "sha256": "c7c6ef893ca41bd4a9edf752bc4a75c1e44be602b27b4481ad4f36e393c63b55"
+    },
+    {
+      "name": "cpar65-process-recovery.py",
+      "sha256": "df14f68579434ee3badec53e412310387445336852eae04608edc255c13e5aa3"
+    },
+    {
+      "name": "cpar66-oci.py",
+      "sha256": "57fc284cd6e89947e39c52c9eab91b2d087e38203826d80d3de13c42e27ae907"
+    }
+  ],
+  "runtime_checks": 290
+}

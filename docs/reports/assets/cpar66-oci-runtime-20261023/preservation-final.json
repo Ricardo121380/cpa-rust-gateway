@@ -1,0 +1,190 @@
+{
+  "status": "PASS",
+  "opening_head": "44bada2c70f910d758e56e7e4820af234fa0a8a9",
+  "current_head": "f8d28c6b0f8f66e60cbc1359ea5aaf8fa896d920",
+  "original_entries": 7438,
+  "unchanged_entries": 7437,
+  "inherited_paths": [
+    "AGENTS.md",
+    "README.md",
+    "README.zh-CN.md",
+    "docs/06-development-plan.md",
+    "docs/adr/ADR-0100-exact-protocol-semantics-and-usage-evidence.md",
+    "docs/adr/ADR-0101-grok-native-item-metadata-fidelity.md",
+    "docs/adr/ADR-0106-native-fidelity-profile.md",
+    "docs/adr/README.md",
+    "docs/contracts/BC-PROTOCOL-009-codex-responses-controls.md",
+    "docs/traceability.md",
+    "CONTEXT.md",
+    "docs/adr/ADR-0107-standard-response-metadata-separation.md",
+    "docs/adr/ADR-0108-build-summary-standard-messages.md",
+    "docs/agents/domain.md",
+    "docs/agents/issue-tracker.md",
+    "docs/agents/triage-labels.md",
+    "docs/engineering-roadmap.md",
+    "docs/reports/cpar-62-64-client-field-plan-20261020.md"
+  ],
+  "inherited_git_entries": 18,
+  "permission_overlays": [
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/codex-pi-run.json",
+      "mode": "0o600",
+      "uid": 501,
+      "gid": 20,
+      "type": "file",
+      "bytes": 2949,
+      "sha256": "5a8a38a74cb041d917eb49a207e89d170d7efc457937893b970ba4f82c4a884e",
+      "git_mode": "100644"
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/d2-abort-complete.json",
+      "mode": "0o600",
+      "uid": 501,
+      "gid": 20,
+      "type": "file",
+      "bytes": 284,
+      "sha256": "8b5f0db99e47be3bdd303b27489a0421033636474d440f68c2f8bc8b61ab01fb",
+      "git_mode": "100644"
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/d2-alive-through-release.json",
+      "mode": "0o600",
+      "uid": 501,
+      "gid": 20,
+      "type": "file",
+      "bytes": 71,
+      "sha256": "dc3a1457370ff732aaf1d3c5268bb45eba429fb1baa5bc4ed6cbc64ec119acb5",
+      "git_mode": "100644"
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/d2-cancel-diagnostic.json",
+      "mode": "0o600",
+      "uid": 501,
+      "gid": 20,
+      "type": "file",
+      "bytes": 507,
+      "sha256": "f86df4a99c5fcb62c04b46bbf5a1cf15c4f63a76457497df324051247d7f11d6",
+      "git_mode": "100644"
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/d2-cancel-isolation.json",
+      "mode": "0o600",
+      "uid": 501,
+      "gid": 20,
+      "type": "file",
+      "bytes": 802,
+      "sha256": "274419500da45b0f631ebe9dd0aeef9b82e48c2c1eeb16122a1dd20b709d9f6b",
+      "git_mode": "100644"
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/d2-cancel-observations.json",
+      "mode": "0o600",
+      "uid": 501,
+      "gid": 20,
+      "type": "file",
+      "bytes": 1995,
+      "sha256": "d17ede84116fa574f274248b1cf2c18da59fd74ead2bd0cc77662f70dd087008",
+      "git_mode": "100644"
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/d2-failure-isolation.json",
+      "mode": "0o600",
+      "uid": 501,
+      "gid": 20,
+      "type": "file",
+      "bytes": 802,
+      "sha256": "9e954fdb608fc739f9a40ad2d78983e063611d7ad41edfff5ebb51c73f530599",
+      "git_mode": "100644"
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/d2-failure-observations.json",
+      "mode": "0o600",
+      "uid": 501,
+      "gid": 20,
+      "type": "file",
+      "bytes": 2320,
+      "sha256": "98fe9646e8c69645fc3f9358ad789ea4981293705f79ca8aacab3a33f897d76a",
+      "git_mode": "100644"
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/d2-isolation.json",
+      "mode": "0o600",
+      "uid": 501,
+      "gid": 20,
+      "type": "file",
+      "bytes": 802,
+      "sha256": "0074933f738e7d12513838e8f853c7bd3eee22e47837008a33bae491bf37cf22",
+      "git_mode": "100644"
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/d2-run.json",
+      "mode": "0o600",
+      "uid": 501,
+      "gid": 20,
+      "type": "file",
+      "bytes": 719,
+      "sha256": "cfcd17ab762b9e6682627c37e94c9439221778ed010f8238c860dc5e94d47b2a",
+      "git_mode": "100644"
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/d2-standard-isolation.json",
+      "mode": "0o600",
+      "uid": 501,
+      "gid": 20,
+      "type": "file",
+      "bytes": 802,
+      "sha256": "4a66a427771a59ac7868ca1a1519ab33fc2611ba97b679e517dc28f35594c97d",
+      "git_mode": "100644"
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/d2-standard-observations.json",
+      "mode": "0o600",
+      "uid": 501,
+      "gid": 20,
+      "type": "file",
+      "bytes": 8406,
+      "sha256": "bab98aa3f53cd4487c0d03eae296d16c489eeb5ed430ad8de4a4bf583b8505fb",
+      "git_mode": "100644"
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/original-isolation.json",
+      "mode": "0o600",
+      "uid": 501,
+      "gid": 20,
+      "type": "file",
+      "bytes": 802,
+      "sha256": "46bfc48ba68bfdddf5dd9e94011145f98afb30314f3a62e23971f7270b9fcb33",
+      "git_mode": "100644"
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/original-observations.json",
+      "mode": "0o600",
+      "uid": 501,
+      "gid": 20,
+      "type": "file",
+      "bytes": 1547,
+      "sha256": "3dc5f95aaf17b485c4a3085613a8e52557c5d77f63b090519437aa18671d3b58",
+      "git_mode": "100644"
+    },
+    {
+      "path": "docs/reports/assets/cpar64-d2-candidate-20261022/original-run.json",
+      "mode": "0o600",
+      "uid": 501,
+      "gid": 20,
+      "type": "file",
+      "bytes": 713,
+      "sha256": "2fdd852e4f1750652b8e8d3f4840f956962814f3b37cde766283c93da7d44af8",
+      "git_mode": "100644"
+    }
+  ],
+  "mismatches": [],
+  "owned_paths": [
+    "scripts/acceptance/cpar66-oci.py",
+    "scripts/acceptance/cpar66-reader-serve.py",
+    "scripts/acceptance/test-cpar66-oci.py"
+  ],
+  "stage": "before_documentation_closeout",
+  "index_empty_after_code_commit": true,
+  "documentation_changes": "only new report and owned assets; inherited files excluded",
+  "staged_owned_documentation_only": true
+}

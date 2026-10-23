@@ -1,0 +1,313 @@
+{
+  "Id": "6edab3d86fb6f26355e5f7946f7f9bac74e80ae745151792123dd8a40fee700b",
+  "Created": "2026-10-23T01:03:17.795380105Z",
+  "Path": "python3",
+  "Args": [
+    "/driver/cpar66-oci.py",
+    "--inside",
+    "--artifact",
+    "/artifact",
+    "--fixtures",
+    "/fixtures",
+    "--output",
+    "/work/run",
+    "--image",
+    "sha256:5a1b901db4ecdd31cccca59093a7fbcef53414fe9bc3c4205997ab6ce61214f9",
+    "--helper-image",
+    "sha256:eca0fa3b1a319ee5ddaab9a3804af488536c51fe4125506cb1b8bc0039003aea",
+    "--volume",
+    "cpar66-oci-1d3ebe1fee88-work",
+    "--controller",
+    "cpar66-oci-1d3ebe1fee88-controller"
+  ],
+  "State": {
+    "Status": "exited",
+    "Running": false,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 0,
+    "ExitCode": 0,
+    "Error": "",
+    "StartedAt": "2026-10-23T01:03:17.952989498Z",
+    "FinishedAt": "2026-10-23T01:03:35.080654988Z"
+  },
+  "Image": "sha256:eca0fa3b1a319ee5ddaab9a3804af488536c51fe4125506cb1b8bc0039003aea",
+  "ResolvConfPath": "/var/lib/docker/containers/6edab3d86fb6f26355e5f7946f7f9bac74e80ae745151792123dd8a40fee700b/resolv.conf",
+  "HostnamePath": "/var/lib/docker/containers/6edab3d86fb6f26355e5f7946f7f9bac74e80ae745151792123dd8a40fee700b/hostname",
+  "HostsPath": "/var/lib/docker/containers/6edab3d86fb6f26355e5f7946f7f9bac74e80ae745151792123dd8a40fee700b/hosts",
+  "LogPath": "/var/lib/docker/containers/6edab3d86fb6f26355e5f7946f7f9bac74e80ae745151792123dd8a40fee700b/6edab3d86fb6f26355e5f7946f7f9bac74e80ae745151792123dd8a40fee700b-json.log",
+  "Name": "/cpar66-oci-1d3ebe1fee88-controller",
+  "RestartCount": 0,
+  "Driver": "overlayfs",
+  "Platform": "linux",
+  "MountLabel": "",
+  "ProcessLabel": "",
+  "AppArmorProfile": "docker-default",
+  "ExecIDs": null,
+  "HostConfig": {
+    "Binds": null,
+    "ContainerIDFile": "",
+    "LogConfig": {
+      "Type": "json-file",
+      "Config": {}
+    },
+    "NetworkMode": "none",
+    "PortBindings": {},
+    "RestartPolicy": {
+      "Name": "no",
+      "MaximumRetryCount": 0
+    },
+    "AutoRemove": false,
+    "VolumeDriver": "",
+    "VolumesFrom": null,
+    "ConsoleSize": [
+      0,
+      0
+    ],
+    "CapAdd": [
+      "CAP_CHOWN",
+      "CAP_DAC_OVERRIDE",
+      "CAP_FOWNER",
+      "CAP_NET_ADMIN",
+      "CAP_SYS_PTRACE"
+    ],
+    "CapDrop": [
+      "ALL"
+    ],
+    "CgroupnsMode": "private",
+    "Dns": null,
+    "DnsOptions": [],
+    "DnsSearch": [],
+    "ExtraHosts": null,
+    "GroupAdd": null,
+    "IpcMode": "private",
+    "Cgroup": "",
+    "Links": null,
+    "OomScoreAdj": 0,
+    "PidMode": "host",
+    "Privileged": false,
+    "PublishAllPorts": false,
+    "ReadonlyRootfs": true,
+    "SecurityOpt": [
+      "no-new-privileges",
+      "label=disable"
+    ],
+    "Tmpfs": {
+      "/tmp": "rw,nosuid,nodev,size=64m"
+    },
+    "UTSMode": "",
+    "UsernsMode": "",
+    "ShmSize": 67108864,
+    "Runtime": "runc",
+    "Isolation": "",
+    "CpuShares": 0,
+    "Memory": 0,
+    "NanoCpus": 0,
+    "CgroupParent": "",
+    "BlkioWeight": 0,
+    "BlkioWeightDevice": [],
+    "BlkioDeviceReadBps": [],
+    "BlkioDeviceWriteBps": [],
+    "BlkioDeviceReadIOps": [],
+    "BlkioDeviceWriteIOps": [],
+    "CpuPeriod": 0,
+    "CpuQuota": 0,
+    "CpuRealtimePeriod": 0,
+    "CpuRealtimeRuntime": 0,
+    "CpusetCpus": "",
+    "CpusetMems": "",
+    "Devices": [],
+    "DeviceCgroupRules": null,
+    "DeviceRequests": null,
+    "MemoryReservation": 0,
+    "MemorySwap": 0,
+    "MemorySwappiness": null,
+    "OomKillDisable": null,
+    "PidsLimit": 256,
+    "Ulimits": [],
+    "CpuCount": 0,
+    "CpuPercent": 0,
+    "IOMaximumIOps": 0,
+    "IOMaximumBandwidth": 0,
+    "Mounts": [
+      {
+        "Type": "bind",
+        "Source": "/var/run/docker.sock",
+        "Target": "/var/run/docker.sock"
+      },
+      {
+        "Type": "volume",
+        "Source": "cpar66-oci-1d3ebe1fee88-work",
+        "Target": "/work"
+      },
+      {
+        "Type": "bind",
+        "Source": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-oci-runtime-20261023/final-f8d28c6b/driver",
+        "Target": "/driver",
+        "ReadOnly": true
+      },
+      {
+        "Type": "bind",
+        "Source": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-oci-runtime-20261023/final-f8d28c6b/fixtures",
+        "Target": "/fixtures",
+        "ReadOnly": true
+      },
+      {
+        "Type": "bind",
+        "Source": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/unsigned-artifact",
+        "Target": "/artifact",
+        "ReadOnly": true
+      }
+    ],
+    "MaskedPaths": [
+      "/proc/acpi",
+      "/proc/asound",
+      "/proc/interrupts",
+      "/proc/kcore",
+      "/proc/keys",
+      "/proc/latency_stats",
+      "/proc/sched_debug",
+      "/proc/scsi",
+      "/proc/timer_list",
+      "/proc/timer_stats",
+      "/sys/devices/virtual/powercap",
+      "/sys/firmware"
+    ],
+    "ReadonlyPaths": [
+      "/proc/bus",
+      "/proc/fs",
+      "/proc/irq",
+      "/proc/sys",
+      "/proc/sysrq-trigger"
+    ]
+  },
+  "Storage": {
+    "RootFS": {
+      "Snapshot": {
+        "Name": "overlayfs"
+      }
+    }
+  },
+  "Mounts": [
+    {
+      "Type": "bind",
+      "Source": "/var/run/docker.sock",
+      "Destination": "/var/run/docker.sock",
+      "Mode": "",
+      "RW": true,
+      "Propagation": "rprivate"
+    },
+    {
+      "Type": "volume",
+      "Name": "cpar66-oci-1d3ebe1fee88-work",
+      "Source": "/var/lib/docker/volumes/cpar66-oci-1d3ebe1fee88-work/_data",
+      "Destination": "/work",
+      "Driver": "local",
+      "Mode": "z",
+      "RW": true,
+      "Propagation": ""
+    },
+    {
+      "Type": "bind",
+      "Source": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-oci-runtime-20261023/final-f8d28c6b/driver",
+      "Destination": "/driver",
+      "Mode": "",
+      "RW": false,
+      "Propagation": "rprivate"
+    },
+    {
+      "Type": "bind",
+      "Source": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-oci-runtime-20261023/final-f8d28c6b/fixtures",
+      "Destination": "/fixtures",
+      "Mode": "",
+      "RW": false,
+      "Propagation": "rprivate"
+    },
+    {
+      "Type": "bind",
+      "Source": "/Volumes/Asgard/Agentprojects/CPA-Rust/output/cpar66-local-candidate-20261022/unsigned-artifact",
+      "Destination": "/artifact",
+      "Mode": "",
+      "RW": false,
+      "Propagation": "rprivate"
+    }
+  ],
+  "Config": {
+    "Hostname": "6edab3d86fb6",
+    "Domainname": "",
+    "User": "",
+    "AttachStdin": false,
+    "AttachStdout": true,
+    "AttachStderr": true,
+    "Tty": false,
+    "OpenStdin": false,
+    "StdinOnce": false,
+    "Env": [
+      "PATH=/usr/local/cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "RUSTUP_HOME=/usr/local/rustup",
+      "CARGO_HOME=/usr/local/cargo",
+      "RUST_VERSION=1.97.1"
+    ],
+    "Cmd": [
+      "python3",
+      "/driver/cpar66-oci.py",
+      "--inside",
+      "--artifact",
+      "/artifact",
+      "--fixtures",
+      "/fixtures",
+      "--output",
+      "/work/run",
+      "--image",
+      "sha256:5a1b901db4ecdd31cccca59093a7fbcef53414fe9bc3c4205997ab6ce61214f9",
+      "--helper-image",
+      "sha256:eca0fa3b1a319ee5ddaab9a3804af488536c51fe4125506cb1b8bc0039003aea",
+      "--volume",
+      "cpar66-oci-1d3ebe1fee88-work",
+      "--controller",
+      "cpar66-oci-1d3ebe1fee88-controller"
+    ],
+    "Image": "sha256:eca0fa3b1a319ee5ddaab9a3804af488536c51fe4125506cb1b8bc0039003aea",
+    "Volumes": null,
+    "WorkingDir": "",
+    "Entrypoint": null,
+    "Labels": {
+      "org.opencontainers.image.source": "https://github.com/rust-lang/docker-rust"
+    }
+  },
+  "NetworkSettings": {
+    "SandboxID": "",
+    "SandboxKey": "",
+    "Ports": {},
+    "Networks": {
+      "none": {
+        "IPAMConfig": null,
+        "Links": null,
+        "Aliases": null,
+        "DriverOpts": null,
+        "GwPriority": 0,
+        "NetworkID": "7b517182cd92d43952bab701ba7f00512fcbe0f89995080158641367f6b5e366",
+        "EndpointID": "",
+        "Gateway": "",
+        "IPAddress": "",
+        "MacAddress": "",
+        "IPPrefixLen": 0,
+        "IPv6Gateway": "",
+        "GlobalIPv6Address": "",
+        "GlobalIPv6PrefixLen": 0,
+        "DNSNames": null
+      }
+    }
+  },
+  "ImageManifestDescriptor": {
+    "mediaType": "application/vnd.oci.image.manifest.v1+json",
+    "digest": "sha256:e66606c099a035527c14f75d02a52d0fe7c5b1cad5d6ed7c4af4ed67932254cc",
+    "size": 2028,
+    "platform": {
+      "architecture": "arm64",
+      "os": "linux"
+    }
+  }
+}

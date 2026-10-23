@@ -1,0 +1,41 @@
+{
+  "blocked_by": [
+    {
+      "number": 62,
+      "state": "open",
+      "updated_at": "2026-10-19T08:21:40Z"
+    },
+    {
+      "number": 64,
+      "state": "open",
+      "updated_at": "2026-10-20T02:56:33Z"
+    },
+    {
+      "number": 65,
+      "state": "open",
+      "updated_at": "2026-10-20T05:30:24Z"
+    }
+  ],
+  "blocking": [
+    {
+      "number": 67,
+      "state": "open",
+      "updated_at": "2026-10-18T06:24:45Z"
+    }
+  ],
+  "issues": [
+    {
+      "number": 61,
+      "state": "open",
+      "updated_at": "2026-10-18T15:19:58Z",
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/61"
+    },
+    {
+      "number": 66,
+      "state": "open",
+      "updated_at": "2026-10-18T06:24:41Z",
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/66"
+    }
+  ],
+  "access": "read_only"
+}
