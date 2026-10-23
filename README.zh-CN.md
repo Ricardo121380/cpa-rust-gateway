@@ -276,6 +276,17 @@ WebSocket 模式升级 `GET /v1/responses`，不能带浏览器 `Origin`，随�
 `response.create` JSON。这个下游 WebSocket 既不是 Provider-native transport，也不是 OpenAI
 Realtime API。
 
+## 首版客户端选择（2026-10-23）
+
+**Claude Code D2 已选入首版**；Codex、Claude D2、Pi 仍须全部通过约定的 Grok Build 门槛才可 READY。
+采用完整、固定版本的[D2局部配置](docs/support/grok-build-messages.md)，并核对
+[候选支持清单](docs/support/first-release-candidates.md)。实际客户端受控 PASS 来自既有证据；
+固定 Build 资格仍 BLOCKED、#66 仍 OPEN、真实 Provider 验收 NOT_RUN。原始 Claude 的
+adaptive/display、overall effort、block cache 义务作为后续待办保留。
+正式决定见[ADR-0123](docs/adr/ADR-0123-first-release-claude-d2-restricted-support.md)。
+
+下方开发状态保留既有历史范围；当前D2选择与证据边界以以上入口为准。
+
 ## 开发状态
 
 - **已正式验收的实现：** 后端已完成到 P13-11E4，包括 P13 管理/计费/路由、Channel Pin、Stored

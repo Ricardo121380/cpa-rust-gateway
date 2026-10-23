@@ -294,6 +294,20 @@ For WebSocket mode, upgrade `GET /v1/responses` without a browser `Origin` heade
 strict `response.create` JSON message. This downstream WebSocket is not Provider-native transport
 and not the OpenAI Realtime API.
 
+## First-release client selection (2026-10-23)
+
+Claude Code **D2 is selected** for the first release, alongside Codex and Pi; all three must
+complete the agreed Grok Build gates before READY. Use the complete version-bound
+[D2 local configuration](docs/support/grok-build-messages.md) and
+[candidate support inventory](docs/support/first-release-candidates.md).
+The actual-client controlled result is historical PASS; fixed Build qualification remains
+BLOCKED, #66 is OPEN and real Provider acceptance is NOT_RUN. Original Claude adaptive/display,
+overall effort and block cache obligations remain open follow-up work. See
+[ADR-0123](docs/adr/ADR-0123-first-release-claude-d2-restricted-support.md).
+
+The development-status section below retains its historical scope; current D2 selection
+and evidence boundaries are recorded in the links above.
+
 ## Development status
 
 - **Formally gated implementation:** approved backend slices through P13-11E4, including P13

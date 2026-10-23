@@ -317,3 +317,13 @@ C2 remaining delivery and immutable runtime evidence: [2026-10-21 ParallelTools 
 ## 2026-10-22 #64 independent D2 candidate
 
 [ADR-0122](adr/ADR-0122-isolated-claude-restricted-candidate.md) and [BC-PROTOCOL-016](contracts/BC-PROTOCOL-016-claude-restricted-candidate.md) define isolated current-client configuration, exact pre-send effort rejection, client-owned negotiation and strict real tools/failure/live-cancel evidence. Original #58/#64 and fixed-service/Provider/cost gates remain separate.
+
+## 2026-10-23 #64/#66 Claude D2 first-release product selection
+
+[ADR-0123](adr/ADR-0123-first-release-claude-d2-restricted-support.md) adopts only the evidenced
+Claude 2.1.302 four-variable D2 configuration. [BC-PROTOCOL-016](contracts/BC-PROTOCOL-016-claude-restricted-candidate.md),
+[local usage](support/grok-build-messages.md) and [candidate inventory](support/first-release-candidates.md)
+separate product selection from controlled-client, binary/OCI, fixed-service and real Provider
+qualification. Original M1/M2/M5 obligations, #61 NOT_ADMITTED and native issue dependencies remain.
+The [#58/#64/#66 revision drafts](reports/cpar-64-66-d2-issue-drafts-20261023.md) are local only;
+no READY, #66 completion, GitHub write or new runtime acceptance is claimed.

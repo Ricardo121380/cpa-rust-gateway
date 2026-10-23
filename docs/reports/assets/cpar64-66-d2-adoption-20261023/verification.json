@@ -1,0 +1,121 @@
+{
+  "date": "2026-10-23",
+  "scope": "documentation and configuration expression only",
+  "starting_head": "f43a08ece525d76c940f0195c7df3ab822ce779a",
+  "checks": {
+    "complete_four_variables_in_all_7_config_surfaces": "PASS",
+    "shell_syntax_isolated_environment_and_no_active_client_invocation": "PASS",
+    "issue_hashes_stories_scenarios_ac_and_dependencies": "PASS",
+    "exact_issue_diff_reproduces_all_3_full_bodies": "PASS",
+    "all_7466_existing_input_attributes_and_unowned_bytes": "PASS",
+    "18_inherited_files_14_exact_and_4_reversible_insertions": "PASS",
+    "historical_not_decided_reports_unchanged": "PASS",
+    "runtime_source_lock_schema_and_artifacts_unchanged": "PASS"
+  },
+  "existing_input_count": 7466,
+  "unchanged_existing_input_attributes": 7466,
+  "inherited_paths": 18,
+  "inherited_edited_by_owned_insertions": [
+    "README.md",
+    "README.zh-CN.md",
+    "docs/adr/README.md",
+    "docs/traceability.md"
+  ],
+  "changed_existing_paths": [
+    "README.md",
+    "README.zh-CN.md",
+    "docs/adr/ADR-0122-isolated-claude-restricted-candidate.md",
+    "docs/adr/README.md",
+    "docs/contracts/BC-PROTOCOL-016-claude-restricted-candidate.md",
+    "docs/reports/README.md",
+    "docs/support/grok-build-messages.md",
+    "docs/traceability.md"
+  ],
+  "mode0600_preserved": 15,
+  "docs_gate": {
+    "status": "PASS",
+    "passed": 7,
+    "failed": 0,
+    "command": "CHECK_REPORT_PATH=<task-audit>/docs-check.md ./scripts/check.sh docs",
+    "document_links_checked": 1299,
+    "contract_test_references_resolved": 335,
+    "report_sha256": "4360c9f3ef3cd317067db2039ae8d22f616be6877b233a9f545bddeed10438e1",
+    "steps": [
+      {
+        "name": "Document links",
+        "duration_seconds": 0,
+        "result": "PASS"
+      },
+      {
+        "name": "Contract tests",
+        "duration_seconds": 1,
+        "result": "PASS"
+      },
+      {
+        "name": "Plan state",
+        "duration_seconds": 0,
+        "result": "PASS"
+      },
+      {
+        "name": "Canary thresholds",
+        "duration_seconds": 0,
+        "result": "PASS"
+      },
+      {
+        "name": "Caddy split",
+        "duration_seconds": 0,
+        "result": "PASS"
+      },
+      {
+        "name": "Tracked secret scan",
+        "duration_seconds": 112,
+        "result": "PASS"
+      },
+      {
+        "name": "Git whitespace",
+        "duration_seconds": 0,
+        "result": "PASS"
+      }
+    ]
+  },
+  "full_actual_clients_binary_oci_recovery": "NOT_RUN - no behavior changes",
+  "real_credentials_provider_67_ci_publish_deploy": "NOT_RUN",
+  "github_writes": false,
+  "validation_helper_note": "Initial helper assertion incorrectly forbade the required local HOME assignment; replaced with exact task-local HOME/config and fresh-directory checks. No product change.",
+  "github_final_readback": [
+    {
+      "number": 58,
+      "state": "open",
+      "updated_at": "2026-10-18T03:15:12Z",
+      "body_unchanged": true,
+      "title_unchanged": true,
+      "comments": 0
+    },
+    {
+      "number": 64,
+      "state": "open",
+      "updated_at": "2026-10-20T02:56:33Z",
+      "body_unchanged": true,
+      "title_unchanged": true,
+      "comments": 1
+    },
+    {
+      "number": 66,
+      "state": "open",
+      "updated_at": "2026-10-18T06:24:41Z",
+      "body_unchanged": true,
+      "title_unchanged": true,
+      "comments": 0
+    },
+    {
+      "number": 67,
+      "state": "open",
+      "updated_at": "2026-10-18T06:24:45Z",
+      "body_unchanged": true,
+      "title_unchanged": true,
+      "comments": 0
+    }
+  ],
+  "patch_format_note": "Initial n=3 unified diff blank context lines triggered whitespace policy; preserved in task audit, replaced by n=0 unified diff and re-applied in isolated copies to prove exact full-body equality.",
+  "selective_staging": "Only 17 owned documentation paths; four inherited dirty navigation files use HEAD plus owned insertions; no inherited edits staged."
+}

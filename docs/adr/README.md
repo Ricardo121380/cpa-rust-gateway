@@ -160,3 +160,5 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0121 Local Messages request controls](ADR-0121-local-messages-request-controls.md) — `#64 M3/M4 only` (Accepted independent Claude recipient decision, keep-all identity, explicit payload v2/schema38; M1/M2/M5 and original Claude compatibility remain blocked).
 
 - [ADR-0122 Isolated Claude restricted candidate](ADR-0122-isolated-claude-restricted-candidate.md) — `#64 D2` (Accepted isolated evaluation only; exact local effort rejection and actual-client gates; first-release admission remains separate).
+
+- [ADR-0123 First-release Claude D2 restricted support](ADR-0123-first-release-claude-d2-restricted-support.md) — `#58/#64/#66` (Accepted product adoption of the evidenced four-variable configuration; original Claude follow-ups, fixed Build qualification and real acceptance remain open; ADR-0122 retains its experimental history).

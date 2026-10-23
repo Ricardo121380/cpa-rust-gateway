@@ -61,3 +61,10 @@ Regress independent/combined M1/M2/M5, unknown fields, M3/M4, JSON/SSE, summary 
 Final Full and actual-client evidence bind immutable code/lock, explicit inputs and inherited
 overlay. No new persistence format is introduced. Fixed service, real Provider, CI, release and
 deployment remain independent. No GitHub write, push, global client configuration or paid request.
+
+## Later product decision (2026-10-23)
+
+[ADR-0123](ADR-0123-first-release-claude-d2-restricted-support.md) subsequently selects the
+verified four-variable D2 configuration for the first release. The experimental authorization,
+results and non-adoption statements above retain their original historical scope. The later
+selection does not qualify the fixed Build service or original Claude configuration.

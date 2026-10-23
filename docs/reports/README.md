@@ -32,6 +32,7 @@
 
 ## 最新交付
 
+- [Claude D2首版选择落实与#58/#64/#66本地修订稿（未发送）](cpar-64-66-d2-issue-drafts-20261023.md)
 - [CPAR 剩余规范与验收证据本地收口：S/E/O 批次，E-05 待裁定](cpar-seo-closeout-local-20261009.md)
 - [CPAR S/E/O 批次 #57 本地补充草稿（未发送）](cpar-seo-closeout-issue57-supplement-20261009.md)
 - [CPAR 渠道账号接入交付](cpar-channel-onboarding-delivery-20260916.md)

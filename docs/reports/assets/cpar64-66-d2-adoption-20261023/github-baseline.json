@@ -1,0 +1,91 @@
+{
+  "observed_date": "2026-10-23",
+  "repo": "Ricardo121380/cpa-rust-gateway",
+  "remote_mutations": false,
+  "scope": "local body-only drafts; preserve title/state/labels/assignees/comments/native dependencies",
+  "issues": [
+    {
+      "number": 58,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/58",
+      "title": "产品规格：CPAR Rust 网关目标与三客户端首版范围",
+      "state": "open",
+      "updated_at": "2026-10-18T03:15:12Z",
+      "labels": [
+        "ready-for-agent"
+      ],
+      "comments_unchanged": 0,
+      "body_before_sha256": "05be6b4d2ead2272f37af7cb226cde4611cb1e13c3ed6ac715eec06f132958e6",
+      "body_draft_sha256": "714b5f31dce32cdd90da1d7fcd1b056641a12e876d93669dc30979d063b9d75e",
+      "drafted": true
+    },
+    {
+      "number": 64,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/64",
+      "title": "Claude Code 的 Messages 受控工具闭环",
+      "state": "open",
+      "updated_at": "2026-10-20T02:56:33Z",
+      "labels": [
+        "ready-for-agent"
+      ],
+      "comments_unchanged": 1,
+      "body_before_sha256": "38039a4df432041df7de4d9159c5f65ebb1473c0e60774d15ae84dfb021d9356",
+      "body_draft_sha256": "1b3a0a755c84be8db237aaf68c9b41e3300af918686878c84d2d226e8639f31d",
+      "drafted": true
+    },
+    {
+      "number": 66,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/66",
+      "title": "三客户端同源候选与真实验收前置资格",
+      "state": "open",
+      "updated_at": "2026-10-18T06:24:41Z",
+      "labels": [
+        "ready-for-agent"
+      ],
+      "comments_unchanged": 0,
+      "body_before_sha256": "9bbb63126960bda2ffc1099c5b67abc8b23ab4596d5342f89f2ad1d647d488a7",
+      "body_draft_sha256": "97ae9b4cde0b9f662ad690fbf328a1649b69d1c5d7ac73d26f63dea5687819fe",
+      "drafted": true
+    },
+    {
+      "number": 67,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/67",
+      "title": "三客户端真实 Grok Build 验收与首版交付材料",
+      "state": "open",
+      "updated_at": "2026-10-18T06:24:45Z",
+      "labels": [
+        "ready-for-agent"
+      ],
+      "comments_unchanged": 0,
+      "body_before_sha256": "248c9fe03eaccf229e716b058386686f58254376f49ee6e1db7d86147c71d3bb",
+      "body_draft_sha256": null,
+      "drafted": false
+    }
+  ],
+  "native_dependencies": {
+    "64": {
+      "blocked_by": [
+        63
+      ]
+    },
+    "63": {
+      "blocked_by": [
+        61
+      ]
+    },
+    "66": {
+      "blocked_by": [
+        62,
+        64,
+        65
+      ],
+      "blocking": [
+        67
+      ]
+    },
+    "67": {
+      "blocked_by": [
+        66
+      ]
+    }
+  }
+}

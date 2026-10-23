@@ -1,10 +1,31 @@
-# BC-PROTOCOL-016: Claude Code isolated restricted candidate
+# BC-PROTOCOL-016: Claude Code D2 restricted support
 
 | Field | Value |
 | --- | --- |
 | Contract | BC-PROTOCOL-016 |
-| Task | #64 D2 isolated evaluation, not first-release admission |
-| Decision | [ADR-0122](../adr/ADR-0122-isolated-claude-restricted-candidate.md) |
+| Task | #64 D2 controlled acceptance; #58/#66 selected first-release Claude configuration |
+| Decision | [ADR-0122 experiment](../adr/ADR-0122-isolated-claude-restricted-candidate.md); [ADR-0123 product adoption](../adr/ADR-0123-first-release-claude-d2-restricted-support.md) |
+
+## Adopted first-release scope (2026-10-23)
+
+D2 is ADOPTED for the first release. The evidenced client is unmodified Claude Code 2.1.302,
+entry `/Users/huangrui/.local/bin/claude`, resolved binary
+`/Users/huangrui/.local/share/claude/versions/2.1.302`, SHA-256
+`5262ce9de86243fed0d21edc39b271555d56780d0112e2b194439fe1c6662d37`.
+Use the exact local Messages profile and all four values:
+
+```sh
+DISABLE_PROMPT_CACHING=1
+CLAUDE_CODE_DISABLE_THINKING=1
+CLAUDE_CODE_MAX_RETRIES=0
+CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK=1
+```
+
+[Local configuration and limits](../support/grok-build-messages.md) and the
+[candidate inventory](../support/first-release-candidates.md) distinguish product selection
+from controlled evidence, binary/OCI lifecycle, fixed-service qualification and real acceptance.
+Codex, Claude D2 and Pi must all complete the agreed Grok Build gates before first-release READY.
+This contract adds no production native-field qualification or controlled-test-support delivery.
 
 ## Source and candidate boundary
 
@@ -29,8 +50,10 @@ All four D2 variables are part of the evaluated configuration, including normal/
 
 The unmodified installed Claude, its identity/hash/mode/symlink, isolated HOME/config/workdir,
 grok-4.5 and real Build assembly are fixed per run. D2 does not promise adaptive/display, overall
-effort or block cache controls. Original Claude remains a separate rejection branch; #58/#64
-and their dependencies remain open. No D2 support claim transfers to the first release.
+effort or block cache controls. Those original #58/#64 requirements remain open follow-up work,
+outside the selected first-release configuration, without being removed or completed. Original
+Claude remains a separate rejection branch; #58/#64 and their dependencies remain open.
+ADR-0123 adopts only the evidenced D2 configuration; fixed Build activation remains separate.
 
 ## Local effort rejection and negotiation
 
