@@ -178,7 +178,7 @@ print(json.dumps(rows))
         command = [str(self.binary), item["command"], "--db", str(self.db), "--master-key-dir", str(keys),
             "--active-master-key-version", "1", "--client-key-id", owner or item["owner"],
             "--request-id", request or item["request"], "--attempt-id", attempt or item["attempt"], "--output", str(output)]
-        result = subprocess.run(command, env=self.env, cwd=self.root, capture_output=True, timeout=15)
+        result = self.execute_reader(command)
         self.reader_streams(result, label)
         self.report["reads"].append({"label": label, "command": item["command"], "request": item["request"],
             "binary_sha256": sha(self.binary), "exit": result.returncode})
@@ -208,9 +208,12 @@ print(json.dumps(rows))
             self.check(label + " complete ordered summary and execution identity", record["evidence"] == item["evidence"]
                 and record["client_key_id"] == item["owner"] and record["attempt"]["request_id"] == item["request"]
                 and record["attempt"]["attempt_id"] == item["attempt"] and record["execution"]["channel"] == "grok.build")
-        again = subprocess.run(command, env=self.env, cwd=self.root, capture_output=True, timeout=15)
+        again = self.execute_reader(command)
         self.reader_streams(again, label + " overwrite")
         self.check(label + " overwrite refusal", again.returncode != 0 and json.loads(output.read_text()) == value)
+
+    def execute_reader(self, command):
+        return subprocess.run(command, env=self.env, cwd=self.root, capture_output=True, timeout=15)
 
     def reader_streams(self, result, label):
         # The existing reader emits a fixed, value-free acknowledgement on success.
@@ -271,6 +274,9 @@ print(json.dumps(rows))
         self.check("private identifiers absent from ordinary logs", all(b"PRIVATE_" not in p.read_bytes()
             for p in self.out.glob("*.log")))
         self.check("delivered binary unchanged after all runs", sha(self.binary) == self.report["binary_sha256"])
+        self.check("no remaining gateway executable process", not self.remaining_gateway_processes())
+
+    def remaining_gateway_processes(self):
         remaining = []
         for path in Path("/proc").iterdir():
             if path.name.isdigit():
@@ -279,7 +285,7 @@ print(json.dumps(rows))
                         remaining.append(path.name)
                 except (FileNotFoundError, PermissionError):
                     pass
-        self.check("no remaining gateway executable process", not remaining)
+        return remaining
 
 
 def main():
