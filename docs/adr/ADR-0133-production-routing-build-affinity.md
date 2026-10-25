@@ -46,7 +46,7 @@ weights; candidate weight is never multiplied by the number of accounts. RR igno
 weights, WRR uses them, and fill-first uses stable credential ID. Temporary exclusions filter slots
 before cursor advancement rather than awarding a rejected candidate's slots to its successor.
 Publication/catalog replacement resets candidate cursors; an identical catalog snapshot retains
-them. Endpoint cursors belong to that composed pool; shared concurrency survives runtime generations.
+them. Endpoint cursors belong to that composed pool, independently for legacy, RR and explicit WRR so mixed policies do not move one another. Shared concurrency survives runtime generations.
 
 Ordinary Build requests with `prompt_cache_key` use the existing HMAC identity and continuity store.
 Read candidate-scoped preferences once at request startup on a blocking task; the scheduler receives

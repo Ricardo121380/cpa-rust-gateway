@@ -830,7 +830,12 @@ pub(crate) fn explain_provider_scoped(
         )?);
     }
     let mut provider_selection = selector.select(observations)?;
-    if policy == crate::SnapshotRoutePolicy::WeightedRoundRobin {
+    if matches!(
+        policy,
+        crate::SnapshotRoutePolicy::RoundRobin
+            | crate::SnapshotRoutePolicy::WeightedRoundRobin
+            | crate::SnapshotRoutePolicy::FillFirst
+    ) {
         let best = provider_selection
             .decisions()
             .iter()
@@ -856,11 +861,12 @@ pub(crate) fn explain_provider_scoped(
         let projected = if slots.is_empty() {
             None
         } else {
-            Some(
-                slots[input.route_explain().candidate_schedule_start() % slots.len()]
-                    .id()
-                    .clone(),
-            )
+            let start = if policy == crate::SnapshotRoutePolicy::FillFirst {
+                0
+            } else {
+                input.route_explain().candidate_schedule_start()
+            };
+            Some(slots[start % slots.len()].id().clone())
         };
         provider_selection = provider_selection.with_projected_candidate(projected);
     }
@@ -1305,6 +1311,95 @@ mod tests {
     }
 
     #[test]
+    fn issue70_explicit_explain_consumes_fixed_starts_without_advancing_live_cursors() -> TestResult
+    {
+        for policy in [
+            SnapshotRoutePolicy::RoundRobin,
+            SnapshotRoutePolicy::WeightedRoundRobin,
+            SnapshotRoutePolicy::FillFirst,
+        ] {
+            let (scheduler, route_id, _) = scheduler_from_candidates(
+                vec![
+                    candidate_for_provider_with_schedule(
+                        "candidate-a",
+                        "endpoint-a",
+                        "provider-a",
+                        "model-a",
+                        0,
+                        1,
+                    )?,
+                    candidate_for_provider_with_schedule(
+                        "candidate-b",
+                        "endpoint-b",
+                        "provider-a",
+                        "model-b",
+                        0,
+                        3,
+                    )?,
+                ],
+                vec![
+                    ("endpoint-a", vec![("credential-a", 0, 1, 4)]),
+                    ("endpoint-b", vec![("credential-b", 0, 1, 4)]),
+                ],
+                policy,
+            )?;
+            let health = RuntimeHealthRegistry::new();
+            let quota = RuntimeQuotaRegistry::new();
+            for start in 0..4 {
+                let input = ProviderScopedRouteExplainInput::try_new(
+                    RouteExplainInput::with_schedule_starts(route_id.clone(), 100, start, 0),
+                    ProviderId::try_new("provider-a")?,
+                    [
+                        RouteCandidateId::try_new("candidate-a")?,
+                        RouteCandidateId::try_new("candidate-b")?,
+                    ]
+                    .into_iter()
+                    .collect(),
+                    BTreeMap::new(),
+                )?;
+                let projected = scheduler.explain_provider_scoped(
+                    &input,
+                    &health,
+                    &quota,
+                    &AttemptExclusionSet::new(),
+                )?;
+                let expected = match policy {
+                    SnapshotRoutePolicy::RoundRobin => {
+                        if start % 2 == 0 {
+                            "candidate-a"
+                        } else {
+                            "candidate-b"
+                        }
+                    }
+                    SnapshotRoutePolicy::WeightedRoundRobin => {
+                        if start == 1 {
+                            "candidate-a"
+                        } else {
+                            "candidate-b"
+                        }
+                    }
+                    _ => "candidate-a",
+                };
+                assert_eq!(
+                    projected
+                        .provider_selection()
+                        .selected_candidate_id()
+                        .map(RouteCandidateId::as_str),
+                    Some(expected)
+                );
+            }
+            let selected = scheduler.select_and_lease(&route_id)?;
+            let expected = if policy == SnapshotRoutePolicy::WeightedRoundRobin {
+                "candidate-b"
+            } else {
+                "candidate-a"
+            };
+            assert_eq!(selected.candidate().id().as_str(), expected);
+        }
+        Ok(())
+    }
+
+    #[test]
     fn provider_composition_prefers_known_quota_then_least_loaded_without_side_effects()
     -> TestResult {
         let (scheduler, route_id, pools) = scheduler_from_candidates(
@@ -1316,7 +1411,7 @@ mod tests {
                 ("endpoint-a", vec![("credential-a", 0, 1, 4)]),
                 ("endpoint-b", vec![("credential-b", 0, 1, 4)]),
             ],
-            SnapshotRoutePolicy::RoundRobin,
+            SnapshotRoutePolicy::SmoothWeightedRoundRobin,
         )?;
         let held = pools
             .pool(&EndpointId::try_new("endpoint-a")?)

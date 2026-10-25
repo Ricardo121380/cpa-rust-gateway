@@ -1,0 +1,43 @@
+{
+  "commit": "e3ba8ecb354381380ee579218fc2b47b59cde7c6",
+  "standards_surface": {
+    "status": "COMPLETE",
+    "findings": []
+  },
+  "standards_kernel": {
+    "status": "COMPLETE",
+    "findings": [
+      {
+        "priority": "P2",
+        "finding": "RR Provider Explain ignored nonzero fixed schedule start",
+        "resolution": "Project filtered compiled slots for all explicit policies; fill-first always start0; core-01 fixed-start/no-cursor-side-effect test passed"
+      }
+    ]
+  },
+  "spec": {
+    "status": "COMPLETE",
+    "findings": [
+      {
+        "priority": "P1",
+        "finding": "Existing configuration-diff fixture inserted six values into new seven-column model_routes",
+        "resolution": "Confirmed RED with frozen e3 test binary, changed only to explicit legacy columns; original assertions retained and core-01 passed"
+      },
+      {
+        "priority": "P2",
+        "finding": "Same RR Explain schedule-start mismatch",
+        "resolution": "Fixed and dynamically verified"
+      }
+    ]
+  },
+  "root_verification": {
+    "finding": "Mixed legacy/RR/explicit-WRR endpoint callers shared one cursor, allowing another strategy to perturb its sequence",
+    "resolution": "Independent process-local cursors per strategy with the same credential slots and atomic capacity; exact mixed-policy regression passed"
+  },
+  "full02": {
+    "state": "INTERRUPTED",
+    "exit_code": 143,
+    "reason": "Stopped obsolete run after definite review findings; no complete Rust or Full result",
+    "clippy": "PASS"
+  },
+  "evidence_boundary": "Static reviews and local core tests are separate; no Provider/client/CI/release qualification"
+}

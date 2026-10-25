@@ -351,7 +351,7 @@ mod tests {
                 "INSERT INTO public_models VALUES (?1,'model','model','active','model','{}')",
                 [id.as_str()],
             )?;
-            repository.connection.execute("INSERT INTO model_routes VALUES (?1,'route','model','smooth_weighted_round_robin',1,1000)", [id.as_str()])?;
+            repository.connection.execute("INSERT INTO model_routes (config_version_id,id,public_model_id,policy,max_attempts,bootstrap_timeout_ms) VALUES (?1,'route','model','smooth_weighted_round_robin',1,1000)", [id.as_str()])?;
             repository.connection.execute(
                 "INSERT INTO access_groups VALUES (?1,'group','group','active','{}')",
                 [id.as_str()],

@@ -141,6 +141,8 @@ pub struct EndpointCredentialPool {
     credentials: Vec<Arc<CredentialSlot>>,
     priority_tiers: Vec<CredentialPriorityTier>,
     cursors: Vec<AtomicUsize>,
+    round_robin_cursors: Vec<AtomicUsize>,
+    weighted_cursors: Vec<AtomicUsize>,
 }
 
 /// One bounded, secret-free observation of a Credential pool entry.
@@ -279,12 +281,16 @@ impl EndpointCredentialPool {
             });
         }
         let cursors = priority_tiers.iter().map(|_| AtomicUsize::new(0)).collect();
+        let round_robin_cursors = priority_tiers.iter().map(|_| AtomicUsize::new(0)).collect();
+        let weighted_cursors = priority_tiers.iter().map(|_| AtomicUsize::new(0)).collect();
 
         Ok(Self {
             endpoint_id,
             credentials,
             priority_tiers,
             cursors,
+            round_robin_cursors,
+            weighted_cursors,
         })
     }
 
@@ -361,7 +367,12 @@ impl EndpointCredentialPool {
     where
         F: FnMut(&CredentialId) -> bool,
     {
-        for (tier, cursor) in self.priority_tiers.iter().zip(&self.cursors) {
+        let cursors = if weighted {
+            &self.weighted_cursors
+        } else {
+            &self.round_robin_cursors
+        };
+        for (tier, cursor) in self.priority_tiers.iter().zip(cursors) {
             let eligible = self
                 .credentials
                 .iter()
@@ -728,6 +739,16 @@ impl EndpointCredentialPools {
                     credentials,
                     priority_tiers: pool.priority_tiers.clone(),
                     cursors: pool.cursors.iter().map(|_| AtomicUsize::new(0)).collect(),
+                    round_robin_cursors: pool
+                        .round_robin_cursors
+                        .iter()
+                        .map(|_| AtomicUsize::new(0))
+                        .collect(),
+                    weighted_cursors: pool
+                        .weighted_cursors
+                        .iter()
+                        .map(|_| AtomicUsize::new(0))
+                        .collect(),
                 }),
             );
         }
@@ -1205,6 +1226,68 @@ mod tests {
         assert!(third.try_lease(&endpoint).is_none());
         drop(held);
         assert!(third.try_lease(&endpoint).is_some());
+        Ok(())
+    }
+
+    #[test]
+    fn issue70_endpoint_policies_keep_independent_cursors_and_shared_capacity() -> TestResult {
+        let pool = pool(
+            "endpoint-a",
+            vec![("credential-a", 0, 1, 4), ("credential-b", 0, 3, 4)],
+        )?;
+        let first = pool.try_lease().ok_or("legacy lease")?;
+        assert_eq!(first.credential_id().as_str(), "credential-b");
+        drop(first);
+        let mut rr = Vec::new();
+        let mut weighted = Vec::new();
+        for _ in 0..4 {
+            let lease = pool
+                .try_lease_with_policy_at(100, false, false, |_| true)
+                .ok_or("RR lease")?;
+            rr.push(lease.credential_id().as_str().to_owned());
+            drop(lease);
+            let lease = pool
+                .try_lease_with_policy_at(100, true, false, |_| true)
+                .ok_or("WRR lease")?;
+            weighted.push(lease.credential_id().as_str().to_owned());
+        }
+        let lease = pool
+            .try_lease_with_policy_at(100, false, false, |_| true)
+            .ok_or("RR lease")?;
+        rr.push(lease.credential_id().as_str().to_owned());
+        drop(lease);
+        assert_eq!(
+            rr,
+            vec![
+                "credential-a",
+                "credential-b",
+                "credential-a",
+                "credential-b",
+                "credential-a"
+            ]
+        );
+        assert_eq!(
+            weighted
+                .iter()
+                .filter(|id| id.as_str() == "credential-a")
+                .count(),
+            1
+        );
+        assert_eq!(
+            weighted
+                .iter()
+                .filter(|id| id.as_str() == "credential-b")
+                .count(),
+            3
+        );
+        let next = pool.try_lease().ok_or("legacy lease")?;
+        assert_eq!(next.credential_id().as_str(), "credential-a");
+        drop(next);
+        assert!(
+            pool.diagnostic_entries()
+                .iter()
+                .all(|entry| entry.active_leases() == 0)
+        );
         Ok(())
     }
 

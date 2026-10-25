@@ -50,6 +50,8 @@ Status: `LOCAL_IMPLEMENTATION`; #70 / OPT-03; [ADR-0133](../adr/ADR-0133-product
 - `issue70_explicit_policy_validation_publication_and_rollback_preserve_legacy`
 - `issue70_management_policy_crud_is_explicit_revisioned_and_closed`
 - `issue70_affinity_migrates_schema40_and_bounds_unknown_break_history`
+- `issue70_explicit_explain_consumes_fixed_starts_without_advancing_live_cursors`
+- `issue70_endpoint_policies_keep_independent_cursors_and_shared_capacity`
 
 ## Evidence boundaries
 

@@ -98,6 +98,9 @@ impl EndpointAttemptDriver {
                 keys.push((candidate.clone(), key));
             }
         }
+        if keys.is_empty() {
+            return Ok(());
+        }
         let now = system_now_ms().map_err(|_| internal_error())?;
         let bindings = tokio::task::spawn_blocking(move || {
             keys.into_iter()
