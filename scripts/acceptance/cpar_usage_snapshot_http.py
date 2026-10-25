@@ -81,6 +81,47 @@ def verify(c):
     details = pages(prefix + "/rows?limit=1")
     check("snapshot_full_filter_not_page_sum", len(details) == 5 and len({r["request_id"] for r in details}) == 4
           and all(r["client_key_id"] == "local-key" for r in details))
+    token_fields = ("input_tokens", "output_tokens", "reasoning_tokens", "cache_read_tokens", "cache_creation_tokens", "cached_tokens")
+
+    def check_totals(label, totals, selected):
+        expected_counts = {
+            "requests": len({r["request_id"] for r in selected}),
+            "attempts": sum(r["attempt_id"] is not None for r in selected),
+            "usage_observations": sum(r["usage_observed"] for r in selected),
+            "failed_usage_observations": sum(r["usage_observed"] and r["usage_outcome"] == "failed" for r in selected),
+            "cancelled_usage_observations": sum(r["usage_observed"] and r["usage_outcome"] == "cancelled" for r in selected),
+            "requests_without_terminal": len({r["request_id"] for r in selected if r["request_outcome"] is None}),
+        }
+        check(label + "_counts", all(totals[field] == value for field, value in expected_counts.items()))
+        for field in token_fields:
+            observed = [r for r in selected if r[field] is not None]
+            expected = {"total": sum(r[field] for r in observed) if observed else None,
+                        "observed": len(observed), "missing": len(selected) - len(observed),
+                        **{p: sum(r["provenance"] == p for r in observed) for p in ("measured", "estimated", "unknown")}}
+            expected["confidence"] = ("unknown" if not observed or expected["estimated"] or expected["unknown"]
+                                      else "partial" if expected["missing"] else "exact")
+            if field == "input_tokens":
+                accounting = {r["input_accounting"] for r in observed}
+                if len(accounting) != 1 or "unknown" in accounting:
+                    expected.update(total=None, confidence="unknown")
+            check(label + "_" + field, totals[field] == expected)
+        statuses = {status: sum(r["cost_status"] == status for r in selected)
+                    for status in ("exact", "partial", "unknown", "unpriced", "pending", "unavailable")}
+        amounts = [r["cost_microunits"] for r in selected if r["cost_microunits"] is not None]
+        amount = sum(amounts) if amounts else None
+        status = ("unknown" if not selected else "exact" if statuses["exact"] == len(selected)
+                  else "partial" if amounts else "unpriced" if statuses["unpriced"] == len(selected)
+                  else "pending" if statuses["pending"] else "unavailable" if statuses["unavailable"] else "unknown")
+        check(label + "_cost", totals["known_cost_microunits"] == amount
+              and totals["cost_records"] == statuses and totals["cost_status"] == status)
+
+    def csv_matches(actual, expected):
+        return len(actual) == len(expected) and all(
+            set(cells) == set(row) and all(
+                json.loads(cells[field]) == value if isinstance(value, (dict, list))
+                else cells[field] == ("" if value is None else str(value).lower() if isinstance(value, bool) else str(value))
+                for field, value in row.items()) for cells, row in zip(actual, expected))
+
     # Independent oracle: select from the already checked full detail set, then compare a
     # new backend-filtered capture and every page/export. Source writes are paused here.
     def check_filtered(label, patch):
@@ -93,27 +134,23 @@ def verify(c):
         scoped = api("POST", "/admin/operations/usage-snapshots", query, expected=201)
         scope_path = "/admin/operations/usage-snapshots/" + scoped["snapshot_id"]
         summary = scoped["summary"]
-        check(label + "_whole_summary", summary["requests"] == len({r["request_id"] for r in expected})
-              and summary["attempts"] == sum(r["attempt_id"] is not None for r in expected)
-              and scoped["detail_rows"] == len(expected))
-        for source, aggregate in (("input_tokens", "input_tokens"), ("cost_microunits", "known_cost_microunits")):
-            observed = [r[source] for r in expected if r[source] is not None]
-            total = summary[aggregate]["total"] if source == "input_tokens" else summary[aggregate]
-            check(label + "_" + source, total == (sum(observed) if observed else None))
+        check(label + "_row_count", scoped["detail_rows"] == len(expected))
+        check_totals(label + "_summary", summary, expected)
         check(label + "_all_detail_pages", pages(scope_path + "/rows?limit=1") == expected)
         check(label + "_jsonl_details", pages(scope_path + "/export?format=jsonl&limit=2", True) == expected)
         scoped_buckets = pages(scope_path + "/rows?grain=buckets&limit=1")
-        check(label + "_jsonl_buckets", pages(scope_path + "/export?format=jsonl&grain=buckets&limit=1", True) == scoped_buckets
-              and sum(row["attempts"] for row in scoped_buckets) == summary["attempts"])
-        csv_details = pages(scope_path + "/export?format=csv&limit=1", True)
-        check(label + "_csv_details", [(r["request_id"], r["attempt_id"]) for r in csv_details]
-              == [(r["request_id"], r["attempt_id"] or "") for r in expected])
-        for field in ("input_tokens", "cost_microunits"):
-            check(label + "_csv_" + field, [r[field] for r in csv_details]
-                  == [str(r[field]) if r[field] is not None else "" for r in expected])
-        csv_buckets = pages(scope_path + "/export?format=csv&grain=buckets&limit=1", True)
-        check(label + "_csv_buckets", len(csv_buckets) == len(scoped_buckets)
-              and [json.loads(r["input_tokens"]) for r in csv_buckets] == [r["input_tokens"] for r in scoped_buckets])
+        grouped = {}
+        for row in expected:
+            bucket_start = query["from_ms"] + ((row["occurred_at_ms"] - query["from_ms"]) // query["bucket_ms"]) * query["bucket_ms"]
+            grouped.setdefault(bucket_start, []).append(row)
+        check(label + "_bucket_count", len(scoped_buckets) == len(grouped))
+        for bucket, (start_ms, selected) in zip(scoped_buckets, sorted(grouped.items())):
+            check(label + "_bucket_boundaries", bucket["from_ms"] == start_ms
+                  and bucket["to_ms"] == min(start_ms + query["bucket_ms"] - 1, query["to_ms"]))
+            check_totals(label + "_bucket_" + str(start_ms), bucket, selected)
+        check(label + "_jsonl_buckets", pages(scope_path + "/export?format=jsonl&grain=buckets&limit=1", True) == scoped_buckets)
+        check(label + "_csv_details", csv_matches(pages(scope_path + "/export?format=csv&limit=1", True), expected))
+        check(label + "_csv_buckets", csv_matches(pages(scope_path + "/export?format=csv&grain=buckets&limit=1", True), scoped_buckets))
         api("DELETE", scope_path, expected=204)
 
     for field in ("model", "protocol", "provider_id", "channel_id", "account_id"):
