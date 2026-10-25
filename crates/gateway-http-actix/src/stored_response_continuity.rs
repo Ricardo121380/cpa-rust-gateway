@@ -111,6 +111,7 @@ pub(crate) fn compaction_request(
         )
         .map_err(|_| internal_error())?;
     let request = CanonicalRequest {
+        model_thinking: None,
         requested_model: previous.public_model().to_owned(),
         messages,
         tools: Vec::new(),

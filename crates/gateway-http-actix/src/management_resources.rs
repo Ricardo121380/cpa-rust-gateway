@@ -3363,6 +3363,8 @@ struct PublicModelInput {
 #[serde(deny_unknown_fields)]
 struct AliasInput {
     alias: String,
+    #[serde(default)]
+    prefix: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -9425,7 +9427,11 @@ fn model_alias(
     public_model_id: PublicModelId,
 ) -> Result<ModelAliasConfiguration, HttpResponse> {
     Ok(ModelAliasConfiguration {
-        alias: bounded_text(input.alias, 256)?,
+        alias: match input.prefix {
+            Some(prefix) => gateway_router::prefixed_model_alias(&prefix, &input.alias)
+                .map_err(|_| invalid_input())?,
+            None => bounded_text(input.alias, 256)?,
+        },
         public_model_id,
     })
 }

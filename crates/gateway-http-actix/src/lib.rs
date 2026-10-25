@@ -591,6 +591,7 @@ struct PreparedResponsesExecution {
 }
 
 struct ResolvedPublicModel {
+    model_thinking: Option<gateway_core::ModelThinking>,
     public_model: String,
     route_alias: Option<String>,
     route: ResponsesRouteSelection,
@@ -1124,7 +1125,11 @@ async fn models(request: HttpRequest, state: CapturedResponsesState) -> HttpResp
         Ok(AuthenticatedResponsesClient::Generic(_)) => return pre_header_error(&route_not_found()),
         Err(error) => return pre_header_error(&error),
     };
-    let body = match encode_model_list(authenticated_client.exact_upstream_models()) {
+    let names = authenticated_client
+        .exact_upstream_models()
+        .chain(authenticated_client.prefixed_model_aliases())
+        .collect::<std::collections::BTreeSet<_>>();
+    let body = match encode_model_list(names.into_iter()) {
         Ok(body) => body,
         Err(error) => return pre_header_error(&error),
     };
@@ -1421,7 +1426,7 @@ async fn execute_responses_websocket_turn(
     cache: &tokio::sync::Mutex<WebSocketSessionCache>,
 ) -> Result<(), GatewayError> {
     let request_start = (std::time::Instant::now(), system_now_ms().unwrap_or(0));
-    let decoded_websocket = decode_websocket_request(body)?;
+    let mut decoded_websocket = decode_websocket_request(body)?;
     let decoded = &decoded_websocket.response;
     if decoded.store
         && (state.stored_responses.is_none() || !state.executor.supports_stored_response_lineage())
@@ -1430,10 +1435,13 @@ async fn execute_responses_websocket_turn(
     }
     let requested_model = decoded.request.requested_model.clone();
     let ResolvedPublicModel {
+        model_thinking,
         public_model,
         route_alias,
         route,
     } = resolve_public_model(authenticated_client, &requested_model)?;
+    decoded_websocket.response.request.model_thinking = model_thinking;
+    let decoded = &decoded_websocket.response;
     let context = state.metadata_factory.request_context()?;
     let request_id = context.request_id().clone();
     let (client_key_id, access_group_id) = authenticated_client.event_identity();
@@ -1839,7 +1847,7 @@ async fn chat_completions(
         )
         .await;
     };
-    let decoded = match decode_chat_request(body) {
+    let mut decoded = match decode_chat_request(body) {
         Ok(decoded) => decoded,
         Err(error) => {
             return observe_ingress_rejection(
@@ -1859,6 +1867,7 @@ async fn chat_completions(
     }
     let requested_model = decoded.request.requested_model.clone();
     let ResolvedPublicModel {
+        model_thinking,
         public_model,
         route_alias,
         route,
@@ -1866,6 +1875,7 @@ async fn chat_completions(
         Ok(resolved) => resolved,
         Err(error) => return pre_header_chat_error(&error),
     };
+    decoded.request.model_thinking = model_thinking;
     let context = match state.metadata_factory.request_context() {
         Ok(context) => context,
         Err(error) => return pre_header_chat_error(&error),
@@ -2007,7 +2017,7 @@ async fn responses(
         )
         .await;
     };
-    let decoded = match decode_request(body) {
+    let mut decoded = match decode_request(body) {
         Ok(decoded) => decoded,
         Err(error) => {
             return observe_ingress_rejection(
@@ -2029,6 +2039,7 @@ async fn responses(
     }
     let requested_model = decoded.request.requested_model.clone();
     let ResolvedPublicModel {
+        model_thinking,
         public_model,
         route_alias,
         route,
@@ -2036,6 +2047,7 @@ async fn responses(
         Ok(resolved) => resolved,
         Err(error) => return pre_header_error(&error),
     };
+    decoded.request.model_thinking = model_thinking;
     let context = match state.metadata_factory.request_context() {
         Ok(context) => context,
         Err(error) => return pre_header_error(&error),
@@ -2238,6 +2250,7 @@ async fn compact_responses(
     };
     let requested_model = decoded.requested_model;
     let ResolvedPublicModel {
+        model_thinking,
         public_model,
         route_alias,
         route,
@@ -2245,6 +2258,9 @@ async fn compact_responses(
         Ok(resolved) => resolved,
         Err(error) => return pre_header_stored_response_error(&error),
     };
+    if model_thinking.is_some() {
+        return pre_header_stored_response_error(&client_request_error());
+    }
     let (client_key_id, access_group_id) = authenticated_client.event_identity();
     let lookup_now_ms = match system_now_ms() {
         Ok(now_ms) => now_ms,
@@ -2590,7 +2606,7 @@ async fn messages(
         )
         .await;
     };
-    let decoded = match decode_anthropic_request(body) {
+    let mut decoded = match decode_anthropic_request(body) {
         Ok(decoded) => decoded,
         Err(error) => {
             return observe_ingress_rejection(
@@ -2615,6 +2631,7 @@ async fn messages(
     }
     let requested_model = decoded.request.requested_model.clone();
     let ResolvedPublicModel {
+        model_thinking,
         public_model,
         route_alias,
         route,
@@ -2622,6 +2639,7 @@ async fn messages(
         Ok(resolved) => resolved,
         Err(error) => return pre_header_anthropic_error(&error),
     };
+    decoded.request.model_thinking = model_thinking;
     let context = match state.metadata_factory.request_context() {
         Ok(context) => context,
         Err(error) => return pre_header_anthropic_error(&error),
@@ -2762,15 +2780,19 @@ async fn count_tokens(
     let Ok(body) = std::str::from_utf8(&body) else {
         return pre_header_anthropic_error(&client_request_error());
     };
-    let decoded = match decode_count_tokens_request(body) {
+    let mut decoded = match decode_count_tokens_request(body) {
         Ok(decoded) => decoded,
         Err(error) => return pre_header_anthropic_error(&error),
     };
-    let ResolvedPublicModel { route, .. } =
-        match resolve_public_model(&authenticated_client, &decoded.request.requested_model) {
-            Ok(resolved) => resolved,
-            Err(error) => return pre_header_anthropic_error(&error),
-        };
+    let ResolvedPublicModel {
+        route,
+        model_thinking,
+        ..
+    } = match resolve_public_model(&authenticated_client, &decoded.request.requested_model) {
+        Ok(resolved) => resolved,
+        Err(error) => return pre_header_anthropic_error(&error),
+    };
+    decoded.request.model_thinking = model_thinking;
     let context = match state.metadata_factory.request_context() {
         Ok(context) => context,
         Err(error) => return pre_header_anthropic_error(&error),
@@ -2859,8 +2881,32 @@ fn resolve_public_model(
     authenticated_client: &AuthenticatedResponsesClient,
     requested_model: &str,
 ) -> Result<ResolvedPublicModel, GatewayError> {
+    if let Ok(resolved) = resolve_exact_public_model(authenticated_client, requested_model) {
+        return Ok(resolved);
+    }
+    let AuthenticatedResponsesClient::Snapshot(client) = authenticated_client else {
+        return Err(route_not_found());
+    };
+    // A forbidden exact name never falls through to another model by suffix stripping.
+    if client.snapshot().has_exact_model_name(requested_model) {
+        return Err(route_not_found());
+    }
+    let Some((base, thinking)) = gateway_router::parse_thinking_suffix(requested_model)? else {
+        return Err(route_not_found());
+    };
+    let mut resolved = resolve_exact_public_model(authenticated_client, base)?;
+    resolved.model_thinking = Some(thinking);
+    resolved.route_alias = Some(requested_model.to_owned());
+    Ok(resolved)
+}
+
+fn resolve_exact_public_model(
+    authenticated_client: &AuthenticatedResponsesClient,
+    requested_model: &str,
+) -> Result<ResolvedPublicModel, GatewayError> {
     match authenticated_client {
         AuthenticatedResponsesClient::Generic(_) => Ok(ResolvedPublicModel {
+            model_thinking: None,
             public_model: requested_model.to_owned(),
             route_alias: None,
             route: ResponsesRouteSelection {
@@ -2873,6 +2919,7 @@ fn resolve_public_model(
             match authenticated_client.resolve_exact_upstream_model(requested_model) {
                 SnapshotExactModelResolution::Unique(public_model) => {
                     return Ok(ResolvedPublicModel {
+                        model_thinking: None,
                         public_model: requested_model.to_owned(),
                         route_alias: None,
                         route: ResponsesRouteSelection {
@@ -2906,6 +2953,7 @@ fn resolve_public_model(
             let route_alias =
                 (requested_model != public_model_name).then(|| requested_model.to_owned());
             Ok(ResolvedPublicModel {
+                model_thinking: None,
                 public_model: public_model_name,
                 route_alias,
                 route: ResponsesRouteSelection {

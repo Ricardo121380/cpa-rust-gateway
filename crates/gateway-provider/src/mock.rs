@@ -213,6 +213,7 @@ mod tests {
 
     fn request() -> CanonicalRequest {
         CanonicalRequest {
+            model_thinking: None,
             requested_model: "mock-model".to_owned(),
             messages: Vec::new(),
             tools: Vec::new(),

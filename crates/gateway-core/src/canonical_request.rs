@@ -15,6 +15,9 @@ use crate::{
 pub struct CanonicalRequest {
     /// Client-supplied model reference before alias or public-model resolution.
     pub requested_model: String,
+    /// Trusted model-name control resolved after exact-name and route authorization.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model_thinking: Option<crate::ModelThinking>,
     /// Ordered request messages.
     pub messages: Vec<CanonicalMessage>,
     /// Tool declarations that the client permits for this request.

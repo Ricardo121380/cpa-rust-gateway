@@ -1,5 +1,10 @@
 # BC-PROTOCOL-015: Local Messages request controls
 
+> #69 limited successor: [ADR-0130](../adr/ADR-0130-cpa-request-controls-model-names.md) and
+> [support matrix](../support/cpa-request-controls-model-names.md) define compatible budgets
+> 0/-1, frozen model controls, explicit qualified Aliases and suffix precedence. Existing
+> history, ownership and actual-client qualification remain independent.
+
 > Current request compatibility is amended by [ADR-0125](../adr/ADR-0125-cpa-request-compatibility.md).
 > M1/M2/M5 now coexist with the local M3/M4 path. The recipient rules below apply to Build
 > consumption; native Anthropic routes retain metadata/context_management for their upstream.

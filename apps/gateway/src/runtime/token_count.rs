@@ -32,7 +32,16 @@ impl CountTokensExecutor for P12RoutedResponsesExecutor {
                 &self.runtime_health,
                 &self.runtime_quota,
                 now,
-                |candidate| self.endpoints.contains_key(candidate.endpoint_id()),
+                |candidate| {
+                    self.endpoints.contains_key(candidate.endpoint_id())
+                        && gateway_router::validate_model_name_control(
+                            execution.request(),
+                            candidate.upstream_model(),
+                            candidate.transform_mode(),
+                            candidate.effective_capabilities(),
+                        )
+                        .is_ok()
+                },
             )?;
             let (candidate, credential) = selected.into_parts();
             let runtime = self

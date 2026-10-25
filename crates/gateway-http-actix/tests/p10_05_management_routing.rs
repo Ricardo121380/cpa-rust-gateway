@@ -786,3 +786,67 @@ async fn protected_minimax_m3_graph_and_client_key_lifecycle_are_exact_and_redac
     assert_eq!(missing_public_model.status(), StatusCode::NOT_FOUND);
     Ok(())
 }
+
+#[actix_web::test]
+async fn cpa_69_management_prefix_alias_is_explicit_validated_and_persisted() -> TestResult {
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security_state()?))
+            .app_data(web::Data::new(resource_state()?))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let create=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/public-models").set_json(json!({"id":"model-prefix","model_name":"literal-model","display_name":"literal","status":"active","capabilities":{}})),Some("rev-0")).to_request()).await;
+    assert_eq!(create.status(), StatusCode::CREATED);
+    for prefix in ["", "///", "team/other", "team space", "a\nb"] {
+        let result = test::call_service(
+            &app,
+            authorized(
+                test::TestRequest::post()
+                    .uri("/admin/public-models/model-prefix/aliases")
+                    .set_json(json!({"prefix":prefix,"alias":"model"})),
+                Some("rev-1"),
+            )
+            .to_request(),
+        )
+        .await;
+        assert!(result.status().is_client_error());
+    }
+    let create = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::post()
+                .uri("/admin/public-models/model-prefix/aliases")
+                .set_json(json!({"prefix":" /Team/ ","alias":"model"})),
+            Some("rev-1"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(create.status(), StatusCode::CREATED);
+    assert_revision(&create, 2);
+    let created: Value = test::read_body_json(create).await;
+    assert_eq!(created["alias"], "Team/model");
+    let page = test::call_service(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/model-aliases"), None).to_request(),
+    )
+    .await;
+    assert_eq!(page.status(), StatusCode::OK);
+    let page: Value = test::read_body_json(page).await;
+    assert!(page.to_string().contains("Team/model"));
+    let deleted = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::delete()
+                .uri("/admin/public-models/model-prefix/aliases")
+                .set_json(json!({"alias":"Team/model"})),
+            Some("rev-2"),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(deleted.status(), StatusCode::NO_CONTENT);
+    assert_revision(&deleted, 3);
+    Ok(())
+}

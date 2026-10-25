@@ -395,3 +395,14 @@ OPT-07 / T22 → [ADR-0129](adr/ADR-0129-account-quota-history.md) → [BC-MGMT-
 Usage process517/517; quota process20/20; schema38→39 preserves original Usage/ledger/price cells.
 `quota_history_cancelled_waiter_keeps_blocking_capacity` preserves bounded blocking work after cancellation.
 Historical branch evidence keeps its original identities; final documentation successor is recorded separately.
+
+## 2026-10-25 #69 CPA controls and model names
+
+#69 / OPT-02 → [ADR-0130](adr/ADR-0130-cpa-request-controls-model-names.md) →
+[BC-PROTOCOL-017](contracts/BC-PROTOCOL-017-cpa-controls-model-names.md) → public JSON/SSE
+`cpa_69_model_controls_reach_independent_receiver`, `cpa_69_prefixed_suffix_names_keep_permissions_and_native_wire`,
+`cpa_69_named_controls_keep_two_tool_cycles_and_followup`, count
+`cpa_69_count_names_reuse_authorized_resolution_without_inference`, management prefix validation
+and `cpa_69_prefix_graph_publish_rollback_and_pinned_names`.
+[Implementation and actual gates](reports/issue-69-controls-model-names-20261025.md) remain local evidence;
+#62/#64 clients, fixed service, real Provider, CI and release qualification remain separate.

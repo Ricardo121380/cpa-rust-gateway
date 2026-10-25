@@ -16,6 +16,8 @@ use crate::{SnapshotTransformMode, ToolExecutionConstraints, tool_controls};
 
 mod compatibility;
 mod model_thinking;
+mod named_controls;
+pub use named_controls::{model_name_native_payload, validate_model_name_control};
 
 /// Client or Endpoint wire format considered by the P5 transformation boundary.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -344,6 +346,36 @@ pub fn analyze_protocol_transform(input: ProtocolTransformInput<'_>) -> Protocol
 pub fn project_protocol_request(
     input: ProtocolTransformInput<'_>,
 ) -> Result<ProjectedProtocolRequest, ProtocolTransformRejection> {
+    let named_request;
+    let input = if input.request.model_thinking.is_some() {
+        if input.mode == SnapshotTransformMode::LosslessBridge
+            || !input
+                .target_capabilities
+                .supports(SemanticCapability::Reasoning)
+            || input
+                .target_model
+                .is_some_and(|model| !model_thinking::supports_name(model).unwrap_or(false))
+        {
+            return Err(ProtocolTransformRejection::ThinkingUnsupported);
+        }
+        named_request = if input.mode == SnapshotTransformMode::Passthrough {
+            named_controls::native_request(
+                input.request,
+                input.source,
+                input
+                    .target_model
+                    .ok_or(ProtocolTransformRejection::ThinkingUnsupported)?,
+            )?
+        } else {
+            named_controls::source_request(input.request, input.source)?
+        };
+        ProtocolTransformInput {
+            request: &named_request,
+            ..input
+        }
+    } else {
+        input
+    };
     input
         .request
         .validate_tool_history()
@@ -423,7 +455,9 @@ pub fn project_protocol_request(
             Err(reason) => return Err(reason),
         }
     };
-    if input.mode == SnapshotTransformMode::CanonicalBridge && input.source != input.target {
+    if (input.mode == SnapshotTransformMode::CanonicalBridge && input.source != input.target)
+        || input.request.model_thinking.is_some()
+    {
         model_thinking::normalize(
             input.request,
             &mut projected,
@@ -1296,6 +1330,7 @@ mod tests {
 
     fn request() -> CanonicalRequest {
         CanonicalRequest {
+            model_thinking: None,
             requested_model: "private-model".to_owned(),
             messages: vec![text_message("user", "private prompt")],
             tools: Vec::new(),

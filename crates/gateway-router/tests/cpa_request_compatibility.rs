@@ -540,3 +540,44 @@ fn cpa_69_service_tier_mapping_and_malformed_controls() -> TestResult {
     }
     Ok(())
 }
+
+#[test]
+fn cpa_69_suffix_controls_keep_lossless_and_capability_guards() -> TestResult {
+    let mut decoded = protocol_anthropic::decode_request(&body().to_string())?.request;
+    decoded.model_thinking = Some(gateway_core::ModelThinking::Budget(-1));
+    for (model, mode, capabilities) in [
+        (
+            "gpt-5.5",
+            SnapshotTransformMode::LosslessBridge,
+            CapabilitySet::try_new([SemanticCapability::Reasoning])?,
+        ),
+        (
+            "gpt-5.5",
+            SnapshotTransformMode::CanonicalBridge,
+            CapabilitySet::empty(),
+        ),
+        (
+            "claude-3-5-haiku-20241022",
+            SnapshotTransformMode::CanonicalBridge,
+            CapabilitySet::try_new([SemanticCapability::Reasoning])?,
+        ),
+    ] {
+        assert!(
+            project_protocol_request(ProtocolTransformInput {
+                target_model: Some(model),
+                target_supports_service_tier: true,
+                source: ProtocolFormat::AnthropicMessages,
+                target: ProtocolFormat::OpenAiResponses,
+                mode,
+                native_payload: NativePayloadAvailability::Exact,
+                request: &decoded,
+                streaming: false,
+                requires_json_schema: false,
+                requires_parallel_tools: false,
+                target_capabilities: &capabilities
+            })
+            .is_err()
+        );
+    }
+    Ok(())
+}

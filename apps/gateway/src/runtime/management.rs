@@ -525,7 +525,7 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
             return Err(ManagementRuntimeError::Unavailable);
         }
         let public_model = snapshot
-            .resolve_public_model(request.requested_model())
+            .resolve_public_model_reference(request.requested_model())
             .filter(|model| model.route_id() == request.route_id())
             .ok_or(ManagementRuntimeError::Unavailable)?;
         let route = snapshot

@@ -1,5 +1,9 @@
 # ADR-0126: CPA v8 Messages effort extraction
 
+> Limited successor: [ADR-0130](ADR-0130-cpa-request-controls-model-names.md) admits bridge
+> budgets 0/-1, freezes candidate model normalization and adds explicit name controls. The
+> original effort extraction/precedence remains; historical receipts below keep their identity.
+
 | Field | Value |
 |---|---|
 | Status | Accepted |

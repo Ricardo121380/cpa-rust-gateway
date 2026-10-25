@@ -180,6 +180,7 @@ fn decode_canonical_request(
 
     Ok((
         CanonicalRequest {
+            model_thinking: None,
             requested_model,
             messages,
             tools,

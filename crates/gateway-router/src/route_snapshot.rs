@@ -1011,6 +1011,54 @@ impl RouteSnapshot {
         &self.version
     }
 
+    /// Checks exact configured names globally before any suffix fallback, including forbidden
+    /// names. This is only a shadowing guard; it does not grant access or reveal the name.
+    #[must_use]
+    pub fn has_exact_model_name(&self, name: &str) -> bool {
+        self.public_models.contains_key(name)
+            || self.aliases.contains_key(name)
+            || self.routes.values().any(|route| {
+                route
+                    .candidates()
+                    .iter()
+                    .any(|c| c.upstream_model() == name)
+            })
+    }
+
+    /// Resolves a configured public name or a valid suffix of one, preserving exact collisions.
+    #[must_use]
+    pub fn resolve_public_model_reference(&self, name: &str) -> Option<&SnapshotPublicModel> {
+        if self.has_exact_model_name(name) {
+            return self.resolve_public_model(name);
+        }
+        let (base, _) = crate::parse_thinking_suffix(name).ok()??;
+        self.resolve_public_model(base)
+    }
+
+    fn prefixed_aliases_with_time<'a>(
+        &'a self,
+        group: &AccessGroupId,
+        at: Option<i64>,
+    ) -> impl Iterator<Item = &'a str> {
+        let group = group.clone();
+        self.aliases.keys().filter_map(move |alias| {
+            if !crate::is_prefixed_model_alias(alias) {
+                return None;
+            }
+            let model = self.resolve_public_model_for_access_group(&group, alias)?;
+            self.route(model.route_id())?
+                .candidates()
+                .iter()
+                .any(|candidate| {
+                    at.map_or_else(
+                        || candidate.is_hard_eligible(),
+                        |at| candidate.is_hard_eligible_at(at),
+                    )
+                })
+                .then_some(alias.as_str())
+        })
+    }
+
     /// Resolves an exact public model name or exact Alias to its public-model view.
     #[must_use]
     pub fn resolve_public_model(&self, model_name_or_alias: &str) -> Option<&SnapshotPublicModel> {
@@ -1153,37 +1201,59 @@ impl RouteSnapshot {
         observed_at_ms: Option<i64>,
     ) -> Option<Vec<SnapshotEffectiveModel<'_>>> {
         self.access_group(access_group_id)?;
-        Some(
-            self.exact_upstream_models_with_time(access_group_id, observed_at_ms)
-                .filter_map(|exact_id| {
-                    let SnapshotExactModelResolution::Unique(public_model) = self
-                        .resolve_exact_upstream_model_with_time(
-                            access_group_id,
-                            exact_id,
-                            observed_at_ms,
-                        )
-                    else {
-                        return None;
-                    };
-                    let candidates = self
-                        .route(public_model.route_id())?
-                        .candidates()
-                        .iter()
-                        .filter(|candidate| {
-                            observed_at_ms.map_or_else(
-                                || candidate.is_hard_eligible(),
-                                |at| candidate.is_hard_eligible_at(at),
-                            ) && candidate.upstream_model() == exact_id
-                        })
-                        .collect();
-                    Some(SnapshotEffectiveModel {
+        let mut models: Vec<_> = self
+            .exact_upstream_models_with_time(access_group_id, observed_at_ms)
+            .filter_map(|exact_id| {
+                let SnapshotExactModelResolution::Unique(public_model) = self
+                    .resolve_exact_upstream_model_with_time(
+                        access_group_id,
                         exact_id,
-                        public_model,
-                        candidates,
+                        observed_at_ms,
+                    )
+                else {
+                    return None;
+                };
+                let candidates = self
+                    .route(public_model.route_id())?
+                    .candidates()
+                    .iter()
+                    .filter(|candidate| {
+                        observed_at_ms.map_or_else(
+                            || candidate.is_hard_eligible(),
+                            |at| candidate.is_hard_eligible_at(at),
+                        ) && candidate.upstream_model() == exact_id
                     })
+                    .collect();
+                Some(SnapshotEffectiveModel {
+                    exact_id,
+                    public_model,
+                    candidates,
                 })
-                .collect(),
-        )
+            })
+            .collect();
+        for alias in self.prefixed_aliases_with_time(access_group_id, observed_at_ms) {
+            let public_model =
+                self.resolve_public_model_for_access_group(access_group_id, alias)?;
+            let candidates = self
+                .route(public_model.route_id())?
+                .candidates()
+                .iter()
+                .filter(|candidate| {
+                    observed_at_ms.map_or_else(
+                        || candidate.is_hard_eligible(),
+                        |at| candidate.is_hard_eligible_at(at),
+                    )
+                })
+                .collect();
+            models.push(SnapshotEffectiveModel {
+                exact_id: alias,
+                public_model,
+                candidates,
+            });
+        }
+        models.sort_by(|a, b| a.exact_id.cmp(b.exact_id));
+        models.dedup_by_key(|model| model.exact_id);
+        Some(models)
     }
 
     /// Resolves a Key ID for an independently authenticated management projection.
@@ -1769,6 +1839,12 @@ impl SnapshotAuthenticatedClient {
     pub fn exact_upstream_models(&self) -> impl Iterator<Item = &str> {
         self.snapshot
             .exact_upstream_models_for_access_group_at(self.access_group_id(), self.observed_at_ms)
+    }
+
+    /// Iterates explicitly configured prefix names visible in this pinned authorization view.
+    pub fn prefixed_model_aliases(&self) -> impl Iterator<Item = &str> {
+        self.snapshot
+            .prefixed_aliases_with_time(self.access_group_id(), Some(self.observed_at_ms))
     }
 
     /// Resolves an exact upstream model inside this Client Key's pinned authorized Snapshot.

@@ -99,6 +99,16 @@ impl<'de> Deserialize<'de> for ThinkingEffort {
     }
 }
 
+/// Validated model-name control retained separately from explicit body controls.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "value", rename_all = "snake_case")]
+pub enum ModelThinking {
+    /// CPA token budget, including zero (off) and minus one (auto).
+    Budget(i64),
+    /// CPA effort label validated at model-name admission.
+    Effort(ThinkingEffort),
+}
+
 /// Requested thinking behavior without provider-specific token budgets or mode switches.
 #[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

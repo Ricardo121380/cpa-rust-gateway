@@ -459,6 +459,7 @@ async fn count_stale_snapshot_and_cancelled_native_future_release_capacity() -> 
     let snapshot = fixture.executor.scheduler.snapshot();
     let execution = |snapshot| -> Result<CountTokensExecution, Box<dyn Error>> {
         let request = CanonicalRequest {
+            model_thinking: None,
             requested_model: "count-alias".into(),
             messages: Vec::new(),
             tools: Vec::new(),
@@ -514,5 +515,88 @@ async fn count_stale_snapshot_and_cancelled_native_future_release_capacity() -> 
         0
     );
     assert!(fixture.events.0.lock().map_err(|_| "events")?.is_empty());
+    Ok(())
+}
+
+#[actix_web::test]
+async fn cpa_69_count_names_reuse_authorized_resolution_without_inference() -> TestResult {
+    let client = reqwest::Client::new();
+    for native in [false, true] {
+        let peer = Peer::start(false, None)?;
+        let mut denied = None;
+        let mut fixture = production_fixture(peer.clone(), native, false, |config| {
+            config
+                .model_aliases
+                .push(gateway_store::control_plane::ModelAliasConfiguration {
+                    alias: gateway_router::prefixed_model_alias("count-team", "model")?,
+                    public_model_id: config.public_models[0].id.clone(),
+                });
+            let group = gateway_core::AccessGroupId::try_new("count-denied")?;
+            config
+                .access_groups
+                .push(gateway_store::control_plane::AccessGroupConfiguration {
+                    id: group.clone(),
+                    name: "denied".into(),
+                    limits_json: "{}".into(),
+                    status: gateway_store::control_plane::AdministrativeStatus::Active,
+                });
+            let issuer = ClientKeyService::new(ClientKeyPepper::try_from_bytes([0x68; 32])?);
+            let (key, presented) = issuer
+                .issue(ClientKeyId::try_new("count-denied-key")?, group, None)?
+                .into_parts();
+            denied = Some(presented.as_str().to_owned());
+            config.client_keys.push(StoredClientKey::try_new(
+                key.client_key_id().clone(),
+                key.access_group_id().clone(),
+                key.prefix().as_str(),
+                key.secret_digest().as_bytes(),
+                StoredClientKeyStatus::Active,
+                None,
+            )?);
+            Ok(())
+        })?;
+        let (origin, server) = serve(fixture.state.clone())?;
+        for name in [
+            "count-team/model",
+            "count-team/model(high)",
+            "claude-count-model(0)",
+        ] {
+            let response = call(&client, &origin, &fixture.key, payload(name)).await?;
+            assert_eq!(response.status(), 200, "{name}: {}", response.text().await?);
+        }
+        for name in [
+            "other/model(high)",
+            "count-team/model(bogus)",
+            "count-team/model(-2)",
+            "count-team/model()",
+        ] {
+            assert!(
+                call(&client, &origin, &fixture.key, payload(name))
+                    .await?
+                    .status()
+                    .is_client_error()
+            );
+        }
+        let denied = denied.ok_or("denied key")?;
+        for name in [
+            "count-team/model",
+            "count-team/model(high)",
+            "claude-count-model(0)",
+        ] {
+            assert_eq!(
+                call(&client, &origin, &denied, payload(name))
+                    .await?
+                    .status(),
+                404
+            );
+        }
+        assert_eq!(
+            peer.received.lock().map_err(|_| "receiver")?.len(),
+            if native { 3 } else { 0 }
+        );
+        assert_no_usage(&mut fixture).await?;
+        server.stop(false).await;
+        peer.server.stop(false).await;
+    }
     Ok(())
 }

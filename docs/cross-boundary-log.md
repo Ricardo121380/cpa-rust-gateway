@@ -3902,3 +3902,16 @@ moves unchanged into `apps/gateway/src/runtime/management.rs`.
 
 **Other side:** FYI. Prism and its ownership split are retired, not awaiting repair. Future UI
 work starts from the backend API when requested. Historical evidence remains source-bound.
+
+## 2026-10-25 — #69 explicit prefixed Alias input
+
+**Initiator:** Codex, under #69 local implementation authorization.
+
+**Paths:** `docs/openapi/management-v1.json`.
+
+**Why:** AliasInput gains an optional explicit prefix. It materializes `prefix/alias` in the
+existing configuration graph and returns that exact stored name. No new route, permission,
+migration or frontend is added.
+
+**Other side:** FYI. Existing clients omitting prefix keep their behavior. Future management
+consumers may expose this optional input; list/delete continue using the returned exact Alias.

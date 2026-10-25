@@ -1,5 +1,9 @@
 # BC-PROTOCOL-016: Claude Code D2 restricted support
 
+> #69 successor: [ADR-0130](../adr/ADR-0130-cpa-request-controls-model-names.md) and the
+> [control/name matrix](../support/cpa-request-controls-model-names.md) extend local request
+> compatibility. Actual Claude and fixed-service qualification retain their original boundaries.
+
 > **Current request policy:** [ADR-0125](../adr/ADR-0125-cpa-request-compatibility.md)
 > replaces the mandatory effort rejection and M1/M2/M5 blockers. D2 remains a historical
 > version/configuration-bound receipt; its old request counts do not validate this changed source.

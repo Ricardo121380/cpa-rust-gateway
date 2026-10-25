@@ -1,5 +1,10 @@
 # BC-ROUTE-002 RouteSnapshot public model view and Responses force mapping
 
+> #69 limited successor: [ADR-0130](../adr/ADR-0130-cpa-request-controls-model-names.md) and
+> [support matrix](../support/cpa-request-controls-model-names.md) define compatible budgets
+> 0/-1, frozen model controls, explicit qualified Aliases and suffix precedence. Existing
+> history, ownership and actual-client qualification remain independent.
+
 | Field | Value |
 |---|---|
 | Contract | `BC-ROUTE-002` |

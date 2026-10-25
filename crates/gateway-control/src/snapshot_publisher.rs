@@ -735,6 +735,56 @@ mod tests {
     type TestResult = Result<(), Box<dyn Error>>;
 
     #[test]
+    fn cpa_69_prefix_graph_publish_rollback_and_pinned_names() -> TestResult {
+        let compiler = compiler()?;
+        let initial = configuration("initial")?;
+        let registry = Arc::new(RouteSnapshotRegistry::new(Arc::new(
+            route_snapshot_from_compiled(&compiler.compile(&initial)?, &initial)?,
+        )));
+        let service = SnapshotPublicationService::new(compiler, Arc::clone(&registry));
+        let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
+        let mut first = configuration("prefix-first")?;
+        let alias = gateway_router::prefixed_model_alias("team", "model")?;
+        first.model_aliases.push(ModelAliasConfiguration {
+            alias: alias.clone(),
+            public_model_id: first.public_models[0].id.clone(),
+        });
+        let second = configuration("prefix-second")?;
+        repository.write_configuration(&first)?;
+        repository.write_configuration(&second)?;
+        service.publish_version(&mut repository, &first.version.id)?;
+        let pinned = registry.load();
+        assert!(pinned.resolve_public_model(&alias).is_some());
+        assert!(
+            pinned
+                .resolve_public_model_reference("team/model(high)")
+                .is_some()
+        );
+        let group = AccessGroupId::try_new("access-group-a")?;
+        assert!(
+            pinned
+                .effective_models_for_access_group(&group)
+                .ok_or("effective models")?
+                .iter()
+                .any(|m| m.exact_id == alias)
+        );
+        service.publish_version(&mut repository, &second.version.id)?;
+        assert!(registry.load().resolve_public_model(&alias).is_none());
+        assert!(pinned.resolve_public_model(&alias).is_some());
+        service.rollback(&mut repository)?;
+        assert!(registry.load().resolve_public_model(&alias).is_some());
+        let reopened = repository
+            .load_configuration(&first.version.id)?
+            .ok_or("persisted")?;
+        assert_eq!(
+            reopened.public_models[0].model_name,
+            first.public_models[0].model_name
+        );
+        assert!(reopened.model_aliases.iter().any(|a| a.alias == alias));
+        Ok(())
+    }
+
+    #[test]
     fn publishes_versions_and_rolls_back_the_persisted_and_in_memory_pair() -> TestResult {
         let compiler = compiler()?;
         let bootstrap_configuration = configuration("bootstrap")?;

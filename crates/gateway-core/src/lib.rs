@@ -64,7 +64,7 @@ pub use request_metadata::{
     RequestMetadataEvidence, RequestMetadataSource,
 };
 pub use retry_gate::{TransparentRetryGate, TransparentRetryGateFuture};
-pub use thinking::{InvalidThinkingEffort, Thinking, ThinkingEffort};
+pub use thinking::{InvalidThinkingEffort, ModelThinking, Thinking, ThinkingEffort};
 pub use token_count::{ExactInputTokenCount, InputTokenCount};
 pub use tool::ToolDefinition;
 

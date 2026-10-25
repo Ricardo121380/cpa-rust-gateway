@@ -1507,6 +1507,7 @@ impl P12RoutedResponsesExecutor {
         };
         let request_id = p13_channel_pin_request_id()?;
         let mut canonical = CanonicalRequest {
+            model_thinking: None,
             requested_model: request.requested_model().to_owned(),
             messages: vec![CanonicalMessage {
                 role: MessageRole("user".to_owned()),
@@ -5150,6 +5151,26 @@ impl AttemptDriver for EndpointAttemptDriver {
 }
 
 impl EndpointAttemptDriver {
+    fn native_payload_for_model(
+        &self,
+        model: &str,
+    ) -> Result<std::borrow::Cow<'_, [u8]>, GatewayError> {
+        let payload = self
+            .native_payload
+            .as_deref()
+            .ok_or_else(upstream_protocol_error)?;
+        if self.request.model_thinking.is_none() {
+            return Ok(std::borrow::Cow::Borrowed(payload));
+        }
+        gateway_router::model_name_native_payload(
+            payload,
+            &self.request,
+            self.client_protocol,
+            model,
+        )
+        .map(std::borrow::Cow::Owned)
+        .map_err(|_| upstream_protocol_error())
+    }
     /// Runs a native OpenAI-compatible Chat Completions attempt.
     ///
     /// The strictly decoded ingress payload is retained and only its model is replaced, matching
@@ -5176,9 +5197,9 @@ impl EndpointAttemptDriver {
                     endpoint,
                     &request_credential,
                     candidate.upstream_model(),
-                    self.native_payload
-                        .as_deref()
-                        .ok_or_else(|| AttemptFailure::NonRetryable(upstream_protocol_error()))?,
+                    &self
+                        .native_payload_for_model(candidate.upstream_model())
+                        .map_err(AttemptFailure::NonRetryable)?,
                     chat_upstream_response_mode(self.mode),
                 )
             }
@@ -5283,9 +5304,9 @@ impl EndpointAttemptDriver {
                 endpoint,
                 &request_credential,
                 candidate.upstream_model(),
-                self.native_payload
-                    .as_deref()
-                    .ok_or_else(|| AttemptFailure::NonRetryable(upstream_protocol_error()))?,
+                &self
+                    .native_payload_for_model(candidate.upstream_model())
+                    .map_err(AttemptFailure::NonRetryable)?,
                 upstream_response_mode(self.mode),
             ),
             ProjectedProtocolRequest::Canonical(request) => OpenAiResponsesRequestBuilder::build(
@@ -5410,9 +5431,9 @@ impl EndpointAttemptDriver {
                     endpoint,
                     &authorization,
                     candidate.upstream_model(),
-                    self.native_payload
-                        .as_deref()
-                        .ok_or_else(|| AttemptFailure::NonRetryable(upstream_protocol_error()))?,
+                    &self
+                        .native_payload_for_model(candidate.upstream_model())
+                        .map_err(AttemptFailure::NonRetryable)?,
                     anthropic_upstream_response_mode(self.mode),
                 )
             }

@@ -147,6 +147,7 @@ pub fn decode_request(input: &str) -> Result<DecodedChatRequest, GatewayError> {
 
     Ok(DecodedChatRequest {
         request: CanonicalRequest {
+            model_thinking: None,
             requested_model,
             messages,
             tools,

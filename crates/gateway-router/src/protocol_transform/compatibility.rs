@@ -172,7 +172,7 @@ fn without_cache(
     Ok(result)
 }
 
-fn thinking(
+pub(super) fn thinking(
     request: &CanonicalRequest,
     source: ProtocolFormat,
     target: ProtocolFormat,
@@ -209,24 +209,32 @@ fn thinking(
     }
     let mut extensions = RawExtensions::default();
     let effort = if source == ProtocolFormat::AnthropicMessages {
-        match request.thinking.as_ref().map(|t| t.effort.as_str()) {
-            Some("disabled") => "none".to_owned(),
-            Some("adaptive" | "auto") => output_effort.unwrap_or_else(|| "xhigh".into()),
-            Some("enabled") => match request
-                .thinking
-                .as_ref()
-                .and_then(|t| t.extensions.get(ANTHROPIC_THINKING_BUDGET))
-            {
-                Some(raw) => {
-                    budget_level(serde_json::from_str(raw.get()).map_err(|_| invalid())?).to_owned()
-                }
-                None => output_effort.unwrap_or_else(|| "auto".into()),
-            },
-            None => match output_effort {
-                Some(effort) => effort,
-                None => return Ok(None),
-            },
-            _ => return Err(invalid()),
+        if let Some(control) = &request.model_thinking {
+            match control {
+                gateway_core::ModelThinking::Budget(budget) => budget_level(*budget).to_owned(),
+                gateway_core::ModelThinking::Effort(effort) => effort.as_str().to_owned(),
+            }
+        } else {
+            match request.thinking.as_ref().map(|t| t.effort.as_str()) {
+                Some("disabled") => "none".to_owned(),
+                Some("adaptive" | "auto") => output_effort.unwrap_or_else(|| "xhigh".into()),
+                Some("enabled") => match request
+                    .thinking
+                    .as_ref()
+                    .and_then(|t| t.extensions.get(ANTHROPIC_THINKING_BUDGET))
+                {
+                    Some(raw) => {
+                        budget_level(serde_json::from_str(raw.get()).map_err(|_| invalid())?)
+                            .to_owned()
+                    }
+                    None => output_effort.unwrap_or_else(|| "auto".into()),
+                },
+                None => match output_effort {
+                    Some(effort) => effort,
+                    None => return Ok(None),
+                },
+                _ => return Err(invalid()),
+            }
         }
     } else {
         let Some(thinking) = request.thinking.as_ref() else {
@@ -238,15 +246,7 @@ fn thinking(
                 "auto" => "adaptive".into(),
                 _ if super::model_thinking::has_levels(target_model)? => "adaptive".into(),
                 effort => {
-                    let budget = match effort {
-                        "minimal" => 512,
-                        "low" => 1024,
-                        "medium" => 8192,
-                        "high" => 24576,
-                        "xhigh" => 32768,
-                        "max" => 128_000,
-                        _ => return Err(invalid()),
-                    };
+                    let budget = level_budget(effort).ok_or_else(invalid)?;
                     insert(
                         &mut extensions,
                         ANTHROPIC_THINKING_BUDGET,
@@ -274,6 +274,18 @@ pub(super) const fn budget_level(budget: i64) -> &'static str {
         1025..=8192 => "medium",
         8193..=24576 => "high",
         _ => "xhigh",
+    }
+}
+
+pub(super) fn level_budget(effort: &str) -> Option<u64> {
+    match effort {
+        "minimal" => Some(512),
+        "low" => Some(1024),
+        "medium" => Some(8192),
+        "high" => Some(24576),
+        "xhigh" => Some(32768),
+        "max" => Some(128_000),
+        _ => None,
     }
 }
 

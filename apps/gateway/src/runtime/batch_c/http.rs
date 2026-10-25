@@ -6,6 +6,7 @@ use std::net::{IpAddr, Ipv4Addr, TcpListener};
 pub(in crate::runtime) mod bootstrap_usage;
 mod count_tokens;
 mod cpa_compatibility;
+mod model_names;
 mod responses_done;
 mod responses_history;
 

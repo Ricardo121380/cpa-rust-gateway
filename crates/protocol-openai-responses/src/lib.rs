@@ -333,6 +333,7 @@ pub fn decode_request(input: &str) -> Result<DecodedResponsesRequest, GatewayErr
 
     Ok(DecodedResponsesRequest {
         request: CanonicalRequest {
+            model_thinking: None,
             requested_model,
             messages,
             tools,

@@ -122,6 +122,7 @@ mod tests {
 
     fn request() -> CanonicalRequest {
         CanonicalRequest {
+            model_thinking: None,
             requested_model: "count-test-model".to_owned(),
             messages: Vec::new(),
             tools: Vec::new(),
