@@ -29,7 +29,7 @@
 - [项目规则](../../AGENTS.md)、[Claude Code 规则](../../CLAUDE.md)、[跨边界日志](../cross-boundary-log.md)。
 - [V4 原型](../design/prism-liquid-glass-v4.html)、[V4 视觉交接](prism-opendesign-v4.md)、[V3 栏目和交互清单](prism-opendesign-v3.md)。
 - [前期开发方案](prism-development-plan-2026-09-09.md)、[项目审查](../reports/project-review-2026-09-09.md)。
-- [现有设计规范](../../web/prism/DESIGN.md)、[历史前端计划](../08-management-frontend-development-plan.md)、[环境与服务边界交接](claude-code-oracle-singapore-vps.md)。
+- [现有设计规范](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/DESIGN.md)、[历史前端计划](../08-management-frontend-development-plan.md)、[环境与服务边界交接](claude-code-oracle-singapore-vps.md)。
 
 本轮范围、执行者和完成条件以本计划及用户后续指令为准；视觉细节以 V4 为准；事实与接口以当前代码和权威管理 OpenAPI 为准。V3 的临时示例流程不限制本轮补齐真实功能，历史文档中的“前端由 Claude Code 执行”“BE-FE-01/02 留待后续”已由本次确认更新。历史阶段的 DONE/IN_PROGRESS 不因此改变。
 

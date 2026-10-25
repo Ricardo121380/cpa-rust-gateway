@@ -74,15 +74,6 @@ check_tracked_whitespace() {
   git diff --check "$empty_tree" HEAD
 }
 
-install_management_spa_dependencies() {
-  command -v node >/dev/null
-  command -v npm >/dev/null
-  (
-    cd "$repo_root/web/prism"
-    npm ci --ignore-scripts --no-audit --no-fund
-  )
-}
-
 if [[ "$mode" == "docs" ]]; then
   run_step "Document links" "$repo_root/scripts/check-doc-links.rb"
   run_step "Contract tests" "$repo_root/scripts/check-contract-tests.rb"
@@ -122,7 +113,6 @@ run_step "Plan state guard" "$repo_root/scripts/test-plan-state-check.sh"
 run_step "Canary thresholds" "$repo_root/scripts/check-p12-08-canary-thresholds.rb"
 run_step "Caddy split" "$repo_root/scripts/check-p12-caddy-split.rb"
 run_step "Caddy split guard" "$repo_root/scripts/test-p12-caddy-split.sh"
-run_step "Management SPA dependencies" install_management_spa_dependencies
 run_step "Benchmark baseline comparator" "$repo_root/scripts/test-p11-03-benchmark-baseline.sh"
 run_step "Soak runner argument guard" "$repo_root/scripts/test-p11-04-soak-runner.sh"
 run_step "Soak receipt checker" "$repo_root/scripts/test-p11-04-soak-receipt.sh"
@@ -142,7 +132,7 @@ run_step "P12 Autoreg Console memory export" python3 "$repo_root/scripts/test-p1
 run_step "P12 production observer" python3 "$repo_root/scripts/test-p12-10-observe.py"
 run_step "P12 Grok CPAR curl E2E harness" python3 "$repo_root/scripts/test-p12-10h-grok-cpar-e2e.py"
 run_step "CPAR new-build acceptance oracle" python3 "$repo_root/scripts/test-cpar-new-build-acceptance.py"
-run_step "Management SPA" node "$repo_root/scripts/check-management-spa.mjs"
+run_step "Candidate source deletions" python3 "$repo_root/scripts/acceptance/test_cpar66_source.py"
 run_step "Rust format" cargo fmt --all -- --check
 run_step "Clippy" cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 run_step "Rust tests" cargo test --locked --workspace --all-features

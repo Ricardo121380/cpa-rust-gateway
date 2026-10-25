@@ -1,5 +1,9 @@
 # ADR-0123: First-release Claude D2 restricted support
 
+> **2026-10-23 request-policy successor:** [ADR-0125](ADR-0125-cpa-request-compatibility.md)
+> adopts CPA-style request compatibility. Conflicting universal rejection / M1-M2-M5 blockers
+> and effort-negotiation requirements below are historical; other invariants and receipts remain.
+
 | Field | Value |
 | --- | --- |
 | Status | Accepted |

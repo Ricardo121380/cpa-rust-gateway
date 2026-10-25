@@ -2,17 +2,13 @@
 
 简体中文 | [English](README.md)
 
-CPAR 是一个以安全边界为核心、使用 Rust 编写的 AI 反向代理网关。它向下游提供兼容 OpenAI 和
-Anthropic 的 API，同时把不同 Provider 的凭据、账号、路由、运行时健康、额度、连续性状态和出口
-策略放在显式且相互隔离的作用域中。
+CPAR 是 CPA/CLIProxyAPI 网关能力的 Rust 实现，面向自托管使用。协议、账号、模型和路由
+优先对照固定版本的 CPA Go 源码，再在现有 Rust 模块中实现。CPA 未覆盖的渠道采用专项参考。
 
-本项目以 clean-room 方式实现，参考了 CPA、CLIProxyAPI、Sub2API、grok2api、Kiro-RS 等项目的
-可观察行为和运维经验。这些项目只是兼容性参考，并不是 CPAR 的运行时依赖；CPAR 也不是其中任何
-一个项目的源码级 fork。
-
-> **发布状态：** 已实现的后端能力已经按开发计划正式验收到 P13-11E4，但这不代表所有 roadmap
-> 任务、真实账号或外部网络边界都已经完成。请同时阅读[开发状态](#开发状态)和权威的
-> [详细开发计划](docs/06-development-plan.md)。
+> **当前入口（2026-10-23）：** [当前状态与开发顺序](docs/engineering-roadmap.md)统一记录已实现功能、
+> 生产接线、验证边界、固定 CPA 版本和下一项。[后端架构](docs/03-target-architecture-draft.md)负责代码位置，
+> [候选支持清单](docs/support/first-release-candidates.md)保存客户端与交付证据。
+> 旧 Prism 已退役，新前端以后根据管理 API 重新设计。
 
 ## 为什么选择 CPAR
 
@@ -41,7 +37,7 @@ Anthropic 的 API，同时把不同 Provider 的凭据、账号、路由、运�
 | Stored Response 删除 | `DELETE /v1/responses/{id}` | 只删除当前 Client Key 精确拥有的记录。 |
 | Response 压缩 | `POST /v1/responses/compact` | Gateway 自有、有界 continuity token；仅限显式 capability Route。 |
 | Anthropic Messages | `POST /v1/messages` | JSON 和有界 SSE。 |
-| Anthropic Token Count | `POST /v1/messages/count_tokens` | 仅在选中 capability 存在已审查计数路径时可用。 |
+| Anthropic Token Count | `POST /v1/messages/count_tokens` | 路由已存在，当前生产装配仍使用不支持计数的 executor；计数实现与接线待补。 |
 
 所有推理请求都需要 CPAR Client Key。协议兼容不等于默认开放 Provider 能力；未声明的 capability
 会在发生 Provider I/O 之前被拒绝。
@@ -53,6 +49,7 @@ CPAR 按 capability 建模，而不是把所有上游视为可以互换：
 - 操作者自有的 `base_url + api_key` 通用 OpenAI-compatible 或 Anthropic-compatible Endpoint，
   Krill 类中转只是这一类别中的一个实例；
 - 从受支持的 CPA/Sub2API JSON envelope 导入，或由操作者完成 OAuth 的官方 Codex/ChatGPT 凭据；
+- 通过兼容协议 adapter 执行推理的 Claude、Kimi 授权、导入及刷新路径；
 - 带 Provider 专属 Credential/runtime 状态的 Grok Build 与 Grok Console 账号池；
 - 处于各自已记录本地/外部证据边界内的 Grok Web 和 Kiro adapter；
 - 只有在所选 Config Version 中显式声明 adapter、协议和 egress capability 后才能使用的其他兼容
@@ -63,8 +60,8 @@ Endpoint、adapter、Credential binding、capability 和 egress policy。
 
 ## 管理与运维平面
 
-管理监听器与公共数据监听器完全独立，必须保持 loopback-only。它提供内嵌 Prism 管理应用和
-版本化、自动生成 client 的 `/admin` API。
+管理监听器与公共数据监听器完全独立，必须保持 loopback-only。它提供版本化的 `/admin` API；
+旧管理页面已移除，当前可用管理 API 和本地 CLI 操作。
 
 已实现的管理能力包括：
 
@@ -143,7 +140,6 @@ Security Advisory，不要提交公开 issue。
 ### 前置依赖
 
 - `rust-toolchain.toml` 固定的 Rust `1.97.1`；
-- 与 `web/prism/.nvmrc` 一致的 Node.js/npm，用于内嵌管理应用；
 - Linux 构建包：`build-essential`、`clang`、`cmake`、`libclang-dev`、`libssl-dev`、
   `pkg-config`、`ca-certificates`；
 - macOS：当前 Xcode Command Line Tools，必要时安装 Homebrew/OpenSSL；
@@ -154,13 +150,11 @@ Security Advisory，不要提交公开 issue。
 ```bash
 git clone https://github.com/Ricardo121380/cpa-rust-gateway.git
 cd cpa-rust-gateway
-npm --prefix web/prism ci --ignore-scripts --no-audit --no-fund
 cargo build --locked --release --package gateway
 ./target/release/gateway --help
 ```
 
-Rust 构建期间会编译并内嵌 Prism，因此源码构建必须同时具备 Rust toolchain 和已安装的 Prism npm
-依赖。
+后端独立构建，不需要 Node/npm 或前端目录。
 
 ### 验证
 
@@ -168,7 +162,6 @@ Rust 构建期间会编译并内嵌 Prism，因此源码构建必须同时具备
 cargo fmt --all -- --check
 cargo test --locked --workspace --all-features
 cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
-npm --prefix web/prism run check
 ./scripts/check.sh docs
 ```
 
@@ -230,9 +223,10 @@ Credential directory 必须包含以下精确命名的直接普通文件：
 
 新进程会创建/打开 `control.sqlite3`，但没有推理 Route。操作者必须创建 draft Config Version，依次
 配置 egress policy、Upstream、Endpoint、Credential binding、public model、route/candidate、access
-group 和 Client Key，验证整张图，发布并重启 runtime，才能组合 active immutable snapshot。
+group 和 Client Key，再验证和发布。通过运行中的管理 API 发布会准备并原子切换运行代；
+使用离线 admin CLI 修改后，需要重新启动 runtime 采用已发布配置。
 
-可以使用受保护管理 API/Prism UI 或本地 `gateway admin` 命令。请在仓库外维护一份不含 Secret 的
+可以使用受保护管理 API 或本地 `gateway admin` 命令。请在仓库外维护一份不含 Secret 的
 opaque ID 台账；部分底层资源有意不提供 collection/list API。详细顺序和回滚规则见
 [P12 Rollout Runbook](docs/p12-rollout-runbook.md)。
 
@@ -241,8 +235,9 @@ opaque ID 台账；部分底层资源有意不提供 collection/list API。详�
 对于已经支持 discovery 的渠道，`/v1/models` 不是手写的 Provider/套餐模型表。CPAR 按活动
 Config Version + Endpoint + Credential 发现 exact upstream model ID，把最后一次成功结果持久化到
 SQLite，再从已发布的 Route 模板原子派生只允许对应 Credential 租约的运行时 Route。当前自动运行时
-source 仅覆盖 Grok Build 与 official Codex；Grok Web/Console、xAI Official、Kiro 和 generic
-compatible endpoint 仍需各自经过审查的 source adapter。
+source 包括 Grok Build、official Codex、Kiro，以及配置了 `models_path` 的 compatible endpoint。
+Grok Web/Console 和 xAI Official 不自动继承这些 discovery 实现；source 已接线不代表每个账号和
+endpoint 的真实调用都已验收。
 
 默认生命周期为 Fresh 6 小时、24 小时后应刷新、72 小时硬过期。瞬时失败保留最后一次成功；删除模型
 必须至少连续三次成功响应都遗漏该模型，并且隔离满 24 小时，失败请求不计数。Worker 每小时检查一次
@@ -285,9 +280,37 @@ Realtime API。
 adaptive/display、overall effort、block cache 义务作为后续待办保留。
 正式决定见[ADR-0123](docs/adr/ADR-0123-first-release-claude-d2-restricted-support.md)。
 
-下方开发状态保留既有历史范围；当前D2选择与证据边界以以上入口为准。
+ADR-0125 请求兼容调整已在本地实现，历史原始 Claude 的拒绝及请求计数不再作为当前预期。
+D2 产品选择保持；当前源码的原版客户端与固定服务验收待重跑，见[当前状态入口](docs/engineering-roadmap.md)。
 
 ## 开发状态
+
+已实现功能、生产接线、证据缺口和下一项建议统一见[当前状态入口](docs/engineering-roadmap.md)。
+已实施的后端整理和前端退役见[架构文档](docs/03-target-architecture-draft.md)。
+
+<details>
+<summary>10 月 18 日及更早的开发状态快照</summary>
+
+截至 2026-10-18，主仓库基线为 `3369c730`。网关主体及管理流程已存在，当前仍在完成
+[现有渠道收敛 #9](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)。GitHub 有 14 个
+开放工单；[#57](https://github.com/Ricardo121380/cpa-rust-gateway/issues/57)仍有 11 个开放直接前置。
+
+- **最新本地门槛：** 10 月 17 日 Full 收据绑定 `2f43057c`，45/45 PASS，Rust 1515 PASS、
+  0 FAIL、13 IGNORED；不是今天重跑，也不代表真实渠道或新候选通过。
+- **下一迭代方向：** [#47](https://github.com/Ricardo121380/cpa-rust-gateway/issues/47) 的
+  Grok Build → Responses → 多轮工具调用作为内部起点；首个可用版本必须同时通过 Codex、
+  Claude Code、Pi，三者均调用 Grok Build，Messages 路径也是必做项。
+  [ADR-0107](docs/adr/ADR-0107-standard-response-metadata-separation.md)
+  已接受经审查元数据分离并完整加密留存的方向，字段准入与实现待完成；当前代码仍因额外 Usage
+  拒绝完整样本。[ADR-0108](docs/adr/ADR-0108-build-summary-standard-messages.md)另行允许
+  Claude Code 不展示 Grok 思考摘要，须完整加密留存且证明工具续轮不受影响；该路径尚未实现。
+- **版本与扩展：** 按明确支持范围分版本交付，#9 未完成项继续保留。`native-v1` 已接受的
+  扩展方向独立推进；profile、专用产品消费者及完整证据持久化仍未实现。
+- **保留的阻塞：** Kiro 原生 cap、Grok Web 多轮/部分 cap、逐渠道真实证据、同候选交付条件。
+  具体范围与证据见[10 月 18 日路线图](docs/reports/engineering-roadmap-20261018.md)，本轮未复核生产运行状态。
+
+<details>
+<summary>历史 P13 阶段状态原文（按原报告时间理解，不作为当前执行队列）</summary>
 
 - **已正式验收的实现：** 后端已完成到 P13-11E4，包括 P13 管理/计费/路由、Channel Pin、Stored
   Responses、Responses WebSocket、compatible egress pool 和 Provider egress 状态投影；
@@ -312,6 +335,10 @@ adaptive/display、overall effort、block cache 义务作为后续待办保留�
 `DONE_WITH_BOUNDARY` 只代表文档中冻结的验收边界通过，不代表每一个 Provider 账号、外部网络路径
 或生产部署都经过测试。
 
+</details>
+
+</details>
+
 ## Git 与发布治理
 
 开发使用 Phase/Integration Branch 和不可变 `phase-p*-complete` 证据 Tag。普通 branch push/PR
@@ -330,7 +357,6 @@ adaptive/display、overall effort、block cache 义务作为后续待办保留�
 | `crates/gateway-*` | core、auth、catalog、control、routing、store、transport、HTTP、observability |
 | `crates/protocol-*` | 下游/上游协议 codec |
 | `crates/provider-*` | Provider-specific adapter 与状态 |
-| `web/prism` | 内嵌 React 管理应用和 generated client |
 | `docs/adr` | 已接受架构决策 |
 | `docs/contracts` | 可执行行为/安全契约 |
 | `docs/reports` | 阶段与验证证据 |
@@ -339,14 +365,15 @@ adaptive/display、overall effort、block cache 义务作为后续待办保留�
 
 ## 文档导航
 
+- [当前状态、CPA 参考与开发顺序](docs/engineering-roadmap.md)
 - [中文部署指南](docs/deployment-guide.zh-CN.md)
 - [后端完成度审计](docs/backend-completion-audit-2026-08-19.md)
 - [Git 分支清单](docs/git-branch-inventory-2026-08-19.md)
 - [行为契约](docs/02-behavior-contracts.md)
 - [目标架构](docs/03-target-architecture-draft.md)
 - [渠道参考分析](docs/04-channel-reference-analysis.md)
-- [详细开发计划](docs/06-development-plan.md)
-- [管理前端计划](docs/08-management-frontend-development-plan.md)
+- [历史阶段开发计划与技术基线](docs/06-development-plan.md)
+- [历史管理前端计划](docs/08-management-frontend-development-plan.md)
 - [Traceability](docs/traceability.md)
 - [架构决策](docs/adr/README.md)
 - [Contract 索引](docs/contracts/README.md)
@@ -358,7 +385,7 @@ adaptive/display、overall effort、block cache 义务作为后续待办保留�
 ## 贡献
 
 请保持变更小而明确、Provider-scoped 且有证据。不要提交真实 Credential 或 Provider 原始 payload。
-先更新 authoritative OpenAPI，再生成 client；遵守 `AGENTS.md` 的前后端 ownership；新安全语义需要
+先更新 authoritative OpenAPI，再生成 client；遵守 `AGENTS.md` 的模块边界；新安全语义需要
 ADR/Contract；每个变更都应包含 focused test 和 value-free 验收记录。
 
 ## 许可证

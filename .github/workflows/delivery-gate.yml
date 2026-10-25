@@ -118,7 +118,7 @@ jobs:
           fetch-depth: 0
           ref: ${{ needs.authorize.outputs.revision }}
       - name: Install CI prerequisites
-        run: sudo apt-get update && sudo apt-get install --yes clang cmake libclang-dev nodejs npm ripgrep
+        run: sudo apt-get update && sudo apt-get install --yes clang cmake libclang-dev ripgrep
       - name: Install pinned Rust toolchain
         run: rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
       - name: Run fast gate
@@ -143,7 +143,7 @@ jobs:
       - name: Install native build prerequisites
         run: |
           sudo apt-get update
-          sudo apt-get install --yes clang cmake libclang-dev nodejs npm ripgrep
+          sudo apt-get install --yes clang cmake libclang-dev ripgrep
       - name: Install pinned Rust toolchain
         run: rustup toolchain install 1.97.1 --profile minimal
       - name: Restore pinned quality-tool cache

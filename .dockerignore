@@ -4,8 +4,6 @@
 .DS_Store
 target
 **/target
-web/prism/node_modules
-web/prism/dist
 node_modules
 **/node_modules
 docs/reports/private

@@ -32,7 +32,7 @@ CPAMP 的导航由能力开关决定；本次完整模式演示可见十个常�
 
 CPAMP 把模型规则分布于 Provider、OAuth 配置和系统模型信息，API Key 配置也不是本次演示里的独立一级菜单。建议为 CPAR 合并为“模型管理”和明确命名的“API 密钥”，这是产品适配，不是声称 CPAMP 原有这两个独立栏目。
 
-来源：[CPAMP 导航](https://github.com/seakee/CPA-Manager-Plus/blob/e1a8788ab796f4d001c5d1e9851c418989b05424/apps/web/src/components/layout/MainLayout.tsx#L514)、[路由](https://github.com/seakee/CPA-Manager-Plus/blob/e1a8788ab796f4d001c5d1e9851c418989b05424/apps/web/src/router/MainRoutes.tsx#L114)、[能力矩阵](https://github.com/seakee/CPA-Manager-Plus/blob/e1a8788ab796f4d001c5d1e9851c418989b05424/apps/docs/reference/capability-matrix.md)、[CPAR 导航](../../web/prism/src/app/navigation.ts)。
+来源：[CPAMP 导航](https://github.com/seakee/CPA-Manager-Plus/blob/e1a8788ab796f4d001c5d1e9851c418989b05424/apps/web/src/components/layout/MainLayout.tsx#L514)、[路由](https://github.com/seakee/CPA-Manager-Plus/blob/e1a8788ab796f4d001c5d1e9851c418989b05424/apps/web/src/router/MainRoutes.tsx#L114)、[能力矩阵](https://github.com/seakee/CPA-Manager-Plus/blob/e1a8788ab796f4d001c5d1e9851c418989b05424/apps/docs/reference/capability-matrix.md)、[CPAR 导航](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/app/navigation.ts)。
 
 ## 2. 账号接入的直接问题
 
@@ -42,7 +42,7 @@ CPAMP 把模型规则分布于 Provider、OAuth 配置和系统模型信息，AP
 
 开发 fixture 却使用 `kind: "oauth"`，使这一条件能在模拟数据中成立。该缺陷是源码交叉核对确认的；本轮没有对生产 OAuth 账号执行登录或刷新。
 
-证据：[前端判断](../../web/prism/src/features/upstreams/CredentialSheet.tsx)、[fixtures](../../web/prism/src/dev/fixtures.ts)、[持久化类型](../../crates/gateway-control/src/management_mutation_service.rs)、[HTTP 序列化与刷新](../../crates/gateway-http-actix/src/management_resources.rs)。
+证据：[前端判断](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/features/upstreams/CredentialSheet.tsx)、[fixtures](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/dev/fixtures.ts)、[持久化类型](../../crates/gateway-control/src/management_mutation_service.rs)、[HTTP 序列化与刷新](../../crates/gateway-http-actix/src/management_resources.rs)。
 
 ### F2 · 高：默认新建凭据类型不能通过运行装配
 
@@ -50,7 +50,7 @@ CPAMP 把模型规则分布于 Provider、OAuth 配置和系统模型信息，AP
 
 按表单默认值创建，可能完成存储，却无法成为可运行的启用配置。新用户不应理解并填写内部 kind。需要按服务商与授权方式选择并校验真实类型。
 
-证据：[新建账号表单](../../web/prism/src/features/upstreams/SubresourcePanel.tsx)、[请求校验](../../crates/gateway-http-actix/src/management_resources.rs)、[运行装配](../../apps/gateway/src/runtime.rs)。
+证据：[新建账号表单](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/features/upstreams/SubresourcePanel.tsx)、[请求校验](../../crates/gateway-http-actix/src/management_resources.rs)、[运行装配](../../apps/gateway/src/runtime.rs)。
 
 ### F3 · 高：账号首页不是受管账号的完整工作区
 
@@ -58,7 +58,7 @@ CPAMP 把模型规则分布于 Provider、OAuth 配置和系统模型信息，AP
 
 列表来自 `listProviderAccountPools` 的运行绑定，上游子资源来自 `listOperationalAccountPools`。未绑定、尚未进入运行态的新凭据无法靠这些投影完整枚举。权威 OpenAPI 有凭据单项读写，但没有独立的完整凭据／端点列表。只在首页补一个按钮仍不能闭环。
 
-证据：[账号页](../../web/prism/src/features/accounts/AccountsPage.tsx)、[子资源页](../../web/prism/src/features/upstreams/SubresourcePanel.tsx)、[权威 OpenAPI](../openapi/management-v1.json)。
+证据：[账号页](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/features/accounts/AccountsPage.tsx)、[子资源页](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/features/upstreams/SubresourcePanel.tsx)、[权威 OpenAPI](../openapi/management-v1.json)。
 
 ### F4 · 高：OAuth 入口尚不能表达不同平台的真实能力
 
@@ -66,7 +66,7 @@ CPAMP 把模型规则分布于 Provider、OAuth 配置和系统模型信息，AP
 
 不能简单为所有账号显示一个通用“OAuth 登录”按钮，也不能将 Grok、Kiro 或 CPAMP 的其他平台按钮都接向 Codex。应先定稿平台／渠道能力和授权分派；复用各 Provider 已有实现时必须逐个核对管理端接线。
 
-证据：[运行装配](../../apps/gateway/src/deployment.rs)、[OAuth 管理 handler](../../crates/gateway-http-actix/src/management_resources.rs)、[现有前端向导](../../web/prism/src/features/upstreams/OAuthWizard.tsx)。
+证据：[运行装配](../../apps/gateway/src/deployment.rs)、[OAuth 管理 handler](../../crates/gateway-http-actix/src/management_resources.rs)、[现有前端向导](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/features/upstreams/OAuthWizard.tsx)。
 
 ### F5 · 高：修改普通配置需要理解版本，且 parent 不是克隆
 
@@ -74,13 +74,13 @@ CPAMP 把模型规则分布于 Provider、OAuth 配置和系统模型信息，AP
 
 更关键的是，当前 `createConfigVersion` 最终调用 `create_empty_configuration`：`parent_id` 仅保存关联，不复制已有资源图。不能把“后台自动创建一个 parent 指向当前版本的草稿”当成安全编辑方案。必须实现真正的服务端复制或事务变更应用，保留无关提供商、账号、路由和授权；凭据的加密关联数据含配置版本，跨版本复制还需要在服务端重新封装。
 
-证据：[创建 handler](../../crates/gateway-http-actix/src/management_lifecycle_resources.rs)、[空配置创建](../../crates/gateway-control/src/management_service.rs)、[秘密封装](../../crates/gateway-control/src/management_mutation_service.rs)、[前端只读门槛](../../web/prism/src/features/upstreams/UpstreamsPage.tsx)。
+证据：[创建 handler](../../crates/gateway-http-actix/src/management_lifecycle_resources.rs)、[空配置创建](../../crates/gateway-control/src/management_service.rs)、[秘密封装](../../crates/gateway-control/src/management_mutation_service.rs)、[前端只读门槛](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/features/upstreams/UpstreamsPage.tsx)。
 
 ### F6 · 中：改状态仍被要求重新输入秘密
 
 `CredentialInput` 的 secret 必填且不能为空，PATCH 使用同一整体输入。表单因此要求仅修改状态时也重填秘密。账号启停、备注、优先级、绑定配置与秘密轮换应分开；一般管理动作不应该依赖用户重新获取原凭据。
 
-证据：[输入定义与校验](../../crates/gateway-http-actix/src/management_resources.rs)、[编辑表单](../../web/prism/src/features/upstreams/SubresourcePanel.tsx)。
+证据：[输入定义与校验](../../crates/gateway-http-actix/src/management_resources.rs)、[编辑表单](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/features/upstreams/SubresourcePanel.tsx)。
 
 ## 3. 栏目背后的产品缺口
 

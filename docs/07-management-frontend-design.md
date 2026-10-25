@@ -1,5 +1,7 @@
 # 07 · 管理前端设计文档 — Prism(Liquid Glass 管理与观测面板)
 
+> 历史前端资料。2026-10-23 已按用户要求移除旧 Prism，本文不再约束新前端设计；当前开发顺序见[状态入口](engineering-roadmap.md)，代码位置见[后端架构](03-target-architecture-draft.md)。
+
 | 项目 | 值 |
 |---|---|
 | 状态 | `v0.2 Draft — 提案(对应功能矩阵 H18/H19/H20/H21,均为「待定」项,采纳需走 Change Request)` |

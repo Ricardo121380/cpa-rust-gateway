@@ -7,6 +7,10 @@
 | Task | `CPAR-C / CPAR-35, CPAR-38, CPAR-39`; issues #44, #47, #48; evidence aggregation #57 |
 | Matrix / Contract | `B11`, `B12`, `B16`, `C01`, `C03`, `C18`, `C31`, `F02`; [ADR-0100](ADR-0100-exact-protocol-semantics-and-usage-evidence.md), [BC-PROVIDER-015](../contracts/BC-PROVIDER-015-grok-official-tool-reasoning-capability.md), [BC-CORE-003](../contracts/BC-CORE-003-canonical-event-state-machine.md) |
 
+> **2026-10-18 限定后继决定：** [ADR-0108](ADR-0108-build-summary-standard-messages.md)
+> 单独批准 Grok Build 标准 Messages 可不展示 summary，前提是完整加密留存且工具续轮不受影响。
+> Responses 原生保留与其他严格语义保持；该方向未实现，下面历史决定正文保留。
+
 ## Context
 
 The C batch requires native item identities, reasoning, citations, and replayable history to

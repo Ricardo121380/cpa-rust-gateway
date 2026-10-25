@@ -1,11 +1,13 @@
 # Requirements traceability index
 
-本文件连接“需求来源 → Task → ADR/Contract → 实现/测试 → 验证报告”。实现代码前必须能从 Task 回溯到功能矩阵或已冻结技术基线。
+本文件连接“需求来源 → Task/Issue → ADR/Contract → 实现/测试 → 验证报告”。
+当前实现、接线、资格和下一项见[当前状态入口](engineering-roadmap.md)；以下阶段行与追加记录按原日期解释。
+新工作应能回溯到适用 Issue/决定/契约；旧矩阵的待定和历史计划状态不覆盖后来已接受的决定。
 
 ## 权威来源
 
-1. [开发计划 v1.0](06-development-plan.md)：Task、依赖、Gate 和变更控制。
-2. [功能筛选矩阵](01-feature-selection-matrix.md)：功能 ID 和范围决定。
+1. [历史开发计划](06-development-plan.md)：原 Task、依赖、Gate 和变更控制。
+2. [历史功能筛选矩阵](01-feature-selection-matrix.md)：原功能 ID 和范围决定。
 3. [关键行为契约](02-behavior-contracts.md)：跨协议和运行时不变量。
 4. [目标架构](03-target-architecture-draft.md)：模块与依赖方向。
 5. [上游聚合设计](05-upstream-aggregation-design.md)：Upstream、Endpoint、Route、Key 和 Snapshot。
@@ -264,6 +266,17 @@ CPAR-38 / #47 的三协议字段映射决策准备对应
 [字段验收矩阵](reports/cpar-field-mapping-acceptance-20261017.md)。完整Usage证据、原生metadata、
 summary/body及模型关系未实施；标准与协商消费者资格分列，#47/#57/#9仍未关闭。
 
+CPAR-38 / #47 的标准客户端优先与元数据分离决定对应
+[ADR-0107](adr/ADR-0107-standard-response-metadata-separation.md)及
+[10 月 18 日工程迭代路线](reports/engineering-roadmap-20261018.md)。用户于 2026-10-18 选择经审查元数据完整加密留存、
+标准响应可独立成功；未知语义与冲突仍拒绝。该方向限定修订 ADR-0100/0106，
+字段准入、详细 BC、实现与客户端验收尚未完成；未改变原 FAIL、真实预算或 #47/#57/#9 状态。
+
+首版三个客户端均使用 Grok Build；Claude Code 的标准 Messages 摘要交付取舍对应
+[ADR-0108](adr/ADR-0108-build-summary-standard-messages.md)。用户于 2026-10-18 单独接受
+客户端不展示 summary，要求完整加密留存且工具续轮不受影响；Responses 原生保留与 native-v1
+完整交付仍分别验收。本条记录交付边界，不代表实现、客户端或真实渠道已通过。
+
 #59 的 Grok Build 失败完整诊断闭环对应 [ADR-0109](adr/ADR-0109-encrypted-failed-build-usage-evidence.md)、[BC-OBS-006](contracts/BC-OBS-006-native-usage-evidence.md) 与 [本轮报告](reports/cpar-59-encrypted-usage-20261018.md)。公共 Responses JSON/SSE、加密证据与已知用量/账本分别核对；不授予额外字段、客户端或真实渠道成功资格，不推进 #60 或关闭 #58/#9/#47/#57。
 
 #60 的三段模型身份核对对应 [ADR-0110](adr/ADR-0110-build-model-identity.md)、[BC-PROVIDER-024](contracts/BC-PROVIDER-024-build-model-identity.md) 与 [本轮报告](reports/cpar-60-model-identity-20261018.md)。公共 Responses JSON/SSE 经生产装配验证字面/合成冻结别名、范围拒绝、阶段一致性及独立零/一次接收；真实样本别名继续 UNKNOWN，不放开额外 Usage、不改变 reasoning 或推进 #61、#58/#9/#47/#57。
@@ -327,3 +340,32 @@ separate product selection from controlled-client, binary/OCI, fixed-service and
 qualification. Original M1/M2/M5 obligations, #61 NOT_ADMITTED and native issue dependencies remain.
 The [#58/#64/#66 revision drafts](reports/cpar-64-66-d2-issue-drafts-20261023.md) are local only;
 no READY, #66 completion, GitHub write or new runtime acceptance is claimed.
+
+## 2026-10-23 CPA request compatibility
+
+[ADR-0125](adr/ADR-0125-cpa-request-compatibility.md) supersedes universal request exactness for
+CanonicalBridge and native vendor options. Current regressions live in
+[router compatibility](../crates/gateway-router/tests/cpa_request_compatibility.rs),
+[Messages controls](../apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/messages/claude/controls.rs),
+[tool rounds](../apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/messages/tool_rounds.rs),
+and [native receiver](../apps/gateway/src/runtime/batch_c/http/cpa_compatibility.rs).
+M1/M2/M5 request mapping is implemented locally; historical D2 receipts are unchanged and actual
+stock-client/fixed-service support is not inferred. The prior frontend retirement is preserved.
+
+## 2026-10-24 CPA v8 Messages effort alignment
+
+[ADR-0126](adr/ADR-0126-cpa-v8-messages-effort.md) and the
+[BC-PROTOCOL-015 amendment](contracts/BC-PROTOCOL-015-local-messages-request-controls.md)
+bind effort-only and enabled-without-budget extraction to CPA v8.0.40 `d946c4fb`.
+The existing compatibility projector implements budget/disabled precedence; router and
+public JSON/SSE receiver tests cover both OpenAI targets and unchanged native values.
+[Implementation evidence](reports/cpa-v8-messages-effort-20261024.md) distinguishes local
+verification from actual-client, fixed-service, real Provider and release qualification.
+
+## 2026-10-24 CPA-compatible counting decision
+
+[ADR-0127](adr/ADR-0127-cpa-compatible-token-counting.md) records the user's explicit choice
+to permit documented local estimates alongside applicable upstream counting. It is a limited
+successor to ADR-0035, not an implementation receipt. BC-PROTOCOL-003's exact capability stays
+exact until the future count implementation amends the surrounding flow. Production still uses
+the unsupported executor; no runtime acceptance or actual Usage/ledger result is claimed here.

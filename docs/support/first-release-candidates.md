@@ -1,5 +1,10 @@
 # 首版三客户端候选支持清单（2026-10-23）
 
+> **请求兼容性更新（同日 ADR-0125）：** 已实现 CPA 风格的 adaptive/effort、预算与缓存提示转换，
+> 并完成本地公开 HTTP、JSON/SSE 和工具续轮验证。下面的 D2 和原始 Claude 状态是历史受测源码的记录，
+> 不再代表当前请求入口必然拒绝 M1/M2/M5；当前源码的实际原版客户端与真实服务验收仍待重跑。
+> 详见 [当前规则](../adr/ADR-0125-cpa-request-compatibility.md)。首版尚未 READY 的结论不变。
+
 **产品范围已采用 Claude D2；首版尚未 READY。** 首版仍须 Codex、Claude Code D2、Pi
 全部通过 Grok Build 完成约定闭环。[ADR-0123](../adr/ADR-0123-first-release-claude-d2-restricted-support.md)
 落实本次选择；原始 Claude 的 adaptive/display、overall effort、block prompt-cache
@@ -77,5 +82,7 @@ Claude D2未发送context_management，不能把M3与其他字段共存的契约
    首个FAIL/UNKNOWN/身份矛盾停止该epoch，旧stopped epoch不恢复、不转移预算。完成适用交付说明后才判断首版READY。
 
 本轮不启动#67、不读取真实凭据、不发送Provider请求。#64→#63→#61、#66→#62/#64/#65、#67→#66
-均保留。#58/#64/#66的精确文本见[本地工单修订稿](../reports/cpar-64-66-d2-issue-drafts-20261023.md)，
-尚未写入GitHub；#9/#47/#57的全范围义务及native-v1独立方向不变。
+均保留。#58/#64/#66 的 D2 文本来源见[原本地工单修订稿](../reports/cpar-64-66-d2-issue-drafts-20261023.md)；
+2026-10-23 15:33 UTC 的只读复核已确认远端正文包含该 D2 决定，原修订稿的“未同步”属于当时状态。
+远端尚未反映 ADR-0125 的本地请求兼容调整，差异与当前代码状态见[状态入口](../engineering-roadmap.md)。
+本次没有远端写入；#9/#47/#57 的全范围义务及 native-v1 独立方向不变。

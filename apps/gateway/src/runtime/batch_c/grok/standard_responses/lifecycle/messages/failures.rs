@@ -99,13 +99,6 @@ pub(super) fn assert_failed(bytes: &[u8]) -> TestResult {
 async fn public_build_messages_known_controls_and_histories_reject_before_send() -> TestResult {
     for streaming in [false, true] {
         let mut requests = Vec::new();
-        let mut thinking = body(streaming);
-        thinking["max_tokens"] = json!(4096);
-        thinking["thinking"] = json!({"type":"enabled","budget_tokens":1024});
-        requests.push(thinking);
-        let mut control = body(streaming);
-        control["top_k"] = json!(3);
-        requests.push(control);
         let mut orphan = body(streaming);
         orphan["messages"] = json!([{"role":"user","content":[{"type":"tool_result","tool_use_id":"missing","content":"result"}]}]);
         requests.push(orphan);

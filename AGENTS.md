@@ -1,66 +1,46 @@
-# Frontend / backend boundary
+# CPAR backend development
 
-This repository is worked on by two different assistants:
+CPAR is the Rust implementation of CPA/CLIProxyAPI's gateway behavior. For protocol,
+account, routing or provider changes, start from the matching Go implementation at
+an explicit reference commit, then change the corresponding Rust module. Use
+[the architecture map](docs/03-target-architecture-draft.md) to find both sides.
+Preserve source attribution when porting upstream code or fixtures.
 
-| Side | Tool | Owns |
-|---|---|---|
-| Backend | **Codex** | everything except `web/prism/**` |
-| Frontend | **Claude Code** | `web/prism/**` |
+For current status, priorities or the upstream reference version, start with
+[the current roadmap](docs/engineering-roadmap.md). Update its affected rows when
+implementation, production wiring or qualification changes; keep historical
+matrices and receipts bound to their original dates and sources.
 
-Neither tool is expected to read the other's working notes. This file, its twin
-`CLAUDE.md`, and `docs/cross-boundary-log.md` are the only channel between them.
+The current product is backend-only. The old Prism frontend and Cargo SPA build
+were removed by the user's 2026-10-23 decision. Future UI work starts from
+`docs/openapi/management-v1.json`; its design and build are separate work.
 
-## Shared surfaces
+## Working entry points
 
-These paths belong to one side but are routinely changed by the other. A change
-here **requires a log entry** (see below), because the other tool will not
-otherwise know it happened.
+- `apps/gateway`: process composition and runtime adapters.
+- `crates/protocol-*` / `crates/provider-*`: protocol codecs / upstream behavior.
+- `crates/gateway-router`: selection and attempt coordination.
+- `crates/gateway-control` / `crates/gateway-store`: management use cases / persistence.
+- `crates/gateway-http-actix`: public HTTP and protected management API.
 
-| Path | Owner | Why the other side touches it |
-|---|---|---|
-| `docs/openapi/management-v1.json` | backend | frontend consumes it via `npm --prefix web/prism run sync-contract`; a contract change silently invalidates the generated client |
-| `crates/gateway-http-actix/src/management_ui_resources.rs` | backend | embeds the SPA: asset routes, content types, and the CSP header the UI runs under |
-| `crates/gateway-http-actix/build.rs` | backend | runs the SPA build and asserts its four output files |
-| `scripts/build-management-spa.sh` | backend | the SPA build invocation |
-| `crates/gateway-http-actix/tests/p10_09_embedded_management_ui.rs` | backend | asserts the exact embedded bytes, paths and headers |
-| `.github/workflows/*.yml`, `scripts/check-ci-workflow.rb`, `scripts/check.sh` | backend | pin the Node toolchain and `npm ci` working directory for `web/prism` |
+Keep changes within these existing modules unless a concrete responsibility needs
+its own file. Validate the affected behavior; consult `docs/quality-gates.md` for
+shared build, dependency and integration changes. Historical phase reports retain
+their original scope and are not the current work queue.
 
-## The trace protocol
+## Agent skills
 
-**If your change touches a path the other side owns, append an entry to
-`docs/cross-boundary-log.md` in the same commit.** Not afterwards, not in the
-commit message only — the log is what the other tool reads.
+### Issue tracker
 
-An entry answers three questions:
+Issues 和 specs 使用 GitHub Issues：`Ricardo121380/cpa-rust-gateway`。
+涉及工单的读取、创建或更新时，先读 `docs/agents/issue-tracker.md`。
 
-1. **What** changed, by exact path;
-2. **Why** — the need on your side that forced it;
-3. **What the other side must know**: is action required, or is this FYI?
+### Triage labels
 
-Add a git trailer too, so the change is greppable from history:
+使用五个默认 triage 标签。分诊或修改工单状态前，读
+`docs/agents/triage-labels.md`。
 
-```
-Cross-Boundary: crates/gateway-http-actix/src/management_ui_resources.rs
-```
+### Domain docs
 
-`git log --grep=Cross-Boundary` then lists every crossing.
-
-## Before you start
-
-Read the tail of `docs/cross-boundary-log.md`. If the last entries are from the
-other tool and marked **action required**, deal with those first — they are
-changes made to your side that you did not make.
-
-## Contract discipline
-
-The contract is backend-owned and one-directional: the backend edits
-`docs/openapi/management-v1.json`, the frontend follows with `sync-contract`.
-
-The frontend must never hand-edit the generated client
-(`web/prism/src/generated/`) or its vendored copy
-(`web/prism/contracts/management-v1.json`) — `npm --prefix web/prism run check`
-fails on drift, and that failure is the point.
-
-When the frontend needs a shape the contract does not have, it does **not** add
-it. It writes a change request under `docs/change-requests/` and logs it. The
-backend decides.
+采用 single-context：根目录 `CONTEXT.md` 与 `docs/adr/`。
+探索领域概念或提出架构变更前，读 `docs/agents/domain.md`。

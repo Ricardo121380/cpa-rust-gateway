@@ -1,8 +1,10 @@
 # ADR-0071: Management SPA generated-client build
 
+> Superseded on 2026-10-23 by [ADR-0124](ADR-0124-cpa-first-backend-and-frontend-retirement.md). The original decision below is historical.
+
 | Field | Value |
 |---|---|
-| Status | Accepted |
+| Status | Superseded |
 | Date | `2026-07-23` |
 | Task | `P10-03` |
 | Matrix / Contract | `H01-H02`、`H21`、`J02`、`J08-J09`; [BC-MGMT-004](../contracts/BC-MGMT-004-management-spa-generated-client.md) |

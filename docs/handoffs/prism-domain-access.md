@@ -134,7 +134,7 @@ The declared origin replaces the loopback browser origin. Origin-free authentica
 continue to work; browser writes from the old SSH-forwarded HTTP origin are rejected.
 
 Apply only the approved hostname's routing from
-[the Caddy example](../../deploy/caddy/prism-domain.Caddyfile), preserving existing site directives
+[the Caddy example](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/deploy/caddy/prism-domain.Caddyfile), preserving existing site directives
 and the existing data proxy configuration. Forward Origin unchanged. Do not embed keys or CSRF
 values into Caddy. Routing uses mutually exclusive `handle` blocks as described by
 [Caddy's official documentation](https://caddyserver.com/docs/caddyfile/directives/handle).

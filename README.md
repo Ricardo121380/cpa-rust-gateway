@@ -2,19 +2,15 @@
 
 [简体中文](README.zh-CN.md) | English
 
-CPAR is a security-oriented AI gateway written in Rust. It presents OpenAI- and
-Anthropic-compatible downstream APIs while keeping Provider credentials, accounts, routes,
-runtime health, quota, continuity state and egress policy in explicit isolation domains.
+CPAR implements CPA/CLIProxyAPI gateway behavior in Rust for self-hosting operators.
+Protocol, account, model and routing changes start from a pinned CPA Go implementation and
+map into the existing Rust modules. Channels absent from CPA use their dedicated references.
 
-The project is a clean-room implementation informed by operational behavior observed in CPA,
-CLIProxyAPI, Sub2API, grok2api, Kiro-RS and other compatibility references. Those projects are
-references, not bundled runtime dependencies, and CPAR is not a source-level fork of any one of
-them.
-
-> **Release status:** the implemented backend through P13-11E4 has passed its documented local and
-> formal delivery gates. This does not mean every roadmap item or every real Provider/network
-> boundary is complete. See [Development status](#development-status) and the authoritative
-> [development plan](docs/06-development-plan.md).
+> **Current entry point (2026-10-23):** use the [current status and development order](docs/engineering-roadmap.md)
+> for implemented features, production wiring, qualification, the pinned CPA version and next work.
+> The [architecture map](docs/03-target-architecture-draft.md) locates code; the
+> [candidate inventory](docs/support/first-release-candidates.md) preserves client/release evidence.
+> The old Prism frontend is retired; a future UI will be designed from the management API.
 
 ## Why CPAR
 
@@ -43,7 +39,7 @@ them.
 | Stored response deletion | `DELETE /v1/responses/{id}` | Deletes only the exact Client-Key-owned stored response. |
 | Response compaction | `POST /v1/responses/compact` | Gateway-owned bounded continuity token, on explicitly capable routes only. |
 | Anthropic Messages | `POST /v1/messages` | JSON and bounded SSE projection. |
-| Anthropic token count | `POST /v1/messages/count_tokens` | Only when the selected capability exposes a reviewed count path. |
+| Anthropic token count | `POST /v1/messages/count_tokens` | Route exists; the current production composition uses an unsupported counter. Counting implementation and wiring remain pending. |
 
 All inference routes require a CPAR Client Key. Protocol compatibility never authorizes an
 undeclared Provider feature: unsupported capabilities are rejected before Provider I/O.
@@ -56,6 +52,7 @@ CPAR models capabilities instead of treating every upstream as interchangeable:
   `base_url + api_key` binding, including Krill-style relays;
 - official Codex/ChatGPT credentials imported from supported CPA/Sub2API JSON envelopes or an
   operator-completed OAuth flow;
+- Claude and Kimi authorization/import/refresh paths using the compatible protocol adapters;
 - Grok Build and Grok Console account pools with Provider-specific credential/runtime state;
 - Grok Web and Kiro adapters within their explicitly documented local/external evidence boundaries;
 - additional compatible endpoints only after their adapter, protocol and egress capabilities are
@@ -67,7 +64,8 @@ Upstream, Endpoint, adapter, Credential binding, capability and egress policy do
 ## Management and operations plane
 
 The management listener is independent from the public data listener and must remain loopback-only.
-It serves the embedded Prism management application and a generated, versioned `/admin` API.
+It serves the versioned `/admin` API. The old frontend is retired; management remains available
+through the API and local CLI.
 
 Implemented management capabilities include:
 
@@ -152,7 +150,6 @@ a private GitHub Security Advisory, not a public issue.
 ### Prerequisites
 
 - Rust `1.97.1` (pinned by `rust-toolchain.toml`);
-- Node.js/npm matching `web/prism/.nvmrc` for the embedded management application;
 - Linux build packages: `build-essential`, `clang`, `cmake`, `libclang-dev`, `libssl-dev`,
   `pkg-config`, `ca-certificates`;
 - macOS: current Xcode Command Line Tools and Homebrew/OpenSSL where required;
@@ -163,13 +160,11 @@ a private GitHub Security Advisory, not a public issue.
 ```bash
 git clone https://github.com/Ricardo121380/cpa-rust-gateway.git
 cd cpa-rust-gateway
-npm --prefix web/prism ci --ignore-scripts --no-audit --no-fund
 cargo build --locked --release --package gateway
 ./target/release/gateway --help
 ```
 
-The management UI is compiled and embedded during the Rust build. A source build therefore needs
-both the pinned Rust toolchain and installed Prism npm dependencies.
+The backend builds independently, without Node/npm or a frontend source tree.
 
 ### Verification
 
@@ -177,7 +172,6 @@ both the pinned Rust toolchain and installed Prism npm dependencies.
 cargo fmt --all -- --check
 cargo test --locked --workspace --all-features
 cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
-npm --prefix web/prism run check
 ./scripts/check.sh docs
 ```
 
@@ -242,9 +236,10 @@ and Client Keys.
 A fresh process creates/opens `control.sqlite3` but has no inference routes. Operators must create
 a draft Config Version, configure egress policy, Upstream, Endpoint, Credential binding, public
 model, route/candidate, access group and Client Key, validate the graph, publish it, and restart the
-runtime so the active immutable snapshot is composed.
+runtime when using the offline CLI. Publishing through the running management API prepares and
+atomically activates a new runtime generation.
 
-Use the protected management API/Prism UI or local `gateway admin` commands. Maintain an external,
+Use the protected management API or local `gateway admin` commands. Maintain an external,
 secret-free ledger of every opaque ID; some low-level resources intentionally have no collection
 endpoint. The detailed order and rollback rules are documented in
 [the P12 rollout runbook](docs/p12-rollout-runbook.md).
@@ -254,9 +249,10 @@ endpoint. The detailed order and rollback rules are documented in
 For supported discovery channels, `/v1/models` is not a handwritten Provider or subscription-tier
 table. CPAR discovers exact upstream model IDs per active Config Version + Endpoint + Credential,
 retains the last successful result in SQLite and atomically derives Credential-restricted runtime
-routes from the published route template. The current automatic runtime sources are Grok Build and
-official Codex; Grok Web/Console, xAI Official, Kiro and generic compatible endpoints still require
-their own reviewed source adapters.
+routes from the published route template. Current runtime discovery sources include Grok Build,
+official Codex, Kiro and compatible endpoints configured with `models_path`. Grok Web/Console
+and xAI Official do not automatically inherit those discovery implementations. A source being
+wired does not establish live acceptance for every credential or endpoint.
 
 The default lifecycle is Fresh for 6 hours, refresh due after 24 hours and hard expiry after 72
 hours. A transient failure preserves the last success. Removing a model requires three successful
@@ -305,10 +301,45 @@ BLOCKED, #66 is OPEN and real Provider acceptance is NOT_RUN. Original Claude ad
 overall effort and block cache obligations remain open follow-up work. See
 [ADR-0123](docs/adr/ADR-0123-first-release-claude-d2-restricted-support.md).
 
-The development-status section below retains its historical scope; current D2 selection
-and evidence boundaries are recorded in the links above.
+ADR-0125 request compatibility is now implemented locally; historical original-Claude rejection
+counts are not current expectations. D2 remains selected, while actual stock-client and fixed-service
+acceptance must be rerun for the current source. See the [current roadmap](docs/engineering-roadmap.md).
 
 ## Development status
+
+Implementation, production wiring, evidence gaps and the next proposed slice are maintained in
+[the current roadmap](docs/engineering-roadmap.md). The completed backend cleanup and frontend
+retirement are described in [the architecture map](docs/03-target-architecture-draft.md).
+
+<details>
+<summary>October 18 and earlier development snapshots</summary>
+
+As of 2026-10-18, the inspected checkout is `3369c730`. The gateway and management workflows exist;
+[existing-channel convergence #9](https://github.com/Ricardo121380/cpa-rust-gateway/issues/9)
+remains open. GitHub has 14 open issues, with 11 open direct prerequisites of
+[#57](https://github.com/Ricardo121380/cpa-rust-gateway/issues/57).
+
+- **Latest local gate:** the October 17 receipt binds `2f43057c`: Full 45/45 PASS; Rust 1515 PASS,
+  0 FAIL, 13 IGNORED. This was not rerun today and does not qualify live channels or a new candidate.
+- **Next iteration direction:** [#47](https://github.com/Ricardo121380/cpa-rust-gateway/issues/47)
+  starts with Grok Build → Responses → multi-turn tool calls. The first usable version must pass
+  Codex, Claude Code and Pi acceptance, all using Grok Build, including the Messages path.
+  [ADR-0107](docs/adr/ADR-0107-standard-response-metadata-separation.md) accepts reviewed metadata
+  separation with complete encrypted retention. Field admission and implementation are pending;
+  current strict behavior still rejects the complete sample's extra Usage.
+  [ADR-0108](docs/adr/ADR-0108-build-summary-standard-messages.md) separately allows Claude Code
+  to omit displaying Grok summaries, provided encrypted retention and tool continuity are proven;
+  this is not implemented yet.
+- **Versions and extensions:** deliver versions with explicit support scopes while retaining all
+  unfinished #9 commitments. The accepted `native-v1` direction proceeds separately; the profile,
+  dedicated product consumer and complete durable evidence remain unimplemented.
+- **Remaining blockers:** Kiro native caps, Grok Web continuation and some caps, live channel
+  evidence and candidate-specific delivery conditions. See the
+  [October 18 roadmap](docs/reports/engineering-roadmap-20261018.md) for evidence and scope. Production runtime
+  state was not inspected in this documentation iteration.
+
+<details>
+<summary>Historical P13 status, retained at its original evidence scope, not the current task queue</summary>
 
 - **Formally gated implementation:** approved backend slices through P13-11E4, including P13
   management/billing/routing, Channel Pin, stored Responses, Responses WebSocket, compatible egress
@@ -339,6 +370,10 @@ and evidence boundaries are recorded in the links above.
 `DONE_WITH_BOUNDARY` means the documented acceptance boundary passed; it does not claim that every
 Provider account, external network path or production deployment was tested.
 
+</details>
+
+</details>
+
 ## Git and release governance
 
 Development uses phase/integration branches and immutable `phase-p*-complete` evidence tags.
@@ -359,7 +394,6 @@ merged.
 | `crates/gateway-*` | core, auth, catalog, control, routing, storage, transport, HTTP and observability |
 | `crates/protocol-*` | downstream/upstream protocol codecs |
 | `crates/provider-*` | Provider-specific adapters and state |
-| `web/prism` | embedded React management application and generated client |
 | `docs/adr` | accepted architecture decisions |
 | `docs/contracts` | executable behavior/security contracts |
 | `docs/reports` | phase and verification evidence |
@@ -368,14 +402,15 @@ merged.
 
 ## Documentation
 
+- [Current status, CPA baseline and development order](docs/engineering-roadmap.md)
 - [Deployment Guide](docs/deployment-guide.en.md)
 - [Backend completion audit](docs/backend-completion-audit-2026-08-19.md)
 - [Git branch inventory](docs/git-branch-inventory-2026-08-19.md)
 - [Behavior contracts](docs/02-behavior-contracts.md)
 - [Target architecture](docs/03-target-architecture-draft.md)
 - [Channel reference analysis](docs/04-channel-reference-analysis.md)
-- [Development plan](docs/06-development-plan.md)
-- [Management frontend plan](docs/08-management-frontend-development-plan.md)
+- [Historical development plan and technical baselines](docs/06-development-plan.md)
+- [Historical management frontend plan](docs/08-management-frontend-development-plan.md)
 - [Traceability](docs/traceability.md)
 - [Architecture decisions](docs/adr/README.md)
 - [Contracts index](docs/contracts/README.md)
@@ -388,7 +423,7 @@ merged.
 
 Keep changes small, Provider-scoped and evidence-backed. Never commit real credentials or raw
 Provider payloads. Update the authoritative OpenAPI contract before generated clients, preserve
-frontend/backend ownership rules in `AGENTS.md`, add an ADR/contract for new security semantics, and
+the module boundaries in `AGENTS.md`, add an ADR/contract for new security semantics, and
 include focused tests plus a value-free verification receipt.
 
 ## License

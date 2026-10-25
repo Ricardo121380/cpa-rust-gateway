@@ -2,13 +2,45 @@
 
 #![deny(unsafe_code)]
 
-use std::error::Error;
+use std::{collections::BTreeSet, error::Error};
 
 use serde_json::{Map, Value};
 
 type TestResult = Result<(), Box<dyn Error>>;
 
 const CONTRACT: &str = include_str!("../../../docs/openapi/management-v1.json");
+
+#[test]
+fn management_operation_ids_are_nonempty_unique_client_identifiers() -> TestResult {
+    let document = document()?;
+    let mut ids = BTreeSet::new();
+    for (path, item) in object(&document, "paths")? {
+        for method in [
+            "get", "post", "put", "patch", "delete", "head", "options", "trace",
+        ] {
+            let Some(operation) = item.get(method) else {
+                continue;
+            };
+            let id = operation["operationId"]
+                .as_str()
+                .ok_or("missing operationId")?;
+            let mut characters = id.chars();
+            assert!(
+                characters
+                    .next()
+                    .is_some_and(|value| value.is_ascii_alphabetic()),
+                "{method} {path}"
+            );
+            assert!(
+                characters.all(|value| value.is_ascii_alphanumeric()),
+                "{method} {path}"
+            );
+            assert!(ids.insert(id), "duplicate operationId: {id}");
+        }
+    }
+    assert!(!ids.is_empty());
+    Ok(())
+}
 
 #[test]
 fn management_failure_codes_cover_the_core_error_contract() -> TestResult {

@@ -8,6 +8,14 @@
 | Contracts | [ADR-0100](ADR-0100-exact-protocol-semantics-and-usage-evidence.md), [ADR-0101](ADR-0101-grok-native-item-metadata-fidelity.md), [ADR-0105](ADR-0105-projection-failure-observation.md), [BC-ROUTER-004](../contracts/BC-ROUTER-004-protocol-transform-admission.md), [BC-PROVIDER-003](../contracts/BC-PROVIDER-003-grok-build-responses-boundary.md) |
 | Companion | [Acceptance matrix](../reports/cpar-field-mapping-acceptance-20261017.md), [envelope schema](../reports/assets/cpar-field-contract-dependency-20261017/native-fidelity-v1.schema.json) |
 
+> **2026-10-18 限定后继决定：** [ADR-0107](ADR-0107-standard-response-metadata-separation.md)
+> 为标准路径增加经审查元数据分离的例外，完整加密保留后可独立成功；未知语义与冲突仍拒绝。
+> 本 ADR 的 native-v1 专用消费者与完整交付方向保留，标准路径例外尚未实现。
+> 下面“默认严格路径保留”的历史决定，按该限定后继关系理解。
+
+> 同日 [ADR-0108](ADR-0108-build-summary-standard-messages.md)单独批准 Grok Build 标准 Messages
+> 的摘要留存与客户端不展示取舍；不减少本 ADR 的 native-v1 完整原生交付承诺。
+
 ## Context
 
 用户已于本批选择下述架构方向；决定为 Accepted，字段级 schema/验收细则作为下一批实施契约草稿，

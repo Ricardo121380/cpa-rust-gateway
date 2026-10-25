@@ -1,5 +1,11 @@
 # BC-PROTOCOL-015: Local Messages request controls
 
+> Current request compatibility is amended by [ADR-0125](../adr/ADR-0125-cpa-request-compatibility.md).
+> M1/M2/M5 now coexist with the local M3/M4 path. The recipient rules below apply to Build
+> consumption; native Anthropic routes retain metadata/context_management for their upstream.
+> [ADR-0126](../adr/ADR-0126-cpa-v8-messages-effort.md) further aligns explicit Messages effort
+> extraction and precedence with CPA v8.0.40; the M3/M4 ownership rules are unchanged.
+
 | Field | Value |
 | --- | --- |
 | Contract | BC-PROTOCOL-015 |
@@ -71,8 +77,8 @@ One original authenticated Request and private evidence commit atomically throug
 finite queue before any lease/send. Only Persisted releases execution. Missing key/writer,
 overflow, lost/timeout confirmation, crypto/write/conflict failures return RecordingUnavailable;
 no upstream request, retry or duplicate capture follows. Confirmation timeout is UNKNOWN even
-when the same pending local write subsequently commits. Valid M4 plus M1/M2/M5 or invalid M3
-can retain Request-only evidence with zero actual Attempts.
+when the same pending local write subsequently commits. Valid M4 plus invalid M3 or malformed controls can retain Request-only evidence with zero actual
+Attempts. Valid thinking/effort/cache combinations now proceed under ADR-0125.
 
 V1 is unchanged Codex C4. V2 explicitly labels anthropic_messages_metadata and binds the original
 AnthropicMessages Request. Schema38 permits only payload versions1/2. V2 AAD starts with
@@ -93,11 +99,23 @@ reseal, historical UNKNOWN rewrite or destructive rollback. #65's unrelated matr
 
 ## Acceptance boundary
 
-M3, M4 and combined public JSON/SSE loops are independent local duties. Original Claude still
-may return400 for M1/M2/M5; prove its Request-only M4 retention separately without editing client
-requests. Keep Codex C4/strict Codex/Pi, #63 summary, #59 failed Usage, cancellation/release and
+M3, M4 and combined public JSON/SSE loops are independent local duties. CPA-compatible
+thinking/effort/cache combinations have positive receiver and continuation tests. Actual stock
+Claude acceptance must be rerun on the changed source. Keep Codex C4/strict Codex/Pi, #63 summary, #59 failed Usage, cancellation/release and
 no-resend regression. Full binds immutable source/manifest/lock and explicit inherited overlay.
 Real Provider, remote CI, release/deployment and #66/#67 remain outside this slice.
+
+## Messages effort compatibility amendment (2026-10-24)
+
+In Messages → Chat/Responses CanonicalBridge, a trimmed, lowercased nonempty
+`output_config.effort` is used even without `thinking`, and for enabled thinking without
+a budget. Explicit disabled produces none; an enabled positive budget takes precedence
+over effort. Enabled with no effective effort uses auto for both targets. Adaptive/auto
+retains the xhigh fallback; absent thinking and absent/empty effort do not introduce reasoning.
+Effort-only does not invent a summary. Both OpenAI targets retain the existing effort
+allowlist and Reasoning capability gate. Invalid output_config shapes, zero/negative budgets,
+known control/history failures and explicit LosslessBridge rejection remain independent.
+Native passthrough retains the original effort JSON and does not synthesize thinking.
 
 ## Corresponding tests
 
@@ -106,3 +124,10 @@ Real Provider, remote CI, release/deployment and #66/#67 remain outside this sli
 - `public_build_messages_local_controls_keep_two_tool_cycles`
 - `messages_metadata_v2_owner_recovery_and_legacy_coexistence`
 - `native_metadata_keeps_original_whitespace_escapes_and_opaque_string`
+
+- `public_build_messages_m4_coexists_with_cpa_controls`
+- `public_build_messages_cpa_controls_keep_two_tool_cycles`
+- `cpa_v8_messages_effort_extraction_and_precedence`
+- `cpa_v8_effort_keeps_known_controls_and_capability_guards`
+- `cpa_v8_messages_effort_reaches_http_receiver`
+- `native_messages_passthrough_keeps_client_options_at_receiver`

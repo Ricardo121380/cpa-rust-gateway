@@ -21,8 +21,6 @@ pub mod management_observability_resources;
 pub mod management_resources;
 /// Independent management HTTP authentication, network, audit-identity, and browser boundary.
 pub mod management_security;
-/// Embedded static management SPA resources, configured separately from public inference routes.
-pub mod management_ui_resources;
 mod stored_response_continuity;
 
 use std::{
@@ -1095,8 +1093,8 @@ pub fn configure_readiness(config: &mut web::ServiceConfig) {
 
 /// Registers the complete P10 management listener under one protected `/admin` scope.
 ///
-/// The embedded UI remains a separate closed static route set on this listener. The function has
-/// no data-plane routes and requires the caller to supply every corresponding P10 state object;
+/// This listener exposes only the management API. It has no UI or data-plane routes and
+/// requires the caller to supply every corresponding P10 state object;
 /// missing state continues to fail closed in the existing handlers and middleware.
 pub fn configure_management_listener(config: &mut web::ServiceConfig) {
     management_admin_login::configure_login(config);
@@ -1107,7 +1105,6 @@ pub fn configure_management_listener(config: &mut web::ServiceConfig) {
         management_backup_resources::configure_protected_backup_routes(protected);
         management_observability_resources::configure_protected_observability_routes(protected);
     });
-    management_ui_resources::configure_embedded_management_ui(config);
 }
 
 async fn base_url_probe() -> HttpResponse {

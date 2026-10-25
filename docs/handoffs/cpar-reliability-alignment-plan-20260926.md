@@ -27,7 +27,7 @@
 | gateway-store/src/control_plane/request_history.rs:199、203；event_store.rs:509 | 逐行账本查询和匹配历史聚合成本需优化；分页返回数量不等于扫描成本有界。 |
 | apps/gateway/src/runtime.rs:682；billing_materializer.rs:302 | 历史增长尚无在线裁剪策略；本轮先做容量观测和查询优化，不删除生产记录。 |
 
-路径前缀未写 web/apps 的 Rust 库均位于 crates/。关键源码：[队列](../../crates/gateway-observability/src/lib.rs)、[持久事件](../../crates/gateway-store/src/event_store.rs)、[刷新 worker](../../apps/gateway/src/credential_refresh.rs)、[历史查询](../../crates/gateway-store/src/control_plane/request_history.rs)、[请求界面](../../web/prism/src/features/monitoring/RequestHistory.tsx)。
+路径前缀未写 web/apps 的 Rust 库均位于 crates/。关键源码：[队列](../../crates/gateway-observability/src/lib.rs)、[持久事件](../../crates/gateway-store/src/event_store.rs)、[刷新 worker](../../apps/gateway/src/credential_refresh.rs)、[历史查询](../../crates/gateway-store/src/control_plane/request_history.rs)、[请求界面](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/features/monitoring/RequestHistory.tsx)。
 
 ## 3. 里程碑与依赖
 

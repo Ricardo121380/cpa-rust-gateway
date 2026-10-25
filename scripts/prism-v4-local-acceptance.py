@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prism acceptance against the real local serve binary; synthetic state only."""
+"""Management API acceptance against the real local serve binary; synthetic state only."""
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import ssl
 import threading
@@ -27,14 +27,15 @@ def free_port():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--binary', type=Path, default=ROOT / 'target/debug/gateway')
     parser.add_argument('--priced', action='store_true')
     parser.add_argument('--inactive', action='store_true')
     parser.add_argument('--large', action='store_true')
-    parser.add_argument('--browser', action='store_true')
-    parser.add_argument('--browser-flow', action='store_true')
+    parser.add_argument('--configuration-diff', action='store_true')
     parser.add_argument('--catalog-expiry', action='store_true')
     parser.add_argument('--preview', action='store_true', help='Keep the synthetic gateway and loopback Provider running until Ctrl-C')
     args = parser.parse_args()
+    binary = args.binary.resolve()
     if args.preview and args.catalog_expiry:
         parser.error('--preview cannot be combined with the short-lived catalog-expiry scenario')
     root = Path(tempfile.mkdtemp(prefix='prism-v4-acceptance-'))
@@ -111,13 +112,13 @@ def main():
     log = (root / 'gateway.log').open('wb')
     def start_gateway():
         return subprocess.Popen([
-        str(ROOT / 'target/debug/gateway'), 'serve', '--state-dir', str(state),
+        str(binary), 'serve', '--state-dir', str(state),
         '--credential-dir', str(credentials), '--data-listen', f'127.0.0.1:{data_port}',
         '--management-listen', f'127.0.0.1:{management_port}',
     ], stdout=log, stderr=log, env={**os.environ, 'SSL_CERT_FILE': str(cert)})
 
     initial_file = root / 'initial-admin-password'
-    subprocess.run([str(ROOT / 'target/debug/gateway'), 'admin-login', 'init', '--state-dir', str(state), '--password-file', str(initial_file)],
+    subprocess.run([str(binary), 'admin-login', 'init', '--state-dir', str(state), '--password-file', str(initial_file)],
                    check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     admin_password = secrets.token_urlsafe(24)
     process = start_gateway()
@@ -164,7 +165,7 @@ def main():
             fd = os.open(private_file, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
             with os.fdopen(fd, 'w') as password_output:
                 password_output.write(admin_password + '\n')
-        checks.append('administrator password initialized and rotated before browser acceptance')
+        checks.append('administrator password initialized and rotated before management API acceptance')
         status, _, version = request('/admin/config-versions', 'POST',
                                      {'id': 'prism-local-v4', 'description': 'Synthetic Prism V4 acceptance'})
         assert status == 201
@@ -288,6 +289,8 @@ def main():
         checks.append('real configuration validation and publication')
         _, _, initial_audit = request('/admin/audit-events')
         initial_lifecycle_event = max(event['id'] for event in initial_audit if event['action'] in ['config_published', 'config_rolled_back'])
+        _, _, initial_active = request(f'/admin/config-versions/{scope}')
+        initial_revision = initial_active['revision']
 
         process.terminate()
         assert process.wait(timeout=40) == 0
@@ -495,19 +498,9 @@ def main():
         status, _, processing = request('/admin/operations/billing-processing')
         assert status == 200
         checks.append('production billing processing endpoint')
-        with urllib.request.urlopen(base + '/admin-ui/', timeout=10) as response:
-            html = response.read().decode()
-            assert 'assets/main.js' in html and response.headers.get('Content-Security-Policy')
-        checks.append('embedded production SPA and CSP')
-        if args.browser:
-            subprocess.run(['node', str(ROOT / 'web/prism/e2e/real-gateway-audit.mjs')],
-                           input=json.dumps({'base': base, 'username': 'admin', 'password': admin_password, 'output': str(root / 'browser')}),
-                           text=True, check=True)
-            checks.append('production browser pages captured at three sizes in light and dark')
-
-        if args.browser_flow:
-            scope = 'prism-browser-draft'
-            _, _, draft = request('/admin/config-versions', 'POST', {'id': scope, 'parent_id': 'prism-local-v4', 'description': 'Browser write acceptance'})
+        if args.configuration_diff:
+            scope = 'configuration-diff-draft'
+            _, _, draft = request('/admin/config-versions', 'POST', {'id': scope, 'parent_id': 'prism-local-v4', 'description': 'Management API write acceptance'})
             revision = draft['revision']
             for path, body, method in list(setup_operations):
                 if path.startswith(('/admin/egress-policies', '/admin/upstreams/', '/admin/endpoints/')) or path in ['/admin/upstreams', '/admin/access-groups', '/admin/client-keys']:
@@ -527,30 +520,42 @@ def main():
             private_values = [key, csrf, issued['key']] + [body['secret'] for _, body, _ in setup_operations if isinstance(body, dict) and 'secret' in body]
             assert all(value not in projected for value in private_values)
             upstream_body = next(body for path, body, _ in setup_operations if path == '/admin/upstreams')
-            mutate('/admin/upstreams/local-upstream', {**upstream_body, 'name': 'Browser draft upstream'}, 'PATCH')
+            mutate('/admin/upstreams/local-upstream', {**upstream_body, 'name': 'API draft upstream'}, 'PATCH')
             assert request(diff_path + '&cursor=' + first_diff['next_cursor'], expected_error=409)[0] == 409
             _, _, same_diff = request(f'/admin/config-versions/{scope}/diff?base_id={scope}')
             assert same_diff['items'] == [] and same_diff['next_cursor'] is None
             assert request(f'/admin/config-versions/{scope}/diff?base_id=absent-version', expected_error=404)[0] == 404
             checks.append('real configuration diff pages exclude secrets and reject stale dual-version cursor')
-            subprocess.run(['node', str(ROOT / 'web/prism/e2e/real-gateway-flow.mjs')],
-                           input=json.dumps({'base': base, 'username': 'admin', 'password': admin_password, 'output': str(root / 'browser-flow')}), text=True, check=True)
+            mutate('/admin/public-models', {'id': 'local-model', 'model_name': 'local-exact-model',
+                'status': 'active', 'display_name': 'Local acceptance', 'capabilities': {'streaming': True}})
+            mutate('/admin/public-models/local-model/routes', {'id': 'local-route',
+                'policy': 'smooth_weighted_round_robin', 'max_attempts': 3, 'bootstrap_timeout_ms': 30000})
+            mutate('/admin/routes/local-route/candidates', candidate)
+            mutate('/admin/access-groups/local-group/routes', {'route_id': 'local-route', 'enabled': True})
+            assert mutate(f'/admin/config-versions/{scope}/validate', {})['valid']
+            assert request(f'/admin/config-versions/{scope}/publish', 'POST', {}, revision=revision,
+                           extra_headers={'X-Expected-Active-Version': json.dumps('prism-local-v4'),
+                                          'X-Expected-Lifecycle-Event': str(initial_lifecycle_event)})[0] == 200
+            _, _, published_audit = request('/admin/audit-events')
+            published_event = max(event['id'] for event in published_audit if event['action'] == 'config_published')
+            assert published_event > initial_lifecycle_event
+            assert request('/admin/config-versions/rollback', 'POST', {}, revision=revision,
+                           extra_headers={'X-Expected-Active-Version': json.dumps(scope),
+                                          'X-Expected-Lifecycle-Event': str(published_event)})[0] == 200
             _, _, versions_after = request('/admin/config-versions')
-            assert next(version for version in versions_after if version['id'] == 'prism-local-v4')['status'] == 'active'
-            assert next(version for version in versions_after if version['id'] == scope)['status'] == 'archived'
             active_after = next(version for version in versions_after if version['id'] == 'prism-local-v4')
+            assert active_after['status'] == 'active' and active_after['revision'] == initial_revision
+            assert next(version for version in versions_after if version['id'] == scope)['status'] == 'archived'
             assert request('/admin/config-versions/rollback', 'POST', {}, revision=active_after['revision'], expected_error=409,
                            extra_headers={'X-Expected-Active-Version': json.dumps(active_after['id']),
                                           'X-Expected-Lifecycle-Event': str(initial_lifecycle_event)})[0] == 409
-            checks.append('old confirmation rejected after active identity returns with the same revision')
-
-            checks.append('real browser model handoff, candidate CRUD, grant, validate, publish and audit')
+            checks.append('API publication and rollback reject old confirmation after the same active identity and revision return')
         report = {'checks': checks, 'state_directory': str(state), 'management_url': base,
                   'processing': processing}
         (root / 'evidence.json').write_text(json.dumps(report, indent=2))
         print(json.dumps({'passed': checks, 'evidence': str(root / 'evidence.json')}, indent=2), flush=True)
         if args.preview:
-            preview = {'url': base + '/admin-ui/#/', 'credentials_directory': str(credentials),
+            preview = {'management_url': base + '/admin/', 'credentials_directory': str(credentials),
                        'stop': 'Ctrl-C in the owning terminal; temporary synthetic state is retained'}
             (root / 'preview.json').write_text(json.dumps(preview, indent=2))
             print(json.dumps({'preview': preview}, indent=2), flush=True)

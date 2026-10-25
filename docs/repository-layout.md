@@ -8,7 +8,7 @@ contracts and acceptance reports.
 
 | Location | Contents | Git treatment |
 |---|---|---|
-| `apps/`, `crates/`, `web/prism/` | Product source and tests | Versioned; preserve the ownership rules in `AGENTS.md` |
+| `apps/`, `crates/`, `tests/` | Product source and tests | Versioned; preserve the ownership rules in `AGENTS.md` |
 | `deploy/`, `scripts/`, `tools/` | Reviewed deployment assets, checks and tooling | Versioned; credentials remain external |
 | `docs/adr/`, `docs/contracts/`, `docs/openapi/` | Decisions and authoritative contracts | Versioned |
 | `docs/reports/` | Reviewed reports, redacted receipts and selected evidence assets | Versioned after content review |
@@ -37,9 +37,9 @@ filesystem root is not necessarily the product Git root. Check
 ```text
 CPA-Rust/
   README.md                         local navigation and maintenance record
-  repo/cpa-rust-gateway/             active product repository
+  repo/cpa-rust-gateway/             main product clone, not necessarily the active checkout
   repo/prism/                        separate reference repository
-  worktrees/                        research and prototype checkouts
+  worktrees/                        feature, research and prototype checkouts
     validation/                     retained verification worktrees
   maintenance/                      local inventories, Git bundles and recovery records
   output/                           compatibility entries for historical validation paths
@@ -61,8 +61,11 @@ the verification procedure requires a distinct build directory.
 
 ## Git synchronization and recovery
 
-The active development branch is `develop`; local and GitHub names follow the
-[branch policy](branch-policy.md). Public `main` remains a separate history.
+Local and GitHub branch names follow the [branch policy](branch-policy.md).
+Determine the active checkout and branch with `git rev-parse --show-toplevel` and
+`git branch --show-current`; a feature worktree need not be on `develop`.
+The dated inspection identity is in the [current roadmap](engineering-roadmap.md).
+Public `main` remains a separate history.
 
 Before changing refs or moving material, record HEAD, branch, index, dirty paths,
 worktree registrations and the live remote refs. A local Git bundle preserves

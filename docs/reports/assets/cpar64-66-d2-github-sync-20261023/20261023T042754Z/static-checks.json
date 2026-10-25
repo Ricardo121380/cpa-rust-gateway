@@ -1,0 +1,52 @@
+{
+  "result": "PASS",
+  "checks": {
+    "58": {
+      "live_original_hash_matches": true,
+      "reviewed_draft_hash_matches": true,
+      "metadata_matches_baseline": true,
+      "four_controls_together": true,
+      "all_tasks_unchecked": true,
+      "first_release_three_clients_build": true,
+      "blocked_and_not_ready": true,
+      "cost_not_admitted": true,
+      "original_obligations_preserved": true,
+      "historical_code_binding": true,
+      "all_56_stories_exact": true,
+      "all_12_scenarios_exact": true,
+      "native_dependencies_match_baseline": true
+    },
+    "64": {
+      "live_original_hash_matches": true,
+      "reviewed_draft_hash_matches": true,
+      "metadata_matches_baseline": true,
+      "four_controls_together": true,
+      "all_tasks_unchecked": true,
+      "first_release_three_clients_build": true,
+      "blocked_and_not_ready": true,
+      "cost_not_admitted": true,
+      "original_obligations_preserved": true,
+      "historical_code_binding": true,
+      "original_6_acceptance_criteria_exact": true,
+      "body_dependency_section_exact": true,
+      "native_dependencies_match_baseline": true
+    },
+    "66": {
+      "live_original_hash_matches": true,
+      "reviewed_draft_hash_matches": true,
+      "metadata_matches_baseline": true,
+      "four_controls_together": true,
+      "all_tasks_unchecked": true,
+      "first_release_three_clients_build": true,
+      "blocked_and_not_ready": true,
+      "cost_not_admitted": true,
+      "original_obligations_preserved": true,
+      "historical_code_binding": true,
+      "original_6_acceptance_criteria_exact": true,
+      "body_dependency_section_exact": true,
+      "native_dependencies_match_baseline": true
+    }
+  },
+  "exact_reviewed_unified_patch": "PASS",
+  "independent_draft_review": "PASS - reverse/forward reconstruction, unchanged stories/scenarios/AC/dependencies and source binding verified by read-only agent"
+}

@@ -103,11 +103,10 @@ Debian/Ubuntu 示例：
 sudo apt-get update
 sudo apt-get install --yes \
   build-essential ca-certificates clang cmake curl git libclang-dev libssl-dev \
-  nodejs npm pkg-config ripgrep
+  pkg-config ripgrep
 ```
 
-安装固定 Rust Toolchain，并使用 `web/prism/.nvmrc` 指定的 Node 版本。若发行版 Node 太旧，建议使用
-nvm、fnm 或 Volta。
+安装固定 Rust Toolchain。后端构建不再需要 Node/npm。
 
 全新主机先从 rustup 官方 bootstrap 安装 `rustup`，再安装固定 Toolchain：
 
@@ -126,8 +125,6 @@ cd cpa-rust-gateway
 git checkout <TAG_OR_COMMIT>
 
 rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
-npm --prefix web/prism ci --ignore-scripts --no-audit --no-fund
-npm --prefix web/prism run check
 
 export GATEWAY_RELEASE_REVISION="$(git rev-parse HEAD)"
 export GATEWAY_RELEASE_RUST_VERSION=1.97.1
@@ -137,9 +134,7 @@ CARGO_INCREMENTAL=0 cargo +1.97.1 build --locked --release --package gateway
 ./target/release/gateway --help
 ```
 
-Rust Build 会调用 Prism Build，并内嵌精确的四个已审查 Asset。如果没有安装
-`web/prism/node_modules`，或 generated management client 与 Contract 漂移，Cargo 会主动失败，
-不会打包旧 UI。
+Rust Build 只构建后端。旧 Prism 已移除，管理 API 及其 OpenAPI 契约继续保留。
 
 ### 4.3 本地 Smoke Test
 
@@ -279,7 +274,7 @@ Capability 身份下运行，并应用文件系统、Kernel 和 Syscall Hardenin
 
 空数据库也可能通过 `/healthz`，但在操作者完成以下步骤前无法推理：
 
-1. 打开 loopback Prism UI 或 Management API；
+1. 通过 loopback Management API 或本地 CLI 管理配置；
 2. 创建 Draft Config Version；
 3. 配置 Egress Policy、Upstream、Endpoint、Credential 与 Exact Binding；
 4. 创建 Public Model、Route/Candidate、Access Group 和 Client Key；
@@ -293,7 +288,7 @@ Capability 身份下运行，并应用文件系统、Kernel 和 Syscall Hardenin
 ssh -L 18181:127.0.0.1:18181 operator@your-server
 ```
 
-然后在本机打开 `http://127.0.0.1:18181/admin-ui/`。详细资源顺序、Opaque ID 台账、Canary 和
+然后通过 `http://127.0.0.1:18181/admin/` 下的受保护 API 操作；当前没有管理页面。详细资源顺序、Opaque ID 台账、Canary 和
 Rollback 规则见 `docs/p12-rollout-runbook.md`。
 
 ## 9. 反向代理与 TLS
@@ -417,7 +412,7 @@ freshness、成功版本、是否应刷新、保留数量和安全失败分类�
 
 | 现象 | 检查项 |
 |---|---|
-| Cargo 提示缺少 Prism dependency | 运行文档中的精确 `npm --prefix web/prism ci ...` 命令。 |
+| `/admin-ui/` 返回 404 | 旧前端已移除，使用管理 API 或本地 CLI。 |
 | 容器启动但宿主无法连接 | 确认 Linux `--network host`；Bridge `ports:` 与 loopback-only bind 不兼容。 |
 | Credential 被拒绝 | 检查精确文件名、普通文件、大小/前缀、Permission 且不能是 Symlink。 |
 | `/healthz` 正常但不能推理 | Publish 完整 Config Version、签发 Client Key 并重启。 |

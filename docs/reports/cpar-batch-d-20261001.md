@@ -143,7 +143,7 @@ CARGO_NET_OFFLINE=true CHECK_REPORT_PATH=docs/reports/assets/cpar-batch-d-202610
 | [permissions-egress](assets/cpar-batch-d-20261001/permissions-egress.json) | 2 | 403权限错误与空授权不同；出口依赖未读到的节点数／引用是未知。 |
 | [i18n](assets/cpar-batch-d-20261001/i18n.json) | 3 | 经实际设置选择English，汇总来源、请求来源和输入口径翻译；窄屏英文布局保持容器内。 |
 
-验收入口为 [受控 EgoLite 脚本](../../scripts/acceptance/cpar-batch-d.mjs)。实际启动命令为 `VITE_PRISM_FIXTURES=1 npm --prefix web/prism run dev -- --host 127.0.0.1 --port 5188 --strictPort`，在同一个 TaskSpace32 用 `ego-browser nodejs` 逐场景执行该脚本并设置上述固定 commit。验收只在本地；HTTP seam 的请求计数只记录 operation 和 cursor，不记录 body 或凭据。
+验收入口为 [受控 EgoLite 脚本](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/scripts/acceptance/cpar-batch-d.mjs)。实际启动命令为 `VITE_PRISM_FIXTURES=1 npm --prefix web/prism run dev -- --host 127.0.0.1 --port 5188 --strictPort`，在同一个 TaskSpace32 用 `ego-browser nodejs` 逐场景执行该脚本并设置上述固定 commit。验收只在本地；HTTP seam 的请求计数只记录 operation 和 cursor，不记录 body 或凭据。
 
 主线程抽查了截图中的文字、布局与可见关闭控件： [桌面浅色用量](assets/cpar-batch-d-20261001/usage-1440-light.png)、[窄屏深色用量](assets/cpar-batch-d-20261001/usage-375-dark.png)、[窄屏请求详情](assets/cpar-batch-d-20261001/request-detail-375-dark.png)、[窄屏历史差异](assets/cpar-batch-d-20261001/historical-diff-375-dark.png)。其余同家族主题／尺寸图片保留在证据目录。导航、表格滚动区和关闭动作使用公开 UI／键盘控件；没有用坐标或DOM隐藏状态绕过门槛。
 

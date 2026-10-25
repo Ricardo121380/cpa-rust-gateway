@@ -3884,3 +3884,21 @@ The first clean embedded build exposed that Node filesystem types are absent fro
 **Why:** The separate ordinary post-first-DELETE probe reached the fresh impact comparison and reported a known rejection while preserving the saved first result; only the pre-task configuration guard reports an unconfirmed precondition. Match each observed boundary explicitly, preserving exact zero/one DELETE counts and no retry. Move focus away from the final new-password field before dismissing the macOS password suggestion, which otherwise reopens asynchronously. The stock direct Back/Forward recovery already passed with one original session GET, one grant/exchange/account and zero cancellation; its legible recovered dialog screenshot was visually inspected.
 
 **Other side:** FYI. These are acceptance-driver corrections. Product behavior and contract are unchanged. Both failed driver assertions and the password-popup failures remain evidence, not product RED. Unknown write readback continues to use the original batch-loss cases.
+
+
+## 2026-10-23 — Retire Prism and decouple the Rust backend build
+
+**Initiator:** Codex, under the user's explicit architecture-cleanup and frontend-removal request.
+
+**Paths:** `web/prism/**` (removed), `crates/gateway-http-actix/build.rs` and
+`src/management_ui_resources.rs` (removed), `scripts/build-management-spa.sh` and
+`check-management-spa.mjs` (removed); HTTP registration/tests, CI/build inputs, backend
+acceptance helpers, `AGENTS.md`, `CLAUDE.md` and architecture/deployment documentation updated.
+
+**Why:** Develop the CPA-referenced Rust backend independently and redesign the frontend later
+from its API. The existing OpenAPI, admin authentication and management operations remain.
+OpenAPI identifier checks now live in the Rust contract suite. The management runtime facade
+moves unchanged into `apps/gateway/src/runtime/management.rs`.
+
+**Other side:** FYI. Prism and its ownership split are retired, not awaiting repair. Future UI
+work starts from the backend API when requested. Historical evidence remains source-bound.

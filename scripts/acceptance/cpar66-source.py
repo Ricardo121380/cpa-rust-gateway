@@ -24,8 +24,10 @@ def git(root, *args):
 
 
 def paths(root):
-    return sorted(set(os.fsdecode(p) for p in git(root, "ls-files", "--cached", "--others",
-        "--exclude-standard", "-z").split(b"\0") if p))
+    candidates = set(os.fsdecode(p) for p in git(root, "ls-files", "--cached", "--others",
+        "--exclude-standard", "-z").split(b"\0") if p)
+    deleted = set(os.fsdecode(p) for p in git(root, "ls-files", "--deleted", "-z").split(b"\0") if p)
+    return sorted(candidates - deleted)
 
 
 def read(root, name):
@@ -45,6 +47,12 @@ def read(root, name):
 
 
 def verify(root, manifest):
+    binding = json.loads(manifest.with_name("source-binding.json").read_bytes())
+    if digest(manifest.read_bytes()) != binding["input_manifest_sha256"]:
+        raise ValueError("source manifest mismatch")
+    for name in binding.get("deleted_paths", []):
+        if os.path.lexists(root / name):
+            raise ValueError("deleted source input reappeared: " + name)
     rows = json.loads(manifest.read_bytes())
     for expected in rows:
         actual, _ = read(root, expected["path"])
@@ -79,9 +87,6 @@ def freeze(root, output):
                 archive.addfile(entry, io.BytesIO(data))
     manifest = output / "input-manifest.json"
     manifest.write_bytes(encoded(rows))
-    verify(root, manifest)
-    if names != paths(root) or head != git(root, "rev-parse", "HEAD").decode().strip():
-        raise ValueError("checkout changed during source freeze")
     dirty = set(os.fsdecode(p) for p in (git(root, "diff", "HEAD", "--name-only", "-z")
         + git(root, "ls-files", "--others", "--exclude-standard", "-z")).split(b"\0") if p)
     git_modes = {}
@@ -97,18 +102,23 @@ def freeze(root, output):
         "purpose": "actual worktree input; preserve content, permission bits and symlink target"}
         for row in rows if row["path"] in dirty | attributes]
     (output / "overlay.json").write_bytes(encoded(overlay))
+    deleted = sorted(dirty - set(names))
     binding = {"schema": "cpar66-local-source-v1", "base_commit": head,
         "tree": git(root, "rev-parse", "HEAD^{tree}").decode().strip(),
-        "source_form": "base_commit_plus_overlay" if overlay else "git_tree",
+        "source_form": "base_commit_plus_overlay" if overlay or deleted else "git_tree",
         "source_date_epoch": epoch, "inputs": len(rows), "overlay_files": len(overlay),
+        "deleted_paths": deleted,
         "git_status_overlay_files": len(dirty), "permission_overlay_files": len(attributes),
         "input_manifest_sha256": digest(manifest.read_bytes()),
         "overlay_sha256": digest((output / "overlay.json").read_bytes()),
         "source_archive_sha256": digest((output / "source.tar").read_bytes()),
         "cargo_lock_sha256": digest((root / "Cargo.lock").read_bytes()),
-        "rust_toolchain": "1.97.1", "node": "24.19.0", "target": "aarch64-unknown-linux-gnu",
+        "rust_toolchain": "1.97.1", "target": "aarch64-unknown-linux-gnu",
         "reproducibility": "NOT_RUN", "archive_uid_gid": 0}
     (output / "source-binding.json").write_bytes(encoded(binding))
+    verify(root, manifest)
+    if names != paths(root) or head != git(root, "rev-parse", "HEAD").decode().strip():
+        raise ValueError("checkout changed during source freeze")
     print(json.dumps(binding))
 
 

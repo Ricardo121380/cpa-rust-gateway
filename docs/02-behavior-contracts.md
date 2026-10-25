@@ -358,9 +358,9 @@ WebConversationState
 
 ### Chat/Responses Bridge
 
-- 只有请求字段、消息内容和工具语义都可无损转换时才允许桥接。
-- 未知字段、Tool/Function Call、Stop、Reasoning 或结构化内容不能被静默丢弃。
-- 无法证明等价时走原生入口或返回 Unsupported，不做“尽量转换”。
+- 默认 CanonicalBridge 按 [ADR-0125](adr/ADR-0125-cpa-request-compatibility.md) 使用 CPA 兼容映射；允许明确列出的 thinking 预算分档与目标不支持的请求提示省略。
+- 工具关联、历史内容、身份、结构化输出和 Usage 仍需有效表示；不能归入可忽略的未知根选项。
+- 显式 LosslessBridge 继续要求无损；同协议原生路径保留目标原生选项。
 
 ## 13. Kiro 特有契约
 

@@ -92,8 +92,13 @@ controls/history, failure/cancel and exact encrypted-evidence oracles. This gate
 those unavailable paths by itself. Full's ignored test is not actual CLI execution.
 
 #62 stays OPEN/BLOCKED while these fields and #61 remain unresolved. Pi's qualified sequential
-explicit-history path is regressed separately. Its failed-Usage display, roughly 15-second live
-cancel release, one-second diagnostic FAIL and missing complete success companion remain visible.
+explicit-history path is regressed separately. The subsequent
+[listener alignment and actual Pi cancellation report](../reports/cpar-62-listener-cancel-20261019.md)
+qualifies the controlled cancellation chain, including same-PID liveness, independent upstream
+close and lease release before cleanup. The earlier roughly 15-second release and one-second
+diagnostic FAIL remain historical evidence of the old test-listener configuration, not current
+blockers or production latency claims. Pi's failed-Usage display and missing complete success
+companion remain separate limitations.
 Real Grok, other client forms, remote CI, release and deployment remain separate.
 
 ## Corresponding tests

@@ -1,10 +1,12 @@
 # BC-MGMT-004 Management SPA generated client
 
+> Historical frontend contract, retired by [ADR-0124](../adr/ADR-0124-cpa-first-backend-and-frontend-retirement.md). The backend OpenAPI and HTTP security contracts remain active.
+
 | Field | Value |
 |---|---|
 | Contract | `BC-MGMT-004` |
 | Task | `P10-03` |
-| Status | Accepted |
+| Status | Superseded |
 | Domain | Static management SPA and generated API client |
 
 > **2026-08-11 · 部分被取代。** 本记录描述的 `scripts/generate-management-client.mjs`

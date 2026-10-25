@@ -24,11 +24,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--binary', type=Path, required=True)
     parser.add_argument('--report', type=Path)
-    parser.add_argument('--browser-output', type=Path)
     args = parser.parse_args()
     binary = args.binary.resolve()
     checks = []
-    with tempfile.TemporaryDirectory(prefix='prism-login-acceptance-') as temp:
+    with tempfile.TemporaryDirectory(prefix='admin-login-acceptance-') as temp:
         root = Path(temp).resolve()
         state, credentials = root / 'state', root / 'credentials'
         state.mkdir(mode=0o700)
@@ -79,7 +78,7 @@ def main():
                 if process.poll() is not None:
                     raise RuntimeError('gateway exited before readiness')
                 try:
-                    if api('/admin-ui/')[0] == 200:
+                    if api('/admin/config-versions', origin=None, override={'X-Management-Key': legacy})[0] == 200:
                         return process
                 except OSError:
                     pass
@@ -107,12 +106,7 @@ def main():
             new_password = secrets.token_urlsafe(24)
             change = {'current_password': initial, 'new_password': new_password}
             assert api('/admin/auth/password', change, grant, override={'X-Management-CSRF-Token': 'wrong'})[0] == 404
-            if args.browser_output:
-                browser_script = Path(__file__).resolve().parents[1] / 'web/prism/e2e/real-admin-login.mjs'
-                subprocess.run(['node', str(browser_script)], input=json.dumps({'base': base, 'initial': initial, 'newPassword': new_password, 'output': str(args.browser_output.resolve())}), text=True, check=True)
-                checks.append('real embedded browser first-login/password-change/refresh flow and responsive visual acceptance')
-            else:
-                assert api('/admin/auth/password', change, grant)[0] == 204
+            assert api('/admin/auth/password', change, grant)[0] == 204
             assert api('/admin/config-versions', grant=grant)[0] == 404
             assert login(initial)[0] == 401
             status, grant = login(new_password)

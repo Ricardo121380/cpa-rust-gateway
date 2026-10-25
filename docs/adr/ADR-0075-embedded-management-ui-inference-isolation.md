@@ -1,8 +1,10 @@
 # ADR-0075 Embedded management UI with inference-route isolation
 
+> Superseded on 2026-10-23 by [ADR-0124](ADR-0124-cpa-first-backend-and-frontend-retirement.md). The original decision below is historical.
+
 | Field | Value |
 |---|---|
-| Status | Accepted |
+| Status | Superseded |
 | Date | `2026-07-24` |
 | Task | `P10-09` |
 | Matrix / Contract | `H01-H22`、`J02`、`J08-J09`、`J11-J15`、`J18-J20`; [BC-MGMT-008](../contracts/BC-MGMT-008-embedded-management-ui-inference-isolation.md) |

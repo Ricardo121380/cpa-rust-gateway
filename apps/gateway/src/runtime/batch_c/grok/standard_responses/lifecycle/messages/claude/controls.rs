@@ -7,8 +7,8 @@ fn request(streaming: bool) -> Value {
 }
 
 #[actix_web::test]
-async fn public_build_messages_effort_rejection_is_specific_and_preserves_request_only()
--> TestResult {
+async fn public_build_messages_cpa_effort_without_thinking_preserves_explicit_effort() -> TestResult
+{
     for streaming in [false, true] {
         let peer = ModelPeer::start_wire(streaming, tool_rounds::wire(1, streaming)?)?;
         let fixture = lifecycle_fixture(MessagesTransport::new(&peer, 7)?)?;
@@ -23,32 +23,32 @@ async fn public_build_messages_effort_rejection_is_specific_and_preserves_reques
             local_controls::with_metadata(&body, local_controls::METADATA),
         )
         .await?;
-        assert_eq!(status, 400);
-        assert_eq!(
-            serde_json::from_slice::<Value>(&bytes)?,
-            json!({"type":"error",
-            "error":{"type":"invalid_request_error", "message":
-                "output_config.effort: Extra inputs are not permitted by the current gateway conversion; no upstream request was sent"}})
-        );
-        local_controls::assert_metadata(&fixture, &id, local_controls::METADATA, 0)?;
-        assert_eq!(peer.accepted.load(Ordering::SeqCst), 0);
-        assert!(peer.requests.lock().map_err(|_| "receiver")?.is_empty());
+        assert_eq!(status, 200, "{}", String::from_utf8_lossy(&bytes));
+        tool_rounds::client_result(&bytes, streaming)?;
+        local_controls::assert_metadata(&fixture, &id, local_controls::METADATA, 1)?;
+        assert_eq!(peer.accepted.load(Ordering::SeqCst), 1);
+        {
+            let received = peer.requests.lock().map_err(|_| "receiver")?;
+            assert_eq!(received.len(), 1);
+            assert!(received[0].body.get("output_config").is_none());
+            assert_eq!(received[0].body["reasoning"], json!({"effort":"high"}));
+        }
         assert_eq!(active_leases(&fixture), 0);
         server.stop(false).await;
-        rejected_accounting(&recording.finish(&fixture, 0).await?).await?;
+        accounting(&recording.finish(&fixture, 0).await?, 1).await?;
     }
     Ok(())
 }
 
 #[actix_web::test]
-async fn public_build_messages_effort_diagnostic_preserves_independent_rejections() -> TestResult {
+async fn public_build_messages_cpa_compatibility_preserves_independent_rejections() -> TestResult {
     for streaming in [false, true] {
         let peer = ModelPeer::start_wire(streaming, tool_rounds::wire(1, streaming)?)?;
         let fixture = lifecycle_fixture(MessagesTransport::new(&peer, 7)?)?;
+        let recording = Recording::start(&fixture, false)?;
         let (url, server) = namespaces::listener(&fixture)?;
         for (key, value) in [
-            ("thinking", json!({"type":"adaptive"})),
-            ("unknown_after_output", json!({"private":"never echo"})),
+            ("thinking", json!({"type":"invalid"})),
             (
                 "output_config",
                 json!({"effort":"high","unknown":"private"}),
@@ -57,13 +57,18 @@ async fn public_build_messages_effort_diagnostic_preserves_independent_rejection
             ("context_management", json!({"edits":[]})),
             (
                 "messages",
-                json!([{"role":"user","content":[{"type":"text","text":"question","cache_control":{"type":"ephemeral"}}]}]),
+                json!([{"role":"user","content":[{"type":"tool_result","tool_use_id":"missing","content":"result"}]}]),
             ),
         ] {
             let mut body = request(streaming);
             body["output_config"] = json!({"effort":"high"});
             body[key] = value;
-            let (status, _, bytes) = local_controls::send(&fixture, &url, body.to_string()).await?;
+            let (status, _, bytes) = local_controls::send(
+                &fixture,
+                &url,
+                local_controls::with_metadata(&body, local_controls::METADATA),
+            )
+            .await?;
             assert_eq!(status, 400);
             let error: Value = serde_json::from_slice(&bytes)?;
             assert_eq!(error["error"]["message"], "the client request is invalid");
@@ -77,6 +82,7 @@ async fn public_build_messages_effort_diagnostic_preserves_independent_rejection
         assert!(peer.requests.lock().map_err(|_| "receiver")?.is_empty());
         assert_eq!(active_leases(&fixture), 0);
         server.stop(false).await;
+        rejected_accounting(&recording.finish(&fixture, 0).await?).await?;
     }
     Ok(())
 }
@@ -111,21 +117,53 @@ async fn public_build_messages_missing_runtime_is_not_an_effort_rejection() -> T
 }
 
 #[actix_web::test]
-async fn public_build_messages_observed_claude_controls_reject_before_send() -> TestResult {
+async fn public_build_messages_cpa_controls_reach_receiver() -> TestResult {
     for streaming in [false, true] {
-        for (key, value) in [
-            ("thinking", json!({"type":"adaptive"})),
-            ("thinking", json!({"type":"adaptive","display":"updates"})),
-            ("output_config", json!({"effort":"high"})),
+        for (control, expected) in [
+            (json!({"type":"adaptive"}), json!({"effort":"xhigh"})),
             (
-                "messages",
-                json!([{"role":"user","content":[{"type":"text","text":"question",
-                "cache_control":{"type":"ephemeral"}}]}]),
+                json!({"type":"adaptive","display":"updates"}),
+                json!({"effort":"xhigh"}),
             ),
+            (
+                json!({"type":"adaptive","display":"summarized"}),
+                json!({"effort":"high","summary":"auto"}),
+            ),
+            (
+                json!({"type":"enabled","budget_tokens":1024}),
+                json!({"effort":"low"}),
+            ),
+            (json!({"type":"disabled"}), json!({"effort":"none"})),
         ] {
+            let peer = ModelPeer::start_wire(streaming, tool_rounds::wire(1, streaming)?)?;
+            let fixture = lifecycle_fixture(MessagesTransport::new(&peer, 7)?)?;
+            let recording = Recording::start(&fixture, false)?;
+            let (url, server) = namespaces::listener(&fixture)?;
             let mut body = request(streaming);
-            body[key] = value;
-            failures::refused(streaming, tool_rounds::wire(1, streaming)?, body, 0).await?;
+            body["thinking"] = control;
+            if body["thinking"]["display"] == "summarized" {
+                body["output_config"] = json!({"effort":"high"});
+            }
+            body["top_k"] = json!(3);
+            body["vendor_option"] = json!({"future":true});
+            body["system"] = json!([{"type":"text","text":"system","cache_control":{"type":"ephemeral","ttl":"1h"}}]);
+            body["messages"][0]["content"] =
+                json!([{"type":"text","text":"question","cache_control":{"type":"ephemeral"}}]);
+            let (status, _, bytes) = local_controls::send(&fixture, &url, body.to_string()).await?;
+            assert_eq!(status, 200, "{}", String::from_utf8_lossy(&bytes));
+            tool_rounds::client_result(&bytes, streaming)?;
+            {
+                let received = peer.requests.lock().map_err(|_| "receiver")?;
+                assert_eq!(received.len(), 1);
+                assert_eq!(received[0].body["reasoning"], expected);
+                assert!(received[0].body.get("vendor_option").is_none());
+                assert!(received[0].body.get("top_k").is_none());
+                assert!(!received[0].body.to_string().contains("cache_control"));
+            }
+            assert_eq!(peer.accepted.load(Ordering::SeqCst), 1);
+            assert_eq!(active_leases(&fixture), 0);
+            server.stop(false).await;
+            accounting(&recording.finish(&fixture, 0).await?, 1).await?;
         }
     }
     Ok(())

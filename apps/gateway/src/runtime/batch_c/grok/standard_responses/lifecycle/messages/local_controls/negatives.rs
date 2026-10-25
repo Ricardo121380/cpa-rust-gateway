@@ -115,7 +115,7 @@ async fn public_build_messages_m4_retains_empty_unicode_opaque_and_exact_boundar
 }
 
 #[actix_web::test]
-async fn public_build_messages_m4_request_only_preserves_m1_m2_m5_blockers() -> TestResult {
+async fn public_build_messages_m4_coexists_with_cpa_controls() -> TestResult {
     for streaming in [false, true] {
         for mask in 1..8 {
             let mut request: Value = serde_json::from_str(&body(streaming, true, false))?;
@@ -129,7 +129,18 @@ async fn public_build_messages_m4_request_only_preserves_m1_m2_m5_blockers() -> 
                 request["messages"][0]["content"] =
                     json!([{"type":"text","text":"question","cache_control":{"type":"ephemeral"}}]);
             }
-            rejected(streaming, with_metadata(&request, METADATA), Some(METADATA)).await?;
+            let peer = ModelPeer::start_wire(streaming, tool_rounds::wire(1, streaming)?)?;
+            let fixture = lifecycle_fixture(MessagesTransport::new(&peer, 7)?)?;
+            let recording = Recording::start(&fixture, false)?;
+            let (url, server) = namespaces::listener(&fixture)?;
+            let (status, id, bytes) =
+                send(&fixture, &url, with_metadata(&request, METADATA)).await?;
+            assert_eq!(status, 200, "{}", String::from_utf8_lossy(&bytes));
+            tool_rounds::client_result(&bytes, streaming)?;
+            assert_metadata(&fixture, &id, METADATA, 1)?;
+            assert_eq!(peer.accepted.load(Ordering::SeqCst), 1);
+            server.stop(false).await;
+            accounting(&recording.finish(&fixture, 0).await?, 1).await?;
         }
     }
     Ok(())

@@ -4,6 +4,7 @@ use actix_web::{HttpRequest, HttpResponse, HttpServer, dev::ServerHandle};
 use gateway_upstream::EgressDnsError;
 use std::net::{IpAddr, Ipv4Addr, TcpListener};
 pub(in crate::runtime) mod bootstrap_usage;
+mod cpa_compatibility;
 mod responses_done;
 mod responses_history;
 

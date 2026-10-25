@@ -81,11 +81,13 @@ curl --noproxy '*' --silent --show-error --fail --max-time 3 \
   -H "X-Management-Key: $fixture_mgmt" \
   "http://127.0.0.1:$management_port/admin/backups/preflight" \
   | rg -Fx "{\"schema_version\":$current_schema,\"secret_key_required\":true}"
-management_ui_html="$(curl --noproxy '*' --silent --show-error --fail --max-time 3 \
-  "http://127.0.0.1:$management_port/admin-ui/")"
-if [[ "$management_ui_html" != *'<title>Prism · Gateway Management'* ]]; then
-  printf 'p12-02 serve test: embedded management UI title is missing\n' >&2
-  exit 1
-fi
+for listener in "$data_port" "$management_port"; do
+  status="$(curl --noproxy '*' --silent --show-error --max-time 3 --output /dev/null --write-out '%{http_code}' \
+    "http://127.0.0.1:$listener/admin-ui/")"
+  if [[ "$status" != 404 ]]; then
+    printf 'p12-02 serve test: retired UI route returned %s\n' "$status" >&2
+    exit 1
+  fi
+done
 
 printf 'p12-02 serve test: loopback readiness, listener isolation and protected management passed\n'

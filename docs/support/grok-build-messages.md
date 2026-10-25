@@ -1,4 +1,12 @@
-# Grok Build → standard Messages: Claude D2 restricted support
+# Grok Build → standard Messages: request compatibility and support evidence
+
+**Current request behavior — 2026-10-23:** [ADR-0125](../adr/ADR-0125-cpa-request-compatibility.md)
+accepts adaptive/display, output_config.effort and cache hints through CanonicalBridge using CPA
+mappings. Budget thresholds, independent summary intent and tool-result cache placements are
+covered by local public HTTP / JSON / SSE / tool-cycle tests. These controls no longer require
+D2's preliminary effort400. Actual stock Claude and fixed Build service have not been requalified
+on this source. The D2 configuration and negotiation sections below describe historical evidence,
+not a requirement to disable thinking/cache for current protocol admission.
 
 As of **2026-10-23**, the user has selected **Claude D2 for the first release** under
 [ADR-0123](../adr/ADR-0123-first-release-claude-d2-restricted-support.md).
@@ -20,7 +28,7 @@ Chat and other Providers do not inherit this exception.
 
 Successful closure requires native validation, legal standard projection and confirmed complete
 encrypted retention. Tool name/ID/object arguments and results, known Usage and model identity
-retain their existing rules. Unsupported thinking budgets, unrepresentable history, cipher/signature/citation, unknown content
+retain their existing rules. Unrepresentable history, cipher/signature/citation, unknown content
 and unqualified Usage remain rejected. Other reasoning keeps the existing strict projection; a
 body-only representation is not hidden, and a mixed summary/body item remains unsupported. `cost_in_usd_ticks`
 is still NOT_ADMITTED. Missing costs remain UNKNOWN.
@@ -48,7 +56,7 @@ claim for newer/older clients, other platforms, interactive/desktop modes or the
 Before a later authorized run, compare the installed identity with the receipt; do not silently
 upgrade, downgrade or reuse the result for a different executable.
 
-All four values are mandatory together:
+All four values were mandatory together for the historical D2 receipt:
 
 ```sh
 DISABLE_PROMPT_CACHING=1
@@ -118,7 +126,7 @@ prepared under the existing management flow, and fixed field/profile/model quali
 be satisfied independently before real use. The current delivery's default Build qualification
 is not changed by these environment variables. Do not enable controlled-test-support in an artifact.
 
-## Initial effort rejection and client-owned negotiation
+## Historical effort rejection and client-owned negotiation
 
 The first D2 request still contains output_config.effort=high. Only when the complete matching
 candidate set proves that effort is the sole remaining conversion rejection does CPAR return

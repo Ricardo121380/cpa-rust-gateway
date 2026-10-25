@@ -57,12 +57,13 @@ impl fmt::Debug for DecodedCountTokensRequest {
     }
 }
 
-/// Collects the one Canonical request-level retention semantic that can be proven from Anthropic
-/// cache controls. The original per-block controls remain attached to their content/tool raw
-/// extension so a later bridge cannot mistake this summary for a placement-preserving conversion.
+/// Summarizes uniform Anthropic cache retention; mixed lifetimes have no single summary.
+/// Original controls remain attached to content/tool extensions for native encoding; the
+/// summary is not a substitute for preserving their placements.
 #[derive(Default)]
 pub(crate) struct CacheControlCollector {
     retention: Option<String>,
+    mixed: bool,
 }
 
 impl CacheControlCollector {
@@ -79,13 +80,13 @@ impl CacheControlCollector {
         match self.retention.as_deref() {
             None => self.retention = Some(retention),
             Some(existing) if existing == retention => {}
-            Some(_) => return Err(client_request_error()),
+            Some(_) => self.mixed = true,
         }
         Ok(())
     }
 
     pub(crate) fn into_retention(self) -> Option<String> {
-        self.retention
+        if self.mixed { None } else { self.retention }
     }
 }
 
@@ -561,7 +562,6 @@ mod tests {
         for input in [
             r#"{"model":"m","max_tokens":1,"thinking":{"type":"enabled","budget_tokens":0},"messages":[{"role":"user","content":"x"}]}"#,
             r#"{"model":"m","max_tokens":1,"messages":[{"role":"user","content":[{"type":"text","text":"x","cache_control":{"type":"persistent"}}]}]}"#,
-            r#"{"model":"m","max_tokens":1,"system":[{"type":"text","text":"s","cache_control":{"type":"ephemeral","ttl":"5m"}}],"messages":[{"role":"user","content":[{"type":"text","text":"x","cache_control":{"type":"ephemeral","ttl":"1h"}}]}]}"#,
         ] {
             assert!(decode_request(input).is_err(), "accepted {input}");
         }

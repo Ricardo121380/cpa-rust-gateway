@@ -70,11 +70,12 @@ def source_identity(root):
     inputs = {}
     for raw in sorted(set(paths) - {b""}):
         name = os.fsdecode(raw)
-        if (name.endswith((".rs", ".toml", ".lock")) or name.startswith("web/prism/src/")
-                or name in {"web/prism/package-lock.json", "web/prism/package.json",
-                            "scripts/build-management-spa.sh", "scripts/acceptance/cpar-device-loopback.c",
+        if (name.endswith((".rs", ".toml", ".lock"))
+                or name in {"scripts/acceptance/cpar-device-loopback.c",
                             "scripts/acceptance/cpar65-process-recovery.py"}):
             path = root / name
+            if not path.exists():
+                continue  # Unstaged deletions remain explicit in the recorded Git status.
             inputs[name] = {"sha256": sha(path.read_bytes()), "mode": path.stat().st_mode & 0o777}
     return {"root": str(root), "head": git("rev-parse", "HEAD"),
             "tree": git("rev-parse", "HEAD^{tree}"), "inputs": inputs,

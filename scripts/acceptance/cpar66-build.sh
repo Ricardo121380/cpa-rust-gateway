@@ -3,7 +3,6 @@
 set -euo pipefail
 test "$(uname -m)" = aarch64
 test "$(rustc --version | cut -d ' ' -f 2)" = 1.97.1
-test "$(node --version)" = v24.19.0
 test ! -e /work/source-candidate
 test ! -e /work/target-candidate
 python3 - <<'PY'
@@ -25,9 +24,8 @@ export GATEWAY_RELEASE_TARGET=aarch64-unknown-linux-gnu
 export SOURCE_DATE_EPOCH
 SOURCE_DATE_EPOCH="$(python3 -c 'import json;print(json.load(open("/input/source-binding.json"))["source_date_epoch"])')"
 export CARGO_TARGET_DIR=/work/target-candidate CARGO_HOME=/work/cargo CARGO_NET_OFFLINE=true
-export CARGO_BUILD_JOBS=2 CARGO_INCREMENTAL=0 npm_config_cache=/work/npm-cache
+export CARGO_BUILD_JOBS=2 CARGO_INCREMENTAL=0
 export LANG=C.UTF-8 LC_ALL=C.UTF-8 TZ=UTC
-npm --prefix web/prism ci --offline --ignore-scripts --no-audit --no-fund
 bash scripts/build-release.sh
 mkdir /work/build-output
 install -m 0755 /work/target-candidate/release/gateway /work/build-output/gateway-aarch64-unknown-linux-gnu

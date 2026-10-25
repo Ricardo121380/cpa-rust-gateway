@@ -20,11 +20,11 @@
 | 层次 | 当前实现 | 关键代码证据 |
 | --- | --- | --- |
 | Rust 结构 | 21 个 workspace package，协议、Provider、路由、存储、控制与 HTTP 分层 | [Cargo.toml](../../Cargo.toml)，members 列表 |
-| 管理端结构 | React/Vite、TanStack Query、Zustand；14 管理入口与解锁页；将目录/价格/高级维护归入 8 个日常工作区 | [App.tsx](../../web/prism/src/App.tsx):21；[navigation.ts](../../web/prism/src/app/navigation.ts):90 |
-| 管理契约 | 权威 OpenAPI 含 113 个 path、152 个 operation；前端副本及生成客户端通过当前静态检查 | [management-v1.json](../openapi/management-v1.json)；[check.mjs](../../web/prism/scripts/check.mjs) |
-| 渠道接入 | 命名渠道由后端准备专属目标；Kimi Coding 与 API 分离；普通授权不枚举不相关提供商 | [AddAccountDialog.tsx](../../web/prism/src/features/accounts/AddAccountDialog.tsx):25、92；[account_channels.rs](../../crates/gateway-http-actix/src/management_resources/account_channels.rs):174 |
-| 配置操作 | 日常操作可创建工作草稿、修订校验、验证发布；记录保存/应用/不确定结果，避免重复写入 | [configurationTask.ts](../../web/prism/src/features/config-versions/configurationTask.ts):9；[modelTask.ts](../../web/prism/src/features/models/modelTask.ts):79 |
-| 会话与版本 | 会话代际、选择代际、单调修订、失效锁定；统一客户端拒绝迟到或失主响应 | [client.ts](../../web/prism/src/api/client.ts):123；[versionStore.ts](../../web/prism/src/features/config-versions/versionStore.ts):27；[sessionStore.ts](../../web/prism/src/session/sessionStore.ts):20 |
+| 管理端结构 | React/Vite、TanStack Query、Zustand；14 管理入口与解锁页；将目录/价格/高级维护归入 8 个日常工作区 | [App.tsx](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/App.tsx):21；[navigation.ts](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/app/navigation.ts):90 |
+| 管理契约 | 权威 OpenAPI 含 113 个 path、152 个 operation；前端副本及生成客户端通过当前静态检查 | [management-v1.json](../openapi/management-v1.json)；[check.mjs](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/scripts/check.mjs) |
+| 渠道接入 | 命名渠道由后端准备专属目标；Kimi Coding 与 API 分离；普通授权不枚举不相关提供商 | [AddAccountDialog.tsx](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/features/accounts/AddAccountDialog.tsx):25、92；[account_channels.rs](../../crates/gateway-http-actix/src/management_resources/account_channels.rs):174 |
+| 配置操作 | 日常操作可创建工作草稿、修订校验、验证发布；记录保存/应用/不确定结果，避免重复写入 | [configurationTask.ts](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/features/config-versions/configurationTask.ts):9；[modelTask.ts](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/features/models/modelTask.ts):79 |
+| 会话与版本 | 会话代际、选择代际、单调修订、失效锁定；统一客户端拒绝迟到或失主响应 | [client.ts](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/api/client.ts):123；[versionStore.ts](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/features/config-versions/versionStore.ts):27；[sessionStore.ts](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/session/sessionStore.ts):20 |
 | 目录与权限 | 当前实现只限制既有候选的账号可用性，不因发现新模型创建公开模型或继承权限；携带目录过期证据 | [route_snapshot.rs](../../crates/gateway-router/src/route_snapshot.rs):919；[runtime.rs](../../apps/gateway/src/runtime.rs):3738 |
 | 请求数据 | 记录请求终态、耗时和首内容延迟；存储按快照、时间、过滤、游标读请求及聚合 | [request_observation.rs](../../crates/gateway-http-actix/src/request_observation.rs):120；[request_history.rs](../../crates/gateway-store/src/control_plane/request_history.rs):124 |
 | 计费与维护 | serve 启动并停止计费/TTL worker；账本有筛选下推和整行分页；TTL 维护有界 | [deployment.rs](../../apps/gateway/src/deployment.rs):300；[billing_ledger.rs](../../crates/gateway-store/src/billing_ledger.rs):305、730；[maintenance_worker.rs](../../apps/gateway/src/maintenance_worker.rs):14 |
@@ -87,29 +87,29 @@
 ### R1：高优先级——部分写操作仍可在提交中离开，不能保留稳定结果
 
 - `Sheet` 的 `busy` 默认值为 false；只有显式传入后，共享关闭/导航保护才知道不可离开。
-- [CompatibleProxyPanel.tsx](../../web/prism/src/features/egress/CompatibleProxyPanel.tsx):132、217、384、847 的写入/删除 Sheet 未传 busy；pending 主要只禁用提交按钮。删除弹窗的 onEscape 直接清空目标，保存后的处理则关闭编辑器、刷新列表，没有与新工作区一致的分阶段回执。
-- [AccessPage.tsx](../../web/prism/src/features/access/AccessPage.tsx):130、467、525 和 [VersionsPage.tsx](../../web/prism/src/features/config-versions/VersionsPage.tsx):253 存在同类未迁移入口。
+- [CompatibleProxyPanel.tsx](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/features/egress/CompatibleProxyPanel.tsx):132、217、384、847 的写入/删除 Sheet 未传 busy；pending 主要只禁用提交按钮。删除弹窗的 onEscape 直接清空目标，保存后的处理则关闭编辑器、刷新列表，没有与新工作区一致的分阶段回执。
+- [AccessPage.tsx](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/features/access/AccessPage.tsx):130、467、525 和 [VersionsPage.tsx](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/features/config-versions/VersionsPage.tsx):253 存在同类未迁移入口。
 - 这是静态调用链确认的交互风险，本次没有浏览器注入延迟复现。后续须以 held-write 下的 Escape/关闭/Back，以及失败和响应丢失验证收口。
 - 成因：共享组件先兼容旧调用，业务调用方未全部迁移；批次标题的覆盖范围大于实际逐动作覆盖范围。
 
 ### R2：高优先级——访问组表单允许配置运行时不支持的限额
 
-- [AccessPage.tsx](../../web/prism/src/features/access/AccessPage.tsx):499 提示 `max_concurrency=4 rpm=600`，saveGroup 原样写入 limits。
+- [AccessPage.tsx](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/features/access/AccessPage.tsx):499 提示 `max_concurrency=4 rpm=600`，saveGroup 原样写入 limits。
 - [runtime.rs](../../apps/gateway/src/runtime.rs):3339 明确拒绝 active 且 limits 非空的访问组，返回 RuntimeCompositionError::Unavailable。
-- [access-groups.spec.ts](../../web/prism/e2e/access-groups.spec.ts):27 只证明 fixture 下保存 `max_concurrency=8 rpm=120`，未覆盖真实运行装配/发布。
+- [access-groups.spec.ts](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/e2e/access-groups.spec.ts):27 只证明 fixture 下保存 `max_concurrency=8 rpm=120`，未覆盖真实运行装配/发布。
 - 影响：保存草稿可成功，但界面暗示限额可用，实际发布可能被拒绝。修复应限制前端可编辑能力并解释支持边界；不要由这次 UI Goal 顺便扩展共享配额执行器。
 
 ### R3：中优先级——计费“完整核对”仅展示部分输入
 
-- [CatalogImportDialog.tsx](../../web/prism/src/features/billing/CatalogImportDialog.tsx):74 限制前 100 条差异，:75 的“核对本次完整价格”限制前 50 条且无分页/加载更多。
+- [CatalogImportDialog.tsx](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/features/billing/CatalogImportDialog.tsx):74 限制前 100 条差异，:75 的“核对本次完整价格”限制前 50 条且无分页/加载更多。
 - 提交仍包含完整输入，因此不是丢数据；但管理员无法在确认阶段查看第 51 条之后的价格，未满足完整预览意图。
 - 应使用有界分页或逐步展开，并增加 51–512 条输入的首尾可核对验收。现有 513 条拒绝测试不能证明允许范围内的完整核对。
 
 ### R4：中优先级——回归资产与现产品语义不一致
 
-- [monitoring.spec.ts](../../web/prism/e2e/monitoring.spec.ts):16 仍断言“不提供延迟和成功率”；当前 [RequestHistory.tsx](../../web/prism/src/features/monitoring/RequestHistory.tsx):92 已呈现真实成功率和 P50/P95，MonitoringPage 默认进入 requests。
-- [playwright.config.ts](../../web/prism/playwright.config.ts):35 使用 fixture；narrow 项目只覆盖一个 spec 且为 390×780，不能替代 Goal 要求的真实嵌入应用 390×844 全栏目验收。
-- [vite.config.ts](../../web/prism/vite.config.ts):66 的单测环境是 Node；369 单测通过不能用于声明弹窗外观、键盘和响应式全通过。
+- [monitoring.spec.ts](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/e2e/monitoring.spec.ts):16 仍断言“不提供延迟和成功率”；当前 [RequestHistory.tsx](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/features/monitoring/RequestHistory.tsx):92 已呈现真实成功率和 P50/P95，MonitoringPage 默认进入 requests。
+- [playwright.config.ts](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/playwright.config.ts):35 使用 fixture；narrow 项目只覆盖一个 spec 且为 390×780，不能替代 Goal 要求的真实嵌入应用 390×844 全栏目验收。
+- [vite.config.ts](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/vite.config.ts):66 的单测环境是 Node；369 单测通过不能用于声明弹窗外观、键盘和响应式全通过。
 - 成因：功能新增后，旧版页面测试仍保留；定向绿灯与完整验收没有统一状态索引。
 
 ### R5：中优先级——计划、台账和当前实现存在语义/状态漂移
@@ -122,7 +122,7 @@
 ### R6：验证缺口——性能目标尚无本轮闭合证据
 
 - Goal 要求减少重复请求、订阅、昂贵派生和大列表开销；当前有局部 useMemo 和统一读取队列，但没有找到绑定当前整合版本的性能基线与复验报告。
-- 当前 [App.tsx](../../web/prism/src/App.tsx) 静态导入页面；这本身不是缺陷。必须先测启动、交互、长列表和请求量，再决定是否优化；四文件构建约束下不能直接增加无人服务的异步 chunk。
+- 当前 [App.tsx](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/App.tsx) 静态导入页面；这本身不是缺陷。必须先测启动、交互、长列表和请求量，再决定是否优化；四文件构建约束下不能直接增加无人服务的异步 chunk。
 - 三个大型维护面分别约为 runtime 14320 行、management_resources 11058 行、fixtures 3173 行，包含测试；这是变更审查成本因素，不是要求本轮全仓拆分的理由。
 
 ### 阻塞判断

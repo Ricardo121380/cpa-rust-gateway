@@ -90,7 +90,7 @@ def port():
  with socket.socket() as s:s.bind(('127.0.0.1',0));return s.getsockname()[1]
 a,d=port(),port();base=f'http://127.0.0.1:{a}';http=urllib.request.build_opener(urllib.request.ProxyHandler({}));log=(root/'gateway.log').open('ab')
 subprocess.run([str(target/'debug/gateway'),'admin-login','init','--state-dir',str(state),'--password-file',str(root/'initial-password')],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-info={'root':str(root),'url':base+'/admin-ui/#/unlock','admin_port':a,'data_port':d,'mock_port':provider.server_port,'synthetic':True,'controller_pid':os.getpid()}
+info={'root':str(root),'url':base+'/admin/','admin_port':a,'data_port':d,'mock_port':provider.server_port,'synthetic':True,'controller_pid':os.getpid()}
 def start():
  p=subprocess.Popen([str(target/'debug/gateway'),'serve','--state-dir',str(state),'--credential-dir',str(creds),'--data-listen',f'127.0.0.1:{d}','--management-listen',f'127.0.0.1:{a}'],stdout=log,stderr=log,env={**os.environ,'SSL_CERT_FILE':str(ca)})
  info['pid']=p.pid;(out/'local-preview.json').write_text(json.dumps(info,indent=2));return p

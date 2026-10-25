@@ -1,11 +1,23 @@
 # ADR-0100: Exact protocol semantics and source Usage evidence
 
+> **2026-10-23 request-policy successor:** [ADR-0125](ADR-0125-cpa-request-compatibility.md)
+> adopts CPA-style request compatibility. Conflicting universal rejection / M1-M2-M5 blockers
+> and effort-negotiation requirements below are historical; other invariants and receipts remain.
+
 | Field | Value |
 |---|---|
 | Status | Accepted |
 | Date | `2026-09-30` |
 | Task / Matrix | CPAR batch B, CPAR-18–29 (#27–38), parent #9; protocol/tool/reasoning/Usage/stored-response semantics |
 | Contracts | [BC-RESP-002](../contracts/BC-RESP-002-stored-response-public-lifecycle.md), [BC-RESP-003](../contracts/BC-RESP-003-exact-continuity-and-compaction.md), [BC-RESP-004](../contracts/BC-RESP-004-public-responses-websocket.md), [BC-OBS-001](../contracts/BC-OBS-001-bounded-request-attempt-usage-events.md), [BC-MGMT-012](../contracts/BC-MGMT-012-billing-materialization-read-model.md) |
+
+> **2026-10-18 限定后继决定：** [ADR-0107](ADR-0107-standard-response-metadata-separation.md)
+> 允许经审查、不影响标准语义的额外元数据完整加密留存，并由标准响应独立成功。
+> 只修订该元数据子集的交付要求；其余语义、身份、Usage 与所有权规则继续有效。
+> 新方向尚未实现，下面的历史决定正文保留。
+
+> 同日 [ADR-0108](ADR-0108-build-summary-standard-messages.md)单独批准 Grok Build 标准 Messages
+> 可不展示 reasoning summary，但须完整加密留存并证明工具续轮不受影响；其余严格规则保持。
 
 ## Context
 

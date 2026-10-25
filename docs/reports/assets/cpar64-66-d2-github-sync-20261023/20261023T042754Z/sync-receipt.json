@@ -1,0 +1,389 @@
+{
+  "schema": "cpar-d2-github-body-sync-receipt-v1",
+  "date": "2026-10-23",
+  "repo": "Ricardo121380/cpa-rust-gateway",
+  "scope": "Only issue bodies #58, #64, #66; no product implementation or real Provider acceptance",
+  "started_head": "ab78c65ca68978bf46c7cf530ea795417d8431f3",
+  "final_head": "ab78c65ca68978bf46c7cf530ea795417d8431f3",
+  "branch": "feature/62-client-metadata",
+  "sync_result": "COMPLETE_3_OF_3",
+  "write_order": [
+    58,
+    64,
+    66
+  ],
+  "mutation_attempts": 3,
+  "mutation_retries": 0,
+  "issues": [
+    {
+      "number": 58,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/58",
+      "result": "SYNCED_AND_VERIFIED",
+      "command_result": {
+        "attempted": true,
+        "returncode": 0,
+        "stdout": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/58\n",
+        "stderr": ""
+      },
+      "before_updated_at": "2026-10-18T03:15:12Z",
+      "after_updated_at": "2026-10-23T04:34:07Z",
+      "before_body_sha256": "05be6b4d2ead2272f37af7cb226cde4611cb1e13c3ed6ac715eec06f132958e6",
+      "expected_body_sha256": "714b5f31dce32cdd90da1d7fcd1b056641a12e876d93669dc30979d063b9d75e",
+      "after_body_sha256": "714b5f31dce32cdd90da1d7fcd1b056641a12e876d93669dc30979d063b9d75e",
+      "checks": {
+        "title_state_labels_assignees_milestone_lock_type_comment_count": true,
+        "comments_id_body_author_timestamps": true,
+        "native_dependencies_identity_and_states": true,
+        "remote_body_exact_utf8_bytes": true,
+        "remote_body_sha256_matches_reviewed_draft": true
+      },
+      "dependencies": {
+        "blocked_by": [],
+        "blocking": []
+      },
+      "retry_count": 0,
+      "final_readback_checks": {
+        "metadata_unchanged": true,
+        "comments_unchanged": true,
+        "native_dependency_identity_and_state_unchanged": true,
+        "remote_body_exact_reviewed_bytes": true,
+        "remote_sha256_exact_reviewed_draft": true,
+        "updated_at_stable_after_write": true
+      },
+      "final_readback_observed_at": "2026-10-23T04:35:52.932866+00:00",
+      "write_command": [
+        "gh",
+        "issue",
+        "edit",
+        "58",
+        "--repo",
+        "Ricardo121380/cpa-rust-gateway",
+        "--body-file",
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar64-66-d2-adoption-20261023/issue-58.body.md"
+      ],
+      "comments_count": 0,
+      "comments_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "number": 64,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/64",
+      "result": "SYNCED_AND_VERIFIED",
+      "command_result": {
+        "attempted": true,
+        "returncode": 0,
+        "stdout": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/64\n",
+        "stderr": ""
+      },
+      "before_updated_at": "2026-10-20T02:56:33Z",
+      "after_updated_at": "2026-10-23T04:34:37Z",
+      "before_body_sha256": "38039a4df432041df7de4d9159c5f65ebb1473c0e60774d15ae84dfb021d9356",
+      "expected_body_sha256": "1b3a0a755c84be8db237aaf68c9b41e3300af918686878c84d2d226e8639f31d",
+      "after_body_sha256": "1b3a0a755c84be8db237aaf68c9b41e3300af918686878c84d2d226e8639f31d",
+      "checks": {
+        "title_state_labels_assignees_milestone_lock_type_comment_count": true,
+        "comments_id_body_author_timestamps": true,
+        "native_dependencies_identity_and_states": true,
+        "remote_body_exact_utf8_bytes": true,
+        "remote_body_sha256_matches_reviewed_draft": true
+      },
+      "dependencies": {
+        "blocked_by": [
+          {
+            "id": 5906832622,
+            "node_id": "I_kwDOUGxUj88AAAABYBMc7g",
+            "number": 63,
+            "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/63",
+            "state": "open"
+          }
+        ],
+        "blocking": [
+          {
+            "id": 5906833834,
+            "node_id": "I_kwDOUGxUj88AAAABYBMhqg",
+            "number": 66,
+            "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/66",
+            "state": "open"
+          }
+        ]
+      },
+      "retry_count": 0,
+      "final_readback_checks": {
+        "metadata_unchanged": true,
+        "comments_unchanged": true,
+        "native_dependency_identity_and_state_unchanged": true,
+        "remote_body_exact_reviewed_bytes": true,
+        "remote_sha256_exact_reviewed_draft": true,
+        "updated_at_stable_after_write": true
+      },
+      "final_readback_observed_at": "2026-10-23T04:35:52.818825+00:00",
+      "write_command": [
+        "gh",
+        "issue",
+        "edit",
+        "64",
+        "--repo",
+        "Ricardo121380/cpa-rust-gateway",
+        "--body-file",
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar64-66-d2-adoption-20261023/issue-64.body.md"
+      ],
+      "comments_count": 1,
+      "comments_sha256": "88ede73771592f7e64e917de2aed6217eaacee7f3a7089ac0cbc89c4c6200cf7"
+    },
+    {
+      "number": 66,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/66",
+      "result": "SYNCED_AND_VERIFIED",
+      "command_result": {
+        "attempted": true,
+        "returncode": 0,
+        "stdout": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/66\n",
+        "stderr": ""
+      },
+      "before_updated_at": "2026-10-18T06:24:41Z",
+      "after_updated_at": "2026-10-23T04:35:03Z",
+      "before_body_sha256": "9bbb63126960bda2ffc1099c5b67abc8b23ab4596d5342f89f2ad1d647d488a7",
+      "expected_body_sha256": "97ae9b4cde0b9f662ad690fbf328a1649b69d1c5d7ac73d26f63dea5687819fe",
+      "after_body_sha256": "97ae9b4cde0b9f662ad690fbf328a1649b69d1c5d7ac73d26f63dea5687819fe",
+      "checks": {
+        "title_state_labels_assignees_milestone_lock_type_comment_count": true,
+        "comments_id_body_author_timestamps": true,
+        "native_dependencies_identity_and_states": true,
+        "remote_body_exact_utf8_bytes": true,
+        "remote_body_sha256_matches_reviewed_draft": true
+      },
+      "dependencies": {
+        "blocked_by": [
+          {
+            "id": 5906832311,
+            "node_id": "I_kwDOUGxUj88AAAABYBMbtw",
+            "number": 62,
+            "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/62",
+            "state": "open"
+          },
+          {
+            "id": 5906832953,
+            "node_id": "I_kwDOUGxUj88AAAABYBMeOQ",
+            "number": 64,
+            "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/64",
+            "state": "open"
+          },
+          {
+            "id": 5906833510,
+            "node_id": "I_kwDOUGxUj88AAAABYBMgZg",
+            "number": 65,
+            "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/65",
+            "state": "open"
+          }
+        ],
+        "blocking": [
+          {
+            "id": 5906834247,
+            "node_id": "I_kwDOUGxUj88AAAABYBMjRw",
+            "number": 67,
+            "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/67",
+            "state": "open"
+          }
+        ]
+      },
+      "retry_count": 0,
+      "final_readback_checks": {
+        "metadata_unchanged": true,
+        "comments_unchanged": true,
+        "native_dependency_identity_and_state_unchanged": true,
+        "remote_body_exact_reviewed_bytes": true,
+        "remote_sha256_exact_reviewed_draft": true,
+        "updated_at_stable_after_write": true
+      },
+      "final_readback_observed_at": "2026-10-23T04:35:53.508814+00:00",
+      "write_command": [
+        "gh",
+        "issue",
+        "edit",
+        "66",
+        "--repo",
+        "Ricardo121380/cpa-rust-gateway",
+        "--body-file",
+        "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar64-66-d2-adoption-20261023/issue-66.body.md"
+      ],
+      "comments_count": 0,
+      "comments_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  ],
+  "read_only_dependency_context": {
+    "63": {
+      "checks": {
+        "metadata_unchanged": true,
+        "comments_unchanged": true,
+        "native_dependency_identity_and_state_unchanged": true,
+        "body_unchanged": true,
+        "updated_at_unchanged": true
+      },
+      "state": "open",
+      "updated_at": "2026-10-19T11:27:11Z",
+      "body_sha256": "c60d73054a8e0ecad57509a71660e664aae211b3fd37ebae1b3f929304d840cf",
+      "dependencies": {
+        "blocked_by": [
+          {
+            "id": 5906831609,
+            "node_id": "I_kwDOUGxUj88AAAABYBMY-Q",
+            "number": 61,
+            "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/61",
+            "state": "open"
+          }
+        ],
+        "blocking": [
+          {
+            "id": 5906832953,
+            "node_id": "I_kwDOUGxUj88AAAABYBMeOQ",
+            "number": 64,
+            "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/64",
+            "state": "open"
+          },
+          {
+            "id": 5906833510,
+            "node_id": "I_kwDOUGxUj88AAAABYBMgZg",
+            "number": 65,
+            "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/65",
+            "state": "open"
+          }
+        ]
+      },
+      "mutations": 0
+    },
+    "67": {
+      "checks": {
+        "metadata_unchanged": true,
+        "comments_unchanged": true,
+        "native_dependency_identity_and_state_unchanged": true,
+        "body_unchanged": true,
+        "updated_at_unchanged": true
+      },
+      "state": "open",
+      "updated_at": "2026-10-18T06:24:45Z",
+      "body_sha256": "248c9fe03eaccf229e716b058386686f58254376f49ee6e1db7d86147c71d3bb",
+      "dependencies": {
+        "blocked_by": [
+          {
+            "id": 5906833834,
+            "node_id": "I_kwDOUGxUj88AAAABYBMhqg",
+            "number": 66,
+            "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/66",
+            "state": "open"
+          }
+        ],
+        "blocking": []
+      },
+      "mutations": 0
+    }
+  },
+  "static_validation": {
+    "reviewed_body_and_patch_checks": "PASS",
+    "independent_read_only_draft_review": "PASS",
+    "docs_gate": {
+      "status": "PASS",
+      "passed": 7,
+      "failed": 0,
+      "command": "CHECK_REPORT_PATH=/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020/docs/reports/assets/cpar64-66-d2-github-sync-20261023/20261023T042754Z/docs-check.md ./scripts/check.sh docs",
+      "steps": [
+        {
+          "name": "Document links",
+          "duration_seconds": 0,
+          "result": "PASS"
+        },
+        {
+          "name": "Contract tests",
+          "duration_seconds": 1,
+          "result": "PASS"
+        },
+        {
+          "name": "Plan state",
+          "duration_seconds": 0,
+          "result": "PASS"
+        },
+        {
+          "name": "Canary thresholds",
+          "duration_seconds": 0,
+          "result": "PASS"
+        },
+        {
+          "name": "Caddy split",
+          "duration_seconds": 0,
+          "result": "PASS"
+        },
+        {
+          "name": "Tracked secret scan",
+          "duration_seconds": 109,
+          "result": "PASS"
+        },
+        {
+          "name": "Git whitespace",
+          "duration_seconds": 1,
+          "result": "PASS"
+        }
+      ],
+      "report_sha256": "04971199091fc13ecd5bb5deb5bd0746f18bfa16d8b7bbf8c6b28de38a40b9b4",
+      "log_sha256": "b4c69d9c96f7fc86f00991bc32a5c02f2f7839fe47053eb7bb8d0012f7f308f5",
+      "markdown_files_checked": 1301,
+      "contract_test_references_resolved": 335
+    }
+  },
+  "workspace": {
+    "inherited_status_entries": 18,
+    "preserved_paths": 26,
+    "existing_path_bytes_modes_owners_symlinks": "PASS",
+    "tracked_diff_unchanged": true,
+    "head_unchanged": true,
+    "index_tree_unchanged": true,
+    "new_paths_only_under": "docs/reports/assets/cpar64-66-d2-github-sync-20261023/20261023T042754Z",
+    "commit": "NOT_REQUESTED_NOT_RUN",
+    "push": "NOT_RUN",
+    "new_files": [
+      "docs/reports/assets/cpar64-66-d2-github-sync-20261023/20261023T042754Z/docs-check.log",
+      "docs/reports/assets/cpar64-66-d2-github-sync-20261023/20261023T042754Z/docs-check.md",
+      "docs/reports/assets/cpar64-66-d2-github-sync-20261023/20261023T042754Z/github-readbacks.json",
+      "docs/reports/assets/cpar64-66-d2-github-sync-20261023/20261023T042754Z/static-checks.json",
+      "docs/reports/assets/cpar64-66-d2-github-sync-20261023/20261023T042754Z/sync-receipt.json",
+      "docs/reports/assets/cpar64-66-d2-github-sync-20261023/20261023T042754Z/sync-receipt.md",
+      "docs/reports/assets/cpar64-66-d2-github-sync-20261023/20261023T042754Z/workspace-preservation.json"
+    ],
+    "new_file_count": 7,
+    "new_untracked_file_count": 6,
+    "new_ignored_files": [
+      "docs/reports/assets/cpar64-66-d2-github-sync-20261023/20261023T042754Z/docs-check.log"
+    ],
+    "ignored_reason": ".gitignore:21:*.log; no ignore rule change",
+    "final_inherited_status_exact_match": true,
+    "final_index_tree": "12333d47674489e3383c5b50629d062bea24734f"
+  },
+  "production_boundaries": {
+    "fixed_build_qualification": "BLOCKED",
+    "cost_in_usd_ticks": "NOT_ADMITTED",
+    "66": "OPEN_INCOMPLETE",
+    "67": "NOT_STARTED",
+    "first_release": "NOT_READY",
+    "original_claude_M1_M2_M5": "OPEN_FOLLOW_UP",
+    "historical_runtime_source_binding": "UNCHANGED"
+  },
+  "not_run": [
+    "Full",
+    "actual clients",
+    "binary/OCI",
+    "recovery matrix",
+    "real credentials",
+    "real Provider requests",
+    "#67 execution",
+    "remote CI",
+    "release",
+    "deployment"
+  ],
+  "created_at": "2026-10-23T04:38:26.770169+00:00",
+  "completed_at": "2026-10-23T04:43:24.793983+00:00",
+  "artifact_hashes": {
+    "sync-receipt.md": "b2ec705caab44f6eec13a5242bb6b08ee5a5c107b5873900b5e554e76dde2525",
+    "github-readbacks.json": "02c1afef621c2bfa3c67b6a39d2aa590b2408ea19ebbf33f16bf155292a2f88e",
+    "workspace-preservation.json": "0cce1c96503699f0d839dcf9553c2321faa4d7e662f2cf83fec98bfd014e21d8",
+    "static-checks.json": "383e44e4b1f98e96d5794aafba589a3c47d3e96c3691f5c9046bb2d3ff7dbc64",
+    "docs-check.md": "04971199091fc13ecd5bb5deb5bd0746f18bfa16d8b7bbf8c6b28de38a40b9b4",
+    "docs-check.log": "b4c69d9c96f7fc86f00991bc32a5c02f2f7839fe47053eb7bb8d0012f7f308f5"
+  }
+}

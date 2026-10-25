@@ -96,6 +96,11 @@ async fn public_build_c6_invalid_and_unqualified_requests_send_zero() -> TestRes
             let recording = Recording::start(&fixture, false)?;
             let (url, server) = namespaces::listener(&fixture)?;
             let mut cases = invalid_inputs(streaming);
+            // An unfamiliar root option no longer invalidates an already-qualified route.
+            // The unqualified arm still proves this client claim grants no qualification.
+            if qualified {
+                cases.retain(|(label, _)| label != "request-cannot-qualify");
+            }
             if !qualified {
                 cases.push(("valid-unqualified".into(), body(streaming).to_string()));
             }
@@ -147,9 +152,21 @@ async fn public_build_c6_invalid_and_unqualified_requests_send_zero() -> TestRes
                 assert_eq!(status, 400, "{suffix}: {}", String::from_utf8_lossy(&bytes));
                 assert_eq!(peer.accepted.load(Ordering::SeqCst), 0);
             }
+            if qualified {
+                let mut valid = body(streaming);
+                valid["c6_input_message_ids_qualified"] = json!(true);
+                let (status, bytes) = namespaces::request(&fixture, &url, &valid).await?;
+                assert_eq!(status, 200, "{}", String::from_utf8_lossy(&bytes));
+                assert_eq!(peer.accepted.load(Ordering::SeqCst), 1);
+                let received = peer.requests.lock().map_err(|_| "receiver")?;
+                assert_eq!(received.len(), 1);
+                assert_eq!(received[0].body["input"], valid["input"]);
+                assert_eq!(received[0].body["c6_input_message_ids_qualified"], true);
+            }
             server.stop(false).await;
             let database = recording.finish(&fixture, 0).await?;
-            assert_counts(&database, 0, 0).await?;
+            let count = usize::from(qualified);
+            assert_counts(&database, count, count).await?;
         }
     }
     Ok(())

@@ -2,6 +2,13 @@
 
 本目录保存 Task、Phase Gate、基准、差分、安全和部署验证证据。
 
+当前功能状态与下一项统一在[当前状态入口](../engineering-roadmap.md)维护。
+本目录的报告保留各自日期、源码和范围，不组成并列的当前任务队列。
+
+- [CPA v8 功能对照（2026-10-23）](cpa-v8-functional-comparison-20261023.md)。
+- [CPA / CPAMP / Keeper 生态调查（2026-10-23）](cpa-ecosystem-comparison-20261023.md)。
+- [原工程路线图归档（2026-10-18）](engineering-roadmap-20261018.md)，保留当时 S1–S5、N1–N4 和范围义务。
+
 ## 命名规则
 
 - Task：`p<phase>-<task>-short-title.md`。

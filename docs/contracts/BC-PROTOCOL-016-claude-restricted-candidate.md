@@ -1,5 +1,11 @@
 # BC-PROTOCOL-016: Claude Code D2 restricted support
 
+> **Current request policy:** [ADR-0125](../adr/ADR-0125-cpa-request-compatibility.md)
+> replaces the mandatory effort rejection and M1/M2/M5 blockers. D2 remains a historical
+> version/configuration-bound receipt; its old request counts do not validate this changed source.
+> [ADR-0126](../adr/ADR-0126-cpa-v8-messages-effort.md) adds explicit effort-only extraction
+> and enabled-without-budget precedence, without extending actual-client qualification.
+
 | Field | Value |
 | --- | --- |
 | Contract | BC-PROTOCOL-016 |
@@ -55,32 +61,19 @@ outside the selected first-release configuration, without being removed or compl
 Claude remains a separate rejection branch; #58/#64 and their dependencies remain open.
 ADR-0123 adopts only the evidenced D2 configuration; fixed Build activation remains separate.
 
-## Local effort rejection and negotiation
+## Current effort handling
 
-Only a closed output_config object containing the sole string member effort is eligible for
-the specific diagnostic. Duplicate names, extra members and unknown fields retain rejection.
-Complete body/history, controls and effective capabilities must pass their independent checks.
-Every applicable candidate, including candidates with no active credential binding, must reject
-for this same reason. Empty/exact-model-mismatched sets, missing runtime/adapter evidence, mixed
-reasons or any potentially compatible candidate cannot produce this field-specific claim.
+CanonicalBridge maps explicit effort to target reasoning.effort with adaptive thinking,
+without thinking, or with enabled thinking and no budget. Disabled and positive enabled
+budgets take precedence; enabled with no effective effort uses auto. No preliminary
+capability-negotiation400 is required. Invalid controls, auth,
+unknown content and invalid tool associations retain independent errors. Explicit LosslessBridge
+retains its strict rejection and diagnostic; the former universal rejection is historical.
 
-Preserve actual auth, stale runtime, unavailable service, continuation and already-sent errors.
-No request identity, model, URL, user_id, tool name or supplied value enters the fixed message:
-
-```text
-output_config.effort: Extra inputs are not permitted by the current gateway conversion; no upstream request was sent
-```
-
-Return HTTP400 with the existing standard Messages type=error and
-error.type=invalid_request_error envelope and public Request-ID header. The documented client
-mechanism recognizes the field name and rejection phrase. The message explicitly attributes
-the rejection to CPAR's conversion; it is not a fabricated Provider response or native error.
-
-The original Request remains rejected: receiver=0, lease=0 and no Attempt/Usage/ledger. Existing
-valid M4 capture commits before that rejection and remains authorized Request-only evidence.
-Only the actual client can issue the next request without effort. That is a new Request with
-independent authentication and actual execution evidence. CPAR never strips or retries it.
-If this current client does not negotiate correctly, retain RED and stop dependent positives.
+The earlier negotiation and counts remain in the [D2 report](../reports/cpar-64-d2-candidate-20261022.md).
+Its actual-client runner was designed for that historical negotiation and must be updated before
+claiming new-source actual-client qualification. Current local tests exercise complete public
+HTTP, independent receivers and JSON/SSE/tool loops; they do not substitute for that qualification.
 
 ## Actual-client acceptance
 
@@ -101,8 +94,9 @@ Unknown Usage remains unknown, and #61 cost_in_usd_ticks remains NOT_ADMITTED.
 
 ## Corresponding tests
 
-- `public_build_messages_effort_rejection_is_specific_and_preserves_request_only`
+- `public_build_messages_cpa_effort_without_thinking_preserves_explicit_effort`
 
-- `public_build_messages_effort_diagnostic_preserves_independent_rejections`
+- `public_build_messages_cpa_compatibility_preserves_independent_rejections`
 - `public_build_messages_missing_runtime_is_not_an_effort_rejection`
-- `actual_claude_messages_d2_qualification`
+- `public_build_messages_cpa_controls_reach_receiver`
+- `public_build_messages_cpa_controls_keep_two_tool_cycles`

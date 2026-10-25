@@ -25,10 +25,10 @@
 
 ### 主要文件
 
-- [app.css](../../web/prism/src/app/app.css)、[v6.css](../../web/prism/src/app/v6.css)：按钮、徽章、任务岛、状态文字对比度。
-- [DraftDock.tsx](../../web/prism/src/app/DraftDock.tsx)：核对入口及当前工作区状态。
-- [SelectionIndicator.tsx](../../web/prism/src/components/motion/SelectionIndicator.tsx)、[selection-indicator.css](../../web/prism/src/components/motion/selection-indicator.css)：装饰动效与降级。
-- [RequestHistory.tsx](../../web/prism/src/features/monitoring/RequestHistory.tsx)、[requests.css](../../web/prism/src/features/monitoring/requests.css)、[OverviewPage.tsx](../../web/prism/src/features/overview/OverviewPage.tsx)：总览呈现与数据范围说明。
+- [app.css](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/app/app.css)、[v6.css](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/app/v6.css)：按钮、徽章、任务岛、状态文字对比度。
+- [DraftDock.tsx](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/app/DraftDock.tsx)：核对入口及当前工作区状态。
+- [SelectionIndicator.tsx](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/components/motion/SelectionIndicator.tsx)、[selection-indicator.css](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/components/motion/selection-indicator.css)：装饰动效与降级。
+- [RequestHistory.tsx](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/features/monitoring/RequestHistory.tsx)、[requests.css](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/features/monitoring/requests.css)、[OverviewPage.tsx](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/web/prism/src/features/overview/OverviewPage.tsx)：总览呈现与数据范围说明。
 
 43 个按钮分类文件经 TypeScript AST 对比：移除 `className` 属性后，与基线一致。路由、事件处理、禁用条件和业务数据逻辑没有随分类调整而改变。[核对结果](assets/prism-frontend-polish-20260928/button-ast-review.json)
 

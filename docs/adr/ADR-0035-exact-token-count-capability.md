@@ -1,5 +1,10 @@
 # ADR-0035: Exact token-count capability and Anthropic route
 
+> **2026-10-24 limited successor:** [ADR-0127](ADR-0127-cpa-compatible-token-counting.md)
+> accepts explicitly identified estimation for the future CPA-compatible count flow. The exact
+> capability below remains exact; production counting is still unimplemented. This record and
+> its original validation describe the historical exact-only seam.
+
 | Field | Value |
 |---|---|
 | Status | Accepted |

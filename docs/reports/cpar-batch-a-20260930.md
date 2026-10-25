@@ -63,7 +63,7 @@ Provider discovery 不完整时按失败处理并保留最后成功。浏览器�
 
 ### EgoLite 产品验收
 
-运行入口：[cpar-batch-a.mjs](../../scripts/acceptance/cpar-batch-a.mjs)，EgoLite TaskSpace 27 / p1，`127.0.0.1:5183` 的合成 Prism fixture。共 30 个 distinct scenarios；结果：[browser summary](assets/cpar-batch-a-20260930/browser.json)。最后核验 Pin 关闭/重开、解除隔离、目录状态/分页、映射冲突恢复、原生混合批次及普通丢响应导入，并补验四渠道绑定失败恢复、API 去重丢响应回读、原生连接零/一/多匹配及重建失败影响提示。浏览器后端是 fixture，不能据此宣称真实 Provider/生产通过。
+运行入口：[cpar-batch-a.mjs](https://github.com/Ricardo121380/cpa-rust-gateway/blob/bbe3a53f9163fc55f6eb699a12983fee0c350210/scripts/acceptance/cpar-batch-a.mjs)，EgoLite TaskSpace 27 / p1，`127.0.0.1:5183` 的合成 Prism fixture。共 30 个 distinct scenarios；结果：[browser summary](assets/cpar-batch-a-20260930/browser.json)。最后核验 Pin 关闭/重开、解除隔离、目录状态/分页、映射冲突恢复、原生混合批次及普通丢响应导入，并补验四渠道绑定失败恢复、API 去重丢响应回读、原生连接零/一/多匹配及重建失败影响提示。浏览器后端是 fixture，不能据此宣称真实 Provider/生产通过。
 
 ## Review 与修复收敛
 

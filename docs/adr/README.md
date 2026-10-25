@@ -96,11 +96,11 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0068 Grok Web explicit Tool emulation](ADR-0068-grok-web-explicit-tool-emulation.md) — `P9-08`（Accepted；local-only）。
 - [ADR-0069 Versioned management OpenAPI contract](ADR-0069-versioned-management-openapi-contract.md) — `P10-01`（Accepted；contract-only）。
 - [ADR-0070 Management HTTP admission boundary](ADR-0070-management-http-admission-boundary.md) — `P10-02`（Accepted）。
-- [ADR-0071 Management SPA generated-client build](ADR-0071-management-spa-generated-client-build.md) — `P10-03`（Accepted；static-only）。
+- [ADR-0071 Management SPA generated-client build](ADR-0071-management-spa-generated-client-build.md) — `P10-03`（Superseded by ADR-0124；historical frontend）。
 - [ADR-0072 Protected management resource workflows](ADR-0072-protected-management-resource-workflows.md) — `P10-04`（Accepted；local-only）。
 - [ADR-0073 Protected routing and Client Key workflows](ADR-0073-protected-routing-client-key-workflows.md) — `P10-05`（Accepted；local-only）。
 - [ADR-0074 Encrypted backup with empty-target restore](ADR-0074-encrypted-backup-empty-target-restore.md) — `P10-08`（Accepted；local Phase evidence）。
-- [ADR-0075 Embedded management UI with inference-route isolation](ADR-0075-embedded-management-ui-inference-isolation.md) — `P10-09`（Accepted；local-only）。
+- [ADR-0075 Embedded management UI with inference-route isolation](ADR-0075-embedded-management-ui-inference-isolation.md) — `P10-09`（Superseded by ADR-0124；historical embedding）。
 - [ADR-0076 Provider-aware management inventory](ADR-0076-provider-aware-management-inventory.md) — `P13-04A`（Accepted；正式 Gate 已通过）。
 - [ADR-0077 Durable usage and explicitly unpriced cost operations read model](ADR-0077-durable-usage-cost-operations-read-model.md) — `P13-04B`（Accepted；正式 Gate 已通过）。
 - [ADR-0045 Grok Build runtime state and continuity isolation](ADR-0045-grok-build-runtime-continuity.md) — `P6-04` 至 `P6-07`（Accepted）。
@@ -132,6 +132,8 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0104 Strict Chat output-limit projection](ADR-0104-chat-output-limit-projection.md) — `CPAR-38 / #47、#57、#9`（Accepted；现代总输出上限、原生字段保留与严格碰撞拒绝；候选与真实证据独立）
 - [ADR-0105 Source-bound observation of response projection failures](ADR-0105-projection-failure-observation.md) — `CPAR-38 / #47、#57、#9`（Accepted；安全拒绝原因、已确认 Request-ID、缓冲 Usage 与单次私有诊断；不授予全矩阵或发布资格）
 - [ADR-0106 Negotiated native fidelity for three public protocols](ADR-0106-native-fidelity-profile.md) — `CPAR-38 / #47、#57、#9`（Accepted方向；用户选择协商封套、完整非结算Usage、有证据模型关系；字段契约草稿与实现验收仍待下一批）
+- [ADR-0107 Reviewed metadata separation for standard responses](ADR-0107-standard-response-metadata-separation.md) — `CPAR-38 / #47、#57、#9`（Accepted方向；经审查元数据完整加密保留、标准响应可独立成功；限定修订 ADR-0100/0106，字段准入与实现待完成）
+- [ADR-0108 Grok Build summary retention for standard Messages delivery](ADR-0108-build-summary-standard-messages.md) — `CPAR-38 / #47、#57、#9`（Accepted方向；首版 Claude Code 可不展示摘要，须完整加密留存并证明工具续轮不受影响；实现与资格待完成）
 
 - [ADR-0109 Encrypted native Usage evidence on rejected Build Attempts](ADR-0109-encrypted-failed-build-usage-evidence.md) — `#59 / #58 T06–T08`（Accepted；有界确认、exact owner、schema 35、授权本机 reader；标准 Usage 拒绝保持，验收见本票报告）。
 
@@ -162,3 +164,11 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0122 Isolated Claude restricted candidate](ADR-0122-isolated-claude-restricted-candidate.md) — `#64 D2` (Accepted isolated evaluation only; exact local effort rejection and actual-client gates; first-release admission remains separate).
 
 - [ADR-0123 First-release Claude D2 restricted support](ADR-0123-first-release-claude-d2-restricted-support.md) — `#58/#64/#66` (Accepted product adoption of the evidenced four-variable configuration; original Claude follow-ups, fixed Build qualification and real acceptance remain open; ADR-0122 retains its experimental history).
+
+- [ADR-0124 CPA-first Rust backend and frontend retirement](ADR-0124-cpa-first-backend-and-frontend-retirement.md) — Accepted; current architecture cleanup and backend-only build.
+
+- [ADR-0125 CPA-style request compatibility](ADR-0125-cpa-request-compatibility.md) — Accepted; native options and CPA CanonicalBridge mappings, explicit LosslessBridge retained.
+
+- [ADR-0126 CPA v8 Messages effort extraction](ADR-0126-cpa-v8-messages-effort.md) — Accepted; explicit effort without thinking or enabled budget, budget/disabled precedence; limited successor to ADR-0125.
+
+- [ADR-0127 CPA-compatible token counting](ADR-0127-cpa-compatible-token-counting.md) — Accepted product decision; upstream counting and explicitly identified estimation; implementation and production wiring pending.

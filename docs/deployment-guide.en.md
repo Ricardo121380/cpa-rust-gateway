@@ -111,11 +111,10 @@ Debian/Ubuntu example:
 sudo apt-get update
 sudo apt-get install --yes \
   build-essential ca-certificates clang cmake curl git libclang-dev libssl-dev \
-  nodejs npm pkg-config ripgrep
+  pkg-config ripgrep
 ```
 
-Install the pinned Rust toolchain and the Node version from `web/prism/.nvmrc`. A version manager
-such as nvm, fnm or Volta is recommended when the distribution Node package is older.
+Install the pinned Rust toolchain. Backend builds no longer require Node/npm.
 
 On a new host, install `rustup` from its official bootstrap before installing the pinned toolchain:
 
@@ -134,8 +133,6 @@ cd cpa-rust-gateway
 git checkout <TAG_OR_COMMIT>
 
 rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
-npm --prefix web/prism ci --ignore-scripts --no-audit --no-fund
-npm --prefix web/prism run check
 
 export GATEWAY_RELEASE_REVISION="$(git rev-parse HEAD)"
 export GATEWAY_RELEASE_RUST_VERSION=1.97.1
@@ -145,9 +142,8 @@ CARGO_INCREMENTAL=0 cargo +1.97.1 build --locked --release --package gateway
 ./target/release/gateway --help
 ```
 
-The Rust build invokes the Prism build and embeds exactly four reviewed assets. If
-`web/prism/node_modules` is absent or the generated management client has drifted, Cargo correctly
-fails rather than shipping a stale UI.
+The Rust build contains only the backend. Prism is retired; the management API and its OpenAPI
+contract remain available.
 
 ### 4.3 Local smoke test
 
@@ -290,7 +286,7 @@ credential directory, runs without capabilities and applies filesystem/kernel/sy
 
 `/healthz` can be healthy with an empty database. Inference remains unavailable until an operator:
 
-1. opens the loopback Prism UI or management API;
+1. uses the loopback management API or local CLI;
 2. creates a draft Config Version;
 3. configures egress policy, Upstream, Endpoint, Credential and exact binding;
 4. creates public models, routes/candidates, access groups and Client Keys;
@@ -304,7 +300,8 @@ For remote administration, tunnel rather than publish management:
 ssh -L 18181:127.0.0.1:18181 operator@your-server
 ```
 
-Open `http://127.0.0.1:18181/admin-ui/` locally. The detailed resource order, opaque-ID ledger,
+Use the protected API below `http://127.0.0.1:18181/admin/`; no management page is currently served.
+The detailed resource order, opaque-ID ledger,
 canary and rollback rules are in `docs/p12-rollout-runbook.md`.
 
 ## 9. Reverse proxy and TLS
@@ -443,7 +440,7 @@ deployment generation. Never expose the management listener to obtain catalog di
 
 | Symptom | Check |
 |---|---|
-| Cargo says Prism dependencies are missing | Run the exact `npm --prefix web/prism ci ...` command. |
+| `/admin-ui/` returns 404 | The old frontend is retired; use the management API or local CLI. |
 | Container starts but host cannot connect | Confirm Linux `--network host`; bridge `ports:` is incompatible with loopback-only bind. |
 | Credential rejected | Verify exact filename, direct regular file, size/prefix, permissions and no symlink. |
 | `/healthz` works but inference does not | Publish a complete Config Version, issue a Client Key and restart. |

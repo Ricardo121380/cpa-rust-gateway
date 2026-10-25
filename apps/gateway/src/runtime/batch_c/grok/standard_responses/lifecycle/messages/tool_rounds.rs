@@ -231,14 +231,14 @@ pub(super) fn client_result(bytes: &[u8], streaming: bool) -> Result<Value, Box<
 
 #[actix_web::test]
 async fn public_build_messages_json_and_sse_keep_two_standard_tool_cycles() -> TestResult {
-    run_cycles(false).await
+    run_cycles(false, false).await
 }
 
 #[allow(
     clippy::too_many_lines,
     reason = "one public dialogue retains ordered native histories, summary receipts and JSON/SSE parity together"
 )]
-pub(super) async fn run_cycles(local: bool) -> TestResult {
+pub(super) async fn run_cycles(local: bool, compatible: bool) -> TestResult {
     let mut json_results = None;
     for (streaming, size) in [(false, 31), (true, 1), (true, 7), (true, 31)] {
         let peer = ModelPeer::start_sequence(
@@ -255,6 +255,18 @@ pub(super) async fn run_cycles(local: bool) -> TestResult {
         for round in 0..5 {
             let mut body = json!({"model":"p12-test-model","max_tokens":19,"stream":streaming,"messages":history,
                 "tools":[{"name":"lookup","input_schema":{"type":"object"}}]});
+            if compatible {
+                body["thinking"] = json!({"type":"adaptive","display":"updates"});
+                body["output_config"] = json!({"effort":"high"});
+                body["tools"][0]["cache_control"] = json!({"type":"ephemeral"});
+                for message in body["messages"].as_array_mut().ok_or("messages")? {
+                    if let Some(parts) = message["content"].as_array_mut() {
+                        for part in parts {
+                            part["cache_control"] = json!({"type":"ephemeral"});
+                        }
+                    }
+                }
+            }
             let raw_metadata = local_controls::METADATA
                 .replace("PRIVATE_SESSION", &format!("PRIVATE_SESSION_{round}"));
             let encoded = if local {
@@ -348,6 +360,10 @@ pub(super) async fn run_cycles(local: bool) -> TestResult {
             assert_eq!(request.body["model"], "grok-4.5");
             assert_eq!(request.model_override, "grok-4.5");
             assert_eq!(request.body["max_output_tokens"], 19);
+            if compatible {
+                assert_eq!(request.body["reasoning"], json!({"effort":"high"}));
+                assert!(!request.body.to_string().contains("cache_control"));
+            }
             assert_eq!(request.body["input"], local_controls::expected_input(round));
             assert!(
                 request.body.get("metadata").is_none()
@@ -451,4 +467,9 @@ pub(super) async fn run_cycles(local: bool) -> TestResult {
         );
     }
     Ok(())
+}
+
+#[actix_web::test]
+async fn public_build_messages_cpa_controls_keep_two_tool_cycles() -> TestResult {
+    run_cycles(true, true).await
 }

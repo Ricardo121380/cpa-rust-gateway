@@ -1,9 +1,7 @@
-//! Fail-closed admission analysis for protocol transformation candidates.
+//! Protocol admission and request projection for native, compatible and lossless routes.
 //!
-//! A Route may declare a native pass-through, a same-protocol Canonical conversion, or a
-//! cross-protocol lossless bridge. This module does not serialize a request, choose an Endpoint,
-//! or execute a Provider call. It only determines whether the requested conversion has enough
-//! evidence to participate in routing without silently erasing semantics.
+//! `CanonicalBridge` follows CPA request mappings (ADR-0125); `LosslessBridge` retains explicit
+//! exactness. Transport, credentials and upstream execution remain outside this module.
 
 use std::fmt;
 
@@ -15,6 +13,8 @@ use gateway_protocol::ApiFormat;
 use serde_json::Value;
 
 use crate::{SnapshotTransformMode, ToolExecutionConstraints, tool_controls};
+
+mod compatibility;
 
 /// Client or Endpoint wire format considered by the P5 transformation boundary.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -317,9 +317,8 @@ impl fmt::Debug for ProjectedProtocolRequest {
 /// Analyzes whether one Route candidate can preserve this request's semantics.
 ///
 /// `Passthrough` is intentionally narrow: it accepts only an exact native body to the same
-/// protocol, so opaque native fields are still preserved byte-for-byte by the later transport.
-/// `Canonical`, `LosslessBridge`, and `CanonicalBridge` reconstruct a body and therefore reject
-/// every retained unknown or unsupported semantic rather than guessing a conversion.
+/// protocol. Native fields retain their JSON values; builders may reserialize the body.
+/// `CanonicalBridge` uses CPA compatibility mappings; `LosslessBridge` requires exact equivalents.
 #[must_use]
 pub fn analyze_protocol_transform(input: ProtocolTransformInput<'_>) -> ProtocolTransformAdmission {
     match project_protocol_request(input) {
@@ -330,9 +329,8 @@ pub fn analyze_protocol_transform(input: ProtocolTransformInput<'_>) -> Protocol
 
 /// Produces the typed request material consumed by the target protocol builder.
 ///
-/// Cross-protocol conversion starts from a clean extension namespace and explicitly maps only
-/// output limits, ordered text/Tool history, and the fixed legacy Reasoning levels. Anything else
-/// fails before Provider selection, so no encoder can accidentally receive foreign raw fields.
+/// Cross-protocol conversion constructs target fields explicitly. `CanonicalBridge` permits the
+/// documented CPA approximations and hint omissions; foreign fields never reach target encoders.
 ///
 /// # Errors
 ///
@@ -366,11 +364,12 @@ pub fn project_protocol_request(
         return Err(rejection);
     }
 
-    if input
-        .request
-        .extensions
-        .get(crate::MESSAGES_CONTEXT_MANAGEMENT)
-        .is_some()
+    if input.source != input.target
+        && input
+            .request
+            .extensions
+            .get(crate::MESSAGES_CONTEXT_MANAGEMENT)
+            .is_some()
     {
         if input.source != ProtocolFormat::AnthropicMessages
             || input.target != ProtocolFormat::OpenAiResponses
@@ -383,13 +382,19 @@ pub fn project_protocol_request(
 
     ToolExecutionConstraints::from_request(input.request, input.source)?;
     if input.mode == SnapshotTransformMode::Passthrough {
-        canonical_rejection(input.request, input.source)?;
+        // The native builder retains the complete decoded body. Unknown native fields
+        // belong to the upstream protocol; they do not require a canonical equivalent.
+        validate_target_root_extensions(input.request, input.source)?;
+        validate_target_thinking(input.request.thinking.as_ref(), input.source)?;
+        validate_native_known_content(input.request, input.source)?;
         capability_rejection(input, input.request)?;
         return Ok(ProjectedProtocolRequest::NativeExact);
     }
 
     let projected = if input.source == input.target {
         input.request.clone()
+    } else if input.mode == SnapshotTransformMode::CanonicalBridge {
+        compatibility::project(input.request, input.source, input.target)?
     } else {
         match project_cross_protocol(input.request, input.source, input.target) {
             Ok(projected) => projected,
@@ -630,6 +635,35 @@ fn canonical_rejection(
 ) -> Result<(), ProtocolTransformRejection> {
     validate_target_root_extensions(request, target)?;
     validate_target_body(request, target)
+}
+
+// Native forwarding can carry unknown content, but known history still has the
+// same role, identity and signature requirements as canonical encoding.
+fn validate_native_known_content(
+    request: &CanonicalRequest,
+    target: ProtocolFormat,
+) -> Result<(), ProtocolTransformRejection> {
+    for message in &request.messages {
+        for content in &message.content {
+            if let MessageContent::Opaque(opaque) = content {
+                let value: Value = serde_json::from_str(opaque.raw().get())
+                    .map_err(|_| ProtocolTransformRejection::OpaqueContent)?;
+                if target == ProtocolFormat::AnthropicMessages
+                    && matches!(
+                        value.get("type").and_then(Value::as_str),
+                        Some("thinking" | "redacted_thinking")
+                    )
+                    && (message.role.0 != "assistant"
+                        || !valid_anthropic_thinking_history(opaque.raw()))
+                {
+                    return Err(ProtocolTransformRejection::OpaqueContent);
+                }
+            } else if matches!(content, MessageContent::Reasoning(_)) {
+                validate_target_content(content, &message.role.0, target)?;
+            }
+        }
+    }
+    Ok(())
 }
 
 fn validate_target_body(
@@ -945,6 +979,11 @@ fn validate_target_root_extensions(
             if !valid {
                 return Err(ProtocolTransformRejection::UnknownRequestExtensions);
             }
+        } else if name.starts_with(compatibility::root_prefix(target))
+            && name != gateway_core::CODEX_CLIENT_METADATA
+        {
+            // The target builder preserves native root options, including future vendor
+            // options. Collision and transport-owned fields remain the builder's boundary.
         } else {
             if matches!(
                 name,
@@ -999,19 +1038,17 @@ fn validate_target_thinking(
         }
         ProtocolFormat::AnthropicMessages => {
             let budget = thinking.extensions.get(ANTHROPIC_THINKING_BUDGET);
-            if thinking
-                .extensions
-                .iter()
-                .any(|(name, _)| name != ANTHROPIC_THINKING_BUDGET)
-                || !matches!(
-                    (thinking.effort.as_str(), budget),
-                    ("disabled" | "adaptive", None) | ("enabled", Some(_))
-                )
-                || budget.is_some_and(|raw| {
-                    !serde_json::from_str::<Value>(raw.get())
-                        .is_ok_and(|value| value.as_u64().is_some_and(|value| value > 0))
-                })
-            {
+            if thinking.extensions.iter().any(|(name, raw)| {
+                name != ANTHROPIC_THINKING_BUDGET
+                    && !(name == "anthropic.thinking.display"
+                        && serde_json::from_str::<String>(raw.get()).is_ok())
+            }) || !matches!(
+                (thinking.effort.as_str(), budget),
+                ("disabled" | "adaptive", None) | ("enabled", Some(_))
+            ) || budget.is_some_and(|raw| {
+                !serde_json::from_str::<Value>(raw.get())
+                    .is_ok_and(|value| value.as_u64().is_some_and(|value| value > 0))
+            }) {
                 return Err(ProtocolTransformRejection::ThinkingUnsupported);
             }
             Ok(())

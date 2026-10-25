@@ -4,7 +4,7 @@
 # requested target platform, so a multi-platform build either runs on a native builder or through
 # an explicitly configured emulator. The signed release workflow continues to use the repository
 # root Dockerfile, which accepts a separately verified binary and has a narrower trust boundary.
-FROM node:25.8.0-bookworm-slim AS builder
+FROM debian:bookworm-slim AS builder
 
 ARG CPAR_RUST_TOOLCHAIN=1.97.1
 ARG CPAR_REVISION=source-build
@@ -43,7 +43,6 @@ RUN case "${TARGETARCH}" in \
         arm64) export GATEWAY_RELEASE_TARGET=aarch64-unknown-linux-gnu ;; \
         *) echo "unsupported source-image target: ${TARGETPLATFORM}" >&2; exit 1 ;; \
     esac \
-    && npm --prefix web/prism ci --ignore-scripts --no-audit --no-fund \
     && cargo build --locked --release --package gateway \
     && strip target/release/gateway
 

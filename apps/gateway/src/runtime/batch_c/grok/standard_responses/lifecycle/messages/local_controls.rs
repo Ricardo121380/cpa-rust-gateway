@@ -222,7 +222,7 @@ async fn public_build_messages_m4_metadata_is_private() -> TestResult {
 
 #[actix_web::test]
 async fn public_build_messages_local_controls_keep_two_tool_cycles() -> TestResult {
-    tool_rounds::run_cycles(true).await
+    tool_rounds::run_cycles(true, false).await
 }
 
 pub(super) fn expected_input(round: usize) -> Value {

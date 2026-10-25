@@ -1,8 +1,0 @@
-.resource-identity { display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 3px 8px; max-width: 100%; font-family: var(--font-text); overflow-wrap: anywhere; }
-.identity-details { padding-block: 12px; margin-block: 8px; color: var(--ink-2); font-size: 12px; border-top: 1px solid var(--separator); }
-.identity-details summary { cursor: pointer; }
-.identity-details dl { display: grid; gap: 14px; margin-bottom: 6px; }
-.identity-details dt { margin-bottom: 5px; }
-.identity-details dd { display: flex; align-items: flex-start; gap: 10px; margin: 0; color: var(--ink); }
-.identity-details .resource-identity { flex: 1; min-width: 0; overflow-wrap: anywhere; user-select: all; }
-.identity-details button { flex: none; font-size: 11px; padding: 4px 8px; }

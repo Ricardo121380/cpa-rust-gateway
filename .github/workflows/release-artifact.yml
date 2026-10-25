@@ -48,7 +48,7 @@ jobs:
       - name: Install build prerequisites
         run: |
           sudo apt-get update
-          sudo apt-get install --yes clang cmake libclang-dev nodejs npm ripgrep
+          sudo apt-get install --yes clang cmake libclang-dev ripgrep
       - name: Install locked Rust toolchain
         run: rustup toolchain install 1.97.1 --profile minimal
       - name: Restore pinned quality-tool cache
@@ -64,9 +64,6 @@ jobs:
           key: quality-tools-${{ runner.os }}-${{ runner.arch }}-rust-1.97.1-${{ hashFiles('tools/quality-tool-versions.env') }}
       - name: Install pinned SBOM tool
         run: ./scripts/install-quality-tools.sh
-      - name: Install management SPA build inputs
-        working-directory: web/prism
-        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Verify the runner architecture matches the release target
         run: |
           set -euo pipefail
