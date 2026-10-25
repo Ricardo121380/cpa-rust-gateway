@@ -54,9 +54,10 @@ JSONL retains actual null, integer values and nested metric objects; one row per
 Unix ms; tokens are counts; costs are the ledger's integer microunits, not a new currency conversion.
 Consumers handling integers beyond JavaScript's safe range must use lossless integer parsing.
 
-At most 20000 source events and 16 MiB source JSON are decoded; result <=8 MiB; <=8 snapshots /32 MiB
-are retained per process for ten minutes. No partial result is emitted on capture failure. Existing
-four-slot management read admission bounds capture jobs, including cancelled HTTP creation requests.
+At most 20000 source events and 16 MiB source JSON are decoded. Each serialized result is <=8 MiB;
+up to eight snapshots share a 32 MiB serialized-result budget per process for ten minutes.
+This budget does not measure allocator overhead or process RSS. No partial result is emitted on
+capture failure. Existing four-slot management read admission bounds capture jobs, including cancelled HTTP creation requests.
 Expiry/cancellation/restart/foreign actor returns 410 without silently replacing a batch.
 `DELETE .../{id}` releases it; already transmitted or in-flight pages cannot be recalled.
 A disconnected or failed page does not advance server state: retry the same cursor, discard any

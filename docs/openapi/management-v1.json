@@ -1584,7 +1584,7 @@
           "operations"
         ],
         "operationId": "createUsageSnapshot",
-        "description": "Capture one bounded event/ledger read transaction and retain an immutable actor-owned snapshot for 600 seconds. Maximum 20000 source events, 16 MiB source JSON, 8 MiB result, 8 snapshots/32 MiB retained per process. Capacity fails explicitly, no partial batch. Existing management authentication and browser CSRF apply; no Config Version or If-Match required. Does not write a ledger or contact Providers.",
+        "description": "Capture one bounded event/ledger read transaction and retain an immutable actor-owned snapshot for 600 seconds. Maximum 20000 source events, 16 MiB source JSON, 8 MiB serialized result, and 8 snapshots sharing a 32 MiB serialized-result budget per process (not a process RSS limit). Capacity fails explicitly, no partial batch. Existing management authentication and browser CSRF apply; no Config Version or If-Match required. Does not write a ledger or contact Providers.",
         "x-delivery-phase": "issue-72",
         "parameters": [],
         "responses": {

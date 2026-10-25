@@ -40,7 +40,8 @@ Missing materialization is pending if beyond the captured worker checkpoint, oth
 missing Usage is unknown (or pending without a Request terminal). None of these is zero consumption.
 
 Creation allows a 366-day window, at most 1000 buckets, 20000 source events / 16 MiB source JSON,
-and an 8 MiB serialized result. The process retains at most eight results / 32 MiB for ten minutes.
+and an 8 MiB serialized result. The process retains at most eight results with a 32 MiB
+serialized-result budget for ten minutes; this is not a measured process-RSS limit.
 Exceeded bounds fail explicitly. Pages have at most 100 rows. Expiry, cancellation, process restart
 and foreign-owner access yield 410; clients explicitly create a new batch. Page delivery never
 advances stored progress: an interrupted page can be fetched again with its original cursor.
