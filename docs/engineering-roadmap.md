@@ -41,8 +41,8 @@ CPAR 是 CPA/CLIProxyAPI 网关行为的 Rust 实现。优先直接对照固定�
 | Claude/Codex/Kimi 账号 | 授权、导入、刷新与兼容 adapter 推理路径已有 | 具体账号/渠道真实调用另验；不是旧矩阵里笼统的“未来 OAuth” |
 | Grok 官方/Build/Web/Console、Kiro | 专用 adapter 与账号管理已有 | Web 当前文本流式、工具不支持等限制保留；不能据注册数宣称全部组合已验收 |
 | 模型发现和目录 | Build、官方 Codex、Kiro，以及配置 models_path 的兼容 endpoint 已有 runtime source | 其余渠道未因此自动获得 discovery；模型发现不自动授予 Key 权限 |
-| 账号池、路由、重试和权限组 | 已接入；普通模型入口使用 ProviderScopedSelector | 与 CPA priority/weight/fill-first 行为不同；需要行为对齐时按实际 serving 分支改 |
-| 通用 session/cache affinity | 精确 continuation pin 已有；Build cache_affinity 库/测试未发现 serving 接线 | **待接线/补策略**，不能把两者合并报为通用亲和已完成 |
+| 账号池、路由、重试和权限组 | 已接入；#70显式RR/WRR/fill-first使用既有候选/credential租约，旧默认保留 | 本票独立本地验证中；priority继续lower-is-better；[ADR-0133](adr/ADR-0133-production-routing-build-affinity.md) |
+| Build 普通 cache affinity | #70已接通既有HMAC identity/affinity store与实际serving；精确continuation保持独立 | 本地验证中；15分钟TTL/4096绑定和break；不推广为全Provider会话亲和；[契约](contracts/BC-ROUTE-010-production-strategies-build-affinity.md) |
 | 管理 API、配置发布/回滚 | /admin 已有；管理 API 发布时装配新运行代 | 本地离线 admin CLI 与运行中管理 API 的生效方式分开；无需重建控制面 |
 | Request/Attempt/Usage、账本和加密恢复 | 持久化与查询/恢复已有；#72 新增统一过滤、全范围汇总、冻结快照和 CSV/JSONL 分页导出，已接入管理 API | 见 [#72 实施记录](reports/issue-72-usage-query-export-20261025.md)；未知费用及 cost_in_usd_ticks 未准入保持；后续[独立安全升级](reports/crypto-bigint-security-fix-20261025-issue72.md)已消除 RUSTSEC-2026-0387 阻塞，原分支本地 Full 44/44 通过；本轮集成结果单独记录。有限快照不代表大规模性能或实际生产数据；#75 容量扩展见 [ADR-0132](adr/ADR-0132-bounded-disk-backed-backup.md)，[本轮容量验收](reports/issue-75-history-backup-capacity-20261025.md)单独记录 |
 | 价格获取、审阅与版本化应用（#73） | 已纳入本批共同基线：来源预览、内容/revision及全局目录围栏确认、schema40审阅证据；保留不可变目录与向前回滚 | [第二批集成](reports/wave2-integration-20261025.md)：非空review大备份/恢复、source/content digest及旧ledger/冻结导出保持；[原分支记录](reports/issue-73-price-preview-20261025.md)保留历史身份。真实来源、复杂tier及远端关闭另验 |

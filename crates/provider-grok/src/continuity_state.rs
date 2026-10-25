@@ -64,6 +64,8 @@ pub enum GrokBuildAffinityBreakReason {
     EgressChanged,
     /// An explicit operator-controlled rebind was requested.
     OperatorRebind,
+    /// Ordinary policy selected a replacement; the unavailable cause or concurrent winner is not inferred.
+    PolicyReselection,
 }
 
 impl GrokBuildAffinityBreakReason {
@@ -73,6 +75,7 @@ impl GrokBuildAffinityBreakReason {
             Self::CredentialUnavailable => "credential_unavailable",
             Self::EgressChanged => "egress_changed",
             Self::OperatorRebind => "operator_rebind",
+            Self::PolicyReselection => "policy_reselection",
         }
     }
 }
@@ -206,6 +209,8 @@ impl fmt::Debug for GrokBuildCacheAffinityKey {
 /// The preferred credential/egress pair for one stable Build cache identity.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GrokBuildCacheAffinity {
+    binding_fingerprint: Option<String>,
+    credential_revision: Option<u64>,
     credential_id: CredentialId,
     egress_policy_id: Option<EgressPolicyId>,
     expires_at_ms: i64,
@@ -232,11 +237,44 @@ impl GrokBuildCacheAffinity {
             return Err(GrokBuildContinuityError::InvalidState);
         }
         Ok(Self {
+            binding_fingerprint: None,
+            credential_revision: None,
             credential_id,
             egress_policy_id,
             expires_at_ms,
             reason,
         })
+    }
+
+    /// Attaches a versioned, opaque serving namespace and the exact lease revision.
+    /// # Errors
+    /// Rejects invalid fingerprints or revisions before persistence.
+    pub fn with_serving_binding(
+        mut self,
+        revision: u64,
+        fingerprint: String,
+    ) -> Result<Self, GrokBuildContinuityError> {
+        if i64::try_from(revision).is_err()
+            || fingerprint.len() != 64
+            || !fingerprint.bytes().all(|byte| byte.is_ascii_hexdigit())
+        {
+            return Err(GrokBuildContinuityError::InvalidState);
+        }
+        self.credential_revision = Some(revision);
+        self.binding_fingerprint = Some(fingerprint);
+        Ok(self)
+    }
+
+    /// Exact ordinary serving revision; legacy primitive rows have no serving qualification.
+    #[must_use]
+    pub const fn credential_revision(&self) -> Option<u64> {
+        self.credential_revision
+    }
+
+    /// Opaque configuration/candidate/model namespace used only for soft affinity validation.
+    #[must_use]
+    pub fn binding_fingerprint(&self) -> Option<&str> {
+        self.binding_fingerprint.as_deref()
     }
 
     /// Returns the preferred credential identity.
@@ -268,11 +306,21 @@ impl GrokBuildCacheAffinity {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct GrokBuildAffinityBreakInput {
     reason: GrokBuildAffinityBreakReason,
-    estimated_cache_loss_tokens: u64,
+    estimated_cache_loss_tokens: Option<u64>,
     occurred_at_ms: i64,
 }
 
 impl GrokBuildAffinityBreakInput {
+    /// A cache break with no measured token-loss estimate. Unknown is persisted as NULL.
+    #[must_use]
+    pub const fn unknown(reason: GrokBuildAffinityBreakReason, occurred_at_ms: i64) -> Self {
+        Self {
+            reason,
+            estimated_cache_loss_tokens: None,
+            occurred_at_ms,
+        }
+    }
+
     /// Creates a bounded and timestamped cache-loss observation.
     #[must_use]
     pub const fn new(
@@ -282,7 +330,7 @@ impl GrokBuildAffinityBreakInput {
     ) -> Self {
         Self {
             reason,
-            estimated_cache_loss_tokens,
+            estimated_cache_loss_tokens: Some(estimated_cache_loss_tokens),
             occurred_at_ms,
         }
     }
@@ -294,7 +342,7 @@ pub struct GrokBuildAffinityBreak {
     prior_credential_id: CredentialId,
     next_credential_id: CredentialId,
     reason: GrokBuildAffinityBreakReason,
-    estimated_cache_loss_tokens: u64,
+    estimated_cache_loss_tokens: Option<u64>,
     occurred_at_ms: i64,
 }
 
@@ -313,7 +361,7 @@ impl GrokBuildAffinityBreak {
 
     /// Returns the bounded cache-loss estimate.
     #[must_use]
-    pub const fn estimated_cache_loss_tokens(&self) -> u64 {
+    pub const fn estimated_cache_loss_tokens(&self) -> Option<u64> {
         self.estimated_cache_loss_tokens
     }
 }
@@ -549,7 +597,7 @@ impl GrokBuildContinuityStore {
             .map_err(|_| GrokBuildContinuityError::StoreUnavailable)?;
         let row = connection
             .query_row(
-                "SELECT credential_id, egress_policy_id, expires_at_ms, reason \
+                "SELECT credential_id, egress_policy_id, expires_at_ms, reason, binding_fingerprint, credential_revision \
                  FROM grok_build_cache_affinities WHERE client_key_id = ?1 AND provider_id = ?2 \
                  AND upstream_model = ?3 AND cache_identity = ?4",
                 params![
@@ -564,12 +612,16 @@ impl GrokBuildContinuityStore {
                         row.get::<_, Option<String>>(1)?,
                         row.get::<_, i64>(2)?,
                         row.get::<_, String>(3)?,
+                        row.get::<_, Option<String>>(4)?,
+                        row.get::<_, Option<i64>>(5)?,
                     ))
                 },
             )
             .optional()
             .map_err(|_| GrokBuildContinuityError::StoreUnavailable)?;
-        let Some((credential_id, egress_policy_id, expires_at_ms, reason)) = row else {
+        let Some((credential_id, egress_policy_id, expires_at_ms, reason, fingerprint, revision)) =
+            row
+        else {
             return Ok(None);
         };
         if expires_at_ms <= now_ms {
@@ -585,6 +637,7 @@ impl GrokBuildContinuityStore {
             expires_at_ms,
             GrokBuildAffinityReason::from_sql(&reason)?,
         )
+        .and_then(|affinity| serving_binding(affinity, fingerprint, revision))
         .map(Some)
     }
 
@@ -609,11 +662,11 @@ impl GrokBuildContinuityStore {
             .lock()
             .map_err(|_| GrokBuildContinuityError::StoreUnavailable)?;
         let transaction = connection
-            .transaction()
+            .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(|_| GrokBuildContinuityError::StoreUnavailable)?;
         let existing = transaction
             .query_row(
-                "SELECT credential_id, egress_policy_id, expires_at_ms, reason \
+                "SELECT credential_id, egress_policy_id, expires_at_ms, reason, binding_fingerprint, credential_revision \
                  FROM grok_build_cache_affinities WHERE client_key_id = ?1 AND provider_id = ?2 \
                  AND upstream_model = ?3 AND cache_identity = ?4",
                 params![
@@ -628,12 +681,14 @@ impl GrokBuildContinuityStore {
                         row.get::<_, Option<String>>(1)?,
                         row.get::<_, i64>(2)?,
                         row.get::<_, String>(3)?,
+                        row.get::<_, Option<String>>(4)?,
+                        row.get::<_, Option<i64>>(5)?,
                     ))
                 },
             )
             .optional()
             .map_err(|_| GrokBuildContinuityError::StoreUnavailable)?
-            .map(|(credential_id, egress_policy_id, expires_at_ms, reason)| {
+            .map(|(credential_id, egress_policy_id, expires_at_ms, reason, fingerprint, revision)| {
                 GrokBuildCacheAffinity::try_new(
                     CredentialId::try_new(credential_id)
                         .map_err(|_| GrokBuildContinuityError::InvalidPersistedState)?,
@@ -643,14 +698,17 @@ impl GrokBuildContinuityStore {
                         .map_err(|_| GrokBuildContinuityError::InvalidPersistedState)?,
                     expires_at_ms,
                     GrokBuildAffinityReason::from_sql(&reason)?,
-                )
+                ).and_then(|affinity| serving_binding(affinity, fingerprint, revision))
             })
             .transpose()?;
         let outcome = match existing {
             None => GrokBuildAffinityBindOutcome::Bound,
             Some(existing)
                 if existing.credential_id == affinity.credential_id
-                    && existing.egress_policy_id == affinity.egress_policy_id =>
+                    && existing.egress_policy_id == affinity.egress_policy_id
+                    && existing.binding_fingerprint == affinity.binding_fingerprint
+                    && existing.credential_revision == affinity.credential_revision
+                    && existing.expires_at_ms > now_ms =>
             {
                 GrokBuildAffinityBindOutcome::Refreshed
             }
@@ -662,7 +720,13 @@ impl GrokBuildContinuityStore {
                 let break_record = GrokBuildAffinityBreak {
                     prior_credential_id: existing.credential_id,
                     next_credential_id: affinity.credential_id.clone(),
-                    reason: input.reason,
+                    reason: if existing.expires_at_ms <= now_ms {
+                        GrokBuildAffinityBreakReason::Expired
+                    } else if existing.egress_policy_id != affinity.egress_policy_id {
+                        GrokBuildAffinityBreakReason::EgressChanged
+                    } else {
+                        input.reason
+                    },
                     estimated_cache_loss_tokens: input.estimated_cache_loss_tokens,
                     occurred_at_ms: input.occurred_at_ms,
                 };
@@ -674,12 +738,12 @@ impl GrokBuildContinuityStore {
             .execute(
                 "INSERT INTO grok_build_cache_affinities \
                  (client_key_id, provider_id, upstream_model, cache_identity, credential_id, \
-                  egress_policy_id, expires_at_ms, reason, updated_at_ms) \
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9) \
+                  egress_policy_id, expires_at_ms, reason, updated_at_ms, binding_fingerprint, credential_revision) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11) \
                  ON CONFLICT(client_key_id, provider_id, upstream_model, cache_identity) DO UPDATE SET \
                    credential_id = excluded.credential_id, egress_policy_id = excluded.egress_policy_id, \
                    expires_at_ms = excluded.expires_at_ms, reason = excluded.reason, \
-                   updated_at_ms = excluded.updated_at_ms",
+                   updated_at_ms = excluded.updated_at_ms, binding_fingerprint = excluded.binding_fingerprint, credential_revision = excluded.credential_revision",
                 params![
                     key.client_key_id.as_str(),
                     GROK_BUILD_PROVIDER_ID,
@@ -690,8 +754,20 @@ impl GrokBuildContinuityStore {
                     affinity.expires_at_ms,
                     affinity.reason.as_sql(),
                     now_ms,
+                    affinity.binding_fingerprint.as_deref(),
+                    affinity.credential_revision.map(i64::try_from).transpose().map_err(|_| GrokBuildContinuityError::InvalidState)?,
                 ],
             )
+            .map_err(|_| GrokBuildContinuityError::StoreUnavailable)?;
+        transaction
+            .execute(
+                "DELETE FROM grok_build_cache_affinities WHERE expires_at_ms <= ?1",
+                [now_ms],
+            )
+            .map_err(|_| GrokBuildContinuityError::StoreUnavailable)?;
+        transaction.execute("DELETE FROM grok_build_cache_affinities WHERE rowid IN (SELECT rowid FROM grok_build_cache_affinities ORDER BY updated_at_ms DESC, rowid DESC LIMIT -1 OFFSET 4096)", [])
+            .map_err(|_| GrokBuildContinuityError::StoreUnavailable)?;
+        transaction.execute("DELETE FROM grok_build_affinity_breaks WHERE id IN (SELECT id FROM grok_build_affinity_breaks ORDER BY id DESC LIMIT -1 OFFSET 4096)", [])
             .map_err(|_| GrokBuildContinuityError::StoreUnavailable)?;
         transaction
             .commit()
@@ -718,7 +794,10 @@ impl GrokBuildContinuityStore {
                     break_record.prior_credential_id.as_str(),
                     break_record.next_credential_id.as_str(),
                     break_record.reason.as_sql(),
-                    i64::try_from(break_record.estimated_cache_loss_tokens)
+                    break_record
+                        .estimated_cache_loss_tokens
+                        .map(i64::try_from)
+                        .transpose()
                         .map_err(|_| GrokBuildContinuityError::InvalidState)?,
                     break_record.occurred_at_ms,
                 ],
@@ -894,7 +973,7 @@ impl GrokBuildContinuityStore {
                 "INSERT INTO grok_build_reasoning_replay \
                  (client_key_id, provider_id, upstream_model, session_id, signature, ciphertext, \
                   key_version, expires_at_ms, updated_at_ms) \
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11) \
                  ON CONFLICT(client_key_id, provider_id, upstream_model, session_id) DO UPDATE SET \
                    signature = excluded.signature, ciphertext = excluded.ciphertext, \
                    key_version = excluded.key_version, expires_at_ms = excluded.expires_at_ms, \
@@ -1027,6 +1106,21 @@ impl fmt::Debug for GrokBuildContinuityStore {
             .field("connection", &"<redacted>")
             .field("secret_store", &self.secret_store)
             .finish()
+    }
+}
+
+fn serving_binding(
+    affinity: GrokBuildCacheAffinity,
+    fingerprint: Option<String>,
+    revision: Option<i64>,
+) -> Result<GrokBuildCacheAffinity, GrokBuildContinuityError> {
+    match (fingerprint, revision) {
+        (None, None) => Ok(affinity),
+        (Some(fingerprint), Some(revision)) => affinity.with_serving_binding(
+            u64::try_from(revision).map_err(|_| GrokBuildContinuityError::InvalidPersistedState)?,
+            fingerprint,
+        ),
+        _ => Err(GrokBuildContinuityError::InvalidPersistedState),
     }
 }
 

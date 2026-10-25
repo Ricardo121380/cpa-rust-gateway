@@ -90,6 +90,21 @@ impl RouteCandidateScheduler {
     where
         F: FnMut(&SnapshotRouteCandidate) -> bool,
     {
+        self.select_eligible_in(route_id, |_| true, &mut is_eligible)
+    }
+
+    /// Restricts schedule slots before advancing the cursor. Temporary exclusions retain each
+    /// remaining candidate's exact weight rather than assigning rejected slots to its successor.
+    pub(crate) fn select_eligible_in<FSet, FLease>(
+        &self,
+        route_id: &RouteId,
+        mut in_set: FSet,
+        mut acquire: FLease,
+    ) -> Option<SnapshotRouteCandidate>
+    where
+        FSet: FnMut(&SnapshotRouteCandidate) -> bool,
+        FLease: FnMut(&SnapshotRouteCandidate) -> bool,
+    {
         let route = self.snapshot.route(route_id)?;
         let schedule = self.snapshot.route_schedule(route_id)?;
         let cursors = self.cursors.get(route_id)?;
@@ -97,16 +112,25 @@ impl RouteCandidateScheduler {
 
         for tier in schedule.priority_tiers() {
             let cursor = cursor_iter.next()?;
-            let slot_indexes = tier.slot_indexes();
+            let slot_indexes = tier
+                .slot_indexes()
+                .iter()
+                .copied()
+                .filter(|index| route.candidates().get(*index).is_some_and(&mut in_set))
+                .collect::<Vec<_>>();
             if slot_indexes.is_empty() {
-                return None;
+                continue;
             }
-            let start = cursor.fetch_add(1, Ordering::Relaxed);
+            let start = if route.policy() == crate::SnapshotRoutePolicy::FillFirst {
+                0
+            } else {
+                cursor.fetch_add(1, Ordering::Relaxed)
+            };
             for offset in 0..slot_indexes.len() {
                 let slot_index = start.wrapping_add(offset) % slot_indexes.len();
                 let candidate_index = slot_indexes[slot_index];
                 let candidate = route.candidates().get(candidate_index)?;
-                if is_eligible(candidate) {
+                if acquire(candidate) {
                     return Some(candidate.clone());
                 }
             }

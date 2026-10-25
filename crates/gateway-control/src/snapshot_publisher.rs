@@ -664,6 +664,8 @@ const fn snapshot_route_policy(policy: RoutePolicy) -> SnapshotRoutePolicy {
         RoutePolicy::RoundRobin => SnapshotRoutePolicy::RoundRobin,
         RoutePolicy::SmoothWeightedRoundRobin => SnapshotRoutePolicy::SmoothWeightedRoundRobin,
         RoutePolicy::PriorityFailover => SnapshotRoutePolicy::PriorityFailover,
+        RoutePolicy::WeightedRoundRobin => SnapshotRoutePolicy::WeightedRoundRobin,
+        RoutePolicy::FillFirst => SnapshotRoutePolicy::FillFirst,
     }
 }
 
@@ -733,6 +735,78 @@ mod tests {
     use crate::route_compiler::RouteCompiler;
 
     type TestResult = Result<(), Box<dyn Error>>;
+
+    #[test]
+    fn issue70_explicit_policy_validation_publication_and_rollback_preserve_legacy() -> TestResult {
+        let compiler = compiler()?;
+        let initial = configuration("issue70-bootstrap")?;
+        let registry = Arc::new(RouteSnapshotRegistry::new(Arc::new(
+            route_snapshot_from_compiled(&compiler.compile(&initial)?, &initial)?,
+        )));
+        let service = SnapshotPublicationService::new(compiler, Arc::clone(&registry));
+        let mut repository = SqliteControlPlaneRepository::open_in_memory()?;
+        let mut expected_prior = None;
+        for (index, policy) in [
+            RoutePolicy::SmoothWeightedRoundRobin,
+            RoutePolicy::RoundRobin,
+            RoutePolicy::WeightedRoundRobin,
+            RoutePolicy::FillFirst,
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let mut config = configuration(&format!("issue70-policy-{index}"))?;
+            config.model_routes[0].policy = policy;
+            repository.write_configuration(&config)?;
+            assert_eq!(
+                repository
+                    .load_configuration(&config.version.id)?
+                    .ok_or("configuration")?
+                    .model_routes[0]
+                    .policy,
+                policy
+            );
+            service.validate_version(&mut repository, &config.version.id)?;
+            let before = registry.load();
+            service.publish_version(&mut repository, &config.version.id)?;
+            let active = registry.load();
+            assert_eq!(
+                active
+                    .route(&config.model_routes[0].id)
+                    .ok_or("route")?
+                    .policy(),
+                super::snapshot_route_policy(policy)
+            );
+            assert_eq!(
+                before.version().as_str(),
+                expected_prior.as_deref().unwrap_or("issue70-bootstrap")
+            );
+            expected_prior = Some(config.version.id.as_str().to_owned());
+        }
+        service.rollback(&mut repository)?;
+        let active = registry.load();
+        assert_eq!(active.version().as_str(), "issue70-policy-2");
+        assert_eq!(
+            active.routes().next().ok_or("route")?.policy(),
+            gateway_router::SnapshotRoutePolicy::WeightedRoundRobin
+        );
+        let mut invalid = configuration("issue70-invalid-weight")?;
+        invalid.model_routes[0].policy = RoutePolicy::WeightedRoundRobin;
+        invalid.route_candidates[0].weight = 1025;
+        repository.write_configuration(&invalid)?;
+        assert!(
+            service
+                .validate_version(&mut repository, &invalid.version.id)
+                .is_err()
+        );
+        assert!(
+            service
+                .publish_version(&mut repository, &invalid.version.id)
+                .is_err()
+        );
+        assert!(Arc::ptr_eq(&active, &registry.load()));
+        Ok(())
+    }
 
     #[test]
     fn cpa_69_prefix_graph_publish_rollback_and_pinned_names() -> TestResult {

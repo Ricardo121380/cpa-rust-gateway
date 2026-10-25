@@ -243,7 +243,7 @@ fn cache_affinity_is_tenant_scoped_and_rebinding_has_durable_break_evidence() ->
             GrokBuildAffinityBindOutcome::Rebound(ref record)
                 if record.prior_credential_id() == &credential_a
                     && record.next_credential_id() == &credential_b
-                    && record.estimated_cache_loss_tokens() == 321
+                    && record.estimated_cache_loss_tokens() == Some(321)
         ));
         assert_eq!(
             store
@@ -513,4 +513,88 @@ impl Drop for TestDatabase {
             let _ = fs::remove_file(path);
         }
     }
+}
+
+#[test]
+fn issue70_affinity_migrates_schema40_and_bounds_unknown_break_history() -> TestResult {
+    let database = TestDatabase::new();
+    let mut connection = gateway_store::open(database.path())?;
+    gateway_store::migrate(&mut connection)?;
+    gateway_store::rollback_to_version(&mut connection, 40)?;
+    connection.execute("INSERT INTO grok_build_cache_affinities VALUES ('legacy-owner','grok.build','grok-4.5','legacy-opaque','legacy-credential',NULL,999999,'prompt_cache',1)",[])?;
+    connection.execute("INSERT INTO grok_build_affinity_breaks VALUES (1,'legacy-owner','grok-4.5','legacy-opaque','prior','next','operator_rebind',321,1)",[])?;
+    let legacy_before: (String, i64) = connection.query_row(
+        "SELECT credential_id, expires_at_ms FROM grok_build_cache_affinities",
+        [],
+        |row| Ok((row.get(0)?, row.get(1)?)),
+    )?;
+    let store = GrokBuildContinuityStore::open(database.path(), secret_store()?)?;
+    assert_eq!(gateway_store::schema_version(&connection)?, Some(41));
+    let legacy_after: (String, i64) = connection.query_row(
+        "SELECT credential_id, expires_at_ms FROM grok_build_cache_affinities",
+        [],
+        |row| Ok((row.get(0)?, row.get(1)?)),
+    )?;
+    assert_eq!(legacy_before, legacy_after);
+    let loss: i64 = connection.query_row(
+        "SELECT estimated_cache_loss_tokens FROM grok_build_affinity_breaks",
+        [],
+        |row| row.get(0),
+    )?;
+    assert_eq!(loss, 321);
+    let owner = client("bounded-owner")?;
+    let deriver = GrokBuildCacheIdentityDeriver::new([0x45; 32]);
+    for index in 0..4098 {
+        let identity = deriver.derive(&owner, "grok-4.5", &format!("bounded-{index}"))?;
+        let key = GrokBuildCacheAffinityKey::try_new(owner.clone(), "grok-4.5", identity)?;
+        let binding = GrokBuildCacheAffinity::try_new(
+            credential("bounded-credential")?,
+            None,
+            NOW_MS + 100000,
+            GrokBuildAffinityReason::PromptCache,
+        )?
+        .with_serving_binding(7, format!("{index:064x}"))?;
+        store.bind_cache_affinity(&key, &binding, NOW_MS + index, None)?;
+    }
+    let retained: i64 = connection.query_row(
+        "SELECT count(*) FROM grok_build_cache_affinities",
+        [],
+        |row| row.get(0),
+    )?;
+    assert_eq!(retained, 4096);
+    let key = GrokBuildCacheAffinityKey::try_new(
+        owner.clone(),
+        "grok-4.5",
+        deriver.derive(&owner, "grok-4.5", "bounded-4097")?,
+    )?;
+    for revision in 8..4108 {
+        let binding = GrokBuildCacheAffinity::try_new(
+            credential("bounded-credential")?,
+            None,
+            NOW_MS + 100000,
+            GrokBuildAffinityReason::PromptCache,
+        )?
+        .with_serving_binding(revision, format!("{revision:064x}"))?;
+        let outcome = store.bind_cache_affinity(
+            &key,
+            &binding,
+            NOW_MS + 5000,
+            Some(GrokBuildAffinityBreakInput::unknown(
+                GrokBuildAffinityBreakReason::CredentialUnavailable,
+                NOW_MS + 5000,
+            )),
+        )?;
+        assert!(
+            matches!(outcome,GrokBuildAffinityBindOutcome::Rebound(ref record) if record.estimated_cache_loss_tokens().is_none())
+        );
+    }
+    let (breaks, unknown): (i64, i64) = connection.query_row(
+        "SELECT count(*),sum(estimated_cache_loss_tokens IS NULL) FROM grok_build_affinity_breaks",
+        [],
+        |row| Ok((row.get(0)?, row.get(1)?)),
+    )?;
+    assert_eq!((breaks, unknown), (4096, 4096));
+    assert!(gateway_store::rollback_to_version(&mut connection, 40).is_err());
+    assert_eq!(gateway_store::schema_version(&connection)?, Some(41));
+    Ok(())
 }

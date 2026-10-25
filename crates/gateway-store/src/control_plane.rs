@@ -399,13 +399,28 @@ pub enum RoutePolicy {
     SmoothWeightedRoundRobin,
     /// Prefer lower-priority tiers and fail over only when needed.
     PriorityFailover,
+    /// Explicit production weighted rotation, separate from the legacy default.
+    WeightedRoundRobin,
+    /// Fill the first eligible candidate and credential before falling back.
+    FillFirst,
 }
 
 impl RoutePolicy {
+    /// Explicit production strategy; legacy rows retain their original policy meaning.
+    const fn selection_sql(self) -> &'static str {
+        match self {
+            Self::WeightedRoundRobin => "weighted_round_robin",
+            Self::FillFirst => "fill_first",
+            _ => "legacy",
+        }
+    }
+
     const fn as_sql(self) -> &'static str {
         match self {
             Self::RoundRobin => "round_robin",
-            Self::SmoothWeightedRoundRobin => "smooth_weighted_round_robin",
+            Self::SmoothWeightedRoundRobin | Self::WeightedRoundRobin | Self::FillFirst => {
+                "smooth_weighted_round_robin"
+            }
             Self::PriorityFailover => "priority_failover",
         }
     }
@@ -3431,8 +3446,8 @@ impl ControlPlaneTransaction<'_> {
         self.ensure_draft_config_version(config_version_id)?;
         self.transaction.execute(
             "INSERT INTO model_routes (\
-                config_version_id, id, public_model_id, policy, max_attempts, bootstrap_timeout_ms\
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                config_version_id, id, public_model_id, policy, max_attempts, bootstrap_timeout_ms, selection_policy\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
             params![
                 config_version_id.as_str(),
                 route.id.as_str(),
@@ -3440,6 +3455,7 @@ impl ControlPlaneTransaction<'_> {
                 route.policy.as_sql(),
                 route.max_attempts,
                 route.bootstrap_timeout_ms,
+                route.policy.selection_sql(),
             ],
         )?;
         Ok(())
@@ -3458,7 +3474,7 @@ impl ControlPlaneTransaction<'_> {
     ) -> StoreResult<()> {
         self.ensure_draft_config_version(config_version_id)?;
         let updated = self.transaction.execute(
-            "UPDATE model_routes SET policy = ?3, max_attempts = ?4, bootstrap_timeout_ms = ?5 \
+            "UPDATE model_routes SET policy = ?3, max_attempts = ?4, bootstrap_timeout_ms = ?5, selection_policy = ?7 \
              WHERE config_version_id = ?1 AND id = ?2 AND public_model_id = ?6",
             params![
                 config_version_id.as_str(),
@@ -3467,6 +3483,7 @@ impl ControlPlaneTransaction<'_> {
                 route.max_attempts,
                 route.bootstrap_timeout_ms,
                 route.public_model_id.as_str(),
+                route.policy.selection_sql(),
             ],
         )?;
         resource_updated(updated)
@@ -4447,7 +4464,7 @@ fn load_model_routes(
     limit: i64,
 ) -> StoreResult<Vec<ModelRouteConfiguration>> {
     let mut statement = transaction.prepare(
-        "SELECT id, public_model_id, policy, max_attempts, bootstrap_timeout_ms \
+        "SELECT id, public_model_id, policy, max_attempts, bootstrap_timeout_ms, selection_policy \
          FROM model_routes WHERE config_version_id = ?1 AND id > ?2 ORDER BY id LIMIT ?3",
     )?;
     let mut rows = statement.query(params![config_version_id.as_str(), after, limit])?;
@@ -4456,6 +4473,15 @@ fn load_model_routes(
         let policy_value: String = row.get(2)?;
         let policy =
             RoutePolicy::from_sql(&policy_value).ok_or_else(|| malformed("model_routes"))?;
+        let selection: String = row.get(5)?;
+        let policy = match (selection.as_str(), policy) {
+            ("legacy", policy) => policy,
+            ("weighted_round_robin", RoutePolicy::SmoothWeightedRoundRobin) => {
+                RoutePolicy::WeightedRoundRobin
+            }
+            ("fill_first", RoutePolicy::SmoothWeightedRoundRobin) => RoutePolicy::FillFirst,
+            _ => return Err(malformed("model_routes")),
+        };
         let max_attempts: i64 = row.get(3)?;
         let bootstrap_timeout_ms: i64 = row.get(4)?;
         if max_attempts <= 0 || bootstrap_timeout_ms <= 0 {

@@ -3915,3 +3915,7 @@ migration or frontend is added.
 
 **Other side:** FYI. Existing clients omitting prefix keep their behavior. Future management
 consumers may expose this optional input; list/delete continue using the returned exact Alias.
+
+## 2026-10-25 #70 backend route strategy contract
+
+Authoritative management OpenAPI admits explicit `round_robin`, `weighted_round_robin`, `fill_first` Route policy values and reports `selection_policy` on Explain. Existing `smooth_weighted_round_robin` retains legacy production meaning. Explain is a fixed-input projection, not a live reservation. Old Prism is retired under ADR-0124; no generated frontend exists to synchronize. Future frontend work must consume these backend values directly. #71 headers/rules remain separate. See ADR-0133 / BC-ROUTE-010.

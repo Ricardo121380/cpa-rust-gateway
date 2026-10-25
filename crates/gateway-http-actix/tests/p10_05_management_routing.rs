@@ -850,3 +850,70 @@ async fn cpa_69_management_prefix_alias_is_explicit_validated_and_persisted() ->
     assert_revision(&deleted, 3);
     Ok(())
 }
+
+#[actix_web::test]
+async fn issue70_management_policy_crud_is_explicit_revisioned_and_closed() -> TestResult {
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security_state()?))
+            .app_data(web::Data::new(resource_state()?))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let reply=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/public-models")
+        .set_json(json!({"id":"issue70-model","model_name":"issue70-model","status":"active","display_name":"issue70","capabilities":[]})),Some("rev-0")).to_request()).await;
+    assert_eq!(reply.status(), StatusCode::CREATED);
+    let mut revision = 1;
+    for (index, policy) in [
+        "smooth_weighted_round_robin",
+        "round_robin",
+        "weighted_round_robin",
+        "fill_first",
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let path = if index == 0 {
+            "/admin/public-models/issue70-model/routes"
+        } else {
+            "/admin/routes/issue70-route"
+        };
+        let request = if index == 0 {
+            test::TestRequest::post()
+        } else {
+            test::TestRequest::put()
+        };
+        let reply=test::call_service(&app,authorized(request.uri(path).set_json(json!({"id":"issue70-route","policy":policy,"max_attempts":4,"bootstrap_timeout_ms":15000})),Some(&format!("rev-{revision}"))).to_request()).await;
+        assert!(reply.status() == StatusCode::CREATED || reply.status() == StatusCode::OK);
+        let body: Value = serde_json::from_slice(&test::read_body(reply).await)?;
+        assert_eq!(body["policy"], policy);
+        revision += 1;
+        let reply = test::call_service(
+            &app,
+            authorized(
+                test::TestRequest::get().uri("/admin/routes/issue70-route"),
+                None,
+            )
+            .to_request(),
+        )
+        .await;
+        let body: Value = serde_json::from_slice(&test::read_body(reply).await)?;
+        assert_eq!(body["policy"], policy);
+    }
+    for policy in ["weighted-round-robin", "unknown", "", "priority_failover"] {
+        let reply=test::call_service(&app,authorized(test::TestRequest::put().uri("/admin/routes/issue70-route").set_json(json!({"id":"issue70-route","policy":policy,"max_attempts":4,"bootstrap_timeout_ms":15000})),Some(&format!("rev-{revision}"))).to_request()).await;
+        assert_eq!(reply.status(), StatusCode::BAD_REQUEST);
+    }
+    let reply = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri("/admin/routes/issue70-route"),
+            None,
+        )
+        .to_request(),
+    )
+    .await;
+    let body: Value = serde_json::from_slice(&test::read_body(reply).await)?;
+    assert_eq!(body["policy"], "fill_first");
+    Ok(())
+}

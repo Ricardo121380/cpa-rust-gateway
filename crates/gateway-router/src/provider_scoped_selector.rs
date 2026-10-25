@@ -355,6 +355,15 @@ pub struct ProviderScopedCandidateDecision {
 }
 
 impl ProviderScopedCandidateDecision {
+    /// Strategy operates only within an equal priority/quota/explicit-price evidence tier.
+    pub(crate) fn policy_tier(&self) -> (i64, u8, u8) {
+        (
+            self.candidate.priority,
+            quota_rank(self.candidate.quota),
+            price_evidence_rank(self.price_evidence),
+        )
+    }
+
     /// Returns the evaluated candidate state.
     #[must_use]
     pub fn candidate(&self) -> &ProviderScopedCandidate {
@@ -412,6 +421,7 @@ impl ProviderScopedSelection {
 /// Provider-scoped deterministic selector policy.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProviderScopedSelector {
+    policy: crate::SnapshotRoutePolicy,
     provider_id: ProviderId,
 }
 
@@ -426,7 +436,17 @@ impl ProviderScopedSelector {
         if !valid_selector_id(provider_id.as_str()) {
             return Err(ProviderScopedSelectorError::InvalidCandidate);
         }
-        Ok(Self { provider_id })
+        Ok(Self {
+            provider_id,
+            policy: crate::SnapshotRoutePolicy::SmoothWeightedRoundRobin,
+        })
+    }
+
+    /// Uses an explicit route strategy while leaving the legacy comparator unchanged.
+    #[must_use]
+    pub fn with_policy(mut self, policy: crate::SnapshotRoutePolicy) -> Self {
+        self.policy = policy;
+        self
     }
 
     /// Evaluates and ranks a bounded set of candidates without mutating scheduler state.
@@ -464,7 +484,24 @@ impl ProviderScopedSelector {
             .collect::<Vec<_>>();
 
         classify_price_evidence(&mut decisions);
-        decisions.sort_by(decision_order);
+        decisions.sort_by(|left, right| {
+            if matches!(
+                self.policy,
+                crate::SnapshotRoutePolicy::RoundRobin
+                    | crate::SnapshotRoutePolicy::WeightedRoundRobin
+                    | crate::SnapshotRoutePolicy::FillFirst
+            ) && left.is_eligible()
+                && right.is_eligible()
+            {
+                left.policy_tier().cmp(&right.policy_tier()).then_with(|| {
+                    left.candidate
+                        .candidate_id
+                        .cmp(&right.candidate.candidate_id)
+                })
+            } else {
+                decision_order(left, right)
+            }
+        });
         let selected_candidate_id = decisions
             .iter()
             .find(|decision| decision.is_eligible())

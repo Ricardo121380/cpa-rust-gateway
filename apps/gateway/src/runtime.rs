@@ -502,6 +502,7 @@ mod account_quota;
 mod batch_a_native;
 #[cfg(test)]
 mod batch_c;
+mod build_affinity;
 mod build_diagnostic;
 mod build_messages_summary;
 mod catalog_refresh;
@@ -1127,6 +1128,7 @@ struct P12RoutedResponsesExecutor {
     channel_pin_in_flight: AtomicUsize,
     native_grok_egress: Option<Arc<P13NativeGrokEgressRuntime>>,
     grok_build_cache_identity_deriver: Arc<GrokBuildCacheIdentityDeriver>,
+    build_affinity: Option<Arc<provider_grok::GrokBuildContinuityStore>>,
     grok_build_model_alias_proofs: Arc<[provider_grok::GrokBuildModelAliasProof]>,
 }
 
@@ -1392,6 +1394,10 @@ impl P12RoutedResponsesExecutor {
                 channel_pin_in_flight: AtomicUsize::new(0),
                 native_grok_egress,
                 grok_build_cache_identity_deriver,
+                build_affinity: Some(Arc::new(
+                    provider_grok::GrokBuildContinuityStore::open(database, secret_store.clone())
+                        .map_err(|_| RuntimeCompositionError::Unavailable)?,
+                )),
                 grok_build_model_alias_proofs,
             },
             provider_account_pools,
@@ -1558,6 +1564,8 @@ impl P12RoutedResponsesExecutor {
         };
         let endpoints = Arc::clone(&self.endpoints);
         let driver = EndpointAttemptDriver {
+            build_preferences: BTreeMap::new(),
+            build_affinity: None,
             admitted_public_model: Some(public_model.model_name().to_owned()),
             grok_build_model_alias_proofs: self.grok_build_model_alias_proofs.clone(),
             execution_configuration: Some((self.snapshot_version.clone(), self.config_revision)),
@@ -2110,7 +2118,13 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
                 return Err(stale_runtime_error());
             }
             let exact_continuation = continuation_pin.is_some();
-            let driver = EndpointAttemptDriver {
+            let mut driver = EndpointAttemptDriver {
+                build_preferences: BTreeMap::new(),
+                build_affinity: if exact_continuation {
+                    None
+                } else {
+                    self.build_affinity.clone()
+                },
                 admitted_public_model: Some(execution.admitted_public_model().to_owned()),
                 grok_build_model_alias_proofs: self.grok_build_model_alias_proofs.clone(),
                 execution_configuration: Some((snapshot_version.clone(), self.config_revision)),
@@ -2149,6 +2163,9 @@ impl ResponsesExecutor for P12RoutedResponsesExecutor {
             // then fails non-retryably after the lease was taken — a hard failure where the
             // filter would simply have chosen a different Candidate before the first byte.
             let admission_snapshot = route_snapshot.clone().unwrap_or_else(|| registry.load());
+            if let Some(route) = admission_snapshot.route(&route_id) {
+                driver.prepare_build_affinity(route).await?;
+            }
             // Validate expanded native identity and parallel histories on the pinned candidate
             // before the continuation scheduler can misclassify a request as no credential.
             if let Some(pin) = continuation_pin.as_ref()
@@ -3684,7 +3701,13 @@ fn validate_p12_route_access_shape(
         .filter(|route| active_routes.contains(&route.id))
     {
         if !model_ids.contains(&route.public_model_id)
-            || route.policy != RoutePolicy::SmoothWeightedRoundRobin
+            || !matches!(
+                route.policy,
+                RoutePolicy::SmoothWeightedRoundRobin
+                    | RoutePolicy::RoundRobin
+                    | RoutePolicy::WeightedRoundRobin
+                    | RoutePolicy::FillFirst
+            )
             || !usize::try_from(route.max_attempts)
                 .is_ok_and(|attempts| (1..=P12_MAX_ROUTE_ATTEMPTS).contains(&attempts))
             || route.bootstrap_timeout_ms <= 0
@@ -4732,6 +4755,8 @@ struct EndpointAttemptDriver {
     channel_pin_observation: Option<Arc<P13ChannelPinObservation>>,
     native_grok_egress: Option<Arc<P13NativeGrokEgressRuntime>>,
     grok_build_cache_identity_deriver: Arc<GrokBuildCacheIdentityDeriver>,
+    build_affinity: Option<Arc<provider_grok::GrokBuildContinuityStore>>,
+    build_preferences: BTreeMap<gateway_core::RouteCandidateId, (CredentialId, u64)>,
     grok_build_model_alias_proofs: Arc<[provider_grok::GrokBuildModelAliasProof]>,
 }
 
@@ -5051,6 +5076,13 @@ impl EndpointAttemptDriver {
 impl AttemptDriver for EndpointAttemptDriver {
     type Output = Box<dyn ResponsesEventSource>;
 
+    fn preferred_credential(
+        &self,
+        candidate: &SnapshotRouteCandidate,
+    ) -> Result<Option<(CredentialId, u64)>, GatewayError> {
+        Ok(self.build_preferences.get(candidate.id()).cloned())
+    }
+
     fn start<'a>(
         &'a self,
         candidate: &'a SnapshotRouteCandidate,
@@ -5148,7 +5180,11 @@ impl AttemptDriver for EndpointAttemptDriver {
                         .await
                 }
             };
-            result.map(|source| Self::wrap_compatible_source(compatible_selection, source))
+            let source = result?;
+            self.bind_build_affinity(candidate, credential)
+                .await
+                .map_err(AttemptFailure::NonRetryable)?;
+            Ok(Self::wrap_compatible_source(compatible_selection, source))
         })
     }
 
@@ -9388,6 +9424,8 @@ mod tests {
             r#"{"model":"gateway-model","input":"fail over safely","stream":false}"#,
         )?;
         let driver = EndpointAttemptDriver {
+            build_preferences: BTreeMap::new(),
+            build_affinity: None,
             admitted_public_model: None,
             grok_build_model_alias_proofs: Arc::from([]),
             execution_configuration: None,
@@ -9734,6 +9772,8 @@ mod tests {
             "../../../tests/fixtures/openai-responses/request-canonical.json"
         ))?;
         let driver = EndpointAttemptDriver {
+            build_preferences: BTreeMap::new(),
+            build_affinity: None,
             admitted_public_model: None,
             grok_build_model_alias_proofs: Arc::from([]),
             execution_configuration: None,

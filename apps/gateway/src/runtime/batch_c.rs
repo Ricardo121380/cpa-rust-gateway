@@ -35,6 +35,7 @@ struct Channel {
     model: &'static str,
 }
 struct Fixture {
+    pools: Option<Arc<gateway_upstream::EndpointCredentialPools>>,
     state: ResponsesHttpState,
     executor: Arc<P12RoutedResponsesExecutor>,
     events: Arc<Events>,
@@ -237,6 +238,32 @@ fn fixture_with_compiler(
     ) -> Result<Arc<[provider_grok::GrokBuildModelAliasProof]>, Box<dyn Error>>,
     compiler: impl FnOnce(&Path) -> Result<RouteCompiler, RuntimeCompositionError>,
 ) -> Result<Fixture, Box<dyn Error>> {
+    fixture_with_database_seed(
+        channel,
+        secret,
+        stored,
+        prepare,
+        configure,
+        freeze,
+        compiler,
+        |_, _| Ok(()),
+    )
+}
+
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
+fn fixture_with_database_seed(
+    channel: Channel,
+    secret: &[u8],
+    stored: bool,
+    prepare: impl FnOnce(&mut ControlPlaneConfiguration) -> TestResult,
+    configure: impl FnOnce(&mut BTreeMap<EndpointId, EndpointRuntime>) -> TestResult,
+    freeze: impl FnOnce(
+        &P12RoutedResponsesExecutor,
+        &ControlPlaneConfiguration,
+    ) -> Result<Arc<[provider_grok::GrokBuildModelAliasProof]>, Box<dyn Error>>,
+    compiler: impl FnOnce(&Path) -> Result<RouteCompiler, RuntimeCompositionError>,
+    seed: impl FnOnce(&Path, &SecretStore) -> TestResult,
+) -> Result<Fixture, Box<dyn Error>> {
     let directory = TemporaryDirectory::new()?;
     let database = directory.path().join("batch-c.sqlite3");
     let secrets = test_secret_store()?;
@@ -342,6 +369,7 @@ fn fixture_with_compiler(
         None,
     )?];
     prepare(&mut configuration)?;
+    seed(&database, &secrets)?;
     let mut repository = SqliteControlPlaneRepository::open(&database)?;
     repository.write_configuration(&configuration)?;
     repository.activate_version(&configuration.version.id)?;
@@ -355,7 +383,7 @@ fn fixture_with_compiler(
     let registry = Arc::clone(lifecycle.registry());
     // Deployment constructs synchronous credential refresh clients before entering Actix.
     // Keep the same factory on a scoped ordinary thread in these asynchronous HTTP tests.
-    let (mut executor, _, scheduler, _, _, _) = std::thread::scope(|scope| {
+    let (mut executor, _, scheduler, _, refresh, _) = std::thread::scope(|scope| {
         scope
             .spawn(|| {
                 P12RoutedResponsesExecutor::try_new(
@@ -400,6 +428,9 @@ fn fixture_with_compiler(
         ));
     }
     Ok(Fixture {
+        pools: refresh
+            .as_ref()
+            .map(RuntimeCredentialRefreshWorker::test_pools),
         state,
         executor,
         events,

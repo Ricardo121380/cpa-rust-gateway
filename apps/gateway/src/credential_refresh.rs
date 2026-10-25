@@ -158,6 +158,11 @@ pub(crate) struct RuntimeCredentialRefreshWorker {
 }
 
 impl RuntimeCredentialRefreshWorker {
+    #[cfg(test)]
+    pub(crate) fn test_pools(&self) -> Arc<EndpointCredentialPools> {
+        Arc::clone(&self.pools)
+    }
+
     /// Creates a worker only when the active graph has a supported refreshable OAuth channel.
     pub(crate) fn try_new(
         database: &Path,

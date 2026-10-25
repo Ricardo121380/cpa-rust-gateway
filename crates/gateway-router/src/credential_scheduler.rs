@@ -546,69 +546,192 @@ impl RouteCredentialScheduler {
         FCandidate: FnMut(&SnapshotRouteCandidate) -> bool,
         FBinding: FnMut(&SnapshotRouteCandidate, &CredentialId) -> bool,
     {
+        self.select_provider_scoped_with_preference_at(
+            expected_snapshot,
+            route_id,
+            selection,
+            runtime_health,
+            runtime_quota,
+            observed_at_ms,
+            &mut is_candidate_eligible,
+            &mut is_binding_eligible,
+            |_| Ok(None),
+        )
+    }
+
+    /// Ordinary affinity is advisory and is attempted only in the current policy tier. Strict
+    /// continuation uses its separate exact-lineage entrypoint and never enters this function.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn select_provider_scoped_with_preference_at<FCandidate, FBinding, FPreference>(
+        &self,
+        expected_snapshot: Option<&Arc<RouteSnapshot>>,
+        route_id: &RouteId,
+        selection: &ProviderScopedSelection,
+        runtime_health: &RuntimeHealthRegistry,
+        runtime_quota: &RuntimeQuotaRegistry,
+        observed_at_ms: i64,
+        mut is_candidate_eligible: FCandidate,
+        mut is_binding_eligible: FBinding,
+        mut preference: FPreference,
+    ) -> Result<SelectedRouteCredential, GatewayError>
+    where
+        FCandidate: FnMut(&SnapshotRouteCandidate) -> bool,
+        FBinding: FnMut(&SnapshotRouteCandidate, &CredentialId) -> bool,
+        FPreference:
+            FnMut(&SnapshotRouteCandidate) -> Result<Option<(CredentialId, u64)>, GatewayError>,
+    {
         let candidates = self.candidates_for_snapshot(expected_snapshot)?;
         let route = candidates
             .route(route_id)
             .ok_or_else(credential_unavailable_error)?;
-        for decision in selection
+        let policy = route.policy();
+        let explicit = matches!(
+            policy,
+            crate::SnapshotRoutePolicy::RoundRobin
+                | crate::SnapshotRoutePolicy::WeightedRoundRobin
+                | crate::SnapshotRoutePolicy::FillFirst
+        );
+        let eligible = selection
             .decisions()
             .iter()
             .filter(|decision| decision.is_eligible())
-        {
-            let ranked = decision.candidate();
-            let Some(candidate) = route
-                .candidates()
-                .iter()
-                .find(|candidate| candidate.id() == ranked.candidate_id())
-            else {
-                continue;
+            .collect::<Vec<_>>();
+        let mut tiers = std::collections::BTreeMap::new();
+        for decision in &eligible {
+            let tier = if explicit {
+                decision.policy_tier()
+            } else {
+                (0, 0, 0)
             };
-            let Ok(candidate_provider) =
-                ProviderId::try_new(candidate.upstream_id().as_str().to_owned())
-            else {
-                continue;
-            };
-            if ranked.provider_id() != selection.provider_id()
-                || candidate_provider != *selection.provider_id()
-                || ranked.channel_id() != candidate.endpoint_id()
-                || !candidate.is_hard_eligible_at(observed_at_ms)
-                || !is_candidate_eligible(candidate)
-                || !runtime_health.endpoint_is_available(candidate.endpoint_id())
-            {
-                continue;
+            tiers
+                .entry(tier)
+                .or_insert_with(std::collections::BTreeSet::new)
+                .insert(decision.candidate().candidate_id().clone());
+        }
+        for ids in tiers.values() {
+            let mut acquire =
+                |candidate: &SnapshotRouteCandidate, preferred: Option<(CredentialId, u64)>| {
+                    if !ids.contains(candidate.id())
+                        || candidate.upstream_id().as_str() != selection.provider_id().as_str()
+                        || !candidate.is_hard_eligible_at(observed_at_ms)
+                        || !is_candidate_eligible(candidate)
+                        || !runtime_health.endpoint_is_available(candidate.endpoint_id())
+                    {
+                        return None;
+                    }
+                    let pool = self.credential_pools.pool(candidate.endpoint_id())?;
+                    let mut allowed = |credential_id: &CredentialId| {
+                        candidate.allows_credential_at(credential_id, observed_at_ms)
+                            && is_binding_eligible(candidate, credential_id)
+                            && runtime_health.endpoint_credential_is_available(
+                                candidate.endpoint_id(),
+                                credential_id,
+                            )
+                            && runtime_health.endpoint_credential_model_is_available(
+                                candidate.endpoint_id(),
+                                credential_id,
+                                candidate.upstream_model(),
+                            )
+                            && runtime_quota.endpoint_credential_is_available(
+                                candidate.endpoint_id(),
+                                credential_id,
+                            )
+                            && runtime_quota.endpoint_credential_model_is_available(
+                                candidate.endpoint_id(),
+                                credential_id,
+                                candidate.upstream_model(),
+                            )
+                    };
+                    let lease = if let Some((credential, revision)) = preferred {
+                        // Soft affinity must not bypass a higher-priority eligible credential.
+                        let entries = pool.diagnostic_entries();
+                        let target = entries
+                            .iter()
+                            .find(|entry| entry.credential_id() == &credential)?;
+                        let best = entries
+                            .iter()
+                            .filter(|entry| {
+                                entry
+                                    .expires_at_ms()
+                                    .is_none_or(|expiry| expiry > observed_at_ms)
+                                    && entry.active_leases() < entry.maximum_concurrency()
+                                    && allowed(entry.credential_id())
+                            })
+                            .map(|entry| entry.priority())
+                            .min()?;
+                        if target.priority() != best {
+                            return None;
+                        }
+                        let lease =
+                            pool.try_lease_exact_eligible_at(&credential, observed_at_ms, allowed)?;
+                        if lease.credential_revision() != revision {
+                            return None;
+                        }
+                        lease
+                    } else {
+                        if explicit {
+                            pool.try_lease_with_policy_at(
+                                observed_at_ms,
+                                policy == crate::SnapshotRoutePolicy::WeightedRoundRobin,
+                                policy == crate::SnapshotRoutePolicy::FillFirst,
+                                allowed,
+                            )?
+                        } else {
+                            pool.try_lease_eligible_at(observed_at_ms, allowed)?
+                        }
+                    };
+                    Some(SelectedRouteCredential {
+                        candidate: candidate.clone(),
+                        lease,
+                    })
+                };
+            for decision in &eligible {
+                if !ids.contains(decision.candidate().candidate_id()) {
+                    continue;
+                }
+                // Legacy ordering retains its quota/price/priority class; affinity only relaxes load.
+                if !explicit
+                    && eligible
+                        .first()
+                        .is_some_and(|first| first.policy_tier() != decision.policy_tier())
+                {
+                    continue;
+                }
+                if let Some(candidate) = route
+                    .candidates()
+                    .iter()
+                    .find(|candidate| candidate.id() == decision.candidate().candidate_id())
+                    && let Some(preferred) = preference(candidate)?
+                    && let Some(selection) = acquire(candidate, Some(preferred))
+                {
+                    return Ok(selection);
+                }
             }
-            let Some(lease) = self.credential_pools.try_lease_eligible_at(
-                candidate.endpoint_id(),
-                observed_at_ms,
-                |credential_id| {
-                    candidate.allows_credential_at(credential_id, observed_at_ms)
-                        && is_binding_eligible(candidate, credential_id)
-                        && runtime_health.endpoint_credential_is_available(
-                            candidate.endpoint_id(),
-                            credential_id,
-                        )
-                        && runtime_health.endpoint_credential_model_is_available(
-                            candidate.endpoint_id(),
-                            credential_id,
-                            candidate.upstream_model(),
-                        )
-                        && runtime_quota.endpoint_credential_is_available(
-                            candidate.endpoint_id(),
-                            credential_id,
-                        )
-                        && runtime_quota.endpoint_credential_model_is_available(
-                            candidate.endpoint_id(),
-                            credential_id,
-                            candidate.upstream_model(),
-                        )
-                },
-            ) else {
-                continue;
-            };
-            return Ok(SelectedRouteCredential {
-                candidate: candidate.clone(),
-                lease,
-            });
+            if explicit {
+                let mut selection = None;
+                let _ = candidates.select_eligible_in(
+                    route_id,
+                    |candidate| ids.contains(candidate.id()),
+                    |candidate| {
+                        selection = acquire(candidate, None);
+                        selection.is_some()
+                    },
+                );
+                if let Some(selection) = selection {
+                    return Ok(selection);
+                }
+            } else {
+                for decision in &eligible {
+                    if let Some(candidate) = route
+                        .candidates()
+                        .iter()
+                        .find(|candidate| candidate.id() == decision.candidate().candidate_id())
+                        && let Some(selection) = acquire(candidate, None)
+                    {
+                        return Ok(selection);
+                    }
+                }
+            }
         }
         Err(credential_unavailable_error())
     }

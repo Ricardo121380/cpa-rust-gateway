@@ -792,7 +792,12 @@ pub(crate) fn explain_provider_scoped(
         input.route_explain(),
         exclusions,
     )?;
-    let selector = ProviderScopedSelector::try_new(input.provider_id().clone())?;
+    let policy = snapshot
+        .route(input.route_explain().route_id())
+        .ok_or(ProviderScopedRouteExplainError::InvalidObservation)?
+        .policy();
+    let selector =
+        ProviderScopedSelector::try_new(input.provider_id().clone())?.with_policy(policy);
     let mut observations = Vec::new();
     for candidate in base.candidates().iter().filter(|candidate| {
         candidate.is_eligible()

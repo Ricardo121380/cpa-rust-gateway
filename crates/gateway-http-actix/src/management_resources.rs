@@ -1087,12 +1087,20 @@ impl ManagementRouteExplainPricePolicy {
 /// One complete bounded Route Explain projection.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ManagementRouteExplain {
+    selection_policy: &'static str,
     route_id: RouteId,
     candidates: Vec<ManagementRouteExplainCandidate>,
     price_policy: Option<ManagementRouteExplainPricePolicy>,
 }
 
 impl ManagementRouteExplain {
+    /// Reports the actual serving policy without advancing a scheduler cursor.
+    #[must_use]
+    pub fn with_selection_policy(mut self, policy: &'static str) -> Self {
+        self.selection_policy = policy;
+        self
+    }
+
     /// Creates a bounded Explain result.
     ///
     /// # Errors
@@ -1133,6 +1141,7 @@ impl ManagementRouteExplain {
             route_id,
             candidates,
             price_policy: None,
+            selection_policy: "provider_scoped_legacy",
         })
     }
 
@@ -3887,6 +3896,7 @@ struct RuntimeActionResponse {
 
 #[derive(Serialize)]
 struct RouteExplainResponse {
+    selection_policy: &'static str,
     route_id: String,
     candidates: Vec<RouteExplainCandidateResponse>,
     price_policy: Option<RouteExplainPricePolicyResponse>,
@@ -7828,6 +7838,8 @@ fn route_list_response(value: &ModelRouteConfiguration) -> RouteResponse {
         policy: match value.policy {
             RoutePolicy::SmoothWeightedRoundRobin => "smooth_weighted_round_robin",
             RoutePolicy::RoundRobin => "round_robin",
+            RoutePolicy::WeightedRoundRobin => "weighted_round_robin",
+            RoutePolicy::FillFirst => "fill_first",
             RoutePolicy::PriorityFailover => "priority_failover",
         },
         max_attempts: value.max_attempts,
@@ -9449,14 +9461,22 @@ fn model_route(
         || input.max_attempts > 16
         || input.bootstrap_timeout_ms <= 0
         || input.bootstrap_timeout_ms > 120_000
-        || input.policy != "smooth_weighted_round_robin"
+        || !matches!(
+            input.policy.as_str(),
+            "smooth_weighted_round_robin" | "round_robin" | "weighted_round_robin" | "fill_first"
+        )
     {
         return Err(invalid_input());
     }
     Ok(ModelRouteConfiguration {
         id: RouteId::try_new(input.id).map_err(|_| invalid_input())?,
         public_model_id,
-        policy: RoutePolicy::SmoothWeightedRoundRobin,
+        policy: match input.policy.as_str() {
+            "round_robin" => RoutePolicy::RoundRobin,
+            "weighted_round_robin" => RoutePolicy::WeightedRoundRobin,
+            "fill_first" => RoutePolicy::FillFirst,
+            _ => RoutePolicy::SmoothWeightedRoundRobin,
+        },
         max_attempts: input.max_attempts,
         bootstrap_timeout_ms: input.bootstrap_timeout_ms,
     })
@@ -9981,6 +10001,16 @@ impl TryFrom<ManagementRouteExplain> for RouteExplainResponse {
     type Error = ManagementRuntimeError;
 
     fn try_from(value: ManagementRouteExplain) -> Result<Self, Self::Error> {
+        if !matches!(
+            value.selection_policy,
+            "provider_scoped_legacy"
+                | "round_robin"
+                | "weighted_round_robin"
+                | "fill_first"
+                | "priority_failover"
+        ) {
+            return Err(ManagementRuntimeError::Unavailable);
+        }
         let mut ids = BTreeSet::new();
         let candidates = value
             .candidates()
@@ -10009,6 +10039,7 @@ impl TryFrom<ManagementRouteExplain> for RouteExplainResponse {
         Ok(Self {
             route_id: value.route_id().as_str().to_owned(),
             candidates,
+            selection_policy: value.selection_policy,
             price_policy: value
                 .price_policy()
                 .map(|policy| {
@@ -10085,7 +10116,10 @@ impl TryFrom<ModelRouteConfiguration> for RouteResponse {
     fn try_from(value: ModelRouteConfiguration) -> Result<Self, Self::Error> {
         let policy = match value.policy {
             RoutePolicy::SmoothWeightedRoundRobin => "smooth_weighted_round_robin",
-            RoutePolicy::RoundRobin | RoutePolicy::PriorityFailover => {
+            RoutePolicy::RoundRobin => "round_robin",
+            RoutePolicy::WeightedRoundRobin => "weighted_round_robin",
+            RoutePolicy::FillFirst => "fill_first",
+            RoutePolicy::PriorityFailover => {
                 return Err(UnsupportedRoutePolicy);
             }
         };
@@ -11325,12 +11359,17 @@ mod tests {
     }
 
     #[test]
-    fn route_response_rejects_legacy_policy_instead_of_relabelling_it() -> TestResult {
+    fn route_response_preserves_explicit_policy_and_rejects_unsupported_legacy() -> TestResult {
         let supported =
             RouteResponse::try_from(route_with_policy(RoutePolicy::SmoothWeightedRoundRobin)?)
                 .map_err(|_| std::io::Error::other("frozen P10-05 policy is not representable"))?;
         assert_eq!(supported.policy, "smooth_weighted_round_robin");
-        assert!(RouteResponse::try_from(route_with_policy(RoutePolicy::RoundRobin)?).is_err());
+        assert_eq!(
+            RouteResponse::try_from(route_with_policy(RoutePolicy::RoundRobin)?)
+                .map_err(|_| "RR response")?
+                .policy,
+            "round_robin"
+        );
         assert_eq!(
             super::route_list_response(&route_with_policy(RoutePolicy::RoundRobin)?).policy,
             "round_robin"

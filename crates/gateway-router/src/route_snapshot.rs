@@ -70,6 +70,24 @@ pub enum SnapshotRoutePolicy {
     SmoothWeightedRoundRobin,
     /// Prefer lower-numbered priority tiers before failover.
     PriorityFailover,
+    /// Explicit production weighted rotation; legacy SmoothWeightedRoundRobin is unchanged.
+    WeightedRoundRobin,
+    /// Stable first eligible candidate within the best priority tier.
+    FillFirst,
+}
+
+impl SnapshotRoutePolicy {
+    /// Actual production candidate strategy, including the preserved provider-scoped default.
+    #[must_use]
+    pub const fn serving_strategy(self) -> &'static str {
+        match self {
+            Self::RoundRobin => "round_robin",
+            Self::WeightedRoundRobin => "weighted_round_robin",
+            Self::FillFirst => "fill_first",
+            Self::SmoothWeightedRoundRobin => "provider_scoped_legacy",
+            Self::PriorityFailover => "priority_failover",
+        }
+    }
 }
 
 /// Router-safe form of a Candidate request conversion mode.
@@ -534,13 +552,16 @@ impl SnapshotRouteSchedule {
                     .cmp(route.candidates()[*right].id())
             });
             let slot_indexes = match route.policy() {
-                SnapshotRoutePolicy::RoundRobin | SnapshotRoutePolicy::PriorityFailover => {
+                SnapshotRoutePolicy::RoundRobin
+                | SnapshotRoutePolicy::PriorityFailover
+                | SnapshotRoutePolicy::FillFirst => {
                     if candidate_indexes.len() > MAX_SCHEDULE_SLOTS_PER_PRIORITY_TIER {
                         return Err(RouteSnapshotBuildError::RouteScheduleTooLarge);
                     }
                     candidate_indexes
                 }
-                SnapshotRoutePolicy::SmoothWeightedRoundRobin => {
+                SnapshotRoutePolicy::SmoothWeightedRoundRobin
+                | SnapshotRoutePolicy::WeightedRoundRobin => {
                     smooth_weighted_slots(route, &candidate_indexes)?
                 }
             };

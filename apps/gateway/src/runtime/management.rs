@@ -766,7 +766,8 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
                 explain.with_price_evidence(price_evidence)
             })
             .collect();
-        let explain = ManagementRouteExplain::try_new(route.id().clone(), candidates)?;
+        let explain = ManagementRouteExplain::try_new(route.id().clone(), candidates)?
+            .with_selection_policy(route.policy().serving_strategy());
         Ok(match &self.routing_price_snapshot {
             Some(price_snapshot) => {
                 let policy = ManagementRouteExplainPricePolicy::new(

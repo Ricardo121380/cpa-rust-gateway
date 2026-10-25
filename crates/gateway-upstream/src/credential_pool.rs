@@ -347,6 +347,70 @@ impl EndpointCredentialPool {
         })
     }
 
+    /// Leases under an explicit ordinary route policy. `weighted` preserves the existing
+    /// endpoint-local weighted schedule; RR ignores weights and fill-first uses stable ID order.
+    /// The caller still supplies all Health/Quota/admission checks before atomic acquisition.
+    #[must_use]
+    pub fn try_lease_with_policy_at<F>(
+        &self,
+        now_ms: i64,
+        weighted: bool,
+        fill_first: bool,
+        mut is_eligible: F,
+    ) -> Option<CredentialLease>
+    where
+        F: FnMut(&CredentialId) -> bool,
+    {
+        for (tier, cursor) in self.priority_tiers.iter().zip(&self.cursors) {
+            let eligible = self
+                .credentials
+                .iter()
+                .enumerate()
+                .filter(|(_, credential)| {
+                    credential.priority == tier.priority
+                        && credential
+                            .material
+                            .load()
+                            .expires_at_ms
+                            .is_none_or(|expiry| expiry > now_ms)
+                        && credential.active_leases.load(Ordering::Acquire)
+                            < credential.maximum_concurrency
+                        && is_eligible(&credential.credential_id)
+                })
+                .map(|(index, _)| index)
+                .collect::<std::collections::BTreeSet<_>>();
+            let indexes = if weighted {
+                tier.slot_indexes
+                    .iter()
+                    .copied()
+                    .filter(|index| eligible.contains(index))
+                    .collect::<Vec<_>>()
+            } else {
+                eligible.into_iter().collect::<Vec<_>>()
+            };
+            if indexes.is_empty() {
+                continue;
+            }
+            let start = if fill_first {
+                0
+            } else {
+                cursor.fetch_add(1, Ordering::Relaxed)
+            };
+            for offset in 0..indexes.len() {
+                let credential =
+                    &self.credentials[indexes[start.wrapping_add(offset) % indexes.len()]];
+                if let Some(lease) = self.try_lease_exact_eligible_at(
+                    &credential.credential_id,
+                    now_ms,
+                    &mut is_eligible,
+                ) {
+                    return Some(lease);
+                }
+            }
+        }
+        None
+    }
+
     /// Attempts to acquire one exact Credential lease without advancing a weighted cursor.
     ///
     /// This is the management/diagnostic counterpart to [`Self::try_lease_eligible_at`].  The

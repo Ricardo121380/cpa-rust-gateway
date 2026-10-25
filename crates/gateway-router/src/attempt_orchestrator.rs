@@ -214,6 +214,15 @@ pub trait AttemptDriver: Send + Sync {
     /// The live output started by one successful Attempt.
     type Output: Send;
 
+    /// Optional ordinary cache affinity. The scheduler revalidates exact revision, priority,
+    /// admission, Health/Quota, expiry and capacity; a rejected hint falls back to route policy.
+    fn preferred_credential(
+        &self,
+        _candidate: &SnapshotRouteCandidate,
+    ) -> Result<Option<(CredentialId, u64)>, GatewayError> {
+        Ok(None)
+    }
+
     /// Starts one Attempt under this driver's per-attempt ceiling from [`Self::start_timeout`].
     ///
     /// The driver must report only a safe [`AttemptFailure`] for failure. It must not encode raw
@@ -660,6 +669,16 @@ impl AttemptOrchestrator {
             .route_from_snapshot(snapshot, route_id)?
             .ok_or_else(credential_unavailable_error)?;
         let one_provider = unique_provider_scope(&route, &admitted).is_ok();
+        if !one_provider
+            && matches!(
+                route.policy(),
+                crate::SnapshotRoutePolicy::RoundRobin
+                    | crate::SnapshotRoutePolicy::WeightedRoundRobin
+                    | crate::SnapshotRoutePolicy::FillFirst
+            )
+        {
+            return Err(credential_unavailable_error());
+        }
         self.start_inner(
             Some(request_id),
             snapshot,
@@ -1147,6 +1166,7 @@ impl AttemptOrchestrator {
                     is_candidate_eligible,
                     &exclusions,
                     now_ms,
+                    driver,
                 )
             } else {
                 self.scheduler
@@ -1359,7 +1379,7 @@ impl AttemptOrchestrator {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn select_provider_scoped_and_lease(
+    fn select_provider_scoped_and_lease<D: AttemptDriver>(
         &self,
         expected_snapshot: Option<&Arc<RouteSnapshot>>,
         route_id: &RouteId,
@@ -1368,6 +1388,7 @@ impl AttemptOrchestrator {
         is_candidate_eligible: &(dyn Fn(&SnapshotRouteCandidate) -> bool + Sync),
         exclusions: &AttemptExclusionSet,
         observed_at_ms: i64,
+        driver: &D,
     ) -> Result<SelectedRouteCredential, GatewayError> {
         let admitted_candidate_ids = route
             .candidates()
@@ -1401,17 +1422,17 @@ impl AttemptOrchestrator {
             )
             .map_err(|_| credential_unavailable_error())?;
         let lease_observed_at_ms = self.clock.now_ms().map_err(|_| internal_error())?;
-        self.scheduler
-            .select_provider_scoped_and_lease_at_from_snapshot(
-                expected_snapshot,
-                route_id,
-                explain.provider_selection(),
-                &self.runtime_health,
-                &self.runtime_quota,
-                lease_observed_at_ms,
-                is_candidate_eligible,
-                |candidate, credential_id| !exclusions.contains(candidate, credential_id),
-            )
+        self.scheduler.select_provider_scoped_with_preference_at(
+            expected_snapshot,
+            route_id,
+            explain.provider_selection(),
+            &self.runtime_health,
+            &self.runtime_quota,
+            lease_observed_at_ms,
+            is_candidate_eligible,
+            |candidate, credential_id| !exclusions.contains(candidate, credential_id),
+            |candidate| driver.preferred_credential(candidate),
+        )
     }
 
     #[allow(clippy::too_many_arguments)]

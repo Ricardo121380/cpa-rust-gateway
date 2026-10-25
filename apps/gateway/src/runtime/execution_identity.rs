@@ -388,6 +388,8 @@ mod tests {
         )?
         .request;
         let driver = EndpointAttemptDriver {
+            build_preferences: std::collections::BTreeMap::new(),
+            build_affinity: None,
             admitted_public_model: None,
             grok_build_model_alias_proofs: Arc::from([]),
             execution_configuration: Some((

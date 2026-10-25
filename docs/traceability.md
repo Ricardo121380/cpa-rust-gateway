@@ -438,3 +438,7 @@ BC-PROTOCOL017 / BC-MGMT021 / BC-MGMT007. Actual code6165a9f1, Full44/44, Rust17
 pricing, encrypted model_thinking and supported recovered continuation:198/198.
 Explicit backup suite7/7 includes ignored capacity; #72 process517/517; #74 schema40 process21/21.
 Historical RED/FAIL and schema39 evidence remain source-bound; remote/client/Provider/release boundaries remain.
+
+## #70 production strategies and ordinary Build affinity (2026-10-25)
+
+OPT-03 → [ADR-0133](adr/ADR-0133-production-routing-build-affinity.md) → [BC-ROUTE-010](contracts/BC-ROUTE-010-production-strategies-build-affinity.md). Local implementation and qualification evidence are tracked separately; no remote closure or Provider qualification is inferred.
