@@ -1578,6 +1578,369 @@
         }
       }
     },
+    "/admin/operations/usage-snapshots": {
+      "post": {
+        "tags": [
+          "operations"
+        ],
+        "operationId": "createUsageSnapshot",
+        "description": "Capture one bounded event/ledger read transaction and retain an immutable actor-owned snapshot for 600 seconds. Maximum 20000 source events, 16 MiB source JSON, 8 MiB result, 8 snapshots/32 MiB retained per process. Capacity fails explicitly, no partial batch. Existing management authentication and browser CSRF apply; no Config Version or If-Match required. Does not write a ledger or contact Providers.",
+        "x-delivery-phase": "issue-72",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Frozen snapshot result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageSnapshotMetadata"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "410": {
+            "$ref": "#/components/responses/Error"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsageSnapshotQuery"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/operations/usage-snapshots/{id}": {
+      "get": {
+        "tags": [
+          "operations"
+        ],
+        "operationId": "getUsageSnapshot",
+        "description": "Read the original full-filter summary. Unknown, foreign-owner, cancelled, expired or previous-process snapshot returns 410 without creating a replacement.",
+        "x-delivery-phase": "issue-72",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Frozen snapshot result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageSnapshotMetadata"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "410": {
+            "$ref": "#/components/responses/Error"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "operations"
+        ],
+        "operationId": "cancelUsageSnapshot",
+        "description": "Release the retained batch. Already transmitted pages cannot be recalled. Subsequent reads return 410; creation of a fresh snapshot is explicit.",
+        "x-delivery-phase": "issue-72",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Snapshot cancelled"
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "410": {
+            "$ref": "#/components/responses/Error"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/operations/usage-snapshots/{id}/rows": {
+      "get": {
+        "tags": [
+          "operations"
+        ],
+        "operationId": "listUsageSnapshotRows",
+        "description": "Stable pages ordered by occurrence time, request ID and Attempt number; grain=details exports one terminal Attempt or Request without Attempt; grain=buckets is the distinct aggregate product. Summary always covers all selected rows.",
+        "x-delivery-phase": "issue-72",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "grain",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "details",
+                "buckets"
+              ],
+              "default": "details"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 100
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque next position bound to snapshot and grain; exact retry is safe. Never change filters during a batch."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Frozen snapshot result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageSnapshotPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "410": {
+            "$ref": "#/components/responses/Error"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/operations/usage-snapshots/{id}/export": {
+      "get": {
+        "tags": [
+          "operations"
+        ],
+        "operationId": "exportUsageSnapshot",
+        "description": "Bounded CSV/JSONL pages of the same immutable batch and grain. X-Next-Cursor is absent on the final page. Retry an interrupted/failed page using its original cursor; no server offset advances. Concatenate JSONL pages; CSV repeats a fixed header on every page, including empty batches. CSV null is an empty field, observed zero is 0, nested metrics are JSON cells, formula-like strings gain an apostrophe. UTF-8, UTC milliseconds, tokens and existing integer ledger microunits. Export is a readable data product, not an encrypted backup or control-plane restore artifact.",
+        "x-delivery-phase": "issue-72",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "grain",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "details",
+                "buckets"
+              ],
+              "default": "details"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 100
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque next position bound to snapshot and grain; exact retry is safe. Never change filters during a batch."
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "csv",
+                "jsonl"
+              ],
+              "default": "jsonl"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One complete bounded page",
+            "headers": {
+              "X-Usage-Snapshot": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Frozen batch identity"
+              },
+              "X-Usage-Schema": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "usage-snapshot-v1"
+              },
+              "X-Usage-Total-Rows": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Total rows in the chosen grain"
+              },
+              "X-Next-Cursor": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Next page; absent on final page"
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            },
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/x-ndjson": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "410": {
+            "$ref": "#/components/responses/Error"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
     "/admin/operations/usage": {
       "get": {
         "tags": ["operations"],
@@ -3039,6 +3402,738 @@
       "OperationalAccountPoolPage": { "type": "object", "additionalProperties": false, "required": ["config_version_id", "revision", "items", "next_cursor"], "properties": { "config_version_id": { "$ref": "#/components/schemas/Id" }, "revision": { "type": "integer", "minimum": 0 }, "items": { "type": "array", "maxItems": 100, "items": { "$ref": "#/components/schemas/OperationalAccountPoolItem" } }, "next_cursor": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 2048 }, { "type": "null" }] } } },
       "OperationalAccountPoolItem": { "type": "object", "additionalProperties": false, "required": ["provider_id", "provider_name", "provider_kind", "provider_enabled", "egress_policy_id", "channel_id", "adapter_id", "api_format", "transport", "channel_enabled", "account_id", "account_kind", "account_status", "account_revision", "binding_enabled", "configured_enabled", "priority", "weight", "concurrency", "route_ids"], "properties": { "provider_id": { "$ref": "#/components/schemas/Id" }, "provider_name": { "type": "string", "minLength": 1, "maxLength": 256 }, "provider_kind": { "type": "string", "minLength": 1, "maxLength": 128 }, "provider_enabled": { "type": "boolean" }, "egress_policy_id": { "anyOf": [{ "$ref": "#/components/schemas/Id" }, { "type": "null" }] }, "channel_id": { "$ref": "#/components/schemas/Id" }, "adapter_id": { "type": "string", "minLength": 1, "maxLength": 128 }, "api_format": { "type": "string", "minLength": 1, "maxLength": 128 }, "transport": { "type": "string", "enum": ["http", "sse", "websocket"] }, "channel_enabled": { "type": "boolean" }, "account_id": { "$ref": "#/components/schemas/Id" }, "account_kind": { "type": "string", "minLength": 1, "maxLength": 128 }, "account_status": { "type": "string", "enum": ["active", "cooling", "unauthorized", "disabled"] }, "account_revision": { "type": "integer", "minimum": 0 }, "binding_enabled": { "type": "boolean" }, "configured_enabled": { "type": "boolean" }, "priority": { "type": "integer", "minimum": 0 }, "weight": { "type": "integer", "minimum": 1, "maximum": 10000 }, "concurrency": { "type": "integer", "minimum": 1, "maximum": 100000 }, "route_ids": { "type": "array", "maxItems": 128, "items": { "$ref": "#/components/schemas/Id" } } } },
       "OperationalTokenMetric": { "type": "object", "additionalProperties": false, "required": ["total", "confidence"], "properties": { "total": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "confidence": { "type": "string", "enum": ["exact", "partial", "unknown"] }, "provenance": { "type": "string", "enum": ["measured", "estimated", "unknown"] } } },
+      "UsageSnapshotQuery": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from_ms",
+          "to_ms",
+          "bucket_ms"
+        ],
+        "properties": {
+          "from_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "to_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "bucket_ms": {
+            "type": "integer",
+            "minimum": 1000
+          },
+          "provider_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "channel_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "account_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "client_key_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "access_group_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "protocol": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "description": "Inclusive UTC Unix milliseconds; maximum 366-day span and 1000 buckets. Exact filters. Time selects Attempt end, or Request start only if no terminal Attempt exists. Missing historical time is outside this bounded scope.",
+        "examples": [
+          {
+            "from_ms": 1792848000000,
+            "to_ms": 1792934399999,
+            "bucket_ms": 3600000,
+            "client_key_id": "example-client",
+            "access_group_id": "example-group"
+          }
+        ]
+      },
+      "UsageSnapshotTokenTotal": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "total",
+          "observed",
+          "missing",
+          "measured",
+          "estimated",
+          "unknown",
+          "confidence"
+        ],
+        "properties": {
+          "total": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "observed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "missing": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "measured": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "estimated": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "unknown": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "exact",
+              "partial",
+              "unknown"
+            ]
+          }
+        }
+      },
+      "UsageSnapshotTotals": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "requests",
+          "attempts",
+          "usage_observations",
+          "failed_usage_observations",
+          "cancelled_usage_observations",
+          "requests_without_terminal",
+          "input_tokens",
+          "output_tokens",
+          "reasoning_tokens",
+          "cache_read_tokens",
+          "cache_creation_tokens",
+          "cached_tokens",
+          "input_accounting",
+          "input_tokens_by_accounting",
+          "cost_records",
+          "known_cost_microunits",
+          "cost_status"
+        ],
+        "properties": {
+          "requests": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "usage_observations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "failed_usage_observations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cancelled_usage_observations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "requests_without_terminal": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "input_tokens": {
+            "$ref": "#/components/schemas/UsageSnapshotTokenTotal"
+          },
+          "output_tokens": {
+            "$ref": "#/components/schemas/UsageSnapshotTokenTotal"
+          },
+          "reasoning_tokens": {
+            "$ref": "#/components/schemas/UsageSnapshotTokenTotal"
+          },
+          "cache_read_tokens": {
+            "$ref": "#/components/schemas/UsageSnapshotTokenTotal"
+          },
+          "cache_creation_tokens": {
+            "$ref": "#/components/schemas/UsageSnapshotTokenTotal"
+          },
+          "cached_tokens": {
+            "$ref": "#/components/schemas/UsageSnapshotTokenTotal"
+          },
+          "input_accounting": {
+            "type": "string",
+            "enum": [
+              "inclusive",
+              "exclusive",
+              "unknown",
+              "mixed"
+            ]
+          },
+          "input_tokens_by_accounting": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/UsageSnapshotTokenTotal"
+            }
+          },
+          "cost_records": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "exact",
+              "partial",
+              "unknown",
+              "unpriced",
+              "pending",
+              "unavailable"
+            ],
+            "properties": {
+              "exact": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "partial": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "unknown": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "unpriced": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "pending": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "unavailable": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "known_cost_microunits": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "cost_status": {
+            "type": "string",
+            "enum": [
+              "exact",
+              "partial",
+              "unknown",
+              "unpriced",
+              "pending",
+              "unavailable"
+            ]
+          }
+        },
+        "description": "Entire frozen filter before pagination; requests are distinct IDs, attempts are terminal Attempt facts. Mixed/unknown input accounting makes top-level input_tokens.total null; use the per-accounting subtotals. Cost is copied only from existing ledger rows. Missing amounts are null, never zero."
+      },
+      "UsageSnapshotBucket": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from_ms",
+          "to_ms",
+          "requests",
+          "attempts",
+          "usage_observations",
+          "failed_usage_observations",
+          "cancelled_usage_observations",
+          "requests_without_terminal",
+          "input_tokens",
+          "output_tokens",
+          "reasoning_tokens",
+          "cache_read_tokens",
+          "cache_creation_tokens",
+          "cached_tokens",
+          "input_accounting",
+          "input_tokens_by_accounting",
+          "cost_records",
+          "known_cost_microunits",
+          "cost_status"
+        ],
+        "properties": {
+          "from_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "to_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "requests": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "usage_observations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "failed_usage_observations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cancelled_usage_observations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "requests_without_terminal": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "input_tokens": {
+            "$ref": "#/components/schemas/UsageSnapshotTokenTotal"
+          },
+          "output_tokens": {
+            "$ref": "#/components/schemas/UsageSnapshotTokenTotal"
+          },
+          "reasoning_tokens": {
+            "$ref": "#/components/schemas/UsageSnapshotTokenTotal"
+          },
+          "cache_read_tokens": {
+            "$ref": "#/components/schemas/UsageSnapshotTokenTotal"
+          },
+          "cache_creation_tokens": {
+            "$ref": "#/components/schemas/UsageSnapshotTokenTotal"
+          },
+          "cached_tokens": {
+            "$ref": "#/components/schemas/UsageSnapshotTokenTotal"
+          },
+          "input_accounting": {
+            "type": "string",
+            "enum": [
+              "inclusive",
+              "exclusive",
+              "unknown",
+              "mixed"
+            ]
+          },
+          "input_tokens_by_accounting": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/UsageSnapshotTokenTotal"
+            }
+          },
+          "cost_records": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "exact",
+              "partial",
+              "unknown",
+              "unpriced",
+              "pending",
+              "unavailable"
+            ],
+            "properties": {
+              "exact": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "partial": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "unknown": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "unpriced": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "pending": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "unavailable": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "known_cost_microunits": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "cost_status": {
+            "type": "string",
+            "enum": [
+              "exact",
+              "partial",
+              "unknown",
+              "unpriced",
+              "pending",
+              "unavailable"
+            ]
+          }
+        },
+        "description": "Nonempty bucket aligned to query.from_ms. Request counts may overlap across buckets and must not be summed. Missing buckets are not fabricated zero-usage observations."
+      },
+      "UsageSnapshotDetail": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "row_kind",
+          "request_id",
+          "model",
+          "protocol",
+          "client_key_id",
+          "attempt_id",
+          "access_group_id",
+          "provider_id",
+          "channel_id",
+          "account_id",
+          "request_outcome",
+          "attempt_outcome",
+          "usage_outcome",
+          "catalog_version_id",
+          "attempt_number",
+          "ledger_id",
+          "input_tokens",
+          "output_tokens",
+          "reasoning_tokens",
+          "cache_read_tokens",
+          "cache_creation_tokens",
+          "cached_tokens",
+          "cost_microunits",
+          "occurred_at_ms",
+          "usage_observed",
+          "provenance",
+          "input_accounting",
+          "cost_status"
+        ],
+        "properties": {
+          "row_kind": {
+            "type": "string",
+            "enum": [
+              "attempt",
+              "request_without_attempt"
+            ]
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "protocol": {
+            "type": "string"
+          },
+          "client_key_id": {
+            "type": "string"
+          },
+          "attempt_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "access_group_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "provider_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "channel_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "account_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "request_outcome": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "attempt_outcome": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "usage_outcome": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "catalog_version_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "attempt_number": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "ledger_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "input_tokens": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "output_tokens": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "reasoning_tokens": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "cache_read_tokens": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "cache_creation_tokens": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "cached_tokens": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "cost_microunits": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "occurred_at_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "usage_observed": {
+            "type": "boolean"
+          },
+          "provenance": {
+            "type": "string",
+            "enum": [
+              "measured",
+              "estimated",
+              "unknown"
+            ]
+          },
+          "input_accounting": {
+            "type": "string",
+            "enum": [
+              "inclusive",
+              "exclusive",
+              "unknown"
+            ]
+          },
+          "cost_status": {
+            "type": "string",
+            "enum": [
+              "exact",
+              "partial",
+              "unknown",
+              "unpriced",
+              "pending",
+              "unavailable"
+            ]
+          }
+        }
+      },
+      "UsageSnapshotMetadata": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schema_version",
+          "snapshot_id",
+          "expires_at_ms",
+          "query",
+          "event_ordinal",
+          "ledger_id",
+          "detail_rows",
+          "bucket_rows",
+          "summary"
+        ],
+        "properties": {
+          "schema_version": {
+            "const": "usage-snapshot-v1"
+          },
+          "snapshot_id": {
+            "type": "string"
+          },
+          "expires_at_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "query": {
+            "$ref": "#/components/schemas/UsageSnapshotQuery"
+          },
+          "event_ordinal": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "ledger_id": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "detail_rows": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "bucket_rows": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "summary": {
+            "$ref": "#/components/schemas/UsageSnapshotTotals"
+          }
+        }
+      },
+      "UsageSnapshotPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schema_version",
+          "snapshot_id",
+          "grain",
+          "items",
+          "next_cursor",
+          "total_rows"
+        ],
+        "properties": {
+          "schema_version": {
+            "const": "usage-snapshot-v1"
+          },
+          "snapshot_id": {
+            "type": "string"
+          },
+          "grain": {
+            "enum": [
+              "details",
+              "buckets"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/UsageSnapshotDetail"
+                },
+                {
+                  "$ref": "#/components/schemas/UsageSnapshotBucket"
+                }
+              ]
+            }
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "total_rows": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
       "OperationalUsagePage": {"type": "object", "additionalProperties": false, "required": ["observed_through_ms", "items", "next_cursor", "excluded_usage_events", "excluded_request_groups"], "properties": {"observed_through_ms": {"anyOf": [{"type": "integer", "minimum": 0}, {"type": "null"}]}, "items": {"type": "array", "maxItems": 100, "items": {"$ref": "#/components/schemas/OperationalUsageItem"}}, "next_cursor": {"anyOf": [{"type": "string", "minLength": 1, "maxLength": 2048}, {"type": "null"}]}, "excluded_usage_events": {"type": "integer", "minimum": 0, "description": "Number of Usage events excluded due to conflicting payloads in the full filtered snapshot, before pagination. Original events are retained. Nonzero means totals are incomplete."}, "excluded_request_groups": {"type": "integer", "minimum": 0, "description": "Number of ambiguous request ID groups excluded in the full filtered snapshot. These are not a count of real requests."}}},
       "OperationalUsageItem": { "type": "object", "additionalProperties": false, "required": ["provider_id", "channel_id", "account_id", "public_model", "protocol", "client_key_id", "access_group_id", "request_count", "usage_observations", "input_tokens", "output_tokens", "reasoning_tokens", "cache_read_tokens", "cache_creation_tokens", "cached_tokens", "observed_at_ms", "cost_microunits", "cost_confidence"], "properties": { "provider_id": { "$ref": "#/components/schemas/Id" }, "channel_id": { "$ref": "#/components/schemas/Id" }, "account_id": { "$ref": "#/components/schemas/Id" }, "public_model": { "type": "string", "minLength": 1, "maxLength": 256 }, "protocol": { "type": "string", "enum": ["openai_chat_completions", "openai_responses", "anthropic_messages"] }, "client_key_id": { "$ref": "#/components/schemas/Id" }, "access_group_id": { "anyOf": [{ "$ref": "#/components/schemas/Id" }, { "type": "null" }] }, "request_count": { "type": "integer", "minimum": 1 }, "usage_observations": { "type": "integer", "minimum": 1 }, "input_tokens": { "$ref": "#/components/schemas/OperationalTokenMetric" }, "output_tokens": { "$ref": "#/components/schemas/OperationalTokenMetric" }, "reasoning_tokens": { "$ref": "#/components/schemas/OperationalTokenMetric" }, "cache_read_tokens": { "$ref": "#/components/schemas/OperationalTokenMetric" }, "cache_creation_tokens": { "$ref": "#/components/schemas/OperationalTokenMetric" }, "cached_tokens": { "$ref": "#/components/schemas/OperationalTokenMetric" }, "observed_at_ms": { "type": "integer", "minimum": 0 }, "cost_microunits": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "cost_confidence": { "type": "string", "enum": ["unpriced"] } } },
       "OperationalBillingPage": { "type": "object", "additionalProperties": false, "required": ["snapshot_ledger_id", "items", "summary", "next_cursor"], "properties": { "snapshot_ledger_id": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }, "items": { "type": "array", "maxItems": 100, "items": { "$ref": "#/components/schemas/OperationalBillingItem" } }, "summary": { "$ref": "#/components/schemas/OperationalBillingSummary" }, "next_cursor": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 2048 }, { "type": "null" }] } } },

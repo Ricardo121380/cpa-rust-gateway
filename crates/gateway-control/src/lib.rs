@@ -37,6 +37,8 @@ pub mod route_compiler;
 pub mod routing_price_policy_service;
 /// Atomic publication and rollback of compiler-approved RouteSnapshots.
 pub mod snapshot_publisher;
+/// Frozen, bounded usage and ledger reporting.
+pub mod usage_snapshot;
 
 /// Stable component identifier used by architecture smoke tests.
 pub const COMPONENT: &str = "gateway-control";

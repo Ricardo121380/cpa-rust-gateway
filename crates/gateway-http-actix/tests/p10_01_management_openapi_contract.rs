@@ -916,3 +916,47 @@ fn validate_references(document: &Value, value: &Value) -> TestResult {
     }
     Ok(())
 }
+
+#[test]
+fn usage_snapshot_contract_exposes_frozen_query_and_both_export_grains() -> TestResult {
+    let d = document()?;
+    for (suffix, method, id) in [
+        ("", "post", "createUsageSnapshot"),
+        ("/{id}", "get", "getUsageSnapshot"),
+        ("/{id}", "delete", "cancelUsageSnapshot"),
+        ("/{id}/rows", "get", "listUsageSnapshotRows"),
+        ("/{id}/export", "get", "exportUsageSnapshot"),
+    ] {
+        assert_eq!(
+            d["paths"][format!("/admin/operations/usage-snapshots{suffix}")][method]["operationId"],
+            id
+        );
+    }
+    let detail = &d["components"]["schemas"]["UsageSnapshotDetail"]["properties"];
+    for field in [
+        "request_id",
+        "attempt_id",
+        "usage_outcome",
+        "input_accounting",
+        "provenance",
+        "cost_status",
+        "catalog_version_id",
+    ] {
+        assert!(detail.get(field).is_some());
+    }
+    for field in [
+        "prompt",
+        "source_fingerprint",
+        "cost_in_usd_ticks",
+        "metadata",
+        "credential_secret",
+    ] {
+        assert!(detail.get(field).is_none());
+    }
+    let export =
+        &d["paths"]["/admin/operations/usage-snapshots/{id}/export"]["get"]["responses"]["200"];
+    assert!(export["content"].get("text/csv").is_some());
+    assert!(export["content"].get("application/x-ndjson").is_some());
+    assert!(export["headers"].get("X-Next-Cursor").is_some());
+    Ok(())
+}

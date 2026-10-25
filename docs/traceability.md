@@ -369,3 +369,7 @@ to permit documented local estimates alongside applicable upstream counting. It 
 successor to ADR-0035, not an implementation receipt. BC-PROTOCOL-003's exact capability stays
 exact until the future count implementation amends the surrounding flow. Production still uses
 the unsupported executor; no runtime acceptance or actual Usage/ledger result is claimed here.
+
+## Issue 72 — unified Usage query and export
+
+[#72](https://github.com/Ricardo121380/cpa-rust-gateway/issues/72) / #58 T19–T20 → [ADR-0128](adr/ADR-0128-frozen-usage-query-export.md) → [BC-MGMT-020](contracts/BC-MGMT-020-frozen-usage-query-export.md) → `usage_snapshot_http_freezes_totals_details_and_exports` and the controlled process HTTP harness. Local evidence and limits: [implementation report](reports/issue-72-usage-query-export-20261025.md).

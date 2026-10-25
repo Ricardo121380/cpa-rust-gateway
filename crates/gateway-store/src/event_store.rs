@@ -3,6 +3,9 @@
 //! The request path awaits bounded commit receipts through the core event port. This module
 //! alone owns SQLite work on a blocking worker; no synchronous SQL enters Actix or Router.
 
+/// Bounded joint event/ledger reads for management snapshots.
+pub mod usage_snapshot;
+
 use std::{
     collections::VecDeque,
     fmt,

@@ -22,6 +22,7 @@ pub mod native_accounts;
 mod price_source;
 mod request_history;
 mod resource_inventory;
+mod usage_snapshots;
 
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -139,6 +140,7 @@ pub struct ManagementResourceHttpState {
     runtime: Mutex<Box<dyn ManagementRuntimeFacade>>,
     channel_pin: Mutex<Box<dyn ManagementChannelPinFacade>>,
     usage: std::sync::Arc<dyn ManagementUsageFacade>,
+    usage_snapshots: Mutex<usage_snapshots::Snapshots>,
     operational_reads: std::sync::Arc<tokio::sync::Semaphore>,
     failure_feedback: std::sync::Arc<dyn ManagementFailureFeedbackFacade>,
     provider_account_pools: Mutex<Box<dyn ProviderAccountPoolFacade>>,
@@ -181,6 +183,19 @@ async fn system_information(state: web::Data<ManagementResourceHttpState>) -> Ht
 
 /// Read-only source for the durable usage/cost operations projection.
 pub trait ManagementUsageFacade: Send + Sync {
+    /// Freezes existing events and ledger entries using one bounded read transaction.
+    /// # Errors
+    /// Returns a safe failure when the source is unavailable or exceeds the snapshot limit.
+    fn create_usage_snapshot(
+        &self,
+        _query: gateway_control::usage_snapshot::UsageSnapshotQuery,
+    ) -> Result<
+        gateway_control::usage_snapshot::UsageSnapshot,
+        gateway_control::usage_snapshot::SnapshotError,
+    > {
+        Err(gateway_control::usage_snapshot::SnapshotError::SourceUnavailable)
+    }
+
     /// Compiles one bounded usage page without receiving a Provider, Secret, or request body.
     ///
     /// # Errors
@@ -415,6 +430,7 @@ impl ManagementResourceHttpState {
             runtime: Mutex::new(runtime),
             channel_pin: Mutex::new(Box::new(RejectingManagementChannelPinFacade::new())),
             usage: usage.into(),
+            usage_snapshots: Mutex::default(),
             operational_reads: std::sync::Arc::new(tokio::sync::Semaphore::new(4)),
             failure_feedback: std::sync::Arc::new(RejectingManagementFailureFeedbackFacade::new()),
             provider_account_pools: Mutex::new(Box::new(RejectingProviderAccountPoolFacade::new())),
@@ -3175,7 +3191,8 @@ fn configure_operations_resource_routes(config: &mut web::ServiceConfig) {
             "/operations/provider-egress-status",
             web::get().to(list_provider_egress_status),
         )
-        .route("/operations/usage", web::get().to(list_operational_usage));
+        .route("/operations/usage", web::get().to(list_operational_usage))
+        .configure(usage_snapshots::configure);
     config.route(
         "/operations/billing",
         web::get().to(list_operational_billing),

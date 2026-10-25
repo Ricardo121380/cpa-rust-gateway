@@ -451,6 +451,18 @@ impl DeploymentManagementUsageFacade {
 }
 
 impl ManagementUsageFacade for DeploymentManagementUsageFacade {
+    fn create_usage_snapshot(
+        &self,
+        query: gateway_control::usage_snapshot::UsageSnapshotQuery,
+    ) -> Result<
+        gateway_control::usage_snapshot::UsageSnapshot,
+        gateway_control::usage_snapshot::SnapshotError,
+    > {
+        let store = SqliteEventStore::open_read_only(&self.database)
+            .map_err(|_| gateway_control::usage_snapshot::SnapshotError::SourceUnavailable)?;
+        gateway_control::usage_snapshot::read_usage_snapshot(&store, query)
+    }
+
     fn list_usage(
         &self,
         query: &OperationalUsageQuery,

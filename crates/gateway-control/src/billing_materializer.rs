@@ -239,7 +239,7 @@ fn materialize_row(
     Ok(())
 }
 
-fn resolve_usage_lineage(
+pub(crate) fn resolve_usage_lineage(
     usage: &UsageEvent,
     lineage: &[StoredGatewayEvent],
 ) -> Result<(RequestEvent, AttemptEvent), BillingMaterializationError> {

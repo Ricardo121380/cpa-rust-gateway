@@ -1095,6 +1095,16 @@ fn load_catalog_entries(
     Ok(rows)
 }
 
+pub(crate) fn load_source_entry(
+    connection: &Connection,
+    source_event_id: &str,
+) -> StoreResult<Option<BillingLedgerEntry>> {
+    let mut statement =
+        connection.prepare(&format!("{LEDGER_ROW_SELECT} WHERE source_event_id = ?1"))?;
+    let mut rows = statement.query([source_event_id])?;
+    rows.next()?.map(decode_ledger_row).transpose()
+}
+
 fn load_entry(connection: &Connection, ledger_id: i64) -> StoreResult<BillingLedgerEntry> {
     let mut statement = connection.prepare(&format!("{LEDGER_ROW_SELECT} WHERE ledger_id = ?1"))?;
     let mut rows = statement.query([ledger_id])?;

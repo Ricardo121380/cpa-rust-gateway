@@ -1,6 +1,6 @@
 # CPAR 当前状态与开发顺序
 
-更新：2026-10-24（Asia/Shanghai）。本页是**当前功能状态、CPA 对照版本和下一步开发的唯一汇总入口**。
+更新：2026-10-25（Asia/Shanghai；本次仅更新 #72 本地查询/导出，其他状态保留原核对日期）。本页是**当前功能状态、CPA 对照版本和下一步开发的唯一汇总入口**。
 [架构文档](03-target-architecture-draft.md)负责代码位置，[支持清单](support/first-release-candidates.md)负责客户端与交付证据，
 [GitHub 工单](https://github.com/Ricardo121380/cpa-rust-gateway/issues)负责具体验收条件及远端状态。
 旧计划的“待定”“未实现”和历史 PASS 均按原日期理解；后续实现与证据在这里汇总。
@@ -44,7 +44,7 @@ CPAR 是 CPA/CLIProxyAPI 网关行为的 Rust 实现。优先直接对照固定�
 | 账号池、路由、重试和权限组 | 已接入；普通模型入口使用 ProviderScopedSelector | 与 CPA priority/weight/fill-first 行为不同；需要行为对齐时按实际 serving 分支改 |
 | 通用 session/cache affinity | 精确 continuation pin 已有；Build cache_affinity 库/测试未发现 serving 接线 | **待接线/补策略**，不能把两者合并报为通用亲和已完成 |
 | 管理 API、配置发布/回滚 | /admin 已有；管理 API 发布时装配新运行代 | 本地离线 admin CLI 与运行中管理 API 的生效方式分开；无需重建控制面 |
-| Request/Attempt/Usage、账本和加密恢复 | 持久化与查询/恢复实现已有 | 未知费用、cost_in_usd_ticks 的未准入状态保持；长期统计工作流仍有差距 |
+| Request/Attempt/Usage、账本和加密恢复 | 持久化与查询/恢复已有；#72 新增统一过滤、全范围汇总、冻结快照和 CSV/JSONL 分页导出，已接入管理 API | 见 [#72 实施记录](reports/issue-72-usage-query-export-20261025.md)；未知费用及 cost_in_usd_ticks 未准入保持。有限快照不代表大规模性能、实际生产数据或 #75 容量验收 |
 | 外部 OTel 输出 | 接口已有，serve 使用 Noop exporter | **待接线**，不宣称已把 tracing 送到外部系统 |
 | 通用 payload 覆盖、自定义 headers、模型前缀/后缀等 | 未发现 CPA 等价用户配置入口 | **待实现**，按实际兼容需求排序 |
 | HTTP/HTTPS/SOCKS5h/认证代理 | 已有直连/固定/池化出口；当前只接纳限定 SOCKS5 | **范围差异**，后续扩展须保持明确的出站约束 |
@@ -144,13 +144,13 @@ Gemini、多模态、插件、Home 和新前端是单独扩展项，本页没有
 | [#69](https://github.com/Ricardo121380/cpa-rust-gateway/issues/69) | CPA 请求控制与模型命名兼容 | P0/P1 |
 | [#70](https://github.com/Ricardo121380/cpa-rust-gateway/issues/70) | 生产路由策略与 Build 会话亲和 | P1 |
 | [#71](https://github.com/Ricardo121380/cpa-rust-gateway/issues/71) | CPA 请求规则与自定义上游 headers | P1 |
-| [#72](https://github.com/Ricardo121380/cpa-rust-gateway/issues/72) | Token 与费用的统一查询及快照导出 | P1 |
+| [#72](https://github.com/Ricardo121380/cpa-rust-gateway/issues/72) | Token 与费用的统一查询及快照导出；本地实现与证据见 [实施记录](reports/issue-72-usage-query-export-20261025.md)，远端仍 OPEN | P1 |
 | [#73](https://github.com/Ricardo121380/cpa-rust-gateway/issues/73) | 价格获取、审阅与版本化应用 | P1 |
 | [#74](https://github.com/Ricardo121380/cpa-rust-gateway/issues/74) | 配额观察的历史与重置窗口查询 | P1 |
 | [#75](https://github.com/Ricardo121380/cpa-rust-gateway/issues/75) | 大历史查询与加密备份恢复的容量闭环 | P1 |
 
 8张新增票均为OPEN、ready-for-agent，之间没有新增阻塞边；请求控制→模型命名和统计查询→导出按票内顺序实施。
-#69的请求控制保留P0、模型命名保留P1；合并不增加首版门槛。本轮未实施这些新增工单。
+#69的请求控制保留P0、模型命名保留P1；合并不增加首版门槛。2026-10-24 规格轮未实施这些新增工单；2026-10-25 本分支仅实现 #72，#68/#74 并行分支未在此集成。
 
 已接受的 native-v1 方向及原 N1–N4、Kiro cap、Grok Web 多轮/能力、#9/#47/#57 的剩余承诺保留。
 具体历史范围见[归档路线图](reports/engineering-roadmap-20261018.md)及原工单；本次没有取消这些目标，

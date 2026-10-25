@@ -30,6 +30,7 @@ import cpar_seo_isolation_http
 import cpar_t12_upgrade_http
 import cpar_build_extensions_http
 import cpar_output_limits_http
+import cpar_usage_snapshot_http
 
 os.umask(0o077)
 repo = pathlib.Path.cwd()
@@ -654,6 +655,11 @@ try:
     api("POST", "/admin/billing/catalogs", {"catalog_version_id": "local-prices", "effective_at_ms": 0, "source": "operator", "entries": entries}, expected=201)
     publish()
     check("publication_has_no_inference_side_effect", not calls)
+    if os.environ.get("CPAR_USAGE_SNAPSHOT_ONLY") == "1":
+        cpar_usage_snapshot_http.verify(globals())
+        passed = True
+        print(json.dumps({"status": "PASS", "checks": len(checks), "scope": "issue72 synthetic public and management HTTP"}))
+        sys.exit(0)
     if os.environ.get("CPAR_OUTPUT_LIMITS_ONLY") == "1":
         cpar_output_limits_http.verify(globals())
         passed = True
