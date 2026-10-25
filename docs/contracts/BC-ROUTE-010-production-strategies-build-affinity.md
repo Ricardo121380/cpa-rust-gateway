@@ -1,6 +1,6 @@
 # BC-ROUTE-010: Production strategies and ordinary Build affinity
 
-Status: `LOCAL_IMPLEMENTATION`; #70 / OPT-03; [ADR-0133](../adr/ADR-0133-production-routing-build-affinity.md).
+Status: `PASS_LOCAL`; [implementation and qualification boundaries](../reports/issue-70-routing-build-affinity-20261025.md); #70 / OPT-03; [ADR-0133](../adr/ADR-0133-production-routing-build-affinity.md).
 
 ## Required behavior
 

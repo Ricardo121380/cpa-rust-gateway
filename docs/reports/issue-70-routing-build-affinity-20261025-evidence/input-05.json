@@ -1,0 +1,84 @@
+{
+  "source_commit": "731c318320ae6f9df69cc77a708ea67c468a2695",
+  "source_tree": "0ca2706201f55a1a6d12e89cb7b34fb3c23aeeb7",
+  "tracked_input_closure": "source-05.json includes all tracked source/test/fixture/script hashes; random ephemeral secrets and dynamic ports are intentionally not retained in this manifest",
+  "source_manifest_sha256": "518acf249d7d6d845e3dc6f1e78de89d8348a4fa1c8f5a84c6f597fd6915c849",
+  "entrypoints": {
+    "apps/gateway/src/runtime/batch_c/grok/routing_affinity.rs": "8c6c2df5a9267cba7a7bb0ce61120f232cebfe230c0e6687037a765da5a216a9",
+    "apps/gateway/src/runtime/batch_c.rs": "cde66d0ce6c6e616658caff88b830665852877be77564c8a80371a8cc4ccf39e",
+    "crates/gateway-control/src/snapshot_publisher.rs": "9b6ddc9b226127f1cd7c928d5325c6f5dfd6b153f8e624db7ba31c8fa54bf12e",
+    "crates/gateway-router/src/route_explain.rs": "6a4017a930b66f2f72217aaa9e5323f8e009d9d547e760bfe51519bc91e81a40",
+    "crates/gateway-upstream/src/credential_pool.rs": "281c95918497133a9c515e684eb58e355e5bb0beaab0d1dcf69928fff8a29b45",
+    "crates/gateway-store/src/control_plane.rs": "846216e398d672c341455086e5014d5f7bd79de72b3258627f8a999f30dfefcd",
+    "crates/provider-grok/tests/p6_04_07_runtime_continuity.rs": "d4e848b9dc9a334022d794f45bb5f41fe5fc455a9837b62ab7ac6f9fee9afc5d",
+    "crates/gateway-http-actix/tests/p10_05_management_routing.rs": "7fe7c869c97ee1e804fcc4d3edbe9fa7d8536c91ed56866f49441f961873b272",
+    "crates/gateway-store/tests/encrypted_backup.rs": "348ea9227698f2cb88729ff9a1d047607489d1d1a91687ffb604f5d1df20ac19",
+    "scripts/check.sh": "f3664389e078e2e760c48afdb318c9dd0a494810365cec3ce299b9dd141f0678",
+    "scripts/test-p12-02-serve.sh": "599a1d586ec76f927d9df82cc44844907682c753f680e5d4b973b5cde140d93d",
+    "scripts/test-agent-roundtrip.py": "f42bdd88695ca1f4efe9110456f52acb99f30ed4a58f3248cf9352a330ece209"
+  },
+  "commands": [
+    "CHECK_REPORT_PATH=output/issue-70/logs/full-05.md ./scripts/check.sh full",
+    "cargo test --locked -p gateway-store --test encrypted_backup -- --include-ignored"
+  ],
+  "environment": {
+    "CARGO_BUILD_JOBS": 2,
+    "RUST_TEST_THREADS": 4,
+    "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-70-routing-build-affinity-20261025/output/issue-70/target",
+    "TMPDIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-70-routing-build-affinity-20261025/output/issue-70/state",
+    "ports": "OS-assigned loopback; independent receiver; no real Provider",
+    "build": "local Darwin arm64 debug; Full workspace all-features plus stock serve-envelope default-feature binary"
+  },
+  "public_request_inputs": {
+    "ordinary_endpoint": "POST /v1/responses",
+    "cache_identity": "synthetic independent prompt_cache_key for distribution; repeated prompt_cache_key for affinity; never real identity",
+    "policies": [
+      "round_robin",
+      "weighted_round_robin",
+      "fill_first"
+    ],
+    "candidate_weights": [
+      1,
+      3
+    ],
+    "credential_weights": [
+      1,
+      3
+    ],
+    "distribution_samples": {
+      "RR": 8,
+      "WRR": 16,
+      "fill_first": 8
+    },
+    "concurrent_requests": 12,
+    "concurrent_receiver_capacity": 2,
+    "failure_controls": [
+      "synthetic one-shot HTTP429",
+      "semantic output followed by EOF",
+      "held actual semaphore",
+      "disabled credential",
+      "credential material revision replacement",
+      "candidate cooldown/exclusion/restoration",
+      "management publish/rollback and runtime adoption",
+      "forced expired affinity row",
+      "cross-Key request",
+      "stored previous_response_id exact-lineage rejection"
+    ]
+  },
+  "store_boundaries": {
+    "affinity_TTL_seconds": 900,
+    "affinity_capacity": 4096,
+    "break_capacity": 4096,
+    "loss_tokens": "NULL if unmeasured",
+    "migration_source": 40,
+    "standalone_migration_target": 41
+  },
+  "unknown": [
+    "real provider cache retention and loss tokens",
+    "real Provider cost",
+    "fixed Build activation",
+    "actual unmodified client compatibility",
+    "remote CI/release/Linux/OCI/deployment",
+    "joint #70/#71 migration order"
+  ]
+}

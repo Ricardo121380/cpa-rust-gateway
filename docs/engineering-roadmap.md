@@ -41,8 +41,8 @@ CPAR 是 CPA/CLIProxyAPI 网关行为的 Rust 实现。优先直接对照固定�
 | Claude/Codex/Kimi 账号 | 授权、导入、刷新与兼容 adapter 推理路径已有 | 具体账号/渠道真实调用另验；不是旧矩阵里笼统的“未来 OAuth” |
 | Grok 官方/Build/Web/Console、Kiro | 专用 adapter 与账号管理已有 | Web 当前文本流式、工具不支持等限制保留；不能据注册数宣称全部组合已验收 |
 | 模型发现和目录 | Build、官方 Codex、Kiro，以及配置 models_path 的兼容 endpoint 已有 runtime source | 其余渠道未因此自动获得 discovery；模型发现不自动授予 Key 权限 |
-| 账号池、路由、重试和权限组 | 已接入；#70显式RR/WRR/fill-first使用既有候选/credential租约，旧默认保留 | 本票独立本地验证中；priority继续lower-is-better；[ADR-0133](adr/ADR-0133-production-routing-build-affinity.md) |
-| Build 普通 cache affinity | #70已接通既有HMAC identity/affinity store与实际serving；精确continuation保持独立 | 本地验证中；15分钟TTL/4096绑定和break；不推广为全Provider会话亲和；[契约](contracts/BC-ROUTE-010-production-strategies-build-affinity.md) |
+| 账号池、路由、重试和权限组 | 已接入；#70显式RR/WRR/fill-first使用既有候选/credential租约，旧默认保留 | 本票独立PASS_LOCAL；Full44/44，priority继续lower-is-better；[实施记录](reports/issue-70-routing-build-affinity-20261025.md)；[ADR-0133](adr/ADR-0133-production-routing-build-affinity.md) |
+| Build 普通 cache affinity | #70已接通既有HMAC identity/affinity store与实际serving；精确continuation保持独立 | 本票独立PASS_LOCAL；[实施记录](reports/issue-70-routing-build-affinity-20261025.md)；15分钟TTL/4096绑定和break；不推广为全Provider会话亲和；[契约](contracts/BC-ROUTE-010-production-strategies-build-affinity.md) |
 | 管理 API、配置发布/回滚 | /admin 已有；管理 API 发布时装配新运行代 | 本地离线 admin CLI 与运行中管理 API 的生效方式分开；无需重建控制面 |
 | Request/Attempt/Usage、账本和加密恢复 | 持久化与查询/恢复已有；#72 新增统一过滤、全范围汇总、冻结快照和 CSV/JSONL 分页导出，已接入管理 API | 见 [#72 实施记录](reports/issue-72-usage-query-export-20261025.md)；未知费用及 cost_in_usd_ticks 未准入保持；后续[独立安全升级](reports/crypto-bigint-security-fix-20261025-issue72.md)已消除 RUSTSEC-2026-0387 阻塞，原分支本地 Full 44/44 通过；本轮集成结果单独记录。有限快照不代表大规模性能或实际生产数据；#75 容量扩展见 [ADR-0132](adr/ADR-0132-bounded-disk-backed-backup.md)，[本轮容量验收](reports/issue-75-history-backup-capacity-20261025.md)单独记录 |
 | 价格获取、审阅与版本化应用（#73） | 已纳入本批共同基线：来源预览、内容/revision及全局目录围栏确认、schema40审阅证据；保留不可变目录与向前回滚 | [第二批集成](reports/wave2-integration-20261025.md)：非空review大备份/恢复、source/content digest及旧ledger/冻结导出保持；[原分支记录](reports/issue-73-price-preview-20261025.md)保留历史身份。真实来源、复杂tier及远端关闭另验 |
@@ -114,6 +114,8 @@ OPEN不等于没有代码，CLOSED也不代表整个渠道已完成；本轮没�
 
 ## 5. 下一项与后续顺序
 
+**#70 独立本地交付完成。** 从共同开发起点 `7c16070bb66f7f3008022f7870b5d1f96b63f167`，分支 `feature/70-routing-build-affinity` 的最终动态受测代码 `731c318320ae6f9df69cc77a708ea67c468a2695` 已通过 Full44/44、Rust1738/0/23、显式备份7/7和双轴审查；[逐项验收及固定身份](reports/issue-70-routing-build-affinity-20261025.md)。此独立结果不改写下面第二批共同基线的历史回执；远端保持OPEN，没有push/合并/部署。#71并行分支与本票独立占用不同schema41，后续共同集成必须协调唯一迁移顺序，禁止按相同版本号交换数据库。
+
 **第二批本地集成完成：#69/#73/#75已进入同一共同开发基线。**
 [第二批记录](reports/wave2-integration-20261025.md)：受测代码6165a9f1；Full44/44、Rust1726/0/23，
 联合schema40容量/恢复198/198，#72正式进程517/517，#74正式进程21/21，显式备份专项7/7。
@@ -165,7 +167,7 @@ Gemini、多模态、插件、Home 和新前端是单独扩展项，本页没有
 |---|---|---|
 | [#68](https://github.com/Ricardo121380/cpa-rust-gateway/issues/68) | Messages 计数：上游计数与明确标识的本地估算 | P0 |
 | [#69](https://github.com/Ricardo121380/cpa-rust-gateway/issues/69) | CPA 请求控制与模型命名兼容 | P0/P1 |
-| [#70](https://github.com/Ricardo121380/cpa-rust-gateway/issues/70) | 生产路由策略与 Build 会话亲和 | P1 |
+| [#70](https://github.com/Ricardo121380/cpa-rust-gateway/issues/70) | 生产路由策略与 Build 会话亲和；[独立本地实现/Full/审查](reports/issue-70-routing-build-affinity-20261025.md)完成，远端仍OPEN，#71迁移共同集成另验 | P1 |
 | [#71](https://github.com/Ricardo121380/cpa-rust-gateway/issues/71) | CPA 请求规则与自定义上游 headers | P1 |
 | [#72](https://github.com/Ricardo121380/cpa-rust-gateway/issues/72) | Token 与费用的统一查询及快照导出；本地实现与证据见 [实施记录](reports/issue-72-usage-query-export-20261025.md)，独立安全升级后本地 Full 已通过，远端仍 OPEN | P1 |
 | [#73](https://github.com/Ricardo121380/cpa-rust-gateway/issues/73) | 价格获取、审阅与版本化应用；已纳入[第二批本地集成](reports/wave2-integration-20261025.md)，原分支记录保留 | P1 |

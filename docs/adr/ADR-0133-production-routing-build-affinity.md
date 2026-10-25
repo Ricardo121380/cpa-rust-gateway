@@ -102,5 +102,5 @@ reuse, expiry, owner isolation, saturation/concurrency, revision/Health changes,
 closure and strict stored lineage. Control and management tests exercise policy persistence,
 validation/publication/rollback and closed inputs; capacity/migration tests exercise schema40 and
 NULL loss. Full, explicit backup checks, review findings and frozen source/binary manifests are
-recorded in the issue70 implementation report. Real Providers/clients, fixed-service qualification,
+recorded in the [issue70 implementation report](../reports/issue-70-routing-build-affinity-20261025.md). Real Providers/clients, fixed-service qualification,
 remote CI, release, deployment and cost admission remain separate.

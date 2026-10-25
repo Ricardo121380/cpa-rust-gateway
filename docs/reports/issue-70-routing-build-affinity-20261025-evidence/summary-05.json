@@ -1,0 +1,90 @@
+{
+  "result": "PASS_LOCAL",
+  "baseline": "7c16070bb66f7f3008022f7870b5d1f96b63f167",
+  "tested_commit": "731c318320ae6f9df69cc77a708ea67c468a2695",
+  "tested_tree": "0ca2706201f55a1a6d12e89cb7b34fb3c23aeeb7",
+  "lock_sha256": "a3950a764ae2dcae4e04a8a32ada596f33ea105dbfda8e9714b3e32d3216cd6d",
+  "source_manifest": {
+    "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-70-routing-build-affinity-20261025/output/issue-70/source-05.json",
+    "sha256": "518acf249d7d6d845e3dc6f1e78de89d8348a4fa1c8f5a84c6f597fd6915c849",
+    "tracked_file_hashes": 7218
+  },
+  "input_manifest": {
+    "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-70-routing-build-affinity-20261025/output/issue-70/input-05.json",
+    "sha256": "00c964c501cbb17d097c1dcb700cb43c20c808850a968e0199296f76fbd70b34"
+  },
+  "source_after": {
+    "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-70-routing-build-affinity-20261025/output/issue-70/source-after-05.json",
+    "sha256": "e62042d8780653808c7a93bc8054a642cbfe890370285a8d6cbe6b586f1c871c"
+  },
+  "full": {
+    "run": "Full05",
+    "steps_passed": 44,
+    "steps_failed": 0,
+    "rust": {
+      "passed": 1738,
+      "failed": 0,
+      "ignored": 23,
+      "result_sets": 135
+    },
+    "report_sha256": "20cc51ddcf970819fc7ff2d4afbc07dd003c1e6e596bbf05128abfd329449367",
+    "log_sha256": "b3e9d90dec89668d53e83ce2c277bc774f41b58768710b63810942fecb8e671a"
+  },
+  "explicit_backup": {
+    "passed": 7,
+    "failed": 0,
+    "ignored": 0,
+    "log_sha256": "2f1d28d2075c2d0f690e856b878b443c14d63743e992a2a1ec651ca883acae80"
+  },
+  "stock_binary": {
+    "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-70-routing-build-affinity-20261025/output/issue-70/bin/gateway-731c3183",
+    "sha256": "a86e7e19ac0cb2313b116ba5270e81a94fb98e11eb1efa308843d25378dea860",
+    "scope": "Full05 serve-envelope/default-feature process binary; not the synthetic public receiver test executable"
+  },
+  "public_receiver_test_binary": {
+    "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-70-routing-build-affinity-20261025/output/issue-70/bin/gateway-tests-731c3183",
+    "sha256": "0085b7e95da05b564e614cf6f3d5ae7d9f9dd112ee770a549da15fd7b17b42ef",
+    "scope": "Full05 all-feature gateway unit executable including production factory, public TCP and independent synthetic receiver"
+  },
+  "test_binary_manifest": {
+    "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-70-routing-build-affinity-20261025/output/issue-70/test-binaries-05.json",
+    "sha256": "dac6d71719fb95fdfc116da21417118d8139fb00f4828602581b82d89e5c82ef",
+    "binaries": 115
+  },
+  "log_manifest": {
+    "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-70-routing-build-affinity-20261025/output/issue-70/logs-05.json",
+    "sha256": "28474752d87065db3afdfc907a3214ebc94455add74ac7c1c78d449199681d8e"
+  },
+  "environment": {
+    "os": "Darwin",
+    "architecture": "arm64",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "cargo_jobs": 2,
+    "rust_test_threads": 4,
+    "ports": "dynamic loopback",
+    "database_and_test_tmp": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-70-routing-build-affinity-20261025/output/issue-70/state",
+    "logs": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-70-routing-build-affinity-20261025/output/issue-70/logs"
+  },
+  "review": {
+    "Standards": "COMPLETE; no unresolved behavior findings; P3 error rustdoc wording scheduled for documentation-only successor",
+    "Spec": "COMPLETE; no unresolved findings"
+  },
+  "historical_runs": {
+    "Full01": "FAIL at Clippy101 on f8cd0d5c; no complete Rust suite",
+    "Full02": "INTERRUPTED143 on e3ba8ecb after Clippy PASS; not a Full/Rust PASS",
+    "Full03": "FAIL at Rust tests101 on1475be29 due legacy OpenAPI required-field assertion; preserved complete log and FAIL, not promoted by later fixes",
+    "Full04": "PASS44/44; Rust1738/0/23; explicit backup7/0/0 on db2023c8; predates explicit weight boundary fix",
+    "weight_bound_red_green": "RED exit101 for retained RR weight10001; GREEN Control114 and Router193 after compiler guard; both logs retained",
+    "configuration_diff_red": "frozen e3 test binary exit101, seven columns/six values; original assertions retained after fix",
+    "compilation_and_fixture_failures": "check01/02, targeted01/02/03/05, management02, http01 and clippy02-05 logs retained; initial management failure is inside targeted05; no historical PASS relabelling"
+  },
+  "boundaries": [
+    "Synthetic local macOS debug validation only",
+    "No remote issue mutation, push, merge, CI, deployment, release or real Provider/client calls",
+    "Fixed Build activation and cost_in_usd_ticks admission unchanged",
+    "Standalone issue70 schema41 differs from standalone issue71 schema41; integration must reconcile a unique ordered migration chain before any database transfer",
+    "No repetition of wave2 198-assertion large-database process qualification is inferred from this result"
+  ],
+  "captured_at_utc": "2026-10-25T10:47:04.911825+00:00"
+}

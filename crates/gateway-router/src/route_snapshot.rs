@@ -1497,7 +1497,7 @@ pub enum RouteSnapshotBuildError {
     RouteHasNoCandidates,
     /// A Candidate used a negative priority tier.
     InvalidCandidatePriority,
-    /// A Candidate used a non-positive scheduling weight.
+    /// A Candidate used a scheduling weight outside the range accepted by its policy.
     InvalidCandidateWeight,
     /// A precompiled priority-tier schedule would exceed its finite limit.
     RouteScheduleTooLarge,

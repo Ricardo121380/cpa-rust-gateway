@@ -1,16 +1,18 @@
 {
   "result": "COMPLETE_STATIC_REVIEW; no unresolved findings",
   "baseline": "7c16070bb66f7f3008022f7870b5d1f96b63f167",
-  "production_reviewed_commit": "1475be2978d4aa56a455dd303e9d5398c76533bc",
+  "production_reviewed_commit": "731c318320ae6f9df69cc77a708ea67c468a2695",
   "Standards": {
     "full_range": "COMPLETE surface and kernel reviews through e3ba8ecb; one RR fixed-input finding resolved",
     "final_delta": "COMPLETE seven-file e3ba8ecb..1475be29 review and direct definitions; no actionable findings",
-    "open_findings": 0
+    "open_findings": 0,
+    "weight_delta": "COMPLETE db2023c8..731c3183 four-file review; one P3 rustdoc wording corrected in documentation successor"
   },
   "Spec": {
     "full_range": "COMPLETE through e3ba8ecb; replay SQL, WRR projection, fill-first exit evidence, fixed RR starts and legacy SQL fixture findings all resolved",
     "final_delta": "COMPLETE e3ba8ecb..1475be29 review; no actionable findings",
-    "open_findings": 0
+    "open_findings": 0,
+    "weight_delta": "COMPLETE db2023c8..731c3183 four-file review; zero findings"
   },
   "limits_retained": [
     "Earlier Standards attempts that stopped on shell/path errors are partial, not standalone clearances; complete replacement reviews are recorded here",
@@ -36,5 +38,41 @@
     "commit": "1475be2978d4aa56a455dd303e9d5398c76533bc",
     "reason": "Legacy OpenAPI required-field snapshot omitted new selection_policy; not a complete Rust or Full pass"
   },
-  "final_dynamic_candidate": "Pinned by output/issue-70/source-04.json and final summary after the test-only successor commit"
+  "final_dynamic_candidate": "Pinned by output/issue-70/source-05.json and summary-05.json; documentation successor does not change executable statements",
+  "weight_delta_review": "review-weight.json",
+  "Full04": {
+    "state": "PASS44/44",
+    "commit": "db2023c8e6706a0b34c061a07aaff04ca11b1283",
+    "rust": "1738/0/23",
+    "scope": "Before final explicit weight-bound guard; original logs and manifests remain independent"
+  },
+  "Full05": {
+    "state": "PASS44/44",
+    "commit": "731c318320ae6f9df69cc77a708ea67c468a2695",
+    "tree": "0ca2706201f55a1a6d12e89cb7b34fb3c23aeeb7",
+    "rust": {
+      "passed": 1738,
+      "failed": 0,
+      "ignored": 23,
+      "result_sets": 135
+    },
+    "explicit_backup": {
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "2f1d28d2075c2d0f690e856b878b443c14d63743e992a2a1ec651ca883acae80"
+    }
+  },
+  "documentation_successor": {
+    "changes": "Report/evidence/status links and one rustdoc line describing InvalidCandidateWeight applicable range",
+    "P3": "Resolved by root exact-line correction; runtime Display and all executable Rust statements unchanged",
+    "validation": "Exact diff plus docs mode and format check; separate from Full05",
+    "checks": {
+      "docs": "PASS7/7",
+      "receipt": "docs-final.md",
+      "sha256": "7df781f09c608b04d4a4447f7ba5d48b51d973293d9e4a69b52a32290e2fa739",
+      "rust_format": "PASS",
+      "uncommitted_whitespace": "PASS"
+    }
+  }
 }

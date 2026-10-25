@@ -1,0 +1,33 @@
+{
+  "range": "db2023c8e6706a0b34c061a07aaff04ca11b1283..731c318320ae6f9df69cc77a708ea67c468a2695",
+  "files": [
+    "crates/gateway-router/src/route_snapshot.rs",
+    "crates/gateway-control/src/snapshot_publisher.rs",
+    "docs/adr/ADR-0133-production-routing-build-affinity.md",
+    "docs/contracts/BC-ROUTE-010-production-strategies-build-affinity.md"
+  ],
+  "Standards": {
+    "coverage": "COMPLETE four-file delta and direct compiler/publication/test definitions",
+    "findings": [
+      {
+        "priority": "P3",
+        "path": "crates/gateway-router/src/route_snapshot.rs",
+        "line": 1500,
+        "finding": "InvalidCandidateWeight rustdoc only describes non-positive values; new explicit policy upper bound also rejects positive values",
+        "resolution": "Resolved in documentation successor: rustdoc now covers the range accepted by the applicable policy; no executable statement changed",
+        "status": "RESOLVED"
+      }
+    ]
+  },
+  "Spec": {
+    "coverage": "COMPLETE four-file delta and direct snapshot/publication definitions",
+    "findings": []
+  },
+  "partial_attempt": {
+    "state": "PARTIAL retained",
+    "inspected": "all four changed files; no behavior findings",
+    "stop": "Unnecessary supplemental path route_management.rs did not exist; not used as independent Standards clearance",
+    "replacement": "Complete narrowly scoped Standards review above"
+  },
+  "mode": "read-only static; no build/test/network; does not establish Full05 PASS"
+}
