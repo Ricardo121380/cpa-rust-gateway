@@ -14,7 +14,10 @@ use std::{
 };
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
-use p256::ecdsa::{Signature, SigningKey, signature::Signer};
+use p256::{
+    ecdsa::{Signature, SigningKey, signature::Signer},
+    elliptic_curve::Generate,
+};
 use serde::Serialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -117,7 +120,7 @@ impl GrokConsoleDpopSession {
     /// Generates the ephemeral P-256 signing key used in the `DPoP` token request.
     #[must_use]
     pub fn generate_key() -> SigningKey {
-        SigningKey::random(&mut rand_core::OsRng)
+        SigningKey::generate()
     }
 
     /// Returns the `DPoP` access token for immediate Authorization header construction.
@@ -259,7 +262,7 @@ struct DpopJwk {
 
 impl DpopJwk {
     fn from_key(key: &p256::ecdsa::VerifyingKey) -> Self {
-        let point = key.to_encoded_point(false);
+        let point = key.to_sec1_point(false);
         Self {
             kty: "EC",
             crv: "P-256",
@@ -365,6 +368,7 @@ impl std::error::Error for GrokConsoleDpopError {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use p256::ecdsa::{VerifyingKey, signature::Verifier};
     use std::error::Error;
 
     type TestResult<T = ()> = Result<T, Box<dyn Error>>;
@@ -390,10 +394,91 @@ mod tests {
         let parts: Vec<_> = proof.split('.').collect();
         assert_eq!(parts.len(), 3);
         assert_eq!(URL_SAFE_NO_PAD.decode(parts[2])?.len(), 64);
+        let header: Value = serde_json::from_slice(&URL_SAFE_NO_PAD.decode(parts[0])?)?;
+        assert_eq!(header["typ"], "dpop+jwt");
+        assert_eq!(header["alg"], "ES256");
+        let exchange: Value = serde_json::from_slice(
+            &GrokConsoleDpopSession::token_exchange_body(&session.signing_key)?,
+        )?;
+        assert_eq!(header["jwk"], exchange["jwk"]);
+        // Verify from the wire JWK, independently of the session's private key object.
+        let mut public_point = vec![4];
+        for coordinate in ["x", "y"] {
+            let encoded = header["jwk"][coordinate].as_str().ok_or("coordinate")?;
+            assert!(!encoded.contains('='));
+            let bytes = URL_SAFE_NO_PAD.decode(encoded)?;
+            assert_eq!(bytes.len(), 32);
+            public_point.extend_from_slice(&bytes);
+        }
+        let verifier = VerifyingKey::from_sec1_bytes(&public_point).map_err(|_| "public point")?;
+        let signature = Signature::from_slice(&URL_SAFE_NO_PAD.decode(parts[2])?)
+            .map_err(|_| "signature encoding")?;
+        let signing_input = format!("{}.{}", parts[0], parts[1]);
+        verifier
+            .verify(signing_input.as_bytes(), &signature)
+            .map_err(|_| "signature verification")?;
+        assert!(
+            verifier
+                .verify(format!("{signing_input}x").as_bytes(), &signature)
+                .is_err()
+        );
         let claims: Value = serde_json::from_slice(&URL_SAFE_NO_PAD.decode(parts[1])?)?;
         assert_eq!(claims["htm"], "POST");
         assert_eq!(claims["htu"], "https://console.x.ai/v1/responses");
-        assert!(claims["ath"].as_str().is_some());
+        assert_eq!(claims["iat"], 1_700_000_000);
+        assert_eq!(
+            claims["ath"],
+            URL_SAFE_NO_PAD.encode(Sha256::digest(session.access_token()))
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn dpop_jwk_preserves_the_fixed_p256_generator_coordinates() -> TestResult {
+        // Synthetic scalar one gives the standard P-256 generator, never an account key.
+        let mut scalar = [0; 32];
+        scalar[31] = 1;
+        let key = SigningKey::from_slice(&scalar).map_err(|_| "synthetic scalar")?;
+        let body: Value =
+            serde_json::from_slice(&GrokConsoleDpopSession::token_exchange_body(&key)?)?;
+        assert_eq!(
+            body,
+            serde_json::json!({"jwk": {
+                "kty": "EC", "crv": "P-256",
+                "x": "axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpY",
+                "y": "T-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU"
+            }})
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn dpop_session_rejects_wrong_key_binding_and_expired_token() -> TestResult {
+        let now = UNIX_EPOCH + Duration::from_secs(1_700_000_000);
+        let key = GrokConsoleDpopSession::generate_key();
+        let other = GrokConsoleDpopSession::generate_key();
+        assert_eq!(
+            GrokConsoleDpopSession::from_token_response(
+                token_for(&key, 1_700_000_600)?,
+                "DPoP",
+                600,
+                other,
+                now
+            )
+            .err(),
+            Some(GrokConsoleDpopError::KeyMismatch)
+        );
+        assert_eq!(
+            GrokConsoleDpopSession::from_token_response(
+                token_for(&key, 1_700_000_010)?,
+                "DPoP",
+                600,
+                key,
+                now
+            )
+            .err(),
+            Some(GrokConsoleDpopError::ExpiredToken)
+        );
         Ok(())
     }
 
