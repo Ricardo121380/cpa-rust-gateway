@@ -1,0 +1,40 @@
+{
+  "result": "COMPLETE_STATIC_REVIEW; no unresolved findings",
+  "baseline": "7c16070bb66f7f3008022f7870b5d1f96b63f167",
+  "production_reviewed_commit": "1475be2978d4aa56a455dd303e9d5398c76533bc",
+  "Standards": {
+    "full_range": "COMPLETE surface and kernel reviews through e3ba8ecb; one RR fixed-input finding resolved",
+    "final_delta": "COMPLETE seven-file e3ba8ecb..1475be29 review and direct definitions; no actionable findings",
+    "open_findings": 0
+  },
+  "Spec": {
+    "full_range": "COMPLETE through e3ba8ecb; replay SQL, WRR projection, fill-first exit evidence, fixed RR starts and legacy SQL fixture findings all resolved",
+    "final_delta": "COMPLETE e3ba8ecb..1475be29 review; no actionable findings",
+    "open_findings": 0
+  },
+  "limits_retained": [
+    "Earlier Standards attempts that stopped on shell/path errors are partial, not standalone clearances; complete replacement reviews are recorded here",
+    "Static review is not dynamic PASS, fixed Build qualification, real client/provider or deployment evidence",
+    "Two standalone schema41 branches are not compatible by version number alone"
+  ],
+  "post_review_test_only_delta": {
+    "files": [
+      "crates/gateway-http-actix/tests/p10_01_management_openapi_contract.rs",
+      "crates/gateway-http-actix/tests/p10_06_management_runtime.rs"
+    ],
+    "change": "Append selection_policy to exact Explain required-field/response assertions; preserve all prior pricing, permission and value-free assertions",
+    "root_review": "Complete exact two-line diff inspection; no production/Cargo/migration change",
+    "http_all_features": {
+      "passed": 254,
+      "failed": 0,
+      "ignored": 4
+    },
+    "log": "output/issue-70/logs/http-02.log"
+  },
+  "Full03": {
+    "state": "FAIL at Rust tests101",
+    "commit": "1475be2978d4aa56a455dd303e9d5398c76533bc",
+    "reason": "Legacy OpenAPI required-field snapshot omitted new selection_policy; not a complete Rust or Full pass"
+  },
+  "final_dynamic_candidate": "Pinned by output/issue-70/source-04.json and final summary after the test-only successor commit"
+}

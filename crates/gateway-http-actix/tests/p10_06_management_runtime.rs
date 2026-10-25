@@ -410,6 +410,7 @@ async fn protected_runtime_views_are_value_free_and_recovery_only_requests_contr
         explain_body,
         json!({
             "route_id": "route-runtime",
+            "selection_policy": "provider_scoped_legacy",
             "price_policy": {
                 "catalog_version_id": "routing-catalog-v1",
                 "comparison": "rate_dominance_v1"

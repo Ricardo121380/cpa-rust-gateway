@@ -414,7 +414,7 @@ fn routing_price_policy_contract_is_closed_revisioned_and_value_free() -> TestRe
     );
     assert_eq!(
         schemas["RouteExplain"]["required"],
-        serde_json::json!(["route_id", "candidates", "price_policy"])
+        serde_json::json!(["route_id", "candidates", "price_policy", "selection_policy"])
     );
     assert_eq!(
         schemas["RouteExplain"]["properties"]["candidates"]["items"]["required"],
