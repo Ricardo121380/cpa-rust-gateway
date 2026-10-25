@@ -265,7 +265,7 @@ fn historical_usage_cells(path: &Path) -> Result<Vec<Vec<String>>> {
 }
 
 fn upgrade_schema38_usage_fixture(path: &Path) -> Result {
-    // The registered downgrade drops only the empty 0039 history table and its bookkeeping.
+    // The registered downgrade drops empty 0039 history/0040 review tables and their bookkeeping.
     // This constructs the complete schema38 prefix with real event/materialized-price fixtures.
     let mut connection = gateway_store::open(path)?;
     gateway_store::rollback_to_version(&mut connection, 38)?;
@@ -696,20 +696,22 @@ async fn reviewed_price_application_preserves_frozen_exports(
             .as_millis(),
     )?;
     let effective = now + 60_000;
-    let preview = client.post(format!("{base}/admin/billing/price-source/preview"))
+    let preview_response = client.post(format!("{base}/admin/billing/price-source/preview"))
         .header("X-Management-Key",KEY).header("X-Config-Version","price-review").header("If-Match","\"rev-0\"")
-        .json(&json!({"catalog_version_id":"price-v3-reviewed","effective_at_ms":effective,"mappings":[{
+        .body(json!({"catalog_version_id":"price-v3-reviewed","effective_at_ms":effective,"mappings":[{
             "source_provider":"official","source_model":"priced","provider_id":"provider","channel_id":"channel","model":"priced",
-            "missing_rates":{"reasoning":0,"cached":0,"cache_read":0,"cache_creation":0}}]}))
-        .send().await?.error_for_status()?.json::<Value>().await?;
+            "missing_rates":{"reasoning":0,"cached":0,"cache_read":0,"cache_creation":0}}]}).to_string())
+        .send().await?.error_for_status()?;
+    let preview: Value = serde_json::from_slice(&preview_response.bytes().await?)?;
     assert_eq!(preview["can_apply"], true, "{preview}");
     let applied = client
         .post(format!("{base}/admin/billing/price-source/apply"))
         .header("X-Management-Key", KEY)
         .header("X-Config-Version", "price-review")
         .header("If-Match", "\"rev-0\"")
-        .json(
-            &json!({"preview_id":preview["preview_id"],"content_digest":preview["content_digest"]}),
+        .body(
+            json!({"preview_id":preview["preview_id"],"content_digest":preview["content_digest"]})
+                .to_string(),
         )
         .send()
         .await?;
@@ -772,7 +774,7 @@ async fn reviewed_price_application_preserves_frozen_exports(
             "frozen CSV/JSONL bytes survive reviewed price application and new usage"
         );
     }
-    let review: Value = client
+    let review_response = client
         .get(format!(
             "{base}/admin/billing/catalogs/price-v3-reviewed/review"
         ))
@@ -780,9 +782,8 @@ async fn reviewed_price_application_preserves_frozen_exports(
         .header("X-Config-Version", "price-review")
         .send()
         .await?
-        .error_for_status()?
-        .json()
-        .await?;
+        .error_for_status()?;
+    let review: Value = serde_json::from_slice(&review_response.bytes().await?)?;
     assert_eq!(review["source_digest"], preview["source_digest"]);
     assert_eq!(review["catalog_version_id"], "price-v3-reviewed");
     drop(ledger);

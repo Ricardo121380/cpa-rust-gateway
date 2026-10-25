@@ -59,5 +59,7 @@ complex tier semantics require explicit independent scope.
 ## Corresponding tests
 
 - `source_decimal_rates_never_round_or_guess_tiers`
+- `preview_index_preserves_effective_time_ties_and_sparse_omissions`
+- `price_preview_contract_binds_review_source_and_revision`
 - `price_preview_http_fences_sources_revisions_replays_and_audit_atomically`
 - `usage_snapshot_http_freezes_totals_details_and_exports`

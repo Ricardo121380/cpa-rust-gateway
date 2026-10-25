@@ -23,8 +23,8 @@ const ORIGIN: &str = "https://price.example.test";
 #[derive(Default)]
 struct Source(Mutex<Option<Vec<u8>>>);
 impl Source {
-    fn set(&self, value: Value) -> Result {
-        *self.0.lock().map_err(|_| "source lock")? = Some(serde_json::to_vec(&value)?);
+    fn set(&self, value: &Value) -> Result {
+        *self.0.lock().map_err(|_| "source lock")? = Some(serde_json::to_vec(value)?);
         Ok(())
     }
 }
@@ -67,14 +67,26 @@ impl Http {
         if csrf {
             request = request.header("X-Management-CSRF-Token", CSRF);
         }
-        let response = request.json(&body).send().await?;
+        let response = request.body(body.to_string()).send().await?;
         assert_eq!(
             response.status().as_u16(),
             status,
             "{}",
             response.text().await?
         );
-        Ok(response.json().await?)
+        if (200..300).contains(&status)
+            && (path.contains("price-source") || path.ends_with("/review"))
+        {
+            assert_eq!(
+                response
+                    .headers()
+                    .get("cache-control")
+                    .and_then(|v| v.to_str().ok()),
+                Some("no-store"),
+                "{path}"
+            );
+        }
+        Ok(serde_json::from_slice(&response.bytes().await?)?)
     }
     fn input(&self, id: &str) -> Value {
         json!({"catalog_version_id":id,"effective_at_ms":self.effective,"mappings":[{"source_provider":"vendor","source_model":"known",
@@ -150,7 +162,7 @@ async fn price_preview_http_fences_sources_revisions_replays_and_audit_atomicall
         }))?;
     }
     let source = Arc::new(Source::default());
-    source.set(source_value())?;
+    source.set(&source_value())?;
     let key_version = KeyVersion::try_new(1)?;
     let resources = web::Data::new(
         ManagementResourceHttpState::new(ManagementMutationService::new(
@@ -196,7 +208,7 @@ async fn price_preview_http_fences_sources_revisions_replays_and_audit_atomicall
     assert_eq!(
         http.client
             .post(format!("{}/admin/billing/price-source/preview", http.base))
-            .json(&http.input("new"))
+            .body(http.input("new").to_string())
             .send()
             .await?
             .status()
@@ -222,7 +234,7 @@ async fn price_preview_http_fences_sources_revisions_replays_and_audit_atomicall
             .ok_or("catalog array")?
             .is_empty()
     );
-    source.set(source_value())?;
+    source.set(&source_value())?;
     let mut unknown = http.input("new");
     unknown["mappings"][0]["source_model"] = json!("unknown");
     let p = http
@@ -255,14 +267,14 @@ async fn price_preview_http_fences_sources_revisions_replays_and_audit_atomicall
     assert_eq!(p["can_apply"], false);
     assert!(p["changes"][0]["rates"]["reasoning"].is_null());
     for (field, value, issue) in [
-        ("input", json!(0.0000001), "precision_conflict"),
+        ("input", json!(0.000_000_1), "precision_conflict"),
         ("tiers", json!([]), "unsupported_tier_or_rate"),
         ("input", json!(-1), "invalid_rate"),
-        ("input", json!(9007199254.740992_f64), "rate_overflow"),
+        ("input", json!(9_007_199_254.740_992_f64), "rate_overflow"),
     ] {
         let mut doc = source_value();
         doc["vendor"]["models"]["known"]["cost"][field] = value;
-        source.set(doc)?;
+        source.set(&doc)?;
         let p = http.preview("new", 200).await?;
         assert_eq!(p["can_apply"], false, "{p}");
         assert!(
@@ -275,9 +287,9 @@ async fn price_preview_http_fences_sources_revisions_replays_and_audit_atomicall
     }
     let mut unit = source_value();
     unit["vendor"]["models"]["known"]["currency"] = json!("EUR");
-    source.set(unit)?;
+    source.set(&unit)?;
     assert_eq!(http.preview("new", 200).await?["can_apply"], false);
-    source.set(source_value())?;
+    source.set(&source_value())?;
     let refreshed = http
         .send(
             reqwest::Method::POST,
@@ -305,12 +317,12 @@ async fn price_preview_http_fences_sources_revisions_replays_and_audit_atomicall
     http.apply(&p, "a", 1, 409).await?;
     *source.0.lock().map_err(|_| "source lock")? = None;
     http.apply(&p, "a", 0, 502).await?;
-    source.set(source_value())?;
+    source.set(&source_value())?;
     let mut changed = source_value();
     changed["vendor"]["models"]["known"]["cost"]["input"] = json!(2);
-    source.set(changed)?;
+    source.set(&changed)?;
     http.apply(&p, "a", 0, 409).await?;
-    source.set(source_value())?;
+    source.set(&source_value())?;
     // Another configuration's write leaves a's revision intact but invalidates its global preview.
     let mut concurrent = import("concurrent", 2_000_000);
     let mut omitted = concurrent["entries"][0].clone();

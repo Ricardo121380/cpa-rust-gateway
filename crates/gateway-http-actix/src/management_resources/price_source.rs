@@ -8,7 +8,6 @@ use super::{
 };
 use actix_web::{HttpRequest, HttpResponse, http::StatusCode, web};
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
-use gateway_control::billing_service::{find_effective_price_catalog, find_price_entry};
 use gateway_store::billing_ledger::{BillingPriceCatalog, billing_catalog_fingerprint};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json, value::RawValue};
@@ -29,7 +28,7 @@ const MAX_REVIEW_BYTES: usize = 524_288;
 pub trait PriceSource: Send + Sync {
     /// Returns a bounded public models.dev-format document. Errors contain no source payload.
     /// # Errors
-    /// A failed read returns SourceUnavailable and never changes a catalog.
+    /// A failed read returns `SourceUnavailable` and never changes a catalog.
     fn fetch(&self) -> Result<Vec<u8>, ManagementOperationsError>;
 }
 pub(super) struct ModelsDev;
@@ -382,7 +381,7 @@ pub(super) async fn refresh(
                 "cache_read_microunits_per_million":null,"cache_creation_microunits_per_million":null,"cached_microunits_per_million":null}));
         }
     }
-    HttpResponse::Ok().json(json!({"source":"models.dev","url":URL,"currency":"USD","unit":"microunits_per_million_tokens",
+    HttpResponse::Ok().insert_header(("Cache-Control","no-store")).json(json!({"source":"models.dev","url":URL,"currency":"USD","unit":"microunits_per_million_tokens",
         "observed_at_ms":observation.observed_at_ms,"source_digest":observation.digest,"items":items}))
 }
 
@@ -416,13 +415,50 @@ fn proposal(
     input: &PreviewInput,
     observation: &Observation,
     catalogs: &[BillingPriceCatalog],
-) -> Result<(Value, Vec<BillingPriceEntry>, bool), HttpResponse> {
+) -> Result<(Value, Vec<BillingPriceEntry>, bool), ManagementOperationsError> {
+    // Index effective tuples once using the existing (time, lexical version) selection rule.
+    // Only selected channels enter the bounded review, regardless of catalog overlap.
+    let channels: BTreeSet<_> = input
+        .mappings
+        .iter()
+        .map(|m| (m.provider_id.as_str(), m.channel_id.as_str()))
+        .collect();
+    let mut effective =
+        BTreeMap::<(&str, &str, &str), (&BillingPriceCatalog, &BillingPriceEntry)>::new();
+    for catalog in catalogs
+        .iter()
+        .filter(|p| p.effective_at_ms <= input.effective_at_ms)
+    {
+        for entry in &catalog.entries {
+            if !channels.contains(&(entry.provider_id.as_str(), entry.channel_id.as_str())) {
+                continue;
+            }
+            let key = (
+                entry.provider_id.as_str(),
+                entry.channel_id.as_str(),
+                entry.model.as_str(),
+            );
+            if effective.get(&key).is_none_or(|(prior, _)| {
+                (catalog.effective_at_ms, &catalog.catalog_version_id)
+                    > (prior.effective_at_ms, &prior.catalog_version_id)
+            }) {
+                effective.insert(key, (catalog, entry));
+            }
+            if effective.len() > 4096 {
+                return Err(ManagementOperationsError::InvalidQuery);
+            }
+        }
+    }
     let mut rows = Vec::new();
     let mut entries = Vec::new();
     let mut applicable = true;
     let mut proposed_keys = BTreeSet::new();
     for mapping in &input.mappings {
-        proposed_keys.insert((&mapping.provider_id, &mapping.channel_id, &mapping.model));
+        proposed_keys.insert((
+            mapping.provider_id.as_str(),
+            mapping.channel_id.as_str(),
+            mapping.model.as_str(),
+        ));
         let matched = observation
             .source
             .get(&mapping.source_provider)
@@ -434,22 +470,19 @@ fn proposal(
         if entry.is_none() {
             issues.push("missing_rates");
         }
-        let prior = find_effective_price_catalog(
-            catalogs,
-            &mapping.provider_id,
-            &mapping.channel_id,
-            &mapping.model,
-            input.effective_at_ms,
-        );
+        let selected = effective.get(&(
+            mapping.provider_id.as_str(),
+            mapping.channel_id.as_str(),
+            mapping.model.as_str(),
+        ));
+        let prior = selected.map(|(catalog, _)| *catalog);
         if prior.is_some_and(|p| {
             p.effective_at_ms == input.effective_at_ms
                 && p.catalog_version_id >= input.catalog_version_id
         }) {
             issues.push("shadowed_at_effective_time");
         }
-        let before = prior.and_then(|p| {
-            find_price_entry(p, &mapping.provider_id, &mapping.channel_id, &mapping.model)
-        });
+        let before = selected.map(|(_, entry)| *entry);
         let change = match (before, &entry) {
             (None, _) => "added",
             (Some(a), Some(b)) if a == b => "unchanged",
@@ -458,45 +491,29 @@ fn proposal(
         applicable &= issues.is_empty();
         rows.push(json!({"mapping":mapping,"match":"operator_exact_mapping","source_rates":source,"rates":rates,"issues":issues,
             "change":change,"before":before,"before_catalog_version_id":prior.map(|p| &p.catalog_version_id)}));
-        if issues.is_empty() {
-            if let Some(entry) = entry {
-                entries.push(entry);
-            }
+        if issues.is_empty()
+            && let Some(entry) = entry
+        {
+            entries.push(entry);
         }
     }
-    // Catalogs are sparse overlays. An omitted tuple keeps its prior catalog; it is not a zero price.
-    let channels: BTreeSet<_> = input
-        .mappings
-        .iter()
-        .map(|m| (&m.provider_id, &m.channel_id))
-        .collect();
-    let mut seen = BTreeSet::new();
-    for p in catalogs {
-        for e in &p.entries {
-            let key = (&e.provider_id, &e.channel_id, &e.model);
-            if channels.contains(&(&e.provider_id, &e.channel_id))
-                && !proposed_keys.contains(&key)
-                && seen.insert(key)
-            {
-                if let Some(prior) = find_effective_price_catalog(
-                    catalogs,
-                    &e.provider_id,
-                    &e.channel_id,
-                    &e.model,
-                    input.effective_at_ms,
-                ) {
-                    rows.push(json!({"provider_id":e.provider_id,"channel_id":e.channel_id,"model":e.model,
-                        "change":"removed_from_proposal","effect":"retains_prior_price","before_catalog_version_id":prior.catalog_version_id}));
-                }
-            }
-            if rows.len() > 4096 {
-                return Err(invalid_input());
-            }
+    // Omitted tuples keep their prior version under the existing sparse-catalog rule.
+    for ((provider, channel, model), (prior, _)) in effective {
+        if !proposed_keys.contains(&(provider, channel, model)) {
+            rows.push(json!({"provider_id":provider,"channel_id":channel,"model":model,
+                "change":"removed_from_proposal","effect":"retains_prior_price","before_catalog_version_id":prior.catalog_version_id}));
+        }
+        if rows.len() > 4096 {
+            return Err(ManagementOperationsError::InvalidQuery);
         }
     }
     Ok((json!(rows), entries, applicable))
 }
 
+#[allow(
+    clippy::too_many_lines,
+    reason = "one bounded review workflow keeps source, content and revision bindings together"
+)]
 async fn preview(
     request: HttpRequest,
     body: web::Bytes,
@@ -547,15 +564,21 @@ async fn preview(
     if input.effective_at_ms < observation.observed_at_ms {
         return conflict();
     }
-    let catalog_digest = match billing_catalog_fingerprint(&catalogs) {
-        Ok(d) => d,
-        Err(_) => return internal_error(),
-    };
-    let (changes, entries, can_apply) = match proposal(&input, &observation, &catalogs) {
+    let proposal_input = input.clone();
+    let source_digest = observation.digest.clone();
+    let observed_at_ms = observation.observed_at_ms;
+    let (changes, entries, can_apply, catalog_digest) = match read_operations(&state, move || {
+        let catalog_digest = billing_catalog_fingerprint(&catalogs)
+            .map_err(|_| ManagementOperationsError::SourceUnavailable)?;
+        let (changes, entries, can_apply) = proposal(&proposal_input, &observation, &catalogs)?;
+        Ok((changes, entries, can_apply, catalog_digest))
+    })
+    .await
+    {
         Ok(p) => p,
-        Err(e) => return e,
+        Err(e) => return management_error(e.into()),
     };
-    let mut result = json!({"source":"models.dev","source_digest":observation.digest,"observed_at_ms":observation.observed_at_ms,
+    let mut result = json!({"source":"models.dev","source_digest":source_digest,"observed_at_ms":observed_at_ms,
         "currency":"USD","source_unit":"usd_per_million_tokens","unit":"microunits_per_million_tokens",
         "config_version_id":context.version.as_str(),"revision":context.revision.as_i64(),"catalog_digest":catalog_digest,
         "catalog_version_id":input.catalog_version_id,"effective_at_ms":input.effective_at_ms,"can_apply":can_apply,"changes":changes,
@@ -571,9 +594,8 @@ async fn preview(
         _ => return invalid_input(),
     };
     if can_apply {
-        let mut previews = match state.price_previews.lock() {
-            Ok(p) => p,
-            Err(_) => return internal_error(),
+        let Ok(mut previews) = state.price_previews.lock() else {
+            return internal_error();
         };
         previews.prune();
         if previews.0.len() >= 8 {
@@ -589,7 +611,7 @@ async fn preview(
         }
         let id = URL_SAFE_NO_PAD.encode(random);
         result["preview_id"] = json!(id);
-        result["expires_at_ms"] = json!(observation.observed_at_ms + 600_000);
+        result["expires_at_ms"] = json!(observed_at_ms + 600_000);
         previews.0.insert(
             id,
             Retained {
@@ -597,7 +619,7 @@ async fn preview(
                 version: context.version,
                 revision: context.revision,
                 deadline: Instant::now() + TTL,
-                source_digest: observation.digest,
+                source_digest,
                 catalog_digest,
                 content_digest,
                 input: BillingCatalogImport {
@@ -614,6 +636,7 @@ async fn preview(
         );
     }
     HttpResponse::Ok()
+        .insert_header(("Cache-Control", "no-store"))
         .insert_header(("ETag", format!("\"rev-{}\"", context.revision.as_i64())))
         .json(result)
 }
@@ -636,9 +659,8 @@ async fn apply(
         Err(e) => return e,
     };
     let retained = {
-        let mut previews = match state.price_previews.lock() {
-            Ok(p) => p,
-            Err(_) => return internal_error(),
+        let Ok(mut previews) = state.price_previews.lock() else {
+            return internal_error();
         };
         previews.prune();
         match previews.0.get(&input.preview_id) {
@@ -663,9 +685,8 @@ async fn apply(
         return conflict();
     }
     // No lock spans source I/O. Recheck and consume under the same lock as the service write.
-    let mut previews = match state.price_previews.lock() {
-        Ok(p) => p,
-        Err(_) => return internal_error(),
+    let Ok(mut previews) = state.price_previews.lock() else {
+        return internal_error();
     };
     previews.prune();
     if !previews.0.contains_key(&input.preview_id) {
@@ -708,7 +729,9 @@ async fn review(
     };
     match service.billing_catalog_review(&context.version, &path.into_inner()) {
         Ok(text) => match serde_json::from_str::<Value>(&text) {
-            Ok(v) => HttpResponse::Ok().json(v),
+            Ok(v) => HttpResponse::Ok()
+                .insert_header(("Cache-Control", "no-store"))
+                .json(v),
             Err(_) => internal_error(),
         },
         Err(e) => management_error(e),
@@ -738,6 +761,72 @@ mod tests {
             serde_json::from_value(json!({"cost":{"input":0,"output":1.25,"tiers":[]}}))?;
         let (_, issues) = source_rates(&model);
         assert_eq!(issues, vec!["unsupported_tier_or_rate"]);
+        Ok(())
+    }
+    #[test]
+    fn preview_index_preserves_effective_time_ties_and_sparse_omissions()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let input: PreviewInput = serde_json::from_value(
+            json!({"catalog_version_id":"candidate","effective_at_ms":150,"mappings":[{
+            "source_provider":"vendor","source_model":"source","provider_id":"provider","channel_id":"channel","model":"public",
+            "missing_rates":{"reasoning":0,"cached":0,"cache_read":0,"cache_creation":0}}]}),
+        )?;
+        let observation = Observation {
+            source: serde_json::from_value(
+                json!({"vendor":{"models":{"source":{"cost":{"input":3,"output":4}}}}}),
+            )?,
+            digest: String::new(),
+            observed_at_ms: 0,
+        };
+        let rates = Rates {
+            input: Some(1),
+            output: Some(2),
+            reasoning: Some(0),
+            cached: Some(0),
+            cache_read: Some(0),
+            cache_creation: Some(0),
+        };
+        let entry = rates.entry(&input.mappings[0]).ok_or("entry")?;
+        let mut omitted = entry.clone();
+        omitted.model = "omitted".into();
+        let catalogs = vec![
+            BillingPriceCatalog {
+                catalog_version_id: "z".into(),
+                effective_at_ms: 100,
+                source: BillingCatalogSource::Test,
+                created_at_ms: 0,
+                entries: vec![entry.clone()],
+            },
+            BillingPriceCatalog {
+                catalog_version_id: "a".into(),
+                effective_at_ms: 100,
+                source: BillingCatalogSource::Test,
+                created_at_ms: 0,
+                entries: vec![entry.clone(), omitted],
+            },
+            BillingPriceCatalog {
+                catalog_version_id: "future".into(),
+                effective_at_ms: 200,
+                source: BillingCatalogSource::Test,
+                created_at_ms: 0,
+                entries: vec![entry],
+            },
+        ];
+        let (rows, _, can_apply) = proposal(&input, &observation, &catalogs)?;
+        assert!(can_apply);
+        assert_eq!(rows[0]["before_catalog_version_id"], "z");
+        assert_eq!(rows[1]["before_catalog_version_id"], "a");
+        assert_eq!(rows[1]["effect"], "retains_prior_price");
+        let mut tied = input;
+        tied.effective_at_ms = 100;
+        let (rows, _, can_apply) = proposal(&tied, &observation, &catalogs)?;
+        assert!(!can_apply);
+        assert!(
+            rows[0]["issues"]
+                .as_array()
+                .ok_or("issues")?
+                .contains(&json!("shadowed_at_effective_time"))
+        );
         Ok(())
     }
 }
