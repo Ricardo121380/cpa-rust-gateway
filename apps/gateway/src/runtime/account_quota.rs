@@ -10,8 +10,97 @@ use gateway_upstream::{UpstreamHttpMethod, UpstreamHttpRequest};
 use provider_anthropic_compatible::ClaudeRuntimeCredential;
 
 impl RuntimeModelCatalogWorker {
-    #[allow(clippy::too_many_lines)] // Keep the generation guard and exact credential lease in one request scope.
     pub(super) async fn read_account_quota(
+        &self,
+        credential_id: CredentialId,
+    ) -> Result<AccountQuotaObservation, CatalogRefreshError> {
+        let provider = self
+            .metadata_targets
+            .iter()
+            .chain(self.targets.iter())
+            .find_map(|target| {
+                if !self.pools.pool(&target.endpoint_id).is_some_and(|p| {
+                    p.diagnostic_entries()
+                        .iter()
+                        .any(|e| e.credential_id() == &credential_id)
+                }) {
+                    return None;
+                }
+                match &target.provider {
+                    RuntimeCatalogProvider::Codex => Some("codex"),
+                    RuntimeCatalogProvider::Kiro(_) => Some("kiro"),
+                    RuntimeCatalogProvider::Compatible {
+                        url,
+                        anthropic: true,
+                    } if url.as_url().as_str() == "https://api.anthropic.com/v1/models" => {
+                        Some("claude")
+                    }
+                    _ => None,
+                }
+            })
+            .ok_or(CatalogRefreshError::Unsupported)?;
+        let fence = self.quota_fence(&credential_id).await?;
+        let result = self.fetch_account_quota(credential_id).await;
+        if matches!(result, Err(CatalogRefreshError::Conflict)) {
+            return result;
+        }
+        let samples = match &result {
+            Ok(value) => value.history_samples(),
+            Err(_) => vec![gateway_store::quota_history::Sample::missing(
+                provider,
+                system_now_ms_runtime().map_err(|_| CatalogRefreshError::Upstream)?,
+                true,
+            )],
+        };
+        self.save_quota_history(fence, samples).await?;
+        result
+    }
+    pub(super) fn quota_revision(&self, id: &CredentialId) -> Option<u64> {
+        self.metadata_targets
+            .iter()
+            .chain(self.targets.iter())
+            .find_map(|target| {
+                self.pools
+                    .pool(&target.endpoint_id)?
+                    .diagnostic_entries()
+                    .into_iter()
+                    .find(|entry| entry.credential_id() == id)
+                    .map(|entry| entry.credential_revision())
+            })
+    }
+    pub(super) async fn quota_fence(
+        &self,
+        id: &CredentialId,
+    ) -> Result<gateway_store::quota_history::Fence, CatalogRefreshError> {
+        let store = self.quota_history.clone();
+        let account = gateway_store::quota_history::AccountScope {
+            account_kind: "credential".into(),
+            config_version_id: self.config_version_id.clone(),
+            account_id: id.to_string(),
+        };
+        let revision = i64::try_from(
+            self.quota_revision(id)
+                .ok_or(CatalogRefreshError::Conflict)?,
+        )
+        .map_err(|_| CatalogRefreshError::Conflict)?;
+        tokio::task::spawn_blocking(move || store.capture(account, Some(revision)))
+            .await
+            .map_err(|_| CatalogRefreshError::Upstream)?
+            .map_err(history_error)
+    }
+    pub(super) async fn save_quota_history(
+        &self,
+        fence: gateway_store::quota_history::Fence,
+        samples: Vec<gateway_store::quota_history::Sample>,
+    ) -> Result<(), CatalogRefreshError> {
+        let store = self.quota_history.clone();
+        tokio::task::spawn_blocking(move || store.append(&fence, &samples))
+            .await
+            .map_err(|_| CatalogRefreshError::Upstream)?
+            .map_err(history_error)
+    }
+    #[allow(clippy::too_many_lines)] // Keep the generation guard and exact credential lease in one request scope.
+    async fn fetch_account_quota(
         &self,
         credential_id: CredentialId,
     ) -> Result<AccountQuotaObservation, CatalogRefreshError> {
@@ -31,13 +120,18 @@ impl RuntimeModelCatalogWorker {
             None => None,
         };
         let now = system_now_ms_runtime().map_err(|_| CatalogRefreshError::Upstream)?;
+        let revision = self
+            .quota_revision(&credential_id)
+            .ok_or(CatalogRefreshError::Conflict)?;
         if let Some(cached) = self
             .account_quotas
             .lock()
             .map_err(|_| CatalogRefreshError::Upstream)?
             .get(&credential_id)
-            .filter(|o| now >= o.observed_at_ms && now - o.observed_at_ms < 300_000)
-            .cloned()
+            .filter(|(r, o)| {
+                *r == revision && now >= o.observed_at_ms && now - o.observed_at_ms < 300_000
+            })
+            .map(|(_, o)| o.clone())
         {
             return Ok(cached);
         }
@@ -149,9 +243,19 @@ impl RuntimeModelCatalogWorker {
             .account_quotas
             .lock()
             .map_err(|_| CatalogRefreshError::Upstream)?;
-        cache.insert(credential_id, observation.clone());
+        cache.insert(
+            credential_id,
+            (lease.credential_revision(), observation.clone()),
+        );
         self.metadata_revision.fetch_add(1, Ordering::AcqRel);
         drop(cache);
         Ok(observation)
+    }
+}
+
+fn history_error(error: gateway_store::quota_history::Error) -> CatalogRefreshError {
+    match error {
+        gateway_store::quota_history::Error::Conflict => CatalogRefreshError::Conflict,
+        _ => CatalogRefreshError::Upstream,
     }
 }

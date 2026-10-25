@@ -4540,3 +4540,6 @@ async fn ordinary_duplicate_import_readback_resolves_actual_existing_account() -
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
     Ok(())
 }
+
+#[path = "managed_resource_inventory/quota_history.rs"]
+mod quota_history;

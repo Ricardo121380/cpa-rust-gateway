@@ -369,3 +369,7 @@ to permit documented local estimates alongside applicable upstream counting. It 
 successor to ADR-0035, not an implementation receipt. BC-PROTOCOL-003's exact capability stays
 exact until the future count implementation amends the surrounding flow. Production still uses
 the unsupported executor; no runtime acceptance or actual Usage/ledger result is claimed here.
+
+## #74 quota observation history (2026-10-25)
+
+OPT-07 / T22 → [ADR-0128](adr/ADR-0128-account-quota-history.md) → [BC-MGMT-018](contracts/BC-MGMT-018-account-quota-history.md). Independent quota samples; no Usage/ledger semantic change or new polling.

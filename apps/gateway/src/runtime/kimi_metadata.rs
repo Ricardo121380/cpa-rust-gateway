@@ -17,6 +17,26 @@ impl RuntimeModelCatalogWorker {
         &self,
         credential_id: CredentialId,
     ) -> Result<KimiAccountObservation, CatalogRefreshError> {
+        let fence = self.quota_fence(&credential_id).await?;
+        let result = self.fetch_kimi_metadata(credential_id).await;
+        if matches!(
+            result,
+            Err(CatalogRefreshError::Conflict | CatalogRefreshError::Unsupported)
+        ) {
+            return result;
+        }
+        let samples = match &result {
+            Ok(value) if value.quota_available => gateway_http_actix::management_resources::account_quota::AccountQuotaObservation::from_kimi(value).history_samples(),
+            Ok(value) => vec![gateway_store::quota_history::Sample::missing("kimi",value.observed_at_ms,true)],
+            Err(_) => vec![gateway_store::quota_history::Sample::missing("kimi",system_now_ms_runtime().map_err(|_|CatalogRefreshError::Upstream)?,true)],
+        };
+        self.save_quota_history(fence, samples).await?;
+        result
+    }
+    async fn fetch_kimi_metadata(
+        &self,
+        credential_id: CredentialId,
+    ) -> Result<KimiAccountObservation, CatalogRefreshError> {
         let target = self
             .targets
             .iter()
@@ -40,20 +60,23 @@ impl RuntimeModelCatalogWorker {
             None => None,
         };
         let now = system_now_ms_runtime().map_err(|_| CatalogRefreshError::Upstream)?;
+        let revision = self
+            .quota_revision(&credential_id)
+            .ok_or(CatalogRefreshError::Conflict)?;
         if let Some(cached) = self
             .kimi_metadata
             .lock()
             .map_err(|_| CatalogRefreshError::Upstream)?
             .get(&credential_id)
-            .filter(|value| {
+            .filter(|(r, value)| {
                 let ttl = if value.profile_available && value.quota_available {
                     300_000
                 } else {
                     30_000
                 };
-                now >= value.observed_at_ms && now - value.observed_at_ms < ttl
+                *r == revision && now >= value.observed_at_ms && now - value.observed_at_ms < ttl
             })
-            .cloned()
+            .map(|(_, value)| value.clone())
         {
             return Ok(cached);
         }
@@ -80,7 +103,10 @@ impl RuntimeModelCatalogWorker {
             .kimi_metadata
             .lock()
             .map_err(|_| CatalogRefreshError::Upstream)?;
-        cache.insert(credential_id, observation.clone());
+        cache.insert(
+            credential_id,
+            (lease.credential_revision(), observation.clone()),
+        );
         // Publish the revision while holding the same lock as profile readers.
         self.metadata_revision.fetch_add(1, Ordering::AcqRel);
         drop(cache);

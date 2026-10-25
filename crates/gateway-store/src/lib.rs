@@ -20,6 +20,8 @@ pub mod event_store;
 pub mod messages_summary;
 /// Private Attempt-scoped native Usage and its authorized read-only diagnostic boundary.
 pub mod native_usage;
+/// Append-only account quota observations, independent of Usage and billing.
+pub mod quota_history;
 /// Request-only encrypted client metadata and authorized local diagnostics.
 pub mod request_metadata;
 pub mod secret_store;
@@ -65,7 +67,7 @@ const NATIVE_ACCOUNT_MANAGEMENT_SCHEMA_VERSION: i64 = 26;
 const REQUEST_TERMINAL_SCHEMA_VERSION: i64 = 27;
 
 /// Current durable control-plane schema.
-pub const CURRENT_SCHEMA_VERSION: i64 = 38;
+pub const CURRENT_SCHEMA_VERSION: i64 = 39;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -264,6 +266,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 38,
         up: include_str!("../migrations/0038_messages_request_metadata.up.sql"),
         down: include_str!("../migrations/0038_messages_request_metadata.down.sql"),
+    },
+    Migration {
+        version: 39,
+        up: include_str!("../migrations/0039_quota_history.up.sql"),
+        down: include_str!("../migrations/0039_quota_history.down.sql"),
     },
 ];
 
@@ -801,6 +808,7 @@ mod tests {
                 "native_account_management_events",
                 "native_usage_evidence",
                 "public_models",
+                "quota_history",
                 "request_metadata_evidence",
                 "route_candidates",
                 "routing_price_policies",
