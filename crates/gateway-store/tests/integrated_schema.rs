@@ -138,10 +138,10 @@ fn integrated_schema_failed_multistep_downgrade_preserves_all_columns_and_histor
     db.execute_batch("INSERT INTO grok_build_affinity_breaks(client_key_id,upstream_model,cache_identity,prior_credential_id,next_credential_id,reason,estimated_cache_loss_tokens,occurred_at_ms) VALUES ('owner','model','opaque','old','new','policy_reselection',NULL,1);")?;
     assert!(rollback_to_version(&mut db, 40).is_err());
     assert_eq!(schema_version(&db)?, Some(42));
-    assert!(
+    assert_eq!(
         db.prepare("SELECT request_policy_json FROM upstream_endpoints")?
-            .column_count()
-            == 1
+            .column_count(),
+        1
     );
     assert_eq!(
         db.query_row("SELECT reason FROM grok_build_affinity_breaks", [], |r| {
