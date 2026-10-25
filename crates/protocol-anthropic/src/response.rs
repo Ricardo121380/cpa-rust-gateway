@@ -1,8 +1,8 @@
 use std::{collections::BTreeMap, fmt};
 
 use gateway_core::{
-    CanonicalEvent, CanonicalEventState, CanonicalResponse, ExactInputTokenCount, GatewayError,
-    GatewayErrorCode, Usage,
+    CanonicalEvent, CanonicalEventState, CanonicalResponse, GatewayError, GatewayErrorCode,
+    InputTokenCount, Usage,
 };
 use serde_json::{Map, Value, json};
 
@@ -117,10 +117,10 @@ pub fn encode_error(error: &GatewayError) -> Value {
     })
 }
 
-/// Encodes one exact Anthropic `count_tokens` response.
+/// Encodes the standard count body; provenance is carried separately from this wire shape.
 #[must_use]
-pub fn encode_count_tokens(count: ExactInputTokenCount) -> Value {
-    json!({"input_tokens": count.input_tokens()})
+pub fn encode_count_tokens(count: impl Into<InputTokenCount>) -> Value {
+    json!({"input_tokens": count.into().input_tokens()})
 }
 
 /// Encodes a validated canonical response as one Anthropic Message object.

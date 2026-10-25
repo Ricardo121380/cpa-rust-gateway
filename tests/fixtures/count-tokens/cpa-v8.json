@@ -1,0 +1,46 @@
+{
+  "cases": [
+    {
+      "expected_input_tokens": 4,
+      "name": "text",
+      "request": "{\"model\":\"claude-test\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello.\"}]}"
+    },
+    {
+      "expected_input_tokens": 7,
+      "name": "system",
+      "request": "{\"model\":\"claude-test\",\"system\":\"System text.\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello.\"}]}"
+    },
+    {
+      "expected_input_tokens": 16,
+      "name": "unicode",
+      "request": "{\"model\":\"claude-test\",\"system\":\"  简洁回答。  \",\"messages\":[{\"role\":\"user\",\"content\":\"你好世界 🌏 café العربية हिन्दी\\n第二行\"}]}"
+    },
+    {
+      "expected_input_tokens": 16,
+      "name": "special-strings",
+      "request": "{\"model\":\"claude-test\",\"messages\":[{\"role\":\"user\",\"content\":\"\u003c|endoftext|\u003e \u003c|endofprompt|\u003e\"}]}"
+    },
+    {
+      "expected_input_tokens": 19,
+      "name": "tools",
+      "request": "{\"model\":\"claude-test\",\"system\":\"System text.\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"User text.\"}]}],\"tools\":[{\"name\":\"lookup\",\"description\":\"Looks up data.\",\"input_schema\":{\"type\":\"object\"}}]}"
+    },
+    {
+      "expected_input_tokens": 55,
+      "name": "tool-history",
+      "request": "{\"model\":\"claude-test\",\"messages\":[{\"role\":\"user\",\"content\":\"read a file\"},{\"role\":\"assistant\",\"content\":[{\"type\":\"tool_use\",\"id\":\"call_1\",\"name\":\"read\",\"input\":{\"path\":\"src/main.rs\",\"limit\":8}}]},{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"call_1\",\"content\":[{\"type\":\"text\",\"text\":\"fn main() {}\"}]}]}],\"tools\":[{\"name\":\"read\",\"description\":\"Read file\",\"input_schema\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"}}}}],\"tool_choice\":{\"type\":\"auto\"}}"
+    },
+    {
+      "expected_input_tokens": 11,
+      "name": "thinking",
+      "request": "{\"model\":\"claude-test\",\"messages\":[{\"role\":\"assistant\",\"content\":[{\"type\":\"thinking\",\"thinking\":\"Let me reason.\",\"signature\":\"opaque-signature\"},{\"type\":\"text\",\"text\":\"Answer\"}]},{\"role\":\"user\",\"content\":\"next\"}]}"
+    },
+    {
+      "expected_input_tokens": 5,
+      "name": "whitespace",
+      "request": "{\"model\":\"claude-test\",\"system\":\"\\t \\n\",\"messages\":[{\"role\":\"user\",\"content\":\" \\t x\\n y \\r\"}]}"
+    }
+  ],
+  "source_commit": "d946c4fba6fc9a5cfbca1f3d85184d62ad2fb683",
+  "tokenizer": "github.com/tiktoken-go/tokenizer v0.8.1 O200kBase"
+}

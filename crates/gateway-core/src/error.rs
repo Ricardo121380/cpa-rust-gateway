@@ -83,7 +83,7 @@ pub enum GatewayErrorCode {
     ProviderTransient,
     /// A provider returned a non-retryable failure.
     ProviderPermanent,
-    /// The selected route has no Provider or local capability that can return an exact token count.
+    /// The selected route or input is outside the supported token-count capability.
     TokenCountUnsupported,
     /// An upstream response violated its declared protocol.
     UpstreamProtocolError,
@@ -370,7 +370,7 @@ impl GatewayError {
             GatewayErrorCode::ProviderTransient => "the provider failed transiently",
             GatewayErrorCode::ProviderPermanent => "the provider returned a permanent failure",
             GatewayErrorCode::TokenCountUnsupported => {
-                "the selected route cannot accurately count tokens"
+                "token counting is unsupported for the selected route or input"
             }
             GatewayErrorCode::UpstreamProtocolError => "the upstream protocol was invalid",
             GatewayErrorCode::StreamTruncated => "the stream ended before completion",

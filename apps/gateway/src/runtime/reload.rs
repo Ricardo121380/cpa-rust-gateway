@@ -23,6 +23,8 @@ use gateway_router::{RouteSnapshot, SnapshotClientKeyAuthenticator};
 use std::path::PathBuf;
 
 pub(super) struct RuntimeFactory {
+    #[cfg(test)]
+    pub(super) count_http: Option<Arc<super::batch_c::http::Peer>>,
     pub(super) database: PathBuf,
     pub(super) secret_store: SecretStore,
     pub(super) client_keys: Arc<ClientKeyService>,
@@ -98,6 +100,8 @@ impl RuntimeFactory {
                     .map_err(|_| RuntimeCompositionError::Unavailable)
             })
             .transpose()?;
+        let mut count_executor: Arc<dyn gateway_router::CountTokensExecutor> =
+            Arc::new(gateway_router::UnsupportedCountTokensExecutor);
         let (
             executor,
             provider_account_pools,
@@ -163,8 +167,13 @@ impl RuntimeFactory {
                     routing_price_snapshot.as_ref(),
                     &self.concurrency,
                 )?;
+                #[cfg(test)]
+                if let Some(peer) = &self.count_http {
+                    peer.install(&mut executor)?;
+                }
                 executor.generation_active = Some(Arc::clone(&active));
                 let executor = Arc::new(executor);
+                count_executor = executor.clone();
                 let channel_pin: Box<dyn ManagementChannelPinFacade> =
                     Box::new(P12ChannelPinFacade::new(Arc::clone(&executor)));
                 (
@@ -199,6 +208,7 @@ impl RuntimeFactory {
             event_sink,
             default_stream_capacity().map_err(|_| RuntimeCompositionError::Unavailable)?,
         )
+        .with_count_tokens_executor(count_executor)
         .with_stored_response_store(Arc::clone(&self.stored_responses));
         let event_store = SqliteEventStore::open(database)
             .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::EventStore))?;

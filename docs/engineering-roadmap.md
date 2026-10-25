@@ -1,6 +1,6 @@
 # CPAR 当前状态与开发顺序
 
-更新：2026-10-24（Asia/Shanghai）。本页是**当前功能状态、CPA 对照版本和下一步开发的唯一汇总入口**。
+更新：2026-10-25（Asia/Shanghai）。本页是**当前功能状态、CPA 对照版本和下一步开发的唯一汇总入口**。
 [架构文档](03-target-architecture-draft.md)负责代码位置，[支持清单](support/first-release-candidates.md)负责客户端与交付证据，
 [GitHub 工单](https://github.com/Ricardo121380/cpa-rust-gateway/issues)负责具体验收条件及远端状态。
 旧计划的“待定”“未实现”和历史 PASS 均按原日期理解；后续实现与证据在这里汇总。
@@ -34,7 +34,7 @@ CPAR 是 CPA/CLIProxyAPI 网关行为的 Rust 实现。优先直接对照固定�
 |---|---|---|
 | Chat / Responses / Messages，JSON/SSE、常规工具 | 已实现并接入公共 handler 与 runtime | 按所选渠道/模式限制；当前候选真实客户端结果另验，不重开基础协议开发 |
 | Claude adaptive/effort/cache 兼容 | ADR-0125 已接入 native / CanonicalBridge；ADR-0126 已补齐 v8 显式 effort 提取及优先级 | effort-only、enabled 无预算、预算/disabled 优先级和 native JSON/SSE receiver 已验证；模型默认/预算输入范围仍有差异，最新源码实际客户端待重跑 |
-| Messages count_tokens | 路由与可注入 executor 已有；生产仍装配 UnsupportedCountTokensExecutor；ADR-0127 已接受适用上游计数与明确标识估算 | **产品决定已确认，待实现与接线**；计数不进入实际 Usage/账本，不能列为已可用 |
+| Messages count_tokens | #68 已按 ADR-0127 接通生产 RuntimeFactory、HTTP、Router 与 executor；适用 Anthropic 第一方 count API，其余支持路径为明确标识的 CPA O200kBase 估算 | [支持范围](support/messages-count-tokens.md)、[本地实施记录](reports/issue-68-count-tokens-20261025.md)；计数不产生推理 Usage/账本；真实 Provider、实际客户端、发布独立验收 |
 | namespace、hosted search、部分 input IDs/history、Build parallel | codec/受控测试已有；适用请求的生产资格分支仍为 false | **待满足明确资格并启用**，不重复造 parser，也不直接删除资格检查 |
 | Responses 查询/删除、续接、compact | 已实现归属保护和存储；StoredResponses 限 Build/Web，compact 限 Build | 按渠道及精确 lineage 验收，不推广到全部 adapter |
 | 入站 Responses WebSocket | 已实现并桥接现有 HTTP/SSE 出站 | 原生上游 WS、Realtime 尚未实现；已有入站接口不重复开发 |
@@ -127,11 +127,12 @@ RUSTSEC-2026-0386 阻碍已通过实际升级消除；cargo deny通过，独立 
 源码绑定与结果见[安全维护记录](reports/tokio-security-fix-20261024.md)。
 [effort 实施记录](reports/cpa-v8-messages-effort-20261024.md)保留原始 FAIL 和原受测源码，不改写历史结果。
 
-**下一项建议：补齐 Messages count_tokens 的生产实现与装配。**
-路由和注入接口已经存在，生产仍使用 UnsupportedCountTokensExecutor；从现有 executor/runtime
-接缝对照 CPA 计数行为。用户已按 [ADR-0127](adr/ADR-0127-cpa-compatible-token-counting.md)
-确认适用上游计数与明确标识的本地估算；实现时明确支持模型/输入、来源与估算局限，再完成生产验证。
-本轮已按确认的8票合并版发布 #68–#75，75项验收条件全部保留。下一项对应 [#68](https://github.com/Ricardo121380/cpa-rust-gateway/issues/68)；工单发布不代表计数已实现。
+**Messages count_tokens 已完成 #68 本地实现与生产装配。**
+工作分支 `codex/68-count-tokens`，共同基线 `444558a8de930f5f1febd5a40ec5bdbbc30a15fb`；
+具体受测源码、门禁与审查见[本地实施记录](reports/issue-68-count-tokens-20261025.md)。
+该增量没有合入共同基线、推送或关闭远端工单；#72/#74 在其他工作区独立进行，不代表已集成。
+当前第一方与估算输入限制见[计数支持范围](support/messages-count-tokens.md)。
+实际客户端若依赖此能力，仍需在 #64 或对应渠道票复验；不替代三客户端和固定服务资格。
 其后按需要推进常用 Claude/Codex 兼容与当前客户端验证 → 会话亲和/路由配置便利性。
 高级工具的生产资格与固定服务证据继续按各自条件推进。
 Gemini、多模态、插件、Home 和新前端是单独扩展项，本页没有自动启动它们。

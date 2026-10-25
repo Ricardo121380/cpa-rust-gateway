@@ -171,4 +171,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 
 - [ADR-0126 CPA v8 Messages effort extraction](ADR-0126-cpa-v8-messages-effort.md) — Accepted; explicit effort without thinking or enabled budget, budget/disabled precedence; limited successor to ADR-0125.
 
-- [ADR-0127 CPA-compatible token counting](ADR-0127-cpa-compatible-token-counting.md) — Accepted product decision; upstream counting and explicitly identified estimation; implementation and production wiring pending.
+- [ADR-0127 CPA-compatible token counting](ADR-0127-cpa-compatible-token-counting.md) — Accepted product decision; #68 implements production counting with explicit provenance; scope and evidence in [count support](../support/messages-count-tokens.md).

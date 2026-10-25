@@ -13,6 +13,7 @@ CPAR 是基于公开行为和兼容性参考进行 clean-room Rust 重实现的�
 - Original reference: `v7.2.80`
 - Request compatibility mappings: `v7.2.158`, commit `5b2785617d1e7de84a9f4dee599d275a4ccd8999` (`internal/thinking`, request translators; ADR-0125)
 - Messages effort extraction: `v8.0.40`, commit `d946c4fba6fc9a5cfbca1f3d85184d62ad2fb683` (`internal/thinking/apply.go`, `extractClaudeConfig`; ADR-0126)
+- Messages input counting: `v8.0.40`, commit `d946c4fba6fc9a5cfbca1f3d85184d62ad2fb683` (`internal/runtime/executor/claude_executor_tokens.go`, `helps/claude_input_tokens.go`; ADR-0127 / #68). Text/tool segment collection is adapted under the MIT notice below.
 - License: MIT
 
 ```text

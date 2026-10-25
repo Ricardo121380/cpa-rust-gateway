@@ -2775,7 +2775,11 @@ async fn count_tokens(
         Ok(context) => context,
         Err(error) => return pre_header_anthropic_error(&error),
     };
-    let execution = CountTokensExecution::new(context, decoded.request, route.route_id);
+    let (client_key_id, _) = authenticated_client.event_identity();
+    let context = context.with_client_key_id(client_key_id);
+    let execution = CountTokensExecution::new(context, decoded.request, route.route_id)
+        .with_route_snapshot(route.snapshot, route.exact_upstream_model)
+        .with_native_payload(Arc::from(body));
     let count = match state.count_tokens_executor.count_tokens(execution).await {
         Ok(count) => count,
         Err(error) => return pre_header_anthropic_error(&error),
@@ -2786,6 +2790,7 @@ async fn count_tokens(
     // Provider encoding and observability; the route identity proves resolved routing.
     HttpResponse::Ok()
         .content_type("application/json")
+        .insert_header(("x-cpar-token-count-method", count.method()))
         .body(encode_count_tokens(count).to_string())
 }
 
@@ -6284,7 +6289,7 @@ mod tests {
                 "type": "error",
                 "error": {
                     "type": "invalid_request_error",
-                    "message": "the selected route cannot accurately count tokens"
+                    "message": "token counting is unsupported for the selected route or input"
                 }
             })
         );
@@ -7940,7 +7945,7 @@ mod tests {
         fn count_tokens(
             &self,
             execution: CountTokensExecution,
-        ) -> CountTokensFuture<'_, Result<ExactInputTokenCount, GatewayError>> {
+        ) -> CountTokensFuture<'_, Result<gateway_core::InputTokenCount, GatewayError>> {
             let observation = CountTokensObservation {
                 requested_model: execution.request().requested_model.clone(),
                 route_id: execution
@@ -7956,7 +7961,7 @@ mod tests {
                 },
                 |mut observed| {
                     observed.push(observation);
-                    Ok(ExactInputTokenCount::new(17))
+                    Ok(ExactInputTokenCount::new(17).into())
                 },
             );
             Box::pin(async move { result })

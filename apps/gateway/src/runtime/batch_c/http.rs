@@ -4,6 +4,7 @@ use actix_web::{HttpRequest, HttpResponse, HttpServer, dev::ServerHandle};
 use gateway_upstream::EgressDnsError;
 use std::net::{IpAddr, Ipv4Addr, TcpListener};
 pub(in crate::runtime) mod bootstrap_usage;
+mod count_tokens;
 mod cpa_compatibility;
 mod responses_done;
 mod responses_history;
@@ -24,9 +25,25 @@ pub(in crate::runtime) struct Peer {
     policy: EgressPolicy,
     requests: Mutex<Vec<Recorded>>,
     received: web::Data<Mutex<Vec<Value>>>,
+    received_paths: web::Data<Mutex<Vec<String>>>,
     server: ServerHandle,
 }
 impl Peer {
+    pub(in crate::runtime) fn install(
+        self: &Arc<Self>,
+        executor: &mut P12RoutedResponsesExecutor,
+    ) -> Result<(), RuntimeCompositionError> {
+        let endpoints =
+            Arc::get_mut(&mut executor.endpoints).ok_or(RuntimeCompositionError::Unavailable)?;
+        for endpoint in endpoints.values_mut() {
+            let mut profiles = P12TransportProfiles::try_new()?;
+            profiles.http = Some(self.clone());
+            endpoint.transports = Arc::new(profiles);
+            endpoint.resolver = Arc::new(PublicResolver);
+        }
+        Ok(())
+    }
+
     fn start(
         reject_limit: bool,
         responses_output: Option<Value>,
@@ -42,9 +59,12 @@ impl Peer {
         let port = listener.local_addr()?.port();
         let received = web::Data::new(Mutex::new(Vec::new()));
         let server_received = received.clone();
+        let received_paths = web::Data::new(Mutex::new(Vec::<String>::new()));
+        let server_paths = received_paths.clone();
         let server = HttpServer::new(move || {
             App::new()
                 .app_data(server_received.clone())
+                .app_data(server_paths.clone())
                 .app_data(web::Data::new(reject_limit))
                 .app_data(web::Data::new(responses_output.clone()))
                 .app_data(web::Data::new(chunks.clone()))
@@ -73,6 +93,7 @@ impl Peer {
             policy,
             requests: Mutex::new(Vec::new()),
             received,
+            received_paths,
             server: handle,
         }))
     }
@@ -86,6 +107,7 @@ impl Peer {
             "content-type",
             "user-agent",
             "anthropic-version",
+            "anthropic-beta",
             "x-api-key",
             "chatgpt-account-id",
             "openai-beta",
@@ -139,7 +161,19 @@ async fn reply(
     output: web::Data<Option<Value>>,
     chunks: web::Data<Option<Vec<Vec<u8>>>>,
     received: web::Data<Mutex<Vec<Value>>>,
+    paths: web::Data<Mutex<Vec<String>>>,
 ) -> Result<HttpResponse, actix_web::Error> {
+    paths
+        .lock()
+        .map_err(|_| actix_web::error::ErrorInternalServerError("paths"))?
+        .push(request.path().into());
+    if request.path() == "/v1/messages/count_tokens" {
+        received
+            .lock()
+            .map_err(|_| actix_web::error::ErrorInternalServerError("received"))?
+            .push(body.0.clone());
+        return count_tokens::reply(&body, output.get_ref().as_ref());
+    }
     received
         .lock()
         .map_err(|_| actix_web::error::ErrorInternalServerError("received requests"))?

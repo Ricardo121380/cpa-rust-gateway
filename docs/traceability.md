@@ -369,3 +369,13 @@ to permit documented local estimates alongside applicable upstream counting. It 
 successor to ADR-0035, not an implementation receipt. BC-PROTOCOL-003's exact capability stays
 exact until the future count implementation amends the surrounding flow. Production still uses
 the unsupported executor; no runtime acceptance or actual Usage/ledger result is claimed here.
+
+## 2026-10-25 Messages count implementation (#68)
+
+[ADR-0127](adr/ADR-0127-cpa-compatible-token-counting.md) is implemented through production
+HTTP, Router admission and the runtime counting executor. The amended
+[BC-PROTOCOL-003](contracts/BC-PROTOCOL-003-exact-token-count-capability.md) preserves exact
+capabilities and adds explicit provider-reported / estimated provenance without inference Usage
+or billing. [Support scope](support/messages-count-tokens.md) and
+[local implementation evidence](reports/issue-68-count-tokens-20261025.md) retain the distinction
+from actual-client, fixed-service, real Provider and release qualification.
