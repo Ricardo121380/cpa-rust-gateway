@@ -1,0 +1,43 @@
+{
+  "workflow": "code-review two axes with clean one-shot read-only agents",
+  "baseline": "84fbfbf778b582f746c1cafe31a2ce58962e8f77",
+  "initial_candidate": "537ce1911dacd182ad1db91965b1c59ecaa8affa",
+  "final_source": "0f7dc6ace62f136931126c6c8fd46853c7d8c488",
+  "Standards": {
+    "initial_findings": [
+      {
+        "priority": "P2",
+        "kind": "resource-boundary judgement",
+        "finding": "Near-quadratic omitted-tuple selection on Actix worker",
+        "status": "CLOSED",
+        "fix": "One effective-tuple BTreeMap, early 4096 cap, proposal/fingerprint under read_operations blocking admission",
+        "independent_verification": "review73_fix_verification"
+      }
+    ],
+    "unresolved_actionable": 0
+  },
+  "Spec": {
+    "initial_findings": [
+      {
+        "priority": "P2",
+        "finding": "Missing no-store on price preview/review/refresh success",
+        "status": "CLOSED",
+        "fix": "Explicit response headers and controlled HTTP assertions",
+        "independent_verification": "review73_fix_verification"
+      }
+    ],
+    "fix_verification_findings": [
+      {
+        "priority": "P2",
+        "finding": "Second blocking admission capacity failure mapped to503 instead of price-source429",
+        "status": "CLOSED",
+        "fix": "Explicit ReadCapacityExceeded -> source_failure branch",
+        "independent_verification": "review73_capacity_closeout"
+      }
+    ],
+    "unresolved_actionable": 0
+  },
+  "review_limit": "Static review; runtime validation recorded independently; no whole inherited-code audit",
+  "tested_source": "5bbe4af62eb2cee3407c17ca0138d1c60c33822e",
+  "post_review_delta": "0f7dc6ac..5bbe4af6: one expected schema-table string in existing test only; primary agent verified production paths unchanged"
+}

@@ -1,0 +1,51 @@
+{
+  "cwd": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-73-price-preview-versioning-20261025",
+  "source_commit": "5bbe4af62eb2cee3407c17ca0138d1c60c33822e",
+  "full_command": "CARGO_BUILD_JOBS=2 RUST_TEST_THREADS=4 CARGO_TARGET_DIR=$PWD/output/issue-73/target TMPDIR=$PWD/output/issue-73/tmp CHECK_REPORT_PATH=$PWD/output/issue-73/full-03.md ./scripts/check.sh full",
+  "process_build": [
+    "cargo",
+    "build",
+    "--locked",
+    "-p",
+    "gateway",
+    "--bin",
+    "gateway"
+  ],
+  "process_build_env": {
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-73-price-preview-versioning-20261025/output/issue-73/target",
+    "TMPDIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-73-price-preview-versioning-20261025/output/issue-73/tmp",
+    "GATEWAY_RELEASE_REVISION": "5bbe4af62eb2cee3407c17ca0138d1c60c33822e",
+    "GATEWAY_RELEASE_RUST_VERSION": "1.97.1",
+    "GATEWAY_RELEASE_TARGET": "aarch64-apple-darwin"
+  },
+  "process_command": "CPAR_USAGE_SNAPSHOT_ONLY=1 CPAR_GATEWAY_BINARY=<fixed binary in binary.json> python3 scripts/acceptance/cpar-batch-b-http.py output/issue-73/process72",
+  "process_network_fence": "OS loopback-only sandbox on initial serve and restart; background provider tasks disabled",
+  "inputs_sha256": {
+    "Cargo.lock": "a3950a764ae2dcae4e04a8a32ada596f33ea105dbfda8e9714b3e32d3216cd6d",
+    "rust-toolchain.toml": "8e390d6a0838315f972690f46ef8bae8b7ecc9ee6c1ed70140ef852869c2482e",
+    "scripts/check.sh": "f3664389e078e2e760c48afdb318c9dd0a494810365cec3ce299b9dd141f0678",
+    "scripts/acceptance/cpar-batch-b-http.py": "4ab1151ee3db2f19895e29e5665abba10bd27749f4153ab8c60eb59cb64a3428",
+    "scripts/acceptance/cpar_usage_snapshot_http.py": "6e53569757c643c84c688c41a152bdf18648b0f5aaaf7002688896a2256e32f1",
+    "scripts/acceptance/cpar_t12_upgrade_http.py": "d01614324e55fdf292b6aa0e33328fc619a286142551d486ca336ee5dc02a201",
+    "crates/gateway-http-actix/tests/issue73_price_preview.rs": "befdf3ed92725316ccfed9c9c2619d4d088d6904951365fc92ff0f8404ea609f",
+    "crates/gateway-http-actix/tests/issue72_usage_snapshots.rs": "9556c33a9cc103a48c163dd7f12bd18f5ced991a1d72bc162db2e8b2bb65fec6"
+  },
+  "logs_sha256": {
+    "build-process-binary.log": "9126dabd3fb92b33b609f80c26d4f33cc0aa840edc3af399371a525158bcf134",
+    "check-01.log": "4b598e876ea6e7c5453d4c1808b44b97b9fc9e02fd8bb81feee655a49a3d2bda",
+    "clippy-01.log": "79fef0ab2451b27df650aea03a43cf66d7da19efdab35fb36ee9ee424b17b688",
+    "clippy-02.log": "ea52ce71ce2dd86e902ad430ec4357784d6362e3437f3ba8868fa428f76ff0e8",
+    "clippy-03.log": "5e514995bc1bffcd29d33b9f8974307dd0f9aa093bcc78e961d8a8b99758440b",
+    "doc-links-01.log": "9007f1e017c71578cac90aa836e3e980ff40a57439d0b1a4ddbfc3d0d96af738",
+    "full-01.log": "daab8b0a2dac1db7045e65982f16bfb954a3cff8064ef6bc37cb6c64998a4c7e",
+    "full-02.log": "746c45ceff1674de57374e5aca0d232a9889a274789488064da7c8ac33f78ffa",
+    "full-03.log": "18044651407b2fbbd5e3981531e65968eb7414e0d02183cf2ae9b65059e91d9f",
+    "http-01.log": "aba510eb8e2101a843d4e77ae7d6d39defb75ade30816efa9f513421744685ef",
+    "http-02.log": "aa6d12211e0250a4206c00b30ead6a36676e22113755917e5e88c4867329bce2",
+    "process-runner.log": "97cde9a9fe3bf6d85536235ca25600f18ffcb5622c03e8b3448d8cf1ff363784",
+    "process72.log": "bb57fcbc5804c626bfd5b6758ddc3de2f80314e28f8e929b36a9c271461aabc7",
+    "store-01.log": "e56c8148e7bdb03391fcb4bd3e31211c4521ef8f011637437b0263e2f807b1a8"
+  },
+  "private_boundary": "Generated credentials/databases, raw receipts and raw captures remain ignored. Published receipt contains safe check identities only."
+}

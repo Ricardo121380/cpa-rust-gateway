@@ -1,0 +1,84 @@
+{
+  "status": "PASS_BOUNDED_LOCAL",
+  "baseline": "84fbfbf778b582f746c1cafe31a2ce58962e8f77",
+  "tested_source_commit": "5bbe4af62eb2cee3407c17ca0138d1c60c33822e",
+  "tested_source_tree": "99b082602ef29e3c5f95256aba7044d48788c09f",
+  "cargo_lock_sha256": "a3950a764ae2dcae4e04a8a32ada596f33ea105dbfda8e9714b3e32d3216cd6d",
+  "full": {
+    "steps_passed": 44,
+    "steps_total": 44,
+    "exit_code": 0,
+    "rust_results": {
+      "passed": 1698,
+      "failed": 0,
+      "ignored": 21
+    },
+    "result_sets": 134,
+    "dependencies_scanned": 378,
+    "duplicate_dependency_warning_groups": 15,
+    "rust_test_binary_hashes": 114
+  },
+  "process72": {
+    "status": "PASS",
+    "checks": 517,
+    "controlled_calls": 7,
+    "loopback_receives": 7,
+    "exit_code": 0,
+    "binary_sha256": "ff45c4997ef847dad0dcc19a6c315a033c29ce4e27ca0cb90da25405b4614519",
+    "source_commit": "5bbe4af62eb2cee3407c17ca0138d1c60c33822e"
+  },
+  "review": {
+    "Standards_unresolved": 0,
+    "Spec_unresolved": 0,
+    "initial_findings_fixed": 3,
+    "scope": "changed-code static review; final test-only table-list delta verified by primary"
+  },
+  "schema": 40,
+  "reservations": {
+    "ADR": "0131",
+    "contract": "BC-MGMT-021",
+    "migration": "0040_billing_catalog_reviews"
+  },
+  "source_after_validation": {
+    "clean": true,
+    "changed_file_hashes_unchanged": true,
+    "binary_hash_unchanged": true
+  },
+  "prior_full_runs": [
+    {
+      "run": "full-01",
+      "status": "INTERRUPTED",
+      "source_commit": "426c9a9be4ded7b4ce510e4b436fca76fbfd82fd",
+      "reason": "143; stopped before source mutation to fix independently found second-admission503/429 mapping",
+      "receipt_file": "output/issue-73/full.md",
+      "receipt_sha256": "53a52387666a4fc4d4db64b1c92b062b12e176dbf6e272648bc3c6a4ebabe3b4",
+      "log_sha256": "daab8b0a2dac1db7045e65982f16bfb954a3cff8064ef6bc37cb6c64998a4c7e"
+    },
+    {
+      "run": "full-02",
+      "status": "FAIL",
+      "source_commit": "0f7dc6ace62f136931126c6c8fd46853c7d8c488",
+      "reason": "101; exact table inventory lacked new billing_catalog_reviews; retained exact assertion and added expected table",
+      "receipt_file": "output/issue-73/full-02.md",
+      "receipt_sha256": "bc3d08dbea5b04d4f3c28f4a7d465f6b1321f16d8b57530c9c6041e0ecf1e617",
+      "log_sha256": "746c45ceff1674de57374e5aca0d232a9889a274789488064da7c8ac33f78ffa"
+    },
+    {
+      "run": "full-03",
+      "status": "PASS",
+      "source_commit": "5bbe4af62eb2cee3407c17ca0138d1c60c33822e",
+      "reason": "44/44; complete rerun on clean final source",
+      "receipt_file": "output/issue-73/full-03.md",
+      "receipt_sha256": "21a38ff234d086cba136fa08b2080d370bebf557c9c3f96e00becd6a98b4dba0",
+      "log_sha256": "18044651407b2fbbd5e3981531e65968eb7414e0d02183cf2ae9b65059e91d9f"
+    }
+  ],
+  "qualification_limits": [
+    "Controlled sources and synthetic data only",
+    "No real models.dev availability or real Provider/client/Build/release/deployment qualification",
+    "No historical repricing or complex tiers",
+    "Missing rates remain null/blocked until explicit operator completion",
+    "No measured capacity/RSS or #61 admission change"
+  ],
+  "evidence_separation": "114 Full Rust test binaries have hashes. Retained gateway binary belongs to the later explicitly source-embedded #72 process run. Full default-metadata startup/agent process steps are source/command-bound; their gateway binary hash was not separately retained and is not equated with the retained binary."
+}
