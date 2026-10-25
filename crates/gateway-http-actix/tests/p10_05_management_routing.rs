@@ -861,7 +861,7 @@ async fn issue70_management_policy_crud_is_explicit_revisioned_and_closed() -> T
     )
     .await;
     let reply=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/public-models")
-        .set_json(json!({"id":"issue70-model","model_name":"issue70-model","status":"active","display_name":"issue70","capabilities":[]})),Some("rev-0")).to_request()).await;
+        .set_json(json!({"id":"issue70-model","model_name":"issue70-model","status":"active","display_name":"issue70","capabilities":{}})),Some("rev-0")).to_request()).await;
     assert_eq!(reply.status(), StatusCode::CREATED);
     let mut revision = 1;
     for (index, policy) in [
@@ -881,7 +881,7 @@ async fn issue70_management_policy_crud_is_explicit_revisioned_and_closed() -> T
         let request = if index == 0 {
             test::TestRequest::post()
         } else {
-            test::TestRequest::put()
+            test::TestRequest::patch()
         };
         let reply=test::call_service(&app,authorized(request.uri(path).set_json(json!({"id":"issue70-route","policy":policy,"max_attempts":4,"bootstrap_timeout_ms":15000})),Some(&format!("rev-{revision}"))).to_request()).await;
         assert!(reply.status() == StatusCode::CREATED || reply.status() == StatusCode::OK);
@@ -901,7 +901,7 @@ async fn issue70_management_policy_crud_is_explicit_revisioned_and_closed() -> T
         assert_eq!(body["policy"], policy);
     }
     for policy in ["weighted-round-robin", "unknown", "", "priority_failover"] {
-        let reply=test::call_service(&app,authorized(test::TestRequest::put().uri("/admin/routes/issue70-route").set_json(json!({"id":"issue70-route","policy":policy,"max_attempts":4,"bootstrap_timeout_ms":15000})),Some(&format!("rev-{revision}"))).to_request()).await;
+        let reply=test::call_service(&app,authorized(test::TestRequest::patch().uri("/admin/routes/issue70-route").set_json(json!({"id":"issue70-route","policy":policy,"max_attempts":4,"bootstrap_timeout_ms":15000})),Some(&format!("rev-{revision}"))).to_request()).await;
         assert_eq!(reply.status(), StatusCode::BAD_REQUEST);
     }
     let reply = test::call_service(

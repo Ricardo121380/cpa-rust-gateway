@@ -398,6 +398,15 @@ pub struct ProviderScopedSelection {
 }
 
 impl ProviderScopedSelection {
+    pub(crate) fn with_projected_candidate(mut self, candidate: Option<RouteCandidateId>) -> Self {
+        self.selected_candidate_id = candidate.filter(|id| {
+            self.decisions
+                .iter()
+                .any(|decision| decision.is_eligible() && decision.candidate().candidate_id() == id)
+        });
+        self
+    }
+
     /// Returns the exact Provider scope used by this result.
     #[must_use]
     pub fn provider_id(&self) -> &ProviderId {
@@ -444,7 +453,7 @@ impl ProviderScopedSelector {
 
     /// Uses an explicit route strategy while leaving the legacy comparator unchanged.
     #[must_use]
-    pub fn with_policy(mut self, policy: crate::SnapshotRoutePolicy) -> Self {
+    pub(crate) fn with_policy(mut self, policy: crate::SnapshotRoutePolicy) -> Self {
         self.policy = policy;
         self
     }

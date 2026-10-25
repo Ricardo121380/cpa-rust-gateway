@@ -114,7 +114,7 @@ use gateway_router::{
 use gateway_store::{
     control_plane::{
         CompatibleEgressTargetConfiguration, ConfigVersionId, ControlPlaneConfiguration,
-        CredentialScope, CredentialStatus, EndpointConfiguration, EndpointTransport, RoutePolicy,
+        CredentialScope, CredentialStatus, EndpointConfiguration, EndpointTransport,
         RoutingPriceComparison, SqliteControlPlaneRepository, StoredCompatibleFailureScope,
         StoredCompatibleStickiness, StoredEgressRedirectMode, TransformMode,
     },
@@ -3701,13 +3701,7 @@ fn validate_p12_route_access_shape(
         .filter(|route| active_routes.contains(&route.id))
     {
         if !model_ids.contains(&route.public_model_id)
-            || !matches!(
-                route.policy,
-                RoutePolicy::SmoothWeightedRoundRobin
-                    | RoutePolicy::RoundRobin
-                    | RoutePolicy::WeightedRoundRobin
-                    | RoutePolicy::FillFirst
-            )
+            || !route.policy.is_serving_policy()
             || !usize::try_from(route.max_attempts)
                 .is_ok_and(|attempts| (1..=P12_MAX_ROUTE_ATTEMPTS).contains(&attempts))
             || route.bootstrap_timeout_ms <= 0

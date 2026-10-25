@@ -550,7 +550,7 @@ fn issue70_affinity_migrates_schema40_and_bounds_unknown_break_history() -> Test
         let binding = GrokBuildCacheAffinity::try_new(
             credential("bounded-credential")?,
             None,
-            NOW_MS + 100000,
+            NOW_MS + 100_000,
             GrokBuildAffinityReason::PromptCache,
         )?
         .with_serving_binding(7, format!("{index:064x}"))?;
@@ -571,7 +571,7 @@ fn issue70_affinity_migrates_schema40_and_bounds_unknown_break_history() -> Test
         let binding = GrokBuildCacheAffinity::try_new(
             credential("bounded-credential")?,
             None,
-            NOW_MS + 100000,
+            NOW_MS + 100_000,
             GrokBuildAffinityReason::PromptCache,
         )?
         .with_serving_binding(revision, format!("{revision:064x}"))?;

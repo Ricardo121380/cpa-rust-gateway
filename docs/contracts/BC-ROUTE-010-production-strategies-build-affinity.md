@@ -45,6 +45,8 @@ Status: `LOCAL_IMPLEMENTATION`; #70 / OPT-03; [ADR-0133](../adr/ADR-0133-product
 - `issue70_public_http_failover_and_postsemantic_no_retry`
 - `issue70_public_http_concurrent_capacity_releases_every_lease`
 - `issue70_public_http_stored_lineage_never_uses_soft_fallback`
+- `issue70_public_http_fill_first_and_candidate_set_changes`
+- `issue70_public_http_configuration_rollback_and_disabled_account_rebind`
 - `issue70_explicit_policy_validation_publication_and_rollback_preserve_legacy`
 - `issue70_management_policy_crud_is_explicit_revisioned_and_closed`
 - `issue70_affinity_migrates_schema40_and_bounds_unknown_break_history`

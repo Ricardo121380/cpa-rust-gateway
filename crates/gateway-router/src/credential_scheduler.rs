@@ -561,7 +561,11 @@ impl RouteCredentialScheduler {
 
     /// Ordinary affinity is advisory and is attempted only in the current policy tier. Strict
     /// continuation uses its separate exact-lineage entrypoint and never enters this function.
-    #[allow(clippy::too_many_arguments)]
+    #[allow(
+        clippy::too_many_arguments,
+        clippy::too_many_lines,
+        reason = "one serving boundary keeps preference, policy and exact lease checks auditable"
+    )]
     pub(crate) fn select_provider_scoped_with_preference_at<FCandidate, FBinding, FPreference>(
         &self,
         expected_snapshot: Option<&Arc<RouteSnapshot>>,
@@ -611,7 +615,13 @@ impl RouteCredentialScheduler {
         for ids in tiers.values() {
             let mut acquire =
                 |candidate: &SnapshotRouteCandidate, preferred: Option<(CredentialId, u64)>| {
+                    let ranked = eligible
+                        .iter()
+                        .find(|decision| decision.candidate().candidate_id() == candidate.id())?
+                        .candidate();
                     if !ids.contains(candidate.id())
+                        || ranked.provider_id() != selection.provider_id()
+                        || ranked.channel_id() != candidate.endpoint_id()
                         || candidate.upstream_id().as_str() != selection.provider_id().as_str()
                         || !candidate.is_hard_eligible_at(observed_at_ms)
                         || !is_candidate_eligible(candidate)
@@ -657,7 +667,7 @@ impl RouteCredentialScheduler {
                                     && entry.active_leases() < entry.maximum_concurrency()
                                     && allowed(entry.credential_id())
                             })
-                            .map(|entry| entry.priority())
+                            .map(gateway_upstream::CredentialPoolEntrySnapshot::priority)
                             .min()?;
                         if target.priority() != best {
                             return None;
@@ -668,17 +678,15 @@ impl RouteCredentialScheduler {
                             return None;
                         }
                         lease
+                    } else if explicit {
+                        pool.try_lease_with_policy_at(
+                            observed_at_ms,
+                            policy == crate::SnapshotRoutePolicy::WeightedRoundRobin,
+                            policy == crate::SnapshotRoutePolicy::FillFirst,
+                            allowed,
+                        )?
                     } else {
-                        if explicit {
-                            pool.try_lease_with_policy_at(
-                                observed_at_ms,
-                                policy == crate::SnapshotRoutePolicy::WeightedRoundRobin,
-                                policy == crate::SnapshotRoutePolicy::FillFirst,
-                                allowed,
-                            )?
-                        } else {
-                            pool.try_lease_eligible_at(observed_at_ms, allowed)?
-                        }
+                        pool.try_lease_eligible_at(observed_at_ms, allowed)?
                     };
                     Some(SelectedRouteCredential {
                         candidate: candidate.clone(),

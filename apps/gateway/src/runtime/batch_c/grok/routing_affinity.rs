@@ -113,13 +113,13 @@ async fn receive(
     let Ok((streaming, mut output)) = peer.reply("synthetic receiver", &bytes) else {
         return HttpResponse::InternalServerError().finish();
     };
-    if streaming && body.to_string().contains("postsemantic-affinity") {
-        if let Some(offset) = output
+    if streaming
+        && body.to_string().contains("postsemantic-affinity")
+        && let Some(offset) = output
             .windows(b"event: response.completed".len())
             .position(|window| window == b"event: response.completed")
-        {
-            output.truncate(offset);
-        }
+    {
+        output.truncate(offset);
     }
     HttpResponse::Ok()
         .content_type(if streaming {
@@ -362,7 +362,7 @@ async fn call(
     let status = reply.status().as_u16();
     Ok((status, reply.bytes().await?.to_vec()))
 }
-fn assert_idle(fixture: &Fixture) -> TestResult {
+fn assert_idle(fixture: &Fixture) {
     assert!(
         fixture
             .executor
@@ -370,7 +370,6 @@ fn assert_idle(fixture: &Fixture) -> TestResult {
             .diagnostic_bindings()
             .all(|(_, entry)| entry.active_leases() == 0)
     );
-    Ok(())
 }
 
 #[actix_web::test]
@@ -383,6 +382,35 @@ async fn issue70_public_http_policies_rotate_candidates_and_credentials() -> Tes
         let receiver = Receiver::start()?;
         let (fixture, _) = fixture_for(&receiver, policy, 2)?;
         let (origin, server) = serve(fixture.state.clone())?;
+        let snapshot = fixture.executor.scheduler.snapshot();
+        let route = snapshot.routes().next().ok_or("route")?;
+        let input = gateway_router::ProviderScopedRouteExplainInput::try_new(
+            gateway_router::RouteExplainInput::new(route.id().clone(), system_now_ms_runtime()?),
+            ProviderId::try_new(route.candidates()[0].upstream_id().as_str())?,
+            route
+                .candidates()
+                .iter()
+                .map(|candidate| candidate.id().clone())
+                .collect(),
+            BTreeMap::new(),
+        )?;
+        let projection = fixture.executor.scheduler.explain_provider_scoped(
+            &input,
+            &fixture.executor.runtime_health,
+            &fixture.executor.runtime_quota,
+            &gateway_router::AttemptExclusionSet::new(),
+        )?;
+        let projected = projection
+            .provider_selection()
+            .selected_candidate_id()
+            .ok_or("projected candidate")?;
+        let projected_model = route
+            .candidates()
+            .iter()
+            .find(|candidate| candidate.id() == projected)
+            .ok_or("projected model")?
+            .upstream_model()
+            .to_owned();
         for index in 0..count {
             let (status, body) = call(
                 &origin,
@@ -402,6 +430,7 @@ async fn issue70_public_http_policies_rotate_candidates_and_credentials() -> Tes
         }
         let rows = receiver.rows()?;
         assert_eq!(rows.len(), count);
+        assert_eq!(rows[0].body["model"], projected_model);
         let mut shares = BTreeMap::<String, BTreeMap<String, usize>>::new();
         for row in &rows {
             *shares
@@ -439,7 +468,7 @@ async fn issue70_public_http_policies_rotate_candidates_and_credentials() -> Tes
                 assert_eq!(shares.values().next().ok_or("shares")?.len(), 1);
             }
         }
-        assert_idle(&fixture)?;
+        assert_idle(&fixture);
         server.stop(false).await;
         receiver.server.stop(false).await;
     }
@@ -513,7 +542,7 @@ async fn issue70_public_http_affinity_expiry_owner_capacity_revision_and_health(
     assert_eq!(held.await?.map_err(std::io::Error::other)?.0, 200);
     let rows = receiver.rows()?;
     assert_ne!(rows[before].account, rows[before + 1].account);
-    assert_idle(&fixture)?;
+    assert_idle(&fixture);
     // Exact revision replacement invalidates the soft binding even for the same credential ID.
     let endpoint = fixture.executor.endpoints.keys().next().ok_or("endpoint")?;
     let pool = fixture
@@ -572,7 +601,7 @@ async fn issue70_public_http_affinity_expiry_owner_capacity_revision_and_health(
     assert!(breaks >= 3);
     assert_eq!(breaks, unknown);
     assert_eq!(expired, 1);
-    assert_idle(&fixture)?;
+    assert_idle(&fixture);
     server.stop(false).await;
     receiver.server.stop(false).await;
     Ok(())
@@ -621,7 +650,7 @@ async fn issue70_public_http_failover_and_postsemantic_no_retry() -> TestResult 
     .await?;
     assert!(String::from_utf8_lossy(&body).contains("error"));
     assert_eq!(receiver.rows()?.len(), before + 1);
-    assert_idle(&fixture)?;
+    assert_idle(&fixture);
     server.stop(false).await;
     receiver.server.stop(false).await;
     Ok(())
@@ -665,14 +694,14 @@ async fn issue70_public_http_concurrent_capacity_releases_every_lease() -> TestR
     }
     assert_eq!(successes, 2);
     assert_eq!(receiver.rows()?.len(), 2);
-    assert_idle(&fixture)?;
+    assert_idle(&fixture);
     assert_eq!(
         call(&origin, &fixture.key, "after-capacity", "question", false)
             .await?
             .0,
         200
     );
-    assert_idle(&fixture)?;
+    assert_idle(&fixture);
     server.stop(false).await;
     receiver.server.stop(false).await;
     Ok(())
@@ -724,7 +753,321 @@ async fn issue70_public_http_stored_lineage_never_uses_soft_fallback() -> TestRe
         .0,
         200
     );
-    assert_idle(&fixture)?;
+    assert_idle(&fixture);
+    server.stop(false).await;
+    receiver.server.stop(false).await;
+    Ok(())
+}
+
+#[actix_web::test]
+async fn issue70_public_http_fill_first_and_candidate_set_changes() -> TestResult {
+    for policy in [
+        RoutePolicy::FillFirst,
+        RoutePolicy::RoundRobin,
+        RoutePolicy::WeightedRoundRobin,
+    ] {
+        let receiver = Receiver::start()?;
+        let (fixture, _) = fixture_for(&receiver, policy, 2)?;
+        let (origin, server) = serve(fixture.state.clone())?;
+        assert_eq!(
+            call(&origin, &fixture.key, "initial-sample", "question", false)
+                .await?
+                .0,
+            200
+        );
+        let first = receiver.rows()?.remove(0);
+        let model = first.body["model"].as_str().ok_or("model")?.to_owned();
+        let endpoint = fixture
+            .executor
+            .endpoints
+            .keys()
+            .next()
+            .ok_or("endpoint")?
+            .clone();
+        // Make only the first actual model unavailable, preserving the other candidate and all
+        // endpoint credentials. This exercises a transient candidate set in actual serving.
+        let entries = fixture
+            .executor
+            .scheduler
+            .diagnostic_bindings()
+            .collect::<Vec<_>>();
+        for (_, entry) in &entries {
+            fixture.executor.runtime_health.cool_down_until(
+                gateway_router::RuntimeHealthKey::endpoint_credential_model(
+                    endpoint.clone(),
+                    entry.credential_id().clone(),
+                    &model,
+                ),
+                system_now_ms_runtime()? + 60000,
+            )?;
+        }
+        for index in 0..4 {
+            assert_eq!(
+                call(
+                    &origin,
+                    &fixture.key,
+                    &format!("subset-{index}"),
+                    "question",
+                    false
+                )
+                .await?
+                .0,
+                200
+            );
+        }
+        let rows = receiver.rows()?;
+        assert!(rows[1..].iter().all(|row| row.body["model"] != model));
+        for (_, entry) in &entries {
+            fixture.executor.runtime_health.mark_healthy(
+                &gateway_router::RuntimeHealthKey::endpoint_credential_model(
+                    endpoint.clone(),
+                    entry.credential_id().clone(),
+                    &model,
+                ),
+            )?;
+        }
+        let before = rows.len();
+        for index in 0..8 {
+            assert_eq!(
+                call(
+                    &origin,
+                    &fixture.key,
+                    &format!("restored-{index}"),
+                    "question",
+                    false
+                )
+                .await?
+                .0,
+                200
+            );
+        }
+        let rows = receiver.rows()?;
+        if policy == RoutePolicy::FillFirst {
+            assert!(rows[before..].iter().all(|row| row.body["model"] == model));
+            // The first account's explicit exit still leaves a same-candidate sibling eligible.
+            let bound = fixture
+                .pools
+                .as_ref()
+                .ok_or("pools")?
+                .pool(&endpoint)
+                .ok_or("pool")?
+                .diagnostic_entries()
+                .into_iter()
+                .min_by_key(|entry| entry.credential_id().clone())
+                .ok_or("entry")?;
+            fixture
+                .executor
+                .runtime_health
+                .mark_credential_unauthorized(endpoint, bound.credential_id().clone())?;
+            let last = rows.last().ok_or("last")?.account.clone();
+            assert_eq!(
+                call(
+                    &origin,
+                    &fixture.key,
+                    "fill-account-exit",
+                    "question",
+                    false
+                )
+                .await?
+                .0,
+                200
+            );
+            let rows = receiver.rows()?;
+            assert_eq!(rows.last().ok_or("last")?.body["model"], model);
+            assert_ne!(rows.last().ok_or("last")?.account, last);
+        } else {
+            assert!(rows[before..].iter().any(|row| row.body["model"] == model));
+            assert!(rows[before..].iter().any(|row| row.body["model"] != model));
+        }
+        assert_idle(&fixture);
+        server.stop(false).await;
+        receiver.server.stop(false).await;
+    }
+    Ok(())
+}
+
+#[allow(
+    clippy::too_many_lines,
+    reason = "test-only reconstruction exercises actual publication then new runtime adoption of the same durable state"
+)]
+fn adopt_published_configuration(
+    fixture: &mut Fixture,
+    receiver: &Receiver,
+    next: Option<&str>,
+) -> TestResult {
+    let database = fixture.directory.path().join("batch-c.sqlite3");
+    let mut repository = SqliteControlPlaneRepository::open(&database)?;
+    let mut lifecycle = ManagementService::bootstrap(
+        SqliteControlPlaneRepository::open(&database)?,
+        deployment_route_compiler(&database)?,
+        ManagementActor::try_new("issue70-local-test")?,
+    )?;
+    if let Some(next) = next {
+        let mut configuration = repository.load_active_configuration()?.ok_or("active")?;
+        let previous = configuration.version.id.clone();
+        configuration.version.id = gateway_store::control_plane::ConfigVersionId::try_new(next)?;
+        configuration.version.parent_id = Some(previous);
+        configuration.version.status = gateway_store::control_plane::ConfigVersionStatus::Draft;
+        configuration.version.revision = 0;
+        configuration.version.created_at_ms = system_now_ms_runtime()?;
+        repository.write_configuration(&configuration)?;
+        lifecycle.publish_configuration(&configuration.version.id)?;
+    } else {
+        lifecycle.rollback_configuration()?;
+    }
+    let configuration = repository.load_active_configuration()?.ok_or("active")?;
+    let secrets = test_secret_store()?;
+    let registry = Arc::clone(lifecycle.registry());
+    let (mut executor, _, scheduler, _, refresh, _) = std::thread::scope(|scope| {
+        scope
+            .spawn(|| {
+                P12RoutedResponsesExecutor::try_new(
+                    &database,
+                    &configuration,
+                    &secrets,
+                    registry.clone(),
+                    fixture.executor.attempt_stages.clone(),
+                    fixture.events.clone(),
+                    fixture.executor.runtime_health.clone(),
+                    fixture.executor.runtime_quota.clone(),
+                    fixture.executor.grok_build_cache_identity_deriver.clone(),
+                    Arc::from([]),
+                    UpstreamProxy::Direct,
+                    None,
+                    None,
+                    8191,
+                    None,
+                    &gateway_upstream::CredentialConcurrencyRegistry::default(),
+                )
+            })
+            .join()
+            .map_err(|_| "factory")
+    })??;
+    for (id, runtime) in Arc::get_mut(&mut executor.endpoints).ok_or("endpoints")? {
+        let mut profiles = P12TransportProfiles::try_new()?;
+        profiles.build = Some(Arc::new(SocketBuildTransport {
+            origin: receiver.origin.clone(),
+            endpoint: id.as_str().to_owned(),
+        }));
+        runtime.transports = Arc::new(profiles);
+    }
+    fixture.pools = refresh
+        .as_ref()
+        .map(RuntimeCredentialRefreshWorker::test_pools);
+    fixture.executor = Arc::new(executor);
+    fixture.state = ResponsesHttpState::with_snapshot_metadata_and_event_sink(
+        fixture.executor.clone(),
+        Arc::new(SystemResponsesMetadataFactory::new()),
+        Arc::new(SnapshotClientKeyAuthenticator::with_shared_verifier(
+            registry,
+            Some(scheduler),
+            Arc::new(ClientKeyService::new(ClientKeyPepper::try_from_bytes(
+                [0x63; 32],
+            )?)),
+        )),
+        fixture.events.clone(),
+        default_stream_capacity()?,
+    )
+    .with_stored_response_store(Arc::new(
+        gateway_store::stored_response::SqliteStoredResponseStore::open(&database, secrets)?,
+    ));
+    Ok(())
+}
+
+#[actix_web::test]
+async fn issue70_public_http_configuration_rollback_and_disabled_account_rebind() -> TestResult {
+    let receiver = Receiver::start()?;
+    let (mut fixture, _) = fixture_for(&receiver, RoutePolicy::RoundRobin, 1)?;
+    let connection = gateway_store::open(fixture.directory.path().join("batch-c.sqlite3"))?;
+    let (origin, server) = serve(fixture.state.clone())?;
+    assert_eq!(
+        call(
+            &origin,
+            &fixture.key,
+            "configuration-identity",
+            "question",
+            false
+        )
+        .await?
+        .0,
+        200
+    );
+    assert_idle(&fixture);
+    let first: (String, String) = connection.query_row(
+        "SELECT credential_id,binding_fingerprint FROM grok_build_cache_affinities",
+        [],
+        |row| Ok((row.get(0)?, row.get(1)?)),
+    )?;
+    server.stop(false).await;
+    adopt_published_configuration(&mut fixture, &receiver, Some("issue70-published"))?;
+    let (origin, server) = serve(fixture.state.clone())?;
+    assert_eq!(
+        call(
+            &origin,
+            &fixture.key,
+            "configuration-identity",
+            "question",
+            false
+        )
+        .await?
+        .0,
+        200
+    );
+    let published: String = connection.query_row(
+        "SELECT binding_fingerprint FROM grok_build_cache_affinities",
+        [],
+        |row| row.get(0),
+    )?;
+    assert_ne!(published, first.1);
+    server.stop(false).await;
+    adopt_published_configuration(&mut fixture, &receiver, None)?;
+    let (origin, server) = serve(fixture.state.clone())?;
+    assert_eq!(
+        call(
+            &origin,
+            &fixture.key,
+            "configuration-identity",
+            "question",
+            false
+        )
+        .await?
+        .0,
+        200
+    );
+    let rolled_back: String = connection.query_row(
+        "SELECT binding_fingerprint FROM grok_build_cache_affinities",
+        [],
+        |row| row.get(0),
+    )?;
+    assert_eq!(rolled_back, first.1);
+    server.stop(false).await;
+    // Controlled fixture mutation while no public listener is active; production native pool
+    // compilation must exclude the disabled account, even though its old affinity still exists.
+    connection.execute(
+        "UPDATE grok_accounts SET enabled=0 WHERE id=?1",
+        [first.0.as_str()],
+    )?;
+    adopt_published_configuration(&mut fixture, &receiver, Some("issue70-disabled"))?;
+    let (origin, server) = serve(fixture.state.clone())?;
+    assert_eq!(
+        call(
+            &origin,
+            &fixture.key,
+            "configuration-identity",
+            "question",
+            false
+        )
+        .await?
+        .0,
+        200
+    );
+    let current: String = connection.query_row(
+        "SELECT credential_id FROM grok_build_cache_affinities",
+        [],
+        |row| row.get(0),
+    )?;
+    assert_ne!(current, first.0);
+    assert_idle(&fixture);
     server.stop(false).await;
     receiver.server.stop(false).await;
     Ok(())

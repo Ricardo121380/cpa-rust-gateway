@@ -647,6 +647,10 @@ impl GrokBuildContinuityStore {
     ///
     /// Returns `AffinityBreakRequired` for a credential or egress replacement without durable
     /// evidence, `InvalidState` for invalid times, or `StoreUnavailable` if the atomic update fails.
+    #[allow(
+        clippy::too_many_lines,
+        reason = "one transaction preserves prior binding, break evidence, replacement and finite retention atomically"
+    )]
     pub fn bind_cache_affinity(
         &self,
         key: &GrokBuildCacheAffinityKey,
@@ -973,7 +977,7 @@ impl GrokBuildContinuityStore {
                 "INSERT INTO grok_build_reasoning_replay \
                  (client_key_id, provider_id, upstream_model, session_id, signature, ciphertext, \
                   key_version, expires_at_ms, updated_at_ms) \
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9) \
                  ON CONFLICT(client_key_id, provider_id, upstream_model, session_id) DO UPDATE SET \
                    signature = excluded.signature, ciphertext = excluded.ciphertext, \
                    key_version = excluded.key_version, expires_at_ms = excluded.expires_at_ms, \

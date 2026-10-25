@@ -406,6 +406,18 @@ pub enum RoutePolicy {
 }
 
 impl RoutePolicy {
+    /// Whether production composition admits this policy; legacy failover remains unsupported.
+    #[must_use]
+    pub const fn is_serving_policy(self) -> bool {
+        matches!(
+            self,
+            Self::SmoothWeightedRoundRobin
+                | Self::RoundRobin
+                | Self::WeightedRoundRobin
+                | Self::FillFirst
+        )
+    }
+
     /// Explicit production strategy; legacy rows retain their original policy meaning.
     const fn selection_sql(self) -> &'static str {
         match self {

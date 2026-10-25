@@ -216,6 +216,8 @@ pub trait AttemptDriver: Send + Sync {
 
     /// Optional ordinary cache affinity. The scheduler revalidates exact revision, priority,
     /// admission, Health/Quota, expiry and capacity; a rejected hint falls back to route policy.
+    /// # Errors
+    /// A driver may return a safe error when its request-local preference cannot be consumed.
     fn preferred_credential(
         &self,
         _candidate: &SnapshotRouteCandidate,

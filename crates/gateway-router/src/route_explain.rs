@@ -829,7 +829,41 @@ pub(crate) fn explain_provider_scoped(
             false,
         )?);
     }
-    let provider_selection = selector.select(observations)?;
+    let mut provider_selection = selector.select(observations)?;
+    if policy == crate::SnapshotRoutePolicy::WeightedRoundRobin {
+        let best = provider_selection
+            .decisions()
+            .iter()
+            .find(|decision| decision.is_eligible())
+            .map(crate::ProviderScopedCandidateDecision::policy_tier);
+        let ids = provider_selection
+            .decisions()
+            .iter()
+            .filter(|decision| decision.is_eligible() && Some(decision.policy_tier()) == best)
+            .map(|decision| decision.candidate().candidate_id())
+            .collect::<BTreeSet<_>>();
+        let route = snapshot
+            .route(input.route_explain().route_id())
+            .ok_or(ProviderScopedRouteExplainError::InvalidObservation)?;
+        let slots = snapshot
+            .route_schedule(route.id())
+            .ok_or(ProviderScopedRouteExplainError::InvalidObservation)?
+            .priority_tiers()
+            .flat_map(crate::SnapshotPriorityTierSchedule::slot_indexes)
+            .filter_map(|index| route.candidates().get(*index))
+            .filter(|candidate| ids.contains(candidate.id()))
+            .collect::<Vec<_>>();
+        let projected = if slots.is_empty() {
+            None
+        } else {
+            Some(
+                slots[input.route_explain().candidate_schedule_start() % slots.len()]
+                    .id()
+                    .clone(),
+            )
+        };
+        provider_selection = provider_selection.with_projected_candidate(projected);
+    }
     Ok(ProviderScopedRouteExplainSnapshot {
         base,
         provider_selection,

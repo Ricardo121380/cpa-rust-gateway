@@ -22,6 +22,12 @@ CPAR retains lower numeric priorities. This is a behavioral adaptation using CPA
 bounded compiled schedules, not a port of CPA's mutable accumulator or its larger weight limits.
 No upstream source or fixture is copied.
 
+A later concurrent-state check found #71 independently uses migration0041/schema41 for endpoint
+request policy. These standalone schema41 identities differ. Do not move either schema41 database
+into the other binary. Shared integration must order and reconcile both migrations, retaining the
+common schema40 prefix; this ticket neither imports #71 nor claims an integrated schema41.
+The shared maintenance COORDINATION.md records the collision and unique ADR0133/0134 ownership.
+
 ## Decision
 
 The protected Route `policy` explicitly admits `round_robin`, `weighted_round_robin`, and

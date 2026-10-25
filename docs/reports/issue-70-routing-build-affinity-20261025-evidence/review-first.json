@@ -1,0 +1,36 @@
+{
+  "commit": "f8cd0d5c01d5e6878ff1664172eecdb3f72f4fa9",
+  "standards": {
+    "status": "PARTIAL_REVIEW",
+    "findings": [
+      {
+        "priority": "P1",
+        "path": "crates/provider-grok/src/continuity_state.rs",
+        "finding": "Nine-column reasoning replay INSERT accidentally had eleven placeholders",
+        "resolution": "Restore nine placeholders; existing response_ownership_and_reasoning_replay_are_exact_encrypted_and_clearable passed in continuity-01 (6/6)"
+      }
+    ],
+    "limit": "Agent stopped after a shell path variable shadowed PATH; full follow-up review required"
+  },
+  "spec": {
+    "status": "COMPLETE_STATIC_REVIEW",
+    "findings": [
+      {
+        "priority": "P1",
+        "finding": "Same replay SQL regression",
+        "resolution": "Restored and dynamic regression passed"
+      },
+      {
+        "priority": "P2",
+        "finding": "WRR Explain projected stable first candidate instead of weighted first slot",
+        "resolution": "Project filtered compiled weighted slots; public test compares Explain with independent receiver first selection"
+      },
+      {
+        "priority": "P2",
+        "finding": "Fill-first lacked public unavailable-switch evidence",
+        "resolution": "Added public first-candidate/credential exit and transient candidate-set tests; targeted-05 public tests 7/7"
+      }
+    ]
+  },
+  "evidence_boundary": "Static review is distinct from local dynamic tests; no real Provider, client, remote CI or release evidence"
+}

@@ -70,7 +70,7 @@ pub enum SnapshotRoutePolicy {
     SmoothWeightedRoundRobin,
     /// Prefer lower-numbered priority tiers before failover.
     PriorityFailover,
-    /// Explicit production weighted rotation; legacy SmoothWeightedRoundRobin is unchanged.
+    /// Explicit production weighted rotation; legacy `SmoothWeightedRoundRobin` is unchanged.
     WeightedRoundRobin,
     /// Stable first eligible candidate within the best priority tier.
     FillFirst,
