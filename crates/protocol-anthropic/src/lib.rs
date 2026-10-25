@@ -22,7 +22,7 @@ pub use request::{
 };
 pub use response::{
     AnthropicMessagesSseEncoder, AnthropicResponseMetadata, SseFrame, encode_count_tokens,
-    encode_error, encode_response,
+    encode_error, encode_input_token_count, encode_response,
 };
 pub use upstream_request::encode_upstream_request;
 pub use upstream_response::{AnthropicMessagesSseDecoder, decode_upstream_response};

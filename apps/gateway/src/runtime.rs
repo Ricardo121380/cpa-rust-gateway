@@ -511,6 +511,7 @@ mod kimi_metadata;
 mod management;
 use management::SnapshotManagementRuntimeFacade;
 mod reload;
+mod token_count;
 pub(crate) use reload::RuntimePublicationController;
 
 pub(crate) struct DataPlaneComposition {
@@ -714,6 +715,8 @@ pub(crate) fn build_data_plane_composition_with_web_proxy(
             .map_err(|_| RuntimeCompositionError::Stage(RuntimeCompositionStage::StoredResponse))?,
     );
     let factory = reload::RuntimeFactory {
+        #[cfg(test)]
+        count_http: None,
         database: database.to_path_buf(),
         secret_store: secret_store.clone(),
         client_keys: Arc::new(client_key_service),
@@ -1106,6 +1109,7 @@ impl GatewayEventSink for P12FanoutEventSink {
 }
 
 struct P12RoutedResponsesExecutor {
+    runtime_health: Arc<RuntimeHealthRegistry>,
     kiro_profiles: KiroProfileSnapshots,
     runtime_quota: Arc<RuntimeQuotaRegistry>,
     generation_active: Option<Arc<AtomicBool>>,
@@ -1343,7 +1347,7 @@ impl P12RoutedResponsesExecutor {
         let route_explain_scheduler = Arc::clone(&scheduler);
         let orchestrator = Arc::new(AttemptOrchestrator::with_runtime_quota_and_clock_config(
             scheduler,
-            runtime_health,
+            Arc::clone(&runtime_health),
             Arc::clone(&runtime_quota),
             Arc::new(SystemRuntimeHealthClock),
             AttemptOrchestratorConfig::default(),
@@ -1368,6 +1372,7 @@ impl P12RoutedResponsesExecutor {
 
         Ok((
             Self {
+                runtime_health,
                 runtime_quota,
                 kiro_profiles,
                 generation_active: None,

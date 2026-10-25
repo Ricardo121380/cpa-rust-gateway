@@ -396,6 +396,8 @@ mod tests {
         assert_eq!(jwk.as_object().ok_or("JWK must be an object")?.len(), 4);
         let x = jwk["x"].as_str().ok_or("missing x")?;
         let y = jwk["y"].as_str().ok_or("missing y")?;
+        assert!(!x.contains('='));
+        assert!(!y.contains('='));
         let x_bytes = URL_SAFE_NO_PAD.decode(x)?;
         let y_bytes = URL_SAFE_NO_PAD.decode(y)?;
         assert_eq!(x_bytes.len(), 32);
@@ -434,6 +436,7 @@ mod tests {
             let signature = Signature::from_slice(&signature_bytes)?;
             let signing_input = format!("{}.{}", parts[0], parts[1]);
             verifier.verify(signing_input.as_bytes(), &signature)?;
+            assert!(verifier.verify(format!("{signing_input}x").as_bytes(), &signature).is_err());
             claims["htm"] = Value::String("PUT".to_owned());
             let tampered = format!(
                 "{}.{}",
@@ -464,6 +467,55 @@ mod tests {
                 0xc7, 0xa1, 0xb6, 0xe2, 0x9f, 0x65, 0xf3, 0xe9, 0x00, 0xdb, 0xb9, 0xaf, 0xf4, 0x06,
                 0x4d, 0xc4, 0xab, 0x2f, 0x84, 0x3a, 0xcd, 0xa8,
             ]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn dpop_jwk_preserves_the_fixed_p256_generator_coordinates() -> TestResult {
+        // Synthetic scalar one gives the standard P-256 generator, never an account key.
+        let mut scalar = [0; 32];
+        scalar[31] = 1;
+        let key = SigningKey::from_slice(&scalar).map_err(|_| "synthetic scalar")?;
+        let body: Value =
+            serde_json::from_slice(&GrokConsoleDpopSession::token_exchange_body(&key)?)?;
+        assert_eq!(
+            body,
+            serde_json::json!({"jwk": {
+                "kty": "EC", "crv": "P-256",
+                "x": "axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpY",
+                "y": "T-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU"
+            }})
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn dpop_session_rejects_wrong_key_binding_and_expired_token() -> TestResult {
+        let now = UNIX_EPOCH + Duration::from_secs(1_700_000_000);
+        let key = GrokConsoleDpopSession::generate_key()?;
+        let other = GrokConsoleDpopSession::generate_key()?;
+        assert_eq!(
+            GrokConsoleDpopSession::from_token_response(
+                token_for(&key, 1_700_000_600)?,
+                "DPoP",
+                600,
+                other,
+                now
+            )
+            .err(),
+            Some(GrokConsoleDpopError::KeyMismatch)
+        );
+        assert_eq!(
+            GrokConsoleDpopSession::from_token_response(
+                token_for(&key, 1_700_000_010)?,
+                "DPoP",
+                600,
+                key,
+                now
+            )
+            .err(),
+            Some(GrokConsoleDpopError::ExpiredToken)
         );
         Ok(())
     }

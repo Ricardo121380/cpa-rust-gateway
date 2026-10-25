@@ -6,6 +6,7 @@ mod account_entitlement;
 mod anthropic_messages;
 mod runtime_credential;
 mod runtime_failure;
+pub mod token_count;
 
 pub use anthropic_messages::{
     ANTHROPIC_MESSAGES_INFERENCE_PATH, ANTHROPIC_VERSION, AnthropicMessagesApiKey,

@@ -1,5 +1,9 @@
 # ADR-0127: CPA-compatible token counting with explicit estimates
 
+> 2026-10-25 implementation note: #68 implements this accepted decision. Current scope is in
+> [Messages counting support](../support/messages-count-tokens.md); the planning record below
+> retains its original date and validation boundary.
+
 | Field | Value |
 |---|---|
 | Status | Accepted |

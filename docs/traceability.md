@@ -373,3 +373,13 @@ the unsupported executor; no runtime acceptance or actual Usage/ledger result is
 ## Issue 72 — unified Usage query and export
 
 [#72](https://github.com/Ricardo121380/cpa-rust-gateway/issues/72) / #58 T19–T20 → [ADR-0128](adr/ADR-0128-frozen-usage-query-export.md) → [BC-MGMT-020](contracts/BC-MGMT-020-frozen-usage-query-export.md) → `usage_snapshot_http_freezes_totals_details_and_exports` and the controlled process HTTP harness. Local evidence and limits: [implementation report](reports/issue-72-usage-query-export-20261025.md).
+
+## 2026-10-25 Messages count implementation (#68)
+
+[ADR-0127](adr/ADR-0127-cpa-compatible-token-counting.md) is implemented through production
+HTTP, Router admission and the runtime counting executor. The amended
+[BC-PROTOCOL-003](contracts/BC-PROTOCOL-003-exact-token-count-capability.md) preserves exact
+capabilities and adds explicit provider-reported / estimated provenance without inference Usage
+or billing. [Support scope](support/messages-count-tokens.md) and
+[local implementation evidence](reports/issue-68-count-tokens-20261025.md) retain the distinction
+from actual-client, fixed-service, real Provider and release qualification.

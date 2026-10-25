@@ -140,8 +140,8 @@ pub use runtime_quota::{
     RuntimeQuotaStatusSnapshot, RuntimeQuotaTarget, RuntimeQuotaTargetError,
 };
 pub use token_count::{
-    CountTokensExecution, CountTokensExecutor, CountTokensFuture, ProviderCountTokensExecutor,
-    UnsupportedCountTokensExecutor,
+    CountTokensExecution, CountTokensExecutor, CountTokensFuture, ExactTokenCountSource,
+    ProviderCountTokensExecutor, UnsupportedCountTokensExecutor,
 };
 pub use tool_controls::{ToolExecutionConstraints, ToolSelection};
 

@@ -65,7 +65,7 @@ pub use request_metadata::{
 };
 pub use retry_gate::{TransparentRetryGate, TransparentRetryGateFuture};
 pub use thinking::{InvalidThinkingEffort, Thinking, ThinkingEffort};
-pub use token_count::ExactInputTokenCount;
+pub use token_count::{ExactInputTokenCount, InputTokenCount};
 pub use tool::ToolDefinition;
 
 /// Stable component identifier used by architecture smoke tests.

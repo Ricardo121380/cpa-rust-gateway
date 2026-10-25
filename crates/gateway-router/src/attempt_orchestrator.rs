@@ -1717,7 +1717,7 @@ fn candidate_matches_protocol(
     })
 }
 
-fn unique_provider_scope(
+pub(crate) fn unique_provider_scope(
     route: &SnapshotRoute,
     is_candidate_eligible: &(dyn Fn(&SnapshotRouteCandidate) -> bool + Sync),
 ) -> Result<ProviderId, GatewayError> {
