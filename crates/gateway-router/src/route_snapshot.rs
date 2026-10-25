@@ -535,7 +535,14 @@ impl SnapshotRouteSchedule {
             if candidate.priority() < 0 {
                 return Err(RouteSnapshotBuildError::InvalidCandidatePriority);
             }
-            if candidate.weight() <= 0 {
+            if candidate.weight() <= 0
+                || (matches!(
+                    route.policy(),
+                    SnapshotRoutePolicy::RoundRobin
+                        | SnapshotRoutePolicy::WeightedRoundRobin
+                        | SnapshotRoutePolicy::FillFirst
+                ) && candidate.weight() > 10_000)
+            {
                 return Err(RouteSnapshotBuildError::InvalidCandidateWeight);
             }
             candidates_by_priority

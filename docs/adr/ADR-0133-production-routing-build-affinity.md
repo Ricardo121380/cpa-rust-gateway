@@ -45,7 +45,7 @@ schedule is a second independent decision, with its own ascending binding priori
 weights; candidate weight is never multiplied by the number of accounts. RR ignores credential
 weights, WRR uses them, and fill-first uses stable credential ID. Temporary exclusions filter slots
 before cursor advancement rather than awarding a rejected candidate's slots to its successor.
-Publication/catalog replacement resets candidate cursors; an identical catalog snapshot retains
+Explicit candidate weights are 1..=10,000 at snapshot compilation, including retained/imported rows; the existing 1024-slot tier bound also applies to weighted schedules. Invalid candidates cannot replace a serving generation. Publication/catalog replacement resets candidate cursors; an identical catalog snapshot retains
 them. Endpoint cursors belong to that composed pool, independently for legacy, RR and explicit WRR so mixed policies do not move one another. Shared concurrency survives runtime generations.
 
 Ordinary Build requests with `prompt_cache_key` use the existing HMAC identity and continuity store.

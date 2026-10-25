@@ -11,7 +11,7 @@ Status: `LOCAL_IMPLEMENTATION`; #70 / OPT-03; [ADR-0133](../adr/ADR-0133-product
 - RR ignores weights, WRR yields configured shares over complete independent-identity periods,
   fill-first holds the first qualified ID and exits when it cannot lease. Missing capacity or
   temporary exclusions do not donate rejected weighted slots to a survivor. Weights remain
-  positive, bounded by existing compiler/schedule limits; invalid publication preserves active state.
+  positive, at most 10,000 for explicit strategies, with the existing 1024-slot weighted tier bound. Snapshot compilation checks retained/imported rows too; invalid publication preserves active state.
 - No policy infers a Provider from an adapter or falls across Provider scope. Actual lease time
   rechecks configuration, protocol/permissions, catalog admission, Health, Quota, expiry, revision
   and capacity. Lease ownership, retry budget, first-semantic closure and release stay with the

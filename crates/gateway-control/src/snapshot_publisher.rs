@@ -757,6 +757,9 @@ mod tests {
         {
             let mut config = configuration(&format!("issue70-policy-{index}"))?;
             config.model_routes[0].policy = policy;
+            if matches!(policy, RoutePolicy::RoundRobin | RoutePolicy::FillFirst) {
+                config.route_candidates[0].weight = 10_000;
+            }
             repository.write_configuration(&config)?;
             assert_eq!(
                 repository
@@ -790,21 +793,29 @@ mod tests {
             active.routes().next().ok_or("route")?.policy(),
             gateway_router::SnapshotRoutePolicy::WeightedRoundRobin
         );
-        let mut invalid = configuration("issue70-invalid-weight")?;
-        invalid.model_routes[0].policy = RoutePolicy::WeightedRoundRobin;
-        invalid.route_candidates[0].weight = 1025;
-        repository.write_configuration(&invalid)?;
-        assert!(
-            service
-                .validate_version(&mut repository, &invalid.version.id)
-                .is_err()
-        );
-        assert!(
-            service
-                .publish_version(&mut repository, &invalid.version.id)
-                .is_err()
-        );
-        assert!(Arc::ptr_eq(&active, &registry.load()));
+        for (suffix, policy, weight) in [
+            ("weighted-slots", RoutePolicy::WeightedRoundRobin, 1025),
+            ("round-robin-weight", RoutePolicy::RoundRobin, 10_001),
+            ("fill-first-weight", RoutePolicy::FillFirst, 10_001),
+        ] {
+            let mut invalid = configuration(&format!("issue70-invalid-{suffix}"))?;
+            invalid.model_routes[0].policy = policy;
+            invalid.route_candidates[0].weight = weight;
+            repository.write_configuration(&invalid)?;
+            assert!(
+                service
+                    .validate_version(&mut repository, &invalid.version.id)
+                    .is_err(),
+                "{suffix}"
+            );
+            assert!(
+                service
+                    .publish_version(&mut repository, &invalid.version.id)
+                    .is_err(),
+                "{suffix}"
+            );
+            assert!(Arc::ptr_eq(&active, &registry.load()));
+        }
         Ok(())
     }
 
