@@ -83,10 +83,10 @@ impl RuntimeModelCatalogWorker {
                 .ok_or(CatalogRefreshError::Conflict)?,
         )
         .map_err(|_| CatalogRefreshError::Conflict)?;
-        tokio::task::spawn_blocking(move || store.capture(account, Some(revision)))
-            .await
-            .map_err(|_| CatalogRefreshError::Upstream)?
-            .map_err(history_error)
+        history_job(&self.quota_history_slots, move || {
+            store.capture(account, Some(revision))
+        })
+        .await
     }
     pub(super) async fn save_quota_history(
         &self,
@@ -94,10 +94,10 @@ impl RuntimeModelCatalogWorker {
         samples: Vec<gateway_store::quota_history::Sample>,
     ) -> Result<(), CatalogRefreshError> {
         let store = self.quota_history.clone();
-        tokio::task::spawn_blocking(move || store.append(&fence, &samples))
-            .await
-            .map_err(|_| CatalogRefreshError::Upstream)?
-            .map_err(history_error)
+        history_job(&self.quota_history_slots, move || {
+            store.append(&fence, &samples)
+        })
+        .await
     }
     #[allow(clippy::too_many_lines)] // Keep the generation guard and exact credential lease in one request scope.
     async fn fetch_account_quota(
@@ -257,5 +257,68 @@ fn history_error(error: gateway_store::quota_history::Error) -> CatalogRefreshEr
     match error {
         gateway_store::quota_history::Error::Conflict => CatalogRefreshError::Conflict,
         _ => CatalogRefreshError::Upstream,
+    }
+}
+
+// Both ordinary and Kimi observations use these jobs. The permit follows the blocking work,
+// including SQLite/mutex waits, rather than the cancellable management or worker future.
+async fn history_job<T, F>(
+    slots: &std::sync::Arc<tokio::sync::Semaphore>,
+    job: F,
+) -> Result<T, CatalogRefreshError>
+where
+    T: Send + 'static,
+    F: FnOnce() -> Result<T, gateway_store::quota_history::Error> + Send + 'static,
+{
+    let permit = slots
+        .clone()
+        .try_acquire_owned()
+        .map_err(|_| CatalogRefreshError::Busy)?;
+    tokio::task::spawn_blocking(move || {
+        let _permit = permit;
+        job()
+    })
+    .await
+    .map_err(|_| CatalogRefreshError::Upstream)?
+    .map_err(history_error)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn quota_history_cancelled_waiter_keeps_blocking_capacity()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let slots = std::sync::Arc::new(tokio::sync::Semaphore::new(1));
+        let (started, start) = tokio::sync::oneshot::channel();
+        let (release, held) = std::sync::mpsc::channel();
+        let worker_slots = slots.clone();
+        let waiting = tokio::spawn(async move {
+            history_job(&worker_slots, move || {
+                let _ = started.send(());
+                held.recv()
+                    .map_err(|_| gateway_store::quota_history::Error::Unavailable)
+            })
+            .await
+        });
+        tokio::time::timeout(std::time::Duration::from_secs(5), start).await??;
+        waiting.abort();
+        assert!(waiting.await.is_err());
+        assert!(matches!(
+            history_job(&slots, || Ok(())).await,
+            Err(CatalogRefreshError::Busy)
+        ));
+        release.send(())?;
+        tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            while slots.available_permits() != 1 {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await?;
+        history_job(&slots, || Ok(()))
+            .await
+            .map_err(|_| "capacity was not restored")?;
+        Ok(())
     }
 }

@@ -3919,6 +3919,7 @@ struct RuntimeCatalogTarget {
 #[derive(Clone)]
 pub(crate) struct RuntimeModelCatalogWorker {
     quota_history: Arc<gateway_store::quota_history::QuotaHistoryStore>,
+    quota_history_slots: Arc<tokio::sync::Semaphore>,
     kiro_profiles: KiroProfileSnapshots,
     kimi_metadata: Arc<
         std::sync::Mutex<
@@ -4028,6 +4029,7 @@ impl RuntimeModelCatalogWorker {
         let base_snapshot = Arc::new(base_snapshot.materialize_binding_counts(&binding_counts));
         let worker =
             Self {
+                quota_history_slots: Arc::new(tokio::sync::Semaphore::new(4)),
                 quota_history: Arc::new(
                     gateway_store::quota_history::QuotaHistoryStore::open(database)
                         .map_err(|_| RuntimeCompositionError::Unavailable)?,
