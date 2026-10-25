@@ -576,6 +576,7 @@ async fn preview(
     .await
     {
         Ok(p) => p,
+        Err(e @ ManagementOperationsError::ReadCapacityExceeded) => return source_failure(e),
         Err(e) => return management_error(e.into()),
     };
     let mut result = json!({"source":"models.dev","source_digest":source_digest,"observed_at_ms":observed_at_ms,
