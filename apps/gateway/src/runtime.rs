@@ -4971,6 +4971,11 @@ impl EndpointAttemptDriver {
             target
         };
         let projected = project_registered_protocol_request(ProtocolTransformInput {
+            target_supports_service_tier: matches!(
+                runtime.adapter,
+                EndpointAdapter::OpenAiResponses(_) | EndpointAdapter::AnthropicMessages(_)
+            ),
+            target_model: Some(candidate.upstream_model()),
             source: self.client_protocol,
             target: projection_target,
             mode: candidate.transform_mode(),
@@ -10300,6 +10305,8 @@ mod tests {
                     GatewayError::new(GatewayErrorCode::InternalError, ErrorScope::Internal)
                 })?;
                 let projected = project_registered_protocol_request(ProtocolTransformInput {
+                    target_supports_service_tier: true,
+                    target_model: None,
                     source,
                     target,
                     mode: transform_mode,

@@ -52,6 +52,8 @@ fn build_request_preserves_pi_reasoning_summary_and_include() -> TestResult {
     let gateway_router::ProjectedProtocolRequest::Canonical(projected) =
         gateway_router::project_registered_protocol_request(
             gateway_router::ProtocolTransformInput {
+                target_supports_service_tier: true,
+                target_model: None,
                 source: gateway_router::ProtocolFormat::OpenAiResponses,
                 target: gateway_router::ProtocolFormat::OpenAiResponses,
                 mode: gateway_router::SnapshotTransformMode::CanonicalBridge,
@@ -92,6 +94,8 @@ fn build_request_preserves_pi_multiturn_reasoning_and_tool_history() -> TestResu
     let gateway_router::ProjectedProtocolRequest::Canonical(projected) =
         gateway_router::project_registered_protocol_request(
             gateway_router::ProtocolTransformInput {
+                target_supports_service_tier: true,
+                target_model: None,
                 source: gateway_router::ProtocolFormat::OpenAiResponses,
                 target: gateway_router::ProtocolFormat::OpenAiResponses,
                 mode: gateway_router::SnapshotTransformMode::CanonicalBridge,

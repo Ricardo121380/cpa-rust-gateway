@@ -1,0 +1,374 @@
+[
+  {
+    "id": "claude-haiku-4-5-20251001",
+    "type": "claude",
+    "max_completion_tokens": 64000,
+    "thinking": {
+      "min": 1024,
+      "max": 128000,
+      "zero_allowed": true
+    }
+  },
+  {
+    "id": "claude-sonnet-4-5-20250929",
+    "type": "claude",
+    "max_completion_tokens": 64000,
+    "thinking": {
+      "min": 1024,
+      "max": 128000,
+      "zero_allowed": true
+    }
+  },
+  {
+    "id": "claude-sonnet-4-6",
+    "type": "claude",
+    "max_completion_tokens": 64000,
+    "thinking": {
+      "min": 1024,
+      "max": 128000,
+      "zero_allowed": true,
+      "levels": [
+        "low",
+        "medium",
+        "high",
+        "max"
+      ]
+    }
+  },
+  {
+    "id": "claude-opus-4-6",
+    "type": "claude",
+    "max_completion_tokens": 128000,
+    "thinking": {
+      "min": 1024,
+      "max": 128000,
+      "zero_allowed": true,
+      "levels": [
+        "low",
+        "medium",
+        "high",
+        "max"
+      ]
+    }
+  },
+  {
+    "id": "claude-opus-4-7",
+    "type": "claude",
+    "max_completion_tokens": 128000,
+    "thinking": {
+      "zero_allowed": true,
+      "dynamic_allowed": true,
+      "levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ]
+    }
+  },
+  {
+    "id": "claude-opus-4-8",
+    "type": "claude",
+    "max_completion_tokens": 128000,
+    "thinking": {
+      "zero_allowed": true,
+      "dynamic_allowed": true,
+      "levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ]
+    }
+  },
+  {
+    "id": "claude-opus-5",
+    "type": "claude",
+    "max_completion_tokens": 128000,
+    "thinking": {
+      "zero_allowed": true,
+      "dynamic_allowed": true,
+      "levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ]
+    }
+  },
+  {
+    "id": "claude-sonnet-5",
+    "type": "claude",
+    "max_completion_tokens": 128000,
+    "thinking": {
+      "zero_allowed": true,
+      "dynamic_allowed": true,
+      "levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ]
+    }
+  },
+  {
+    "id": "claude-fable-5",
+    "type": "claude",
+    "max_completion_tokens": 128000,
+    "thinking": {
+      "zero_allowed": false,
+      "dynamic_allowed": true,
+      "levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ]
+    }
+  },
+  {
+    "id": "claude-fable-5-1",
+    "type": "claude",
+    "max_completion_tokens": 128000,
+    "thinking": {
+      "zero_allowed": false,
+      "dynamic_allowed": true,
+      "levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ]
+    }
+  },
+  {
+    "id": "claude-opus-5-5",
+    "type": "claude",
+    "max_completion_tokens": 128000,
+    "thinking": {
+      "zero_allowed": false,
+      "dynamic_allowed": true,
+      "levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ]
+    }
+  },
+  {
+    "id": "claude-sonnet-5-5",
+    "type": "claude",
+    "max_completion_tokens": 128000,
+    "thinking": {
+      "zero_allowed": true,
+      "dynamic_allowed": true,
+      "disable_type": "between_tools",
+      "levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ]
+    }
+  },
+  {
+    "id": "claude-haiku-5-5",
+    "type": "claude",
+    "max_completion_tokens": 128000,
+    "thinking": {
+      "zero_allowed": true,
+      "dynamic_allowed": true,
+      "levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ]
+    }
+  },
+  {
+    "id": "claude-opus-4-5-20251101",
+    "type": "claude",
+    "max_completion_tokens": 64000,
+    "thinking": {
+      "min": 1024,
+      "max": 128000,
+      "zero_allowed": true
+    }
+  },
+  {
+    "id": "claude-opus-4-1-20250805",
+    "type": "claude",
+    "max_completion_tokens": 32000,
+    "thinking": {
+      "min": 1024,
+      "max": 128000
+    }
+  },
+  {
+    "id": "claude-opus-4-20250514",
+    "type": "claude",
+    "max_completion_tokens": 32000,
+    "thinking": {
+      "min": 1024,
+      "max": 128000
+    }
+  },
+  {
+    "id": "claude-sonnet-4-20250514",
+    "type": "claude",
+    "max_completion_tokens": 64000,
+    "thinking": {
+      "min": 1024,
+      "max": 128000
+    }
+  },
+  {
+    "id": "claude-3-7-sonnet-20250219",
+    "type": "claude",
+    "max_completion_tokens": 8192,
+    "thinking": {
+      "min": 1024,
+      "max": 128000
+    }
+  },
+  {
+    "id": "claude-3-5-haiku-20241022",
+    "type": "claude",
+    "max_completion_tokens": 8192
+  },
+  {
+    "id": "gpt-6-luna",
+    "type": "openai",
+    "max_completion_tokens": 128000,
+    "thinking": {
+      "levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ]
+    }
+  },
+  {
+    "id": "gpt-5.5",
+    "type": "openai",
+    "max_completion_tokens": 128000,
+    "thinking": {
+      "levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ]
+    }
+  },
+  {
+    "id": "gpt-5.6-terra",
+    "type": "openai",
+    "max_completion_tokens": 128000,
+    "thinking": {
+      "levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ]
+    }
+  },
+  {
+    "id": "gpt-5.6-luna",
+    "type": "openai",
+    "max_completion_tokens": 128000,
+    "thinking": {
+      "levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ]
+    }
+  },
+  {
+    "id": "codex-auto-review",
+    "type": "openai",
+    "max_completion_tokens": 128000,
+    "thinking": {
+      "levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ]
+    }
+  },
+  {
+    "id": "gpt-6-astra",
+    "type": "openai",
+    "max_completion_tokens": 128000,
+    "thinking": {
+      "levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ]
+    }
+  },
+  {
+    "id": "gpt-6-sol",
+    "type": "openai",
+    "max_completion_tokens": 128000,
+    "thinking": {
+      "levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ]
+    }
+  },
+  {
+    "id": "gpt-6.1-sol",
+    "type": "openai",
+    "max_completion_tokens": 128000,
+    "thinking": {
+      "levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ]
+    }
+  },
+  {
+    "id": "gpt-5.6-sol",
+    "type": "openai",
+    "max_completion_tokens": 128000,
+    "thinking": {
+      "levels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ]
+    }
+  }
+]

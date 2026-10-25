@@ -20,6 +20,8 @@ fn project(
     let capabilities =
         CapabilitySet::try_new([SemanticCapability::Reasoning, SemanticCapability::Tools])?;
     match project_protocol_request(ProtocolTransformInput {
+        target_supports_service_tier: true,
+        target_model: None,
         source: ProtocolFormat::AnthropicMessages,
         target,
         mode,
@@ -111,7 +113,7 @@ fn cpa_v8_effort_keeps_known_controls_and_capability_guards() -> TestResult {
             source["output_config"] = output;
             assert!(project(&source, target, SnapshotTransformMode::CanonicalBridge).is_err());
         }
-        for budget in [0, -1] {
+        for budget in [-2, -100] {
             let mut source = body();
             source["thinking"] = json!({"type":"enabled","budget_tokens":budget});
             source["output_config"] = json!({"effort":"high"});
@@ -124,6 +126,8 @@ fn cpa_v8_effort_keeps_known_controls_and_capability_guards() -> TestResult {
         let capabilities = CapabilitySet::empty();
         assert!(
             project_protocol_request(ProtocolTransformInput {
+                target_supports_service_tier: true,
+                target_model: None,
                 source: ProtocolFormat::AnthropicMessages,
                 target,
                 mode: SnapshotTransformMode::CanonicalBridge,
@@ -156,6 +160,8 @@ fn cpa_openai_summary_and_budget_remain_valid_for_messages() -> TestResult {
         let decoded = protocol_openai_responses::decode_request(&json!({"model":"public","input":"hello", "max_output_tokens":2048,"reasoning":reasoning}).to_string())?;
         let ProjectedProtocolRequest::Canonical(request) =
             project_protocol_request(ProtocolTransformInput {
+                target_supports_service_tier: true,
+                target_model: None,
                 source: ProtocolFormat::OpenAiResponses,
                 target: ProtocolFormat::AnthropicMessages,
                 mode: SnapshotTransformMode::CanonicalBridge,
@@ -229,6 +235,8 @@ fn cpa_sampling_and_stop_options_use_valid_target_shapes() -> TestResult {
         let decoded = protocol_openai_chat::decode_request(&json!({"model":"public","messages":[{"role":"user","content":"hello"}],"max_completion_tokens":2048,"stop":stop}).to_string())?;
         let ProjectedProtocolRequest::Canonical(request) =
             project_protocol_request(ProtocolTransformInput {
+                target_supports_service_tier: true,
+                target_model: None,
                 source: ProtocolFormat::OpenAiChatCompletions,
                 target: ProtocolFormat::AnthropicMessages,
                 mode: SnapshotTransformMode::CanonicalBridge,
@@ -366,5 +374,169 @@ fn cpa_mixed_cache_lifetimes_round_trip_natively() -> TestResult {
         ProtocolFormat::OpenAiResponses,
         SnapshotTransformMode::CanonicalBridge,
     )?;
+    Ok(())
+}
+
+#[test]
+fn cpa_69_special_budgets_and_frozen_model_levels() -> TestResult {
+    let capabilities = CapabilitySet::try_new([SemanticCapability::Reasoning])?;
+    for (model, budget, expected) in [
+        ("custom-model", 0, "none"),
+        ("custom-model", -1, "auto"),
+        ("gpt-5.5", 0, "low"),
+        ("gpt-5.5", -1, "medium"),
+        ("gpt-5.5", 128000, "xhigh"),
+        ("gpt-6.1-sol", 512, "low"),
+    ] {
+        for target in [
+            ProtocolFormat::OpenAiChatCompletions,
+            ProtocolFormat::OpenAiResponses,
+        ] {
+            let mut body = body();
+            body["thinking"] = json!({"type":"enabled","budget_tokens":budget});
+            body["output_config"] = json!({"effort":"high"});
+            let decoded = protocol_anthropic::decode_request(&body.to_string())?;
+            let ProjectedProtocolRequest::Canonical(request) =
+                project_protocol_request(ProtocolTransformInput {
+                    target_supports_service_tier: true,
+                    target_model: Some(model),
+                    source: ProtocolFormat::AnthropicMessages,
+                    target,
+                    mode: SnapshotTransformMode::CanonicalBridge,
+                    native_payload: NativePayloadAvailability::Exact,
+                    request: &decoded.request,
+                    streaming: false,
+                    requires_json_schema: false,
+                    requires_parallel_tools: false,
+                    target_capabilities: &capabilities,
+                })?
+            else {
+                return Err("canonical".into());
+            };
+            assert_eq!(
+                request.thinking.as_ref().map(|t| t.effort.as_str()),
+                Some(expected)
+            );
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn cpa_69_claude_model_ranges_and_adaptive_targets() -> TestResult {
+    let capabilities = CapabilitySet::try_new([SemanticCapability::Reasoning])?;
+    for (model, effort, limit, expected_type, output_effort, budget) in [
+        (
+            "claude-sonnet-4-6",
+            "max",
+            512,
+            "adaptive",
+            Some("max"),
+            None,
+        ),
+        (
+            "claude-opus-5",
+            "minimal",
+            512,
+            "adaptive",
+            Some("low"),
+            None,
+        ),
+        ("claude-fable-5", "none", 512, "adaptive", Some("low"), None),
+        (
+            "claude-sonnet-5-5",
+            "none",
+            512,
+            "between_tools",
+            None,
+            None,
+        ),
+        ("claude-opus-5", "auto", 512, "adaptive", None, None),
+        (
+            "claude-sonnet-4-5-20250929",
+            "high",
+            4096,
+            "enabled",
+            None,
+            Some(4095),
+        ),
+        ("custom-model", "high", 4096, "enabled", None, Some(4095)),
+    ] {
+        let decoded = protocol_openai_responses::decode_request(&json!({"model":"public","input":"hello", "max_output_tokens":limit,"reasoning":{"effort":effort}}).to_string())?;
+        let ProjectedProtocolRequest::Canonical(request) =
+            project_protocol_request(ProtocolTransformInput {
+                target_supports_service_tier: true,
+                target_model: Some(model),
+                source: ProtocolFormat::OpenAiResponses,
+                target: ProtocolFormat::AnthropicMessages,
+                mode: SnapshotTransformMode::CanonicalBridge,
+                native_payload: NativePayloadAvailability::Exact,
+                request: &decoded.request,
+                streaming: false,
+                requires_json_schema: false,
+                requires_parallel_tools: false,
+                target_capabilities: &capabilities,
+            })
+            .map_err(|e| format!("{model}/{effort}/{limit}: {e:?}"))?
+        else {
+            return Err("canonical".into());
+        };
+        let wire: Value = serde_json::from_str(&protocol_anthropic::encode_upstream_request(
+            model,
+            &request,
+            protocol_anthropic::ResponseMode::NonStreaming,
+        )?)?;
+        assert_eq!(wire["thinking"]["type"], expected_type, "{model} {effort}");
+        assert_eq!(
+            wire["output_config"]["effort"].as_str(),
+            output_effort,
+            "{model} {effort}"
+        );
+        assert_eq!(wire["thinking"]["budget_tokens"].as_u64(), budget);
+    }
+    Ok(())
+}
+
+#[test]
+fn cpa_69_service_tier_mapping_and_malformed_controls() -> TestResult {
+    for (speed, tier, expected) in [
+        (Some("fast"), None, Some("priority")),
+        (Some("FAST"), None, None),
+        (None, Some(" PRIORITY "), Some("priority")),
+        (Some("fast"), Some("ultrafast"), Some("priority")),
+        (None, Some("ultrafast"), None),
+    ] {
+        let mut body = body();
+        if let Some(speed) = speed {
+            body["speed"] = json!(speed);
+        }
+        if let Some(tier) = tier {
+            body["service_tier"] = json!(tier);
+        }
+        for target in [
+            ProtocolFormat::OpenAiResponses,
+            ProtocolFormat::OpenAiChatCompletions,
+        ] {
+            let request = project(&body, target, SnapshotTransformMode::CanonicalBridge)?;
+            let field = if target == ProtocolFormat::OpenAiResponses {
+                "openai.responses.service_tier"
+            } else {
+                "openai.chat.service_tier"
+            };
+            let value = request
+                .extensions
+                .get(field)
+                .map(|raw| serde_json::from_str::<Value>(raw.get()))
+                .transpose()?;
+            assert_eq!(
+                value.as_ref().and_then(Value::as_str),
+                if target == ProtocolFormat::OpenAiResponses {
+                    expected
+                } else {
+                    None
+                }
+            );
+        }
+    }
     Ok(())
 }

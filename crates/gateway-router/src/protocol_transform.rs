@@ -15,6 +15,7 @@ use serde_json::Value;
 use crate::{SnapshotTransformMode, ToolExecutionConstraints, tool_controls};
 
 mod compatibility;
+mod model_thinking;
 
 /// Client or Endpoint wire format considered by the P5 transformation boundary.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -82,6 +83,10 @@ pub enum NativePayloadAvailability {
 /// pass-through only, never an instruction to infer a bridge mapping.
 #[derive(Clone, Copy)]
 pub struct ProtocolTransformInput<'a> {
+    /// Whether this concrete adapter owns the documented target tier mapping.
+    pub target_supports_service_tier: bool,
+    /// Selected upstream identity, never a public alias or an account capability claim.
+    pub target_model: Option<&'a str>,
     /// Protocol spoken by the client-facing request.
     pub source: ProtocolFormat,
     /// Protocol spoken by the selected Endpoint.
@@ -386,15 +391,25 @@ pub fn project_protocol_request(
         // belong to the upstream protocol; they do not require a canonical equivalent.
         validate_target_root_extensions(input.request, input.source)?;
         validate_target_thinking(input.request.thinking.as_ref(), input.source)?;
+        model_thinking::validate_native(input.request, input.source, input.target_model)?;
         validate_native_known_content(input.request, input.source)?;
         capability_rejection(input, input.request)?;
         return Ok(ProjectedProtocolRequest::NativeExact);
     }
 
-    let projected = if input.source == input.target {
+    if input.source != ProtocolFormat::AnthropicMessages {
+        validate_target_thinking(input.request.thinking.as_ref(), input.source)?;
+    }
+    let mut projected = if input.source == input.target {
         input.request.clone()
     } else if input.mode == SnapshotTransformMode::CanonicalBridge {
-        compatibility::project(input.request, input.source, input.target)?
+        compatibility::project(
+            input.request,
+            input.source,
+            input.target,
+            input.target_model,
+            input.target_supports_service_tier,
+        )?
     } else {
         match project_cross_protocol(input.request, input.source, input.target) {
             Ok(projected) => projected,
@@ -408,6 +423,15 @@ pub fn project_protocol_request(
             Err(reason) => return Err(reason),
         }
     };
+    if input.mode == SnapshotTransformMode::CanonicalBridge && input.source != input.target {
+        model_thinking::normalize(
+            input.request,
+            &mut projected,
+            input.source,
+            input.target,
+            input.target_model,
+        )?;
+    }
     canonical_rejection(&projected, input.target)?;
     capability_rejection(input, &projected)?;
 
@@ -930,6 +954,13 @@ fn validate_target_root_extensions(
     let expected_tool_choice = tool_choice_name(target);
     let mut has_output_limit = false;
     for (name, raw) in request.extensions.iter() {
+        if matches!(
+            name.strip_prefix(compatibility::root_prefix(target)),
+            Some("speed" | "service_tier")
+        ) && !serde_json::from_str::<Value>(raw.get()).is_ok_and(|v| v.is_string())
+        {
+            return Err(ProtocolTransformRejection::UnknownRequestExtensions);
+        }
         if is_output_limit_for(name, target) {
             if has_output_limit {
                 return Err(ProtocolTransformRejection::OutputLimitCollision);
@@ -1044,7 +1075,7 @@ fn validate_target_thinking(
                         && serde_json::from_str::<String>(raw.get()).is_ok())
             }) || !matches!(
                 (thinking.effort.as_str(), budget),
-                ("disabled" | "adaptive", None) | ("enabled", Some(_))
+                ("disabled" | "between_tools" | "adaptive", None) | ("enabled", Some(_))
             ) || budget.is_some_and(|raw| {
                 !serde_json::from_str::<Value>(raw.get())
                     .is_ok_and(|value| value.as_u64().is_some_and(|value| value > 0))
@@ -1322,6 +1353,8 @@ mod tests {
         target_capabilities: &'a CapabilitySet,
     ) -> ProtocolTransformInput<'a> {
         ProtocolTransformInput {
+            target_supports_service_tier: true,
+            target_model: None,
             source,
             target,
             mode,
@@ -2315,6 +2348,8 @@ mod tests {
         with_cache_control.prompt_cache_retention = Some("in-memory".to_owned());
         let target_capabilities = all_capabilities()?;
         let projected = project_registered_protocol_request(ProtocolTransformInput {
+            target_supports_service_tier: true,
+            target_model: None,
             source: ProtocolFormat::OpenAiResponses,
             target: ProtocolFormat::OpenAiResponses,
             mode: SnapshotTransformMode::CanonicalBridge,

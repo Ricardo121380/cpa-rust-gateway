@@ -176,3 +176,5 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0128 Frozen unified Usage query and export](ADR-0128-frozen-usage-query-export.md) — Accepted; #72 bounded management snapshot over existing events/ledger, no migration.
 
 - [ADR-0129 Account quota observation history](ADR-0129-account-quota-history.md) — Accepted; #74 independent observation storage and bounded management query.
+
+- [ADR-0130 CPA request controls and model names](ADR-0130-cpa-request-controls-model-names.md) — Accepted; #69 P0 then P1, frozen CPA v8.0.40.

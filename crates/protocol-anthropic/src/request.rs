@@ -206,7 +206,7 @@ fn decode_thinking(value: &Value) -> Result<Thinking, gateway_core::GatewayError
     let mut extensions =
         extensions_except(thinking, &["type", "budget_tokens"], "anthropic.thinking.")?;
     if let Some(budget_tokens) = thinking.get("budget_tokens") {
-        if budget_tokens.as_u64().is_none_or(|tokens| tokens == 0) {
+        if budget_tokens.as_i64().is_none_or(|tokens| tokens < -1) {
             return Err(client_request_error());
         }
         extensions
@@ -560,7 +560,7 @@ mod tests {
     #[test]
     fn cache_controls_and_thinking_fail_closed_when_their_canonical_semantics_are_ambiguous() {
         for input in [
-            r#"{"model":"m","max_tokens":1,"thinking":{"type":"enabled","budget_tokens":0},"messages":[{"role":"user","content":"x"}]}"#,
+            r#"{"model":"m","max_tokens":1,"thinking":{"type":"enabled","budget_tokens":-2},"messages":[{"role":"user","content":"x"}]}"#,
             r#"{"model":"m","max_tokens":1,"messages":[{"role":"user","content":[{"type":"text","text":"x","cache_control":{"type":"persistent"}}]}]}"#,
         ] {
             assert!(decode_request(input).is_err(), "accepted {input}");

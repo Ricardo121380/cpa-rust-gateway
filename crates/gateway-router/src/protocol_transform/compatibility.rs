@@ -39,6 +39,8 @@ pub(super) fn project(
     request: &CanonicalRequest,
     source: ProtocolFormat,
     target: ProtocolFormat,
+    target_model: Option<&str>,
+    target_supports_service_tier: bool,
 ) -> Result<CanonicalRequest, ProtocolTransformRejection> {
     if source != ProtocolFormat::AnthropicMessages
         && (request.prompt_cache_key.is_some() || request.prompt_cache_retention.is_some())
@@ -120,7 +122,14 @@ pub(super) fn project(
             .try_insert(name, raw.clone())
             .map_err(|_| ProtocolTransformRejection::UnknownRequestExtensions)?;
     }
-    projected.thinking = thinking(request, source, target)?;
+    project_service_tier(
+        request,
+        &mut projected,
+        source,
+        target,
+        target_supports_service_tier,
+    )?;
+    projected.thinking = thinking(request, source, target, target_model)?;
     project_summary(request, &mut projected, source, target)?;
     projected.prompt_cache_key = None;
     projected.prompt_cache_retention = None;
@@ -167,6 +176,7 @@ fn thinking(
     request: &CanonicalRequest,
     source: ProtocolFormat,
     target: ProtocolFormat,
+    target_model: Option<&str>,
 ) -> Result<Option<Thinking>, ProtocolTransformRejection> {
     let invalid = || ProtocolTransformRejection::ThinkingUnsupported;
     let output_effort = request
@@ -189,6 +199,14 @@ fn thinking(
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(str::to_ascii_lowercase);
+    if output_effort.as_deref().is_some_and(|value| {
+        !matches!(
+            value,
+            "none" | "auto" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max"
+        )
+    }) {
+        return Err(invalid());
+    }
     let mut extensions = RawExtensions::default();
     let effort = if source == ProtocolFormat::AnthropicMessages {
         match request.thinking.as_ref().map(|t| t.effort.as_str()) {
@@ -218,6 +236,7 @@ fn thinking(
             match thinking.effort.as_str() {
                 "none" => "disabled".into(),
                 "auto" => "adaptive".into(),
+                _ if super::model_thinking::has_levels(target_model)? => "adaptive".into(),
                 effort => {
                     let budget = match effort {
                         "minimal" => 512,
@@ -246,8 +265,9 @@ fn thinking(
     }))
 }
 
-const fn budget_level(budget: u64) -> &'static str {
+pub(super) const fn budget_level(budget: i64) -> &'static str {
     match budget {
+        -1 => "auto",
         0 => "none",
         1..=512 => "minimal",
         513..=1024 => "low",
@@ -259,7 +279,7 @@ const fn budget_level(budget: u64) -> &'static str {
 
 // CPA's Claude applier bounds manual thinking below max_tokens. With no per-model
 // range in Canonical, use the Messages minimum and never increase the caller's limit.
-fn messages_budget(
+pub(super) fn messages_budget(
     request: &CanonicalRequest,
     source: ProtocolFormat,
     budget: u64,
@@ -399,4 +419,79 @@ fn sampling_field(source: ProtocolFormat, target: ProtocolFormat, field: &str) -
         }
         _ => None,
     }
+}
+
+// CLIProxyAPI d946c4f: codex/claude request tier normalizer and Responses→Claude speed.
+fn project_service_tier(
+    source_request: &CanonicalRequest,
+    projected: &mut CanonicalRequest,
+    source: ProtocolFormat,
+    target: ProtocolFormat,
+    target_supports_service_tier: bool,
+) -> Result<(), ProtocolTransformRejection> {
+    let read = |field: &str| -> Result<Option<Value>, ProtocolTransformRejection> {
+        source_request
+            .extensions
+            .get(&format!("{}{field}", root_prefix(source)))
+            .map(|raw| {
+                serde_json::from_str(raw.get())
+                    .map_err(|_| ProtocolTransformRejection::UnknownRequestExtensions)
+            })
+            .transpose()
+    };
+    let tier = read("service_tier")?;
+    let speed = read("speed")?;
+    if tier.as_ref().is_some_and(|v| !v.is_string())
+        || speed.as_ref().is_some_and(|v| !v.is_string())
+    {
+        return Err(ProtocolTransformRejection::UnknownRequestExtensions);
+    }
+    if !target_supports_service_tier {
+        return Ok(());
+    }
+    match (source, target) {
+        (ProtocolFormat::AnthropicMessages, ProtocolFormat::OpenAiResponses) => {
+            let tier = tier
+                .as_ref()
+                .and_then(Value::as_str)
+                .map(|s| s.trim().to_ascii_lowercase());
+            if speed.as_ref().and_then(Value::as_str) == Some("fast")
+                || matches!(tier.as_deref(), Some("fast" | "priority"))
+            {
+                insert(
+                    &mut projected.extensions,
+                    "openai.responses.service_tier",
+                    &Value::from("priority"),
+                )?;
+            }
+        }
+        (ProtocolFormat::OpenAiResponses, ProtocolFormat::AnthropicMessages)
+            if tier.as_ref().and_then(Value::as_str) == Some("priority") =>
+        {
+            insert(
+                &mut projected.extensions,
+                "anthropic.messages.speed",
+                &Value::from("fast"),
+            )?;
+        }
+        (ProtocolFormat::OpenAiChatCompletions, ProtocolFormat::OpenAiResponses) => {
+            let tier = tier
+                .as_ref()
+                .and_then(Value::as_str)
+                .map(|s| s.trim().to_ascii_lowercase());
+            if let Some(tier) = tier.as_deref().and_then(|s| match s {
+                "fast" | "priority" => Some("priority"),
+                "ultrafast" => Some("ultrafast"),
+                _ => None,
+            }) {
+                insert(
+                    &mut projected.extensions,
+                    "openai.responses.service_tier",
+                    &Value::from(tier),
+                )?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
 }
