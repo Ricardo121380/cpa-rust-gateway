@@ -312,6 +312,7 @@ pub(super) async fn prepare_kimi_target(
             return invalid_input();
         };
         let endpoint = EndpointConfiguration {
+            request_policy: gateway_core::request_policy::RequestPolicy::default(),
             id: id.clone(),
             upstream_id: upstream_id.clone(),
             adapter_id: "openai-compatible.responses".to_owned(),
@@ -511,6 +512,7 @@ fn prepare_fixed_target(
             return invalid_input();
         };
         let endpoint = EndpointConfiguration {
+            request_policy: gateway_core::request_policy::RequestPolicy::default(),
             id: endpoint_id.clone(),
             upstream_id: upstream_id.clone(),
             adapter_id: target.adapter_id.to_owned(),
@@ -723,6 +725,7 @@ pub(super) async fn prepare_kiro_target(
             return invalid_input();
         };
         let endpoint = EndpointConfiguration {
+            request_policy: gateway_core::request_policy::RequestPolicy::default(),
             id: endpoint_id.clone(),
             upstream_id: upstream_id.clone(),
             adapter_id: "kiro.messages".to_owned(),

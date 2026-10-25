@@ -490,6 +490,7 @@ mod tests {
                 .transpose()?,
         });
         configuration.endpoints.push(EndpointConfiguration {
+            request_policy: gateway_core::request_policy::RequestPolicy::default(),
             id: EndpointId::try_new("endpoint-a")?,
             upstream_id: UpstreamId::try_new("upstream-a")?,
             adapter_id: "openai-compatible.responses".to_owned(),

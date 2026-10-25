@@ -7,6 +7,7 @@ pub(in crate::runtime) mod bootstrap_usage;
 mod count_tokens;
 mod cpa_compatibility;
 mod model_names;
+mod request_rules;
 mod responses_done;
 mod responses_history;
 
@@ -27,6 +28,7 @@ pub(in crate::runtime) struct Peer {
     requests: Mutex<Vec<Recorded>>,
     received: web::Data<Mutex<Vec<Value>>>,
     received_paths: web::Data<Mutex<Vec<String>>>,
+    custom_header_receives: web::Data<Mutex<Vec<bool>>>,
     server: ServerHandle,
 }
 impl Peer {
@@ -62,10 +64,13 @@ impl Peer {
         let server_received = received.clone();
         let received_paths = web::Data::new(Mutex::new(Vec::<String>::new()));
         let server_paths = received_paths.clone();
+        let custom_header_receives = web::Data::new(Mutex::new(Vec::<bool>::new()));
+        let server_custom = custom_header_receives.clone();
         let server = HttpServer::new(move || {
             App::new()
                 .app_data(server_received.clone())
                 .app_data(server_paths.clone())
+                .app_data(server_custom.clone())
                 .app_data(web::Data::new(reject_limit))
                 .app_data(web::Data::new(responses_output.clone()))
                 .app_data(web::Data::new(chunks.clone()))
@@ -95,6 +100,7 @@ impl Peer {
             requests: Mutex::new(Vec::new()),
             received,
             received_paths,
+            custom_header_receives,
             server: handle,
         }))
     }
@@ -118,6 +124,7 @@ impl Peer {
             "x-msh-device-name",
             "x-msh-device-model",
             "x-msh-device-id",
+            "x-request-tag",
         ]
         .into_iter()
         .filter_map(|name| request.header(name).map(|value| (name, value)))
@@ -151,6 +158,8 @@ impl Drop for Peer {
     }
 }
 
+type PeerReceipts = (web::Data<Mutex<Vec<String>>>, web::Data<Mutex<Vec<bool>>>);
+
 #[allow(
     clippy::too_many_lines,
     reason = "three literal upstream JSON/SSE shapes stay together in this test-only responder"
@@ -162,8 +171,17 @@ async fn reply(
     output: web::Data<Option<Value>>,
     chunks: web::Data<Option<Vec<Vec<u8>>>>,
     received: web::Data<Mutex<Vec<Value>>>,
-    paths: web::Data<Mutex<Vec<String>>>,
+    (paths, custom): PeerReceipts,
 ) -> Result<HttpResponse, actix_web::Error> {
+    custom
+        .lock()
+        .map_err(|_| actix_web::error::ErrorInternalServerError("headers"))?
+        .push(
+            request
+                .headers()
+                .get("x-request-tag")
+                .is_some_and(|v| v == "synthetic-request-tag"),
+        );
     paths
         .lock()
         .map_err(|_| actix_web::error::ErrorInternalServerError("paths"))?

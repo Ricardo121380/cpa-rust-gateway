@@ -438,3 +438,11 @@ BC-PROTOCOL017 / BC-MGMT021 / BC-MGMT007. Actual code6165a9f1, Full44/44, Rust17
 pricing, encrypted model_thinking and supported recovered continuation:198/198.
 Explicit backup suite7/7 includes ignored capacity; #72 process517/517; #74 schema40 process21/21.
 Historical RED/FAIL and schema39 evidence remain source-bound; remote/client/Provider/release boundaries remain.
+
+## #71 / OPT-04 — versioned request rules and custom upstream headers
+
+[ADR-0134](adr/ADR-0134-versioned-request-rules-upstream-headers.md) →
+[BC-MGMT-022](contracts/BC-MGMT-022-request-rules-upstream-headers.md) →
+[public scope and examples](support/request-rules-upstream-headers.md).
+Endpoint configuration owns scope/revision; ordinary three-protocol runtime owns final-body
+validation; existing Secret Store owns header values. No #70 selection policy or frontend.

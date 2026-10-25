@@ -398,6 +398,7 @@ fn fixture(
         egress_policy_id: None,
     });
     configuration.endpoints.push(EndpointConfiguration {
+        request_policy: gateway_core::request_policy::RequestPolicy::default(),
         id: channel_id.clone(),
         upstream_id: provider_id.clone(),
         adapter_id: "inventory.responses".to_owned(),

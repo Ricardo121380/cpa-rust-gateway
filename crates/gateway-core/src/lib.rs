@@ -15,6 +15,7 @@ mod native_usage;
 mod raw_extension;
 mod request_context;
 mod request_metadata;
+pub mod request_policy;
 mod retry_gate;
 mod thinking;
 mod token_count;

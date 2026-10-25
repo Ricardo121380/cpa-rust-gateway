@@ -31,6 +31,8 @@ pub mod management_service;
 pub mod provider_account_pool_service;
 /// Provider-specific, immutable-snapshot egress/session/clearance management projections.
 pub mod provider_egress_status_service;
+/// Bounded versioned request rules and encrypted upstream header preparation.
+pub mod request_policy;
 /// Semantic Config Version validation and secret-free Route compilation.
 pub mod route_compiler;
 /// Immutable billing-catalog projection into request-time Provider price evidence.

@@ -640,3 +640,61 @@ async fn cpa_69_count_native_effort_and_format_match_inference_admission() -> Te
     }
     Ok(())
 }
+
+#[actix_web::test]
+async fn request_rules_count_uses_only_headers_and_never_infers_or_bills() -> TestResult {
+    for native in [false, true] {
+        let peer = Peer::start(false, None)?;
+        let mut fixture = production_fixture(peer.clone(), native, false, |config| {
+            let secrets = test_secret_store()?;
+            let id = CredentialId::try_new("count-header")?;
+            let owner = config.endpoints[0].upstream_id.clone();
+            config
+                .credentials
+                .push(gateway_store::control_plane::CredentialConfiguration {
+                    id: id.clone(),
+                    upstream_id: owner.clone(),
+                    kind: "upstream_header".into(),
+                    encrypted_secret: secrets.seal(
+                        b"synthetic-request-tag",
+                        &credential_associated_data(&config.version.id, &id, &owner)?,
+                    )?,
+                    status: CredentialStatus::Active,
+                    revision: 0,
+                });
+            config.endpoints[0].request_policy = serde_json::from_value(
+                json!({"headers":{"x-request-tag":"count-header"},"rules":[{"models":["*"],"override":{"max_tokens":64},"filter":["top_p"]}]}),
+            )?;
+            Ok(())
+        })?;
+        let (origin, handle) = serve(fixture.state.clone())?;
+        let client = reqwest::Client::builder().no_proxy().build()?;
+        let response = call(&client, &origin, &fixture.key, payload("count-alias")).await?;
+        assert_eq!(response.status(), 200);
+        if native {
+            assert_eq!(peer.received.lock().map_err(|_| "received")?.len(), 1);
+            assert!(
+                *peer
+                    .custom_header_receives
+                    .lock()
+                    .map_err(|_| "headers")?
+                    .last()
+                    .ok_or("header")?
+            );
+            let body = peer
+                .received
+                .lock()
+                .map_err(|_| "received")?
+                .last()
+                .cloned()
+                .ok_or("body")?;
+            assert!(body.get("max_tokens").is_none());
+        } else {
+            assert!(peer.received.lock().map_err(|_| "received")?.is_empty());
+        }
+        assert_no_usage(&mut fixture).await?;
+        handle.stop(false).await;
+        peer.server.stop(false).await;
+    }
+    Ok(())
+}

@@ -92,6 +92,12 @@ impl RouteCompiler {
             compiler.catalog = durable_catalog_view(database, configuration)?;
             return compiler.compile(configuration);
         }
+        crate::request_policy::validate(configuration).map_err(|_| {
+            route_error(
+                RouteCompileErrorCode::InvalidRequestPolicy,
+                "request_policy",
+            )
+        })?;
         let upstreams = index_upstreams(&configuration.upstreams)?;
         let endpoints = index_endpoints(&configuration.endpoints, &upstreams)?;
         let credentials = index_credentials(&configuration.credentials, &upstreams)?;
@@ -614,6 +620,8 @@ impl CompiledAccessGroup {
 /// Stable safe failure code for Route compilation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RouteCompileErrorCode {
+    /// An endpoint request policy or its version-local scope/reference was rejected.
+    InvalidRequestPolicy,
     /// An Upstream ID appeared more than once.
     DuplicateUpstream,
     /// An Endpoint ID appeared more than once.
@@ -695,6 +703,7 @@ impl RouteCompileErrorCode {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::InvalidRequestPolicy => "invalid_request_policy",
             Self::DuplicateUpstream => "duplicate_upstream",
             Self::DuplicateEndpoint => "duplicate_endpoint",
             Self::DuplicateEndpointApiFormat => "duplicate_endpoint_api_format",
@@ -1607,6 +1616,7 @@ mod tests {
     fn same_upstream_distinct_endpoint_formats_are_retained_by_candidates() -> TestResult {
         let mut fixture = fixture()?;
         fixture.configuration.endpoints.push(EndpointConfiguration {
+            request_policy: gateway_core::request_policy::RequestPolicy::default(),
             id: EndpointId::try_new("endpoint-anthropic")?,
             upstream_id: UpstreamId::try_new("upstream-a")?,
             adapter_id: "anthropic-compatible.messages".to_owned(),
@@ -1736,6 +1746,7 @@ mod tests {
             .configuration
             .endpoints
             .push(EndpointConfiguration {
+                request_policy: gateway_core::request_policy::RequestPolicy::default(),
                 id: EndpointId::try_new("endpoint-unreferenced")?,
                 upstream_id: UpstreamId::try_new("upstream-a")?,
                 adapter_id: "future-adapter".to_owned(),
@@ -2111,6 +2122,7 @@ mod tests {
             egress_policy_id: None,
         });
         fixture.configuration.endpoints.push(EndpointConfiguration {
+            request_policy: gateway_core::request_policy::RequestPolicy::default(),
             id: EndpointId::try_new("endpoint-b")?,
             upstream_id: UpstreamId::try_new("upstream-b")?,
             adapter_id: "openai-compatible.responses".to_owned(),
@@ -2216,6 +2228,7 @@ mod tests {
             egress_policy_id: None,
         });
         configuration.endpoints.push(EndpointConfiguration {
+            request_policy: gateway_core::request_policy::RequestPolicy::default(),
             id: EndpointId::try_new("endpoint-a")?,
             upstream_id: UpstreamId::try_new("upstream-a")?,
             adapter_id: "openai-compatible.responses".to_owned(),
@@ -2387,6 +2400,7 @@ mod tests {
     fn duplicate_endpoint_format_error() -> Result<RouteCompileErrorCode, Box<dyn Error>> {
         let mut fixture = fixture()?;
         fixture.configuration.endpoints.push(EndpointConfiguration {
+            request_policy: gateway_core::request_policy::RequestPolicy::default(),
             id: EndpointId::try_new("endpoint-b")?,
             upstream_id: UpstreamId::try_new("upstream-a")?,
             // The scenario under test is the duplicate (upstream, api_format) pair, so this

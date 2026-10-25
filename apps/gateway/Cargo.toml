@@ -24,6 +24,7 @@ gateway-upstream = { path = "../../crates/gateway-upstream" }
 getrandom.workspace = true
 libc.workspace = true
 rustix.workspace = true
+protocol-anthropic = { path = "../../crates/protocol-anthropic" }
 protocol-openai-chat = { path = "../../crates/protocol-openai-chat" }
 protocol-openai-responses = { path = "../../crates/protocol-openai-responses" }
 provider-anthropic-compatible = { path = "../../crates/provider-anthropic-compatible" }

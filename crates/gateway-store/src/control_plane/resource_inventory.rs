@@ -323,7 +323,7 @@ impl SqliteControlPlaneRepository {
         let mut items = Vec::new();
         {
             let mut statement = transaction.prepare(
-                "SELECT id, upstream_id, adapter_id, api_format, base_url, inference_path, models_path, transport, enabled \
+                "SELECT id, upstream_id, adapter_id, api_format, base_url, inference_path, models_path, transport, enabled, request_policy_json \
                  FROM upstream_endpoints WHERE config_version_id = ?1 AND id > ?2 \
                  AND (?3 IS NULL OR upstream_id = ?3) \
                  AND (?4 = '' OR instr(lower(id || ' ' || upstream_id || ' ' || adapter_id), lower(?4)) > 0) \
@@ -338,6 +338,8 @@ impl SqliteControlPlaneRepository {
             ])?;
             while let Some(row) = rows.next()? {
                 items.push(EndpointConfiguration {
+                    request_policy: serde_json::from_str(&row.get::<_, String>(9)?)
+                        .map_err(|_| malformed("upstream_endpoints"))?,
                     id: read_identifier(row, 0, EndpointId::try_new, "upstream_endpoints")?,
                     upstream_id: read_identifier(
                         row,

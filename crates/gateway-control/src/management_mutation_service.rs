@@ -884,6 +884,7 @@ impl ManagementMutationService {
         expected_revision: ConfigRevision,
         endpoint: EndpointConfiguration,
     ) -> Result<Revisioned<EndpointConfiguration>, ManagementResourceError> {
+        self.validate_endpoint_policy(config_version_id, &endpoint)?;
         let audit = self.audit(
             "endpoint_created",
             actor,
@@ -938,6 +939,7 @@ impl ManagementMutationService {
         expected_revision: ConfigRevision,
         endpoint: EndpointConfiguration,
     ) -> Result<Revisioned<EndpointConfiguration>, ManagementResourceError> {
+        self.validate_endpoint_policy(config_version_id, &endpoint)?;
         let audit = self.audit(
             "endpoint_updated",
             actor,
@@ -3160,6 +3162,23 @@ impl ManagementMutationService {
         ConfigRevision::try_new(next_revision)
     }
 
+    fn validate_endpoint_policy(
+        &mut self,
+        version: &ConfigVersionId,
+        endpoint: &EndpointConfiguration,
+    ) -> Result<(), ManagementResourceError> {
+        endpoint
+            .request_policy
+            .validate(&endpoint.adapter_id, &endpoint.api_format)
+            .map_err(|e| ManagementResourceError::InvalidRequestPolicy(e.0))?;
+        if !endpoint.request_policy.headers.is_empty() {
+            let config = self.configuration(version)?;
+            crate::request_policy::prepare_headers(&config, endpoint, &self.secret_store)
+                .map_err(|e| ManagementResourceError::InvalidRequestPolicy(e.0))?;
+        }
+        Ok(())
+    }
+
     fn seal_credential(
         &self,
         config_version_id: &ConfigVersionId,
@@ -3167,6 +3186,11 @@ impl ManagementMutationService {
         input: CredentialUpsert<'_>,
         revision: i64,
     ) -> Result<CredentialConfiguration, ManagementResourceError> {
+        if input.kind == "upstream_header"
+            && gateway_core::request_policy::validate_header_value(input.plaintext_secret).is_err()
+        {
+            return Err(ManagementResourceError::InvalidCredentialInput);
+        }
         if input.plaintext_secret.is_empty() || revision < 0 {
             return Err(ManagementResourceError::InvalidCredentialInput);
         }
@@ -3388,6 +3412,8 @@ pub enum ManagementResourceError {
     InvalidRevision,
     /// A credential mutation had no plaintext Secret or an invalid record revision.
     InvalidCredentialInput,
+    /// An endpoint policy or its encrypted header references failed admission.
+    InvalidRequestPolicy(&'static str),
     /// Reauthorization could not prove the old and new material belong to the same account.
     CredentialIdentityUnverified,
     /// A concurrent credential update advanced the record revision.
@@ -3424,6 +3450,7 @@ impl fmt::Display for ManagementResourceError {
             Self::InvalidRevision => {
                 formatter.write_str("management Config Version revision is invalid")
             }
+            Self::InvalidRequestPolicy(code) => formatter.write_str(code),
             Self::InvalidCredentialInput => {
                 formatter.write_str("management credential input is invalid")
             }
@@ -3457,6 +3484,7 @@ impl Error for ManagementResourceError {
             | Self::ResourceNotFound
             | Self::InvalidRevision
             | Self::InvalidCredentialInput
+            | Self::InvalidRequestPolicy(_)
             | Self::CredentialIdentityUnverified
             | Self::CredentialRevisionConflict
             | Self::InvalidBillingCatalogInput
@@ -4809,6 +4837,7 @@ mod tests {
             version_id,
             revision,
             EndpointConfiguration {
+                request_policy: gateway_core::request_policy::RequestPolicy::default(),
                 id: EndpointId::try_new("endpoint-a")?,
                 upstream_id: UpstreamId::try_new("upstream-a")?,
                 adapter_id: "openai-compatible.responses".to_owned(),
