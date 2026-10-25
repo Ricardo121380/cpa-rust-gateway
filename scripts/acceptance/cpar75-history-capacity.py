@@ -59,7 +59,22 @@ def append_lineage(db, events, ledger, request, ts):
     for kind, _, payload in events:
         db.execute("INSERT INTO gateway_event_log(event_type,event_id,request_id,occurred_at_ms,payload_json) VALUES(?,?,?,?,?)",
                    [kind, ids[kind], request, None if kind == "usage" else ts, json.dumps(rewrite(json.loads(payload)), separators=(",", ":"))])
-    row = {k: rewrite(v) for k, v in ledger.items() if k != "ledger_id"}
+    if ledger is None: return  # The real stock BillingWorker materializes the frozen scale seed.
+    row = {k: rewrite(v) for k, v in ledger.items() if k not in ("ledger_id", "source_fingerprint")}
+    row["retention_expires_at_ms"] = ledger["retention_expires_at_ms"]
+    digest = hashlib.sha256()
+    for key in ("source_event_id", "request_id", "response_id", "provider_id", "channel_id", "account_id", "model"):
+        digest.update(row[key].encode() + b"\0")
+    digest.update(row["occurred_at_ms"].to_bytes(8, "big") + b"\0")
+    digest.update(b"\0" if row["catalog_version_id"] is None else b"\1" + row["catalog_version_id"].encode())
+    digest.update(row["retention_expires_at_ms"].to_bytes(8, "big"))
+    for key in ("input_tokens", "output_tokens", "reasoning_tokens", "cache_read_tokens", "cache_creation_tokens", "cached_tokens", "cost_microunits"):
+        digest.update(((2**64 - 1) if row[key] is None else row[key]).to_bytes(8, "big"))
+    digest.update(row["cost_confidence"].encode())
+    usage = json.loads(next(payload for kind, _, payload in events if kind == "usage"))["usage"]["usage"]
+    if usage["provenance"] != "unknown" or usage["input_accounting"] != "unknown":
+        digest.update(json.dumps([usage["provenance"], usage["input_accounting"]], separators=(",", ":")).encode())
+    row["source_fingerprint"] = digest.hexdigest()
     db.execute("INSERT INTO billing_ledger_entries(" + ','.join(row) + ") VALUES(" + ','.join('?' for _ in row) + ")", list(row.values()))
 
 
@@ -166,7 +181,7 @@ class Matrix(base.Matrix):
                 originals.append((item, events, ledger))
             for i in range(REQUESTS):
                 item, events, ledger = originals[0 if i % 10 < 8 else i % 10 - 7]
-                append_lineage(db, events, ledger, f"capacity75-{i:06}", START + i * SPAN // REQUESTS)
+                append_lineage(db, events, None, f"capacity75-{i:06}", START + i * SPAN // REQUESTS)
             for i in range(QUOTAS):
                 ts = START + i * SPAN // QUOTAS
                 status = ["observed", "exhausted", "unknown", "failed"][i % 4]
@@ -291,6 +306,21 @@ class Matrix(base.Matrix):
         self.management = (self.credentials / "management-key").read_text()
         self.check("source input clone byte identical", digest_file(self.db) == digest_file(original / "state/control.sqlite3"))
 
+    def settle_billing(self, label):
+        def current():
+            value = self.api("GET", "/admin/operations/billing-processing")
+            assert value["state"] not in ("failed", "needs_repair"), value
+            return value if value["state"] == "current" and value["unresolved_failures"] == 0 and value["checkpoint_ordinal"] == value["source_ordinal"] else None
+        value = base.wait_for(current, label + " real billing materialization/replay", timeout=180)
+        self.report.setdefault("billing_processing", []).append({"stage": label, **value})
+        self.save()
+
+    def copy_phase(self):
+        try: files = [(p, p.stat().st_size) for p in self.root.glob(".cpa-backup-*.sqlite3")]
+        except FileNotFoundError: return False
+        growing = [size for _, size in files if 1048576 < size < self.db.stat().st_size]
+        return bool(growing and any(size == 0 for _, size in files))
+
     def concurrent_writer(self):
         self.writer_ready = threading.Event()
         self.writer_receipt = []
@@ -302,11 +332,17 @@ class Matrix(base.Matrix):
                     ledger = dict(db.execute("SELECT * FROM billing_ledger_entries WHERE request_id='capacity75-000000'").fetchone())
                     db.row_factory = None
                     for batch in range(10):
+                        if batch == 1:
+                            deadline = time.monotonic() + 30
+                            while not self.copy_phase():
+                                assert time.monotonic() < deadline, "actual SQLite copy not observed"
+                                time.sleep(.002)
+                        copy_before = self.copy_phase()
                         committed_ids = [f"concurrent75-{i:04}" for i in range(batch * 10, batch * 10 + 10)]
                         for i, request in enumerate(committed_ids):
                             append_lineage(db, template, ledger, request, START + SPAN + 100000 + batch * 10 + i)
                         db.commit()
-                        self.writer_receipt.append({"batch": batch, "request_ids": committed_ids, "committed_at_monotonic": time.monotonic()})
+                        self.writer_receipt.append({"batch": batch, "request_ids": committed_ids, "committed_at_monotonic": time.monotonic(), "copy_before_commit": copy_before, "copy_after_commit": self.copy_phase()})
                         self.writer_ready.set()
                         time.sleep(.05)
             except BaseException as error:
@@ -389,6 +425,7 @@ class Matrix(base.Matrix):
         else:
             self.prepare()
         self.start("current", "large-source-query")
+        self.settle_billing("source")
         self.verify_public("large-source")
         before_query = self.query("source")
         self.stop()
@@ -400,6 +437,10 @@ class Matrix(base.Matrix):
             self.writer_thread.join(timeout=30)
             self.check("bounded concurrent writer completed", not self.writer_thread.is_alive()
                        and [row.get("batch") for row in self.writer_receipt] == list(range(10)))
+            self.check("committed write overlaps the actual SQLite copy", any(row["copy_before_commit"] and row["copy_after_commit"] for row in self.writer_receipt))
+            self.start("current", "concurrent-ledger-replay")
+            self.settle_billing("concurrent-ledger-replay")
+            self.stop()
             with sqlite3.connect(self.db) as db: self.committed_rows = concurrent_rows(db)
             ids = [request for row in self.writer_receipt for request in row["request_ids"]]
             self.check("committed source IDs match every writer receipt", len(ids) == 100 and ids == list(self.committed_rows))
@@ -422,6 +463,7 @@ class Matrix(base.Matrix):
         self.state.mkdir(mode=0o700)
         shutil.copy2(target, self.db)
         self.start("current", "restored-serving")
+        self.settle_billing("restored")
         self.check("new gateway adopts exact restored business tables", self.snapshot("restored-serving") == before)
         self.verify_concurrent_snapshot()
         self.verify_public("restored")

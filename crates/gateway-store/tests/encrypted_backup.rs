@@ -174,7 +174,8 @@ fn chunked_backup_authenticates_order_length_and_legacy_compatibility() -> TestR
         restore_encrypted_backup_reader_to_empty_target,
     };
     let directory = TemporaryDirectory::new()?;
-    let source = populated_source(&directory.join("source.sqlite3"))?;
+    let mut source = populated_source(&directory.join("source.sqlite3"))?;
+    source.set_transaction_behavior(rusqlite::TransactionBehavior::Immediate);
     let key = backup_key(0xA5)?;
     let artifact_path = directory.join("chunked.backup");
     create_encrypted_backup_file(&source, directory.path(), &artifact_path, &key)?;

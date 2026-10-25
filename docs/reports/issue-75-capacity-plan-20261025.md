@@ -48,3 +48,18 @@ Reuse wrong-key/tamper/incompatible/existing-target negatives.
 No history deletion, retention, rollup, shared database, remote change, deployment,
 real Provider or actual-client qualification. Raw artifacts/keys/diagnostics stay
 in private ignored output. Results and preserved failures are reported separately.
+
+
+## Fixture correction before qualified baseline
+
+Independent review rejected the first cloned ledger fixture: rewriting IDs while
+copying its fingerprint and retention sentinel did not prove valid replay. Those
+failed/historical runs are retained. Counts, time range and distributions above
+stay frozen. The corrected scale seed appends typed-valid events, then lets the
+unchanged stock gateway BillingWorker generate every scale ledger row; its
+protected processing status must be current with zero unresolved failures.
+Concurrent batches keep the sentinel and recompute identity-bound fingerprints;
+the real worker must replay them without failures before/after recovery.
+The qualified baseline is remeasured on this corrected input. Concurrent evidence
+requires a committed batch observed between the start and end of the actual
+SQLite staging copy, plus exact committed IDs and restored-cell prefix hashes.

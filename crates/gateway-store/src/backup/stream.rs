@@ -62,9 +62,11 @@ pub fn create_encrypted_backup_to_writer(
         // owned by that embedding; otherwise this read transaction rolls back on scope exit.
         let _source_snapshot = if source.is_autocommit() {
             Some(
-                source
-                    .unchecked_transaction()
-                    .map_err(|_| BackupError::SnapshotUnavailable)?,
+                rusqlite::Transaction::new_unchecked(
+                    source,
+                    rusqlite::TransactionBehavior::Deferred,
+                )
+                .map_err(|_| BackupError::SnapshotUnavailable)?,
             )
         } else {
             None
