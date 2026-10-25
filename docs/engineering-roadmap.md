@@ -44,7 +44,7 @@ CPAR 是 CPA/CLIProxyAPI 网关行为的 Rust 实现。优先直接对照固定�
 | 账号池、路由、重试和权限组 | 已接入；普通模型入口使用 ProviderScopedSelector | 与 CPA priority/weight/fill-first 行为不同；需要行为对齐时按实际 serving 分支改 |
 | 通用 session/cache affinity | 精确 continuation pin 已有；Build cache_affinity 库/测试未发现 serving 接线 | **待接线/补策略**，不能把两者合并报为通用亲和已完成 |
 | 管理 API、配置发布/回滚 | /admin 已有；管理 API 发布时装配新运行代 | 本地离线 admin CLI 与运行中管理 API 的生效方式分开；无需重建控制面 |
-| Request/Attempt/Usage、账本和加密恢复 | 持久化与查询/恢复已有；#72 新增统一过滤、全范围汇总、冻结快照和 CSV/JSONL 分页导出，已接入管理 API | 见 [#72 实施记录](reports/issue-72-usage-query-export-20261025.md)；未知费用及 cost_in_usd_ticks 未准入保持；后续[独立安全升级](reports/crypto-bigint-security-fix-20261025-issue72.md)已消除 RUSTSEC-2026-0387 阻塞，原分支本地 Full 44/44 通过；本轮集成结果单独记录。有限快照不代表大规模性能、实际生产数据或 #75 容量验收 |
+| Request/Attempt/Usage、账本和加密恢复 | 持久化与查询/恢复已有；#72 新增统一过滤、全范围汇总、冻结快照和 CSV/JSONL 分页导出，已接入管理 API | 见 [#72 实施记录](reports/issue-72-usage-query-export-20261025.md)；未知费用及 cost_in_usd_ticks 未准入保持；后续[独立安全升级](reports/crypto-bigint-security-fix-20261025-issue72.md)已消除 RUSTSEC-2026-0387 阻塞，原分支本地 Full 44/44 通过；本轮集成结果单独记录。有限快照不代表大规模性能或实际生产数据；#75 容量扩展见 [ADR-0132](adr/ADR-0132-bounded-disk-backed-backup.md)，验收单独记录 |
 | 账号配额观察历史（#74） | 独立历史表、现有额度读取/Kimi后台观察接线、有界管理查询已实现 | 本地功能验收通过；[原交付记录](reports/issue-74-quota-history-20261025.md)保留Full供应链失败；集成验证见[集成记录](reports/parallel-integration-20261025.md)，原安全后继见[历史记录](reports/rustsec-2026-0387-from74-20261025.md)；真实Provider、部署未运行；与Token Usage/费用分离 |
 | RUSTSEC-2026-0387安全修复（已集成） | p256 0.14.0 / crypto-bigint 0.7.8；保留显式Randomness错误、三个调用点与独有回归，无ignore或门禁放宽 | 本轮集成Full 44/44，1695 passed / 0 failed / 21 ignored；见[集成验收](reports/parallel-integration-20261025.md)，原分支证据按原身份保留 |
 | 外部 OTel 输出 | 接口已有，serve 使用 Noop exporter | **待接线**，不宣称已把 tracing 送到外部系统 |
@@ -163,7 +163,7 @@ Gemini、多模态、插件、Home 和新前端是单独扩展项，本页没有
 | [#72](https://github.com/Ricardo121380/cpa-rust-gateway/issues/72) | Token 与费用的统一查询及快照导出；本地实现与证据见 [实施记录](reports/issue-72-usage-query-export-20261025.md)，独立安全升级后本地 Full 已通过，远端仍 OPEN | P1 |
 | [#73](https://github.com/Ricardo121380/cpa-rust-gateway/issues/73) | 价格获取、审阅与版本化应用 | P1 |
 | [#74](https://github.com/Ricardo121380/cpa-rust-gateway/issues/74) | 配额观察的历史与重置窗口查询 | P1 |
-| [#75](https://github.com/Ricardo121380/cpa-rust-gateway/issues/75) | 大历史查询与加密备份恢复的容量闭环 | P1 |
+| [#75](https://github.com/Ricardo121380/cpa-rust-gateway/issues/75) | 大历史查询与加密备份恢复的容量闭环；独立 #75 分支已实现 [ADR-0132](adr/ADR-0132-bounded-disk-backed-backup.md) 的 v2 磁盘分块备份、128 MiB 明文上限与管理恢复；本轮进程/Full 验收待记录 | P1 |
 
 8张新增票均为OPEN、ready-for-agent，之间没有新增阻塞边；请求控制→模型命名和统计查询→导出按票内顺序实施。
 #69的请求控制保留P0、模型命名保留P1；合并不增加首版门槛。#68/#72/#74及安全后继现已纳入独立本地集成分支；本次验证单独记录，不复用原分支PASS。
@@ -199,4 +199,4 @@ README、AGENTS、文档索引保持短入口，不再复制一整份动态进�
 10 月 23 日入口整理保留为文档历史；10 月 24 日 effort 代码与契约变化已按 ADR-0126 登记。
 本轮没有修改 AGENTS/CLAUDE，也没有改写旧失败、原请求计数或已保存的测试源码身份。
 
-本次共同基线以[集成记录](reports/parallel-integration-20261025.md)的实际受测源码及文档后继为准。后续建议 #69、#73、#75 从该新基线分别启动；不从旧 `444558a8` 启动新实现。
+本次共同基线以[集成记录](reports/parallel-integration-20261025.md)的实际受测源码及文档后继为准。#75 已从该新基线创建独立分支并实施容量扩展；#69/#73 保留独立实施安排。不从旧 `444558a8` 启动新实现。

@@ -79,6 +79,9 @@ never replaced and a new gateway must explicitly adopt the verified restored tar
 - `malformed_and_oversized_material_are_rejected_before_staging_or_restore`
 - `chunked_backup_authenticates_order_length_and_legacy_compatibility`
 - `chunked_backup_write_failure_and_restore_interruption_preserve_source`
+- `chunked_backup_keeps_embedding_read_snapshot_and_transaction`
+- `chunked_backup_rejects_oversized_source_before_artifact_publication`
+- `cancelled_disk_work_keeps_restore_upload_admission`
 
 The opt-in `scripts/acceptance/cpar75-history-capacity.py` reuses #65's stock-process
 and private evidence structure on the frozen schema39 dataset. Its receipt is separate

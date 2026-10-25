@@ -520,6 +520,10 @@ struct TemporarySqliteFile {
 
 impl TemporarySqliteFile {
     fn create_in(directory: &Path) -> Result<Self, BackupError> {
+        Self::create_file_in(directory).map(|(staging, _file)| staging)
+    }
+
+    fn create_file_in(directory: &Path) -> Result<(Self, File), BackupError> {
         let metadata =
             fs::symlink_metadata(directory).map_err(|_| BackupError::InvalidStagingDirectory)?;
         if metadata.file_type().is_symlink() || !metadata.is_dir() {
@@ -531,18 +535,20 @@ impl TemporarySqliteFile {
             getrandom::fill(&mut random).map_err(|_| BackupError::RandomnessUnavailable)?;
             let path = directory.join(format!(".cpa-backup-{}.sqlite3", hexadecimal(&random)));
             let mut options = OpenOptions::new();
-            options.write(true).create_new(true);
+            options.read(true).write(true).create_new(true);
             #[cfg(unix)]
             {
                 options.mode(0o600).custom_flags(libc::O_NOFOLLOW);
             }
             match options.open(&path) {
                 Ok(file) => {
-                    drop(file);
-                    return Ok(Self {
-                        path,
-                        retained: false,
-                    });
+                    return Ok((
+                        Self {
+                            path,
+                            retained: false,
+                        },
+                        file,
+                    ));
                 }
                 Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
                 Err(_) => return Err(BackupError::StagingUnavailable),

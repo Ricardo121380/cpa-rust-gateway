@@ -41,6 +41,44 @@ def digest_file(path):
         return digest.hexdigest()
 
 
+def append_lineage(db, events, ledger, request, ts):
+    original = next(json.loads(p)["request"]["request_id"] for kind, _, p in events if kind == "request")
+    old_attempt = next(json.loads(p)["attempt"]["attempt_id"] for kind, _, p in events if kind == "attempt")
+    old_usage = next(event_id for kind, event_id, _ in events if kind == "usage")
+    attempt = f"attempt:{len(request)}:{request}:1"
+    usage = "usage-attempt:" + base.sha(attempt.encode())
+    mapping = {original: request, old_attempt: attempt, old_usage: usage}
+    def rewrite(value):
+        if isinstance(value, dict): return {k: rewrite(v) for k, v in value.items()}
+        if isinstance(value, list): return [rewrite(v) for v in value]
+        if isinstance(value, str): return mapping.get(value, value)
+        # These templates have only timestamp values >=1e12.
+        if isinstance(value, int) and value >= 1000000000000: return ts
+        return value
+    ids = dict(request=request, request_finished=request, attempt=attempt, usage=usage)
+    for kind, _, payload in events:
+        db.execute("INSERT INTO gateway_event_log(event_type,event_id,request_id,occurred_at_ms,payload_json) VALUES(?,?,?,?,?)",
+                   [kind, ids[kind], request, None if kind == "usage" else ts, json.dumps(rewrite(json.loads(payload)), separators=(",", ":"))])
+    row = {k: rewrite(v) for k, v in ledger.items() if k != "ledger_id"}
+    db.execute("INSERT INTO billing_ledger_entries(" + ','.join(row) + ") VALUES(" + ','.join('?' for _ in row) + ")", list(row.values()))
+
+
+def concurrent_rows(db):
+    result = {}
+    for (request,) in db.execute("SELECT DISTINCT request_id FROM gateway_event_log WHERE request_id LIKE 'concurrent75-%' ORDER BY request_id"):
+        data = list(db.execute("SELECT * FROM gateway_event_log WHERE request_id=? ORDER BY event_ordinal", [request]))
+        data += list(db.execute("SELECT * FROM billing_ledger_entries WHERE request_id=? ORDER BY ledger_id", [request]))
+        result[request] = base.sha(json.dumps(data, separators=(",", ":")).encode())
+    return result
+
+
+def csv_matches(actual, expected):
+    return len(actual) == len(expected) and all(set(cells) == set(row) and all(
+        json.loads(cells[field]) == value if isinstance(value, (dict, list)) else
+        cells[field] == ("" if value is None else str(value).lower() if isinstance(value, bool) else str(value))
+        for field, value in row.items()) for cells, row in zip(actual, expected))
+
+
 class Matrix(base.Matrix):
     def __init__(self, args):
         super().__init__(args)
@@ -128,29 +166,7 @@ class Matrix(base.Matrix):
                 originals.append((item, events, ledger))
             for i in range(REQUESTS):
                 item, events, ledger = originals[0 if i % 10 < 8 else i % 10 - 7]
-                request = f"capacity75-{i:06}"
-                attempt = f"attempt:{len(request)}:{request}:1"
-                ts = START + i * SPAN // REQUESTS
-                mapping = {item["request"]: request, item["attempt"]: attempt}
-                usage_id = "usage-attempt:" + base.sha(attempt.encode())
-                mapping.update({event_id: usage_id for kind, event_id, _ in events if kind == "usage"})
-                ids = {"request": request, "request_finished": request, "attempt": attempt, "usage": usage_id}
-                # All IDs are exact strings. Times are the only >=1e12 numbers in these templates.
-                def rewrite(value):
-                    if isinstance(value, dict):
-                        return {k: rewrite(v) for k, v in value.items()}
-                    if isinstance(value, list):
-                        return [rewrite(v) for v in value]
-                    if isinstance(value, str):
-                        return mapping.get(value, value)
-                    if isinstance(value, int) and value >= 1000000000000:
-                        return ts
-                    return value
-                for kind, event_id, payload in events:
-                    db.execute("INSERT INTO gateway_event_log(event_type,event_id,request_id,occurred_at_ms,payload_json) VALUES(?,?,?,?,?)",
-                               [kind, ids[kind], request, None if kind == "usage" else ts, json.dumps(rewrite(json.loads(payload)), separators=(",", ":"))])
-                row = {k: rewrite(v) for k, v in ledger.items() if k != "ledger_id"}
-                db.execute("INSERT INTO billing_ledger_entries(" + ','.join(row) + ") VALUES(" + ','.join('?' for _ in row) + ")", list(row.values()))
+                append_lineage(db, events, ledger, f"capacity75-{i:06}", START + i * SPAN // REQUESTS)
             for i in range(QUOTAS):
                 ts = START + i * SPAN // QUOTAS
                 status = ["observed", "exhausted", "unknown", "failed"][i % 4]
@@ -198,7 +214,7 @@ class Matrix(base.Matrix):
                     cursor = response.headers.get("X-Next-Cursor")
                 if not cursor:
                     break
-            self.check(label + " complete " + fmt + " export", len(exported) == len(rows) and (fmt != "jsonl" or exported == rows))
+            self.check(label + " complete " + fmt + " export", len(exported) == len(rows) and (exported == rows if fmt == "jsonl" else csv_matches(exported, rows)))
         self.api("DELETE", f"/admin/operations/usage-snapshots/{snapshot}", expected=204)
         started = time.monotonic()
         self.api("POST", "/admin/operations/usage-snapshots", {"from_ms": START, "to_ms": START + SPAN, "bucket_ms": 86400000}, 413)
@@ -285,29 +301,12 @@ class Matrix(base.Matrix):
                     db.row_factory = sqlite3.Row
                     ledger = dict(db.execute("SELECT * FROM billing_ledger_entries WHERE request_id='capacity75-000000'").fetchone())
                     db.row_factory = None
-                    old_attempt = next(json.loads(p)["attempt"]["attempt_id"] for k, _, p in template if k == "attempt")
-                    old_usage = next(e for k, e, _ in template if k == "usage")
                     for batch in range(10):
-                        for i in range(batch * 10, batch * 10 + 10):
-                            request = f"concurrent75-{i:04}"
-                            attempt = f"attempt:{len(request)}:{request}:1"
-                            usage = "usage-attempt:" + base.sha(attempt.encode())
-                            mapping = {"capacity75-000000": request, old_attempt: attempt, old_usage: usage}
-                            def rewrite(v):
-                                if isinstance(v, dict): return {k: rewrite(x) for k, x in v.items()}
-                                if isinstance(v, list): return [rewrite(x) for x in v]
-                                if isinstance(v, str): return mapping.get(v, v)
-                                if isinstance(v, int) and v >= 1000000000000: return START + SPAN + 100000 + i
-                                return v
-                            ids = dict(request=request, request_finished=request, attempt=attempt, usage=usage)
-                            for kind, _, payload in template:
-                                db.execute("INSERT INTO gateway_event_log(event_type,event_id,request_id,occurred_at_ms,payload_json) VALUES(?,?,?,?,?)",
-                                           [kind, ids[kind], request, None if kind == "usage" else START + SPAN + 100000 + i,
-                                            json.dumps(rewrite(json.loads(payload)), separators=(",", ":"))])
-                            row = {k: rewrite(v) for k, v in ledger.items() if k != "ledger_id"}
-                            db.execute("INSERT INTO billing_ledger_entries(" + ','.join(row) + ") VALUES(" + ','.join('?' for _ in row) + ")", list(row.values()))
+                        committed_ids = [f"concurrent75-{i:04}" for i in range(batch * 10, batch * 10 + 10)]
+                        for i, request in enumerate(committed_ids):
+                            append_lineage(db, template, ledger, request, START + SPAN + 100000 + batch * 10 + i)
                         db.commit()
-                        self.writer_receipt.append({"batch": batch, "committed_at_monotonic": time.monotonic()})
+                        self.writer_receipt.append({"batch": batch, "request_ids": committed_ids, "committed_at_monotonic": time.monotonic()})
                         self.writer_ready.set()
                         time.sleep(.05)
             except BaseException as error:
@@ -321,9 +320,12 @@ class Matrix(base.Matrix):
         with sqlite3.connect(self.db) as db:
             events = list(db.execute("SELECT request_id,count(*),count(DISTINCT event_type) FROM gateway_event_log WHERE request_id LIKE 'concurrent75-%' GROUP BY request_id ORDER BY request_id"))
             ledger = db.execute("SELECT count(*) FROM billing_ledger_entries WHERE request_id LIKE 'concurrent75-%'").fetchone()[0]
+            actual = concurrent_rows(db)
         self.check("backup includes only complete concurrently committed lineages and ledger", 0 < len(events) <= 100
                    and len(events) % 10 == 0 and all(row[1:] == (4, 4) for row in events) and ledger == len(events))
-        self.report["concurrent_snapshot"] = {"included_requests": len(events), "source_committed_requests": 100,
+        self.check("all restored concurrent cells equal an exact committed source prefix", list(actual) == list(self.committed_rows)[:len(actual)]
+                   and all(value == self.committed_rows[key] for key, value in actual.items()))
+        self.report["concurrent_snapshot"] = {"included_requests": len(events), "source_committed_requests": len(self.committed_rows),
                                              "batch_receipts": self.writer_receipt}
 
     def write_limit_failure(self, artifact):
@@ -396,7 +398,11 @@ class Matrix(base.Matrix):
         self.operator_measure(artifact, self.args.mode == "fixed")
         if self.args.mode == "fixed":
             self.writer_thread.join(timeout=30)
-            self.check("bounded concurrent writer completed", not self.writer_thread.is_alive() and len(self.writer_receipt) == 10)
+            self.check("bounded concurrent writer completed", not self.writer_thread.is_alive()
+                       and [row.get("batch") for row in self.writer_receipt] == list(range(10)))
+            with sqlite3.connect(self.db) as db: self.committed_rows = concurrent_rows(db)
+            ids = [request for row in self.writer_receipt for request in row["request_ids"]]
+            self.check("committed source IDs match every writer receipt", len(ids) == 100 and ids == list(self.committed_rows))
         self.check("backup preserves original source data", self.snapshot("source-after-backup") == before)
         if self.args.mode == "baseline":
             self.report["status"] = "MEASURED_BASELINE_LIMIT"

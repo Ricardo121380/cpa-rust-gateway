@@ -1,6 +1,6 @@
 //! Version 2 disk-backed artifacts; version 1 remains readable with its original bound.
 use std::{
-    fs::{self, File, OpenOptions},
+    fs::{self, File},
     io::{Read, Write},
     path::Path,
 };
@@ -22,7 +22,7 @@ use super::{
     source_schema_version, validate_staged_database,
 };
 
-/// Finite SQLite snapshot limit for disk-backed version 2 artifacts (128 MiB).
+/// Finite `SQLite` snapshot limit for disk-backed version 2 artifacts (128 MiB).
 pub const MAX_STREAM_BACKUP_PLAINTEXT_BYTES: usize = 128 * 1024 * 1024;
 const CHUNK_BYTES: usize = 64 * 1024;
 const STREAM_HEADER_BYTES: usize = HEADER_BYTES + 8;
@@ -38,13 +38,9 @@ const MAGIC: &[u8; 8] = b"CPABKP02";
 /// # Errors
 /// Returns a value-free error if secure staging or unlinking is unavailable.
 pub fn create_restore_upload(directory: &Path) -> Result<File, BackupError> {
-    let staging = TemporarySqliteFile::create_in(directory)?;
-    let file = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .open(staging.path())
-        .map_err(|_| BackupError::FilesystemUnavailable)?;
+    let (mut staging, file) = TemporarySqliteFile::create_file_in(directory)?;
     fs::remove_file(staging.path()).map_err(|_| BackupError::FilesystemUnavailable)?;
+    staging.retained = true;
     Ok(file)
 }
 
@@ -53,29 +49,42 @@ pub fn create_restore_upload(directory: &Path) -> Result<File, BackupError> {
 /// file wrapper for operator artifacts. The source and configured staging directory are retained.
 ///
 /// # Errors
-/// Returns a value-free error on source size, incomplete SQLite backup, encryption or I/O failure.
+/// Returns a value-free error on source size, incomplete `SQLite` backup, encryption or I/O failure.
 pub fn create_encrypted_backup_to_writer(
     source: &Connection,
     directory: &Path,
     output: &mut impl Write,
     key: &BackupKey,
 ) -> Result<(), BackupError> {
-    source_schema_version(source)?;
-    let (pages, page_size): (i64, i64) = source
-        .query_row(
-            "SELECT page_count,page_size FROM pragma_page_count(),pragma_page_size()",
-            [],
-            |row| Ok((row.get(0)?, row.get(1)?)),
-        )
-        .map_err(|_| BackupError::SnapshotUnavailable)?;
-    if pages <= 0
-        || page_size <= 0
-        || pages.saturating_mul(page_size) > MAX_STREAM_BACKUP_PLAINTEXT_BYTES as i64
-    {
-        return Err(BackupError::MaterialTooLarge);
-    }
     let staging = TemporarySqliteFile::create_in(directory)?;
     {
+        // Pin the checked image through completion. An embedding's active transaction remains
+        // owned by that embedding; otherwise this read transaction rolls back on scope exit.
+        let _source_snapshot = if source.is_autocommit() {
+            Some(
+                source
+                    .unchecked_transaction()
+                    .map_err(|_| BackupError::SnapshotUnavailable)?,
+            )
+        } else {
+            None
+        };
+        source_schema_version(source)?;
+        let (pages, page_size): (i64, i64) = source
+            .query_row(
+                "SELECT page_count,page_size FROM pragma_page_count(),pragma_page_size()",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .map_err(|_| BackupError::SnapshotUnavailable)?;
+        if pages <= 0
+            || page_size <= 0
+            || pages.saturating_mul(page_size)
+                > i64::try_from(MAX_STREAM_BACKUP_PLAINTEXT_BYTES)
+                    .map_err(|_| BackupError::MaterialTooLarge)?
+        {
+            return Err(BackupError::MaterialTooLarge);
+        }
         let mut snapshot =
             Connection::open(staging.path()).map_err(|_| BackupError::SnapshotUnavailable)?;
         let backup =
@@ -116,7 +125,8 @@ pub fn create_encrypted_backup_to_writer(
     let mut index = 0_u64;
     let mut chunk = Zeroizing::new(Vec::with_capacity(CHUNK_BYTES + AEAD_TAG_BYTES));
     while remaining > 0 {
-        let length = remaining.min(CHUNK_BYTES as u64) as usize;
+        let length = usize::try_from(remaining.min(CHUNK_BYTES as u64))
+            .map_err(|_| BackupError::MaterialTooLarge)?;
         chunk.resize(length, 0);
         snapshot
             .read_exact(&mut chunk)
@@ -191,7 +201,7 @@ pub fn preflight_encrypted_backup_reader(
 /// Restores a disk-backed v1/v2 artifact using the same validated empty-target publication.
 ///
 /// # Errors
-/// Returns a value-free error; no target is published before all chunks and SQLite checks pass.
+/// Returns a value-free error; no target is published before all chunks and `SQLite` checks pass.
 pub fn restore_encrypted_backup_reader_to_empty_target(
     input: &mut impl Read,
     target: &Path,
@@ -249,7 +259,8 @@ fn decrypt_to_staging(
         let mut chunk = Zeroizing::new(Vec::with_capacity(CHUNK_BYTES + AEAD_TAG_BYTES));
         let mut index = 0_u64;
         while remaining > 0 {
-            let size = remaining.min(CHUNK_BYTES as u64) as usize;
+            let size = usize::try_from(remaining.min(CHUNK_BYTES as u64))
+                .map_err(|_| BackupError::MaterialTooLarge)?;
             chunk.resize(size + AEAD_TAG_BYTES, 0);
             input
                 .read_exact(&mut chunk)

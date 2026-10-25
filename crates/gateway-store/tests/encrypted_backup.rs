@@ -252,10 +252,15 @@ fn chunked_backup_write_failure_and_restore_interruption_preserve_source() -> Te
         create_encrypted_backup_to_writer, restore_encrypted_backup_reader_to_empty_target,
     };
     use std::io::{self, Read, Write};
-    struct Full;
+    struct Full(usize);
     impl Write for Full {
-        fn write(&mut self, _: &[u8]) -> io::Result<usize> {
-            Err(io::Error::from(io::ErrorKind::WriteZero))
+        fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+            if self.0 == 0 {
+                return Err(io::Error::from_raw_os_error(libc::ENOSPC));
+            }
+            let written = bytes.len().min(self.0);
+            self.0 -= written;
+            Ok(written)
         }
         fn flush(&mut self) -> io::Result<()> {
             Ok(())
@@ -272,7 +277,7 @@ fn chunked_backup_write_failure_and_restore_interruption_preserve_source() -> Te
     let source = populated_source(&path)?;
     let key = backup_key(0xA5)?;
     assert_eq!(
-        create_encrypted_backup_to_writer(&source, directory.path(), &mut Full, &key),
+        create_encrypted_backup_to_writer(&source, directory.path(), &mut Full(45 + 65552), &key),
         Err(BackupError::FilesystemUnavailable)
     );
     let target = directory.join("interrupted.sqlite3");
@@ -327,6 +332,47 @@ fn chunked_backup_rejects_oversized_source_before_artifact_publication() -> Test
             row.get::<_, i64>(0)
         })?,
         i64::try_from(gateway_store::backup::MAX_STREAM_BACKUP_PLAINTEXT_BYTES)?
+    );
+    Ok(())
+}
+
+#[test]
+fn chunked_backup_keeps_embedding_read_snapshot_and_transaction() -> TestResult {
+    let directory = TemporaryDirectory::new()?;
+    let source_path = directory.join("source.sqlite3");
+    let source = populated_source(&source_path)?;
+    source.execute_batch("BEGIN DEFERRED")?;
+    assert_eq!(
+        source.query_row("SELECT count(*) FROM config_versions", [], |row| row
+            .get::<_, i64>(0))?,
+        1
+    );
+    open(&source_path)?.execute("INSERT INTO config_versions(id,status,created_at_ms,description) VALUES('later','draft',2,'concurrent')", [])?;
+    let artifact = directory.join("pinned.backup");
+    let key = backup_key(0xA5)?;
+    gateway_store::backup::create_encrypted_backup_file(
+        &source,
+        directory.path(),
+        &artifact,
+        &key,
+    )?;
+    assert!(!source.is_autocommit());
+    source.execute_batch("ROLLBACK")?;
+    assert_eq!(
+        source.query_row("SELECT count(*) FROM config_versions", [], |row| row
+            .get::<_, i64>(0))?,
+        2
+    );
+    let target = directory.join("pinned.sqlite3");
+    gateway_store::backup::restore_encrypted_backup_reader_to_empty_target(
+        &mut fs::File::open(artifact)?,
+        &target,
+        &key,
+    )?;
+    assert_eq!(
+        open(target)?.query_row("SELECT count(*) FROM config_versions", [], |row| row
+            .get::<_, i64>(0))?,
+        1
     );
     Ok(())
 }

@@ -395,3 +395,14 @@ OPT-07 / T22 → [ADR-0129](adr/ADR-0129-account-quota-history.md) → [BC-MGMT-
 Usage process517/517; quota process20/20; schema38→39 preserves original Usage/ledger/price cells.
 `quota_history_cancelled_waiter_keeps_blocking_capacity` preserves bounded blocking work after cancellation.
 Historical branch evidence keeps its original identities; final documentation successor is recorded separately.
+
+
+## #75 bounded historical backup capacity (2026-10-25)
+
+OPT-08 / #75 → [ADR-0132](adr/ADR-0132-bounded-disk-backed-backup.md) →
+[BC-MGMT-007](contracts/BC-MGMT-007-encrypted-control-plane-backup.md) →
+`gateway_store::backup::{create_encrypted_backup_file,preflight_encrypted_backup_reader,restore_encrypted_backup_reader_to_empty_target}`
+and protected existing restore handlers. Fixed scale and pre-change boundaries are in
+[the experiment plan](reports/issue-75-capacity-plan-20261025.md). No migration; schema39,
+#72 query/export limits and #74 quota history ownership remain unchanged. Final process,
+Full and review evidence are recorded separately from implementation and historical #65.

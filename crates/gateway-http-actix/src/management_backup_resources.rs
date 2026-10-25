@@ -340,12 +340,12 @@ async fn restore_material(
     let Ok(permit) = state.admission.clone().try_acquire_owned() else {
         return unavailable();
     };
-    let material = match read_binary_material(&state, payload).await {
+    let material = match read_binary_material(&state, payload, permit).await {
         Ok(material) => material,
         Err(response) => return response,
     };
     // The permit and anonymous file follow the blocking operation after HTTP cancellation.
-    match web::block(move || complete_restore(&state, material, permit, preflight)).await {
+    match web::block(move || complete_restore(&state, material, preflight)).await {
         Ok(Ok(value)) if preflight => HttpResponse::Ok()
             .insert_header((header::CACHE_CONTROL, "no-store"))
             .json(value),
@@ -359,11 +359,11 @@ async fn restore_material(
 
 fn complete_restore(
     state: &ManagementBackupHttpState,
-    mut material: File,
-    _permit: OwnedSemaphorePermit,
+    mut material: RestoreUpload,
     preflight: bool,
 ) -> Result<Option<RestorePreflightResponse>, ManagementBackupError> {
     material
+        .file
         .rewind()
         .map_err(|_| ManagementBackupError::Unavailable)?;
     let mut facade = state
@@ -372,23 +372,33 @@ fn complete_restore(
         .map_err(|_| ManagementBackupError::Unavailable)?;
     if preflight {
         facade
-            .restore_preflight(&mut material)
+            .restore_preflight(&mut material.file)
             .map(|value| Some(RestorePreflightResponse::from(value)))
     } else {
-        facade.restore(&mut material).map(|_| None)
+        facade.restore(&mut material.file).map(|_| None)
     }
+}
+
+struct RestoreUpload {
+    file: File,
+    _permit: OwnedSemaphorePermit,
 }
 
 async fn read_binary_material(
     state: &ManagementBackupHttpState,
     mut payload: web::Payload,
-) -> Result<File, HttpResponse> {
-    let mut material = state
+    permit: OwnedSemaphorePermit,
+) -> Result<RestoreUpload, HttpResponse> {
+    let file = state
         .facade
         .lock()
         .map_err(|_| unavailable())?
         .create_restore_upload()
         .map_err(backup_error)?;
+    let mut material = RestoreUpload {
+        file,
+        _permit: permit,
+    };
     let mut length = 0usize;
     while let Some(chunk) = payload.next().await {
         let chunk = chunk.map_err(|_| invalid_input())?;
@@ -397,7 +407,7 @@ async fn read_binary_material(
             return Err(invalid_input());
         }
         material = web::block(move || {
-            material.write_all(&chunk)?;
+            material.file.write_all(&chunk)?;
             Ok::<_, std::io::Error>(material)
         })
         .await
@@ -514,6 +524,45 @@ impl From<ManagementRestoreMetadata> for RestorePreflightResponse {
             quick_check_required: value.quick_check_required(),
             compatible: value.compatible(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[actix_web::test]
+    async fn cancelled_disk_work_keeps_restore_upload_admission()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let admission = Arc::new(Semaphore::new(1));
+        let upload = RestoreUpload {
+            file: gateway_store::backup::create_restore_upload(&std::env::temp_dir())?,
+            _permit: admission.clone().acquire_owned().await?,
+        };
+        let (started, wait_started) = tokio::sync::oneshot::channel();
+        let (finish, wait_finish) = std::sync::mpsc::channel();
+        let task = actix_web::rt::spawn(async move {
+            web::block(move || {
+                let _ = started.send(());
+                let result = wait_finish.recv();
+                drop(upload);
+                result
+            })
+            .await
+        });
+        wait_started.await?;
+        task.abort();
+        tokio::task::yield_now().await;
+        assert!(admission.clone().try_acquire_owned().is_err());
+        finish.send(())?;
+        tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            while admission.available_permits() == 0 {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await?;
+        assert!(admission.try_acquire_owned().is_ok());
+        Ok(())
     }
 }
 

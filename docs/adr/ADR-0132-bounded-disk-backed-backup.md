@@ -36,7 +36,7 @@ bytes of the fresh random nonce. Indexes never repeat within an artifact.
 Exact chunk count/length and EOF are required: deletion, reordering, splicing,
 truncation, altered header/length and appended bytes fail closed.
 
-SQLite makes one coherent disk snapshot. Creation requires `StepResult::Done`;
+SQLite pins one source read transaction for the size check and coherent disk snapshot; an embedding-owned active transaction remains owned by its caller. Creation requires `StepResult::Done`;
 Busy/Locked is an unavailable snapshot, with no unbounded retries. Before copying,
 page count/size rejects an oversized source; the completed snapshot size is checked
 again. Encryption/decryption uses one 64 KiB buffer with tag allowance. Disk-backed
@@ -45,8 +45,8 @@ their old behavior and explicitly reject v2. Operator file creation publishes on
 after full encryption and sync. Raw writer callers must discard failed output.
 
 Management binary upload spools into a configured 0600 anonymous file. A single
-admission permit covers upload and blocking validation/publication, including HTTP
-cancellation after blocking work begins. A concurrent operation fails 503 rather
+admission permit travels with the file through every blocking upload write and
+validation/publication, including HTTP cancellation after blocking work begins. A concurrent operation fails 503 rather
 than allocating another full artifact. Actual body length and Content-Length obey
 the artifact ceiling. Existing read/export budgets and authorization remain intact.
 
