@@ -65,7 +65,7 @@ async fn wave2_operator_job() -> Result {
             assert_eq!(
                 thinking,
                 Some(&gateway_core::ModelThinking::Effort(
-                    gateway_core::ThinkingEffort::High
+                    gateway_core::ThinkingEffort::try_new("high")?
                 ))
             );
             assert!(
