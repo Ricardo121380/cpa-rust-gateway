@@ -63,7 +63,8 @@ class Run:
         self.root.mkdir(parents=True, mode=0o700, exist_ok=False)
         self.repo = args.source.resolve()
         self.process = None
-        self.report = {"status": "RUNNING", "checks": [], "processes": [],
+        self.expected_schema = args.expected_schema
+        self.report = {"status": "RUNNING", "expected_schema": args.expected_schema, "checks": [], "processes": [],
                        "real_provider": "NOT_RUN", "inference": "NOT_RUN",
                        "background_provider_tasks": "disabled", "cost": "UNKNOWN"}
         self.private = self.root / "private"
@@ -255,7 +256,8 @@ class Run:
         self.api("DELETE", prefix, expected=204)
         self.check("snapshot and export do not alter quota history or call upstream", self.history() == after and len(self.peer.paths) == receives)
         with sqlite3.connect(self.private / "state/control.sqlite3") as db:
-            self.check("schema 39 loaded", db.execute("SELECT max(version) FROM schema_migrations").fetchone()[0] == 39)
+            self.check(f"schema {self.expected_schema} loaded", db.execute("SELECT version FROM schema_migrations ORDER BY version").fetchall() == [(n,) for n in range(1, self.expected_schema + 1)])
+            self.check("schema40 review table registered when expected", self.expected_schema != 40 or db.execute("SELECT count(*) FROM billing_catalog_reviews").fetchone() == (0,))
             self.check("no Usage or billing fabrication", db.execute("SELECT count(*) FROM gateway_event_log").fetchone()[0] == 0 and db.execute("SELECT count(*) FROM billing_ledger_entries").fetchone()[0] == 0)
         self.check("receiver saw quota reads only", set(self.peer.paths) == {"/v1/billing?format=credits"})
         self.stop()
@@ -268,6 +270,7 @@ def main():
     parser.add_argument("--source", type=pathlib.Path, default=pathlib.Path.cwd())
     parser.add_argument("--binary", type=pathlib.Path, required=True)
     parser.add_argument("--output", type=pathlib.Path, required=True)
+    parser.add_argument("--expected-schema", type=int, choices=(39, 40), default=39)
     run = Run(parser.parse_args())
     try:
         run.run()

@@ -1736,11 +1736,20 @@ mod tests {
             summary_only.clone(),
             canonical_response("resp-summary-only", "new")?,
         )?;
+        let mut named = legacy.clone();
+        named.model_thinking = Some(Box::new(gateway_core::ModelThinking::Budget(512)));
+        let named = StoredResponsePayload::try_new(
+            lineage()?,
+            "model-a",
+            1,
+            named,
+            canonical_response("resp-named-thinking", "named")?,
+        )?;
         let path = temporary_database_path();
         let owner = client_key("client-a")?;
         {
             let store = SqliteStoredResponseStore::open(&path, secret_store(1, &[(1, 0x11)])?)?;
-            for payload in [&old, &new] {
+            for payload in [&old, &new, &named] {
                 assert_eq!(
                     store.put_owned(&owner, 1_000, payload)?,
                     StoredResponsePutOutcome::Stored
@@ -1750,7 +1759,7 @@ mod tests {
         {
             let store =
                 SqliteStoredResponseStore::open(&path, secret_store(2, &[(1, 0x11), (2, 0x22)])?)?;
-            for payload in [&old, &new] {
+            for payload in [&old, &new, &named] {
                 let reopened = store
                     .get_owned(&owner, payload.response_id()?, 1_001)?
                     .ok_or("owned payload")?;

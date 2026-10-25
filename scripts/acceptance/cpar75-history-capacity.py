@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Owned schema39 capacity experiment. Reuses #65 stock serve, fence and recovery.
+"""Owned version-explicit capacity experiment. Reuses #65 stock serve, fence and recovery.
 
 Synthetic SQL scale rows are explicitly distinct from public-HTTP evidence.
 Keys, artifacts and decrypted diagnostics must stay in the private state root.
@@ -97,7 +97,7 @@ def csv_matches(actual, expected):
 class Matrix(base.Matrix):
     def __init__(self, args):
         super().__init__(args)
-        self.report.update(scope="issue75_owned_schema39_capacity", mode=args.mode,
+        self.report.update(scope=f"issue75_owned_schema{args.expected_schema}_capacity", mode=args.mode,
                            driver_sha256=digest_file(__file__), measurements=[])
         self.metadata = []
         self.rss_stop = threading.Event()
@@ -280,7 +280,7 @@ class Matrix(base.Matrix):
     def prepare(self):
         self.isolation()
         self.start("current", "synthetic-seed")
-        self.check("actual stock schema39", self.schema() == 39)
+        self.check(f"actual stock schema{self.args.expected_schema}", self.schema() == self.args.expected_schema)
         self.seed()
         templates = [self.capture(kind) for kind in ("ordinary", "usage", "summary")]
         meta.Matrix.capture_metadata(self, 2)
@@ -469,7 +469,7 @@ class Matrix(base.Matrix):
         self.verify_concurrent_snapshot()
         self.verify_public("restored")
         self.verify_reads("restored")
-        self.check("schema39 query/export/quota remain identical", self.query("restored") == before_query)
+        self.check(f"schema{self.args.expected_schema} query/export/quota remain identical", self.query("restored") == before_query)
         self.stop()
         self.report["restoration"] = {"source_state": str(source_state), "management_target": str(target),
                                       "adopted_control_database": str(self.db), "replacement": False}
@@ -482,6 +482,7 @@ def main():
         parser.add_argument("--" + name, required=True, type=Path)
     parser.add_argument("--mode", choices=("baseline", "fixed"), required=True)
     parser.add_argument("--fixture", type=Path)
+    parser.add_argument("--expected-schema", type=int, choices=(39, 40), default=39)
     args = parser.parse_args()
     args.historical_binary, args.historical_source = args.current_binary, args.current_source
     os.umask(0o077)
