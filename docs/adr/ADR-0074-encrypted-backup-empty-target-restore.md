@@ -26,6 +26,9 @@ operation because the frozen API intentionally has no browser download route.
 
 ## Consequences
 
+The measured large-history extension is [ADR-0132](ADR-0132-bounded-disk-backed-backup.md):
+disk-backed chunk-authenticated v2 artifacts, with the v1 format and empty-target rules retained.
+
 - Backup material and keys never transit JSON, audit output, browser storage, or a repository
   commit.
 - Existing gateway data cannot be overwritten through the restore API; P11 owns in-place rollback

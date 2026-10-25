@@ -21,10 +21,20 @@ use chacha20poly1305::{
     XChaCha20Poly1305, XNonce,
     aead::{Aead, KeyInit, Payload},
 };
-use rusqlite::{Connection, backup::Backup};
+use rusqlite::{
+    Connection,
+    backup::{Backup, StepResult},
+};
 use zeroize::{Zeroize, Zeroizing};
 
 use crate::{CURRENT_SCHEMA_VERSION, StoreError, migrate, schema_version};
+
+mod stream;
+pub use stream::{
+    MAX_STREAM_BACKUP_ARTIFACT_BYTES, MAX_STREAM_BACKUP_PLAINTEXT_BYTES,
+    create_encrypted_backup_file, create_encrypted_backup_to_writer, create_restore_upload,
+    preflight_encrypted_backup_reader, restore_encrypted_backup_reader_to_empty_target,
+};
 
 /// Exact raw byte length accepted for the independent encrypted-backup key.
 pub const BACKUP_KEY_BYTES: usize = 32;
@@ -215,9 +225,12 @@ pub fn create_encrypted_backup(
             Connection::open(staging.path()).map_err(|_| BackupError::SnapshotUnavailable)?;
         let backup =
             Backup::new(source, &mut snapshot).map_err(|_| BackupError::SnapshotUnavailable)?;
-        backup
+        let result = backup
             .step(-1)
             .map_err(|_| BackupError::SnapshotUnavailable)?;
+        if result != StepResult::Done {
+            return Err(BackupError::SnapshotUnavailable);
+        }
     }
 
     let snapshot_bytes = Zeroizing::new(read_bounded(staging.path(), MAX_BACKUP_PLAINTEXT_BYTES)?);

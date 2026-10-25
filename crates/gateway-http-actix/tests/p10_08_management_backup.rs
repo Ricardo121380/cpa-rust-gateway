@@ -128,6 +128,15 @@ async fn backup_preflight_and_binary_restore_are_protected_bounded_and_complete(
         directory.join("not-used.sqlite3"),
     )?;
     let artifact = artifact_service.create_operator_artifact()?;
+    let stream_path = directory.join("stream.backup");
+    gateway_store::backup::create_encrypted_backup_file(
+        &open(&source)?,
+        directory.path(),
+        &stream_path,
+        &key()?,
+    )?;
+    let stream_artifact = fs::read(stream_path)?;
+
     let service = configured_service(&directory, source.clone(), target.clone())?;
     let app = test::init_service(
         App::new()
@@ -180,7 +189,7 @@ async fn backup_preflight_and_binary_restore_are_protected_bounded_and_complete(
             test::TestRequest::post()
                 .uri("/admin/restores")
                 .insert_header((header::CONTENT_TYPE, "application/octet-stream"))
-                .set_payload(artifact),
+                .set_payload(stream_artifact),
         )
         .to_request(),
     )

@@ -176,3 +176,5 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0128 Frozen unified Usage query and export](ADR-0128-frozen-usage-query-export.md) — Accepted; #72 bounded management snapshot over existing events/ledger, no migration.
 
 - [ADR-0129 Account quota observation history](ADR-0129-account-quota-history.md) — Accepted; #74 independent observation storage and bounded management query.
+
+- [ADR-0132 Bounded disk-backed encrypted backup](ADR-0132-bounded-disk-backed-backup.md) — Accepted; #75 measured schema39 capacity, v2 chunks and legacy v1 reads; 0130/0131 left for parallel #69/#73 reconciliation.

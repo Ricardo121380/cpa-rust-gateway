@@ -166,3 +166,167 @@ fn malformed_and_oversized_material_are_rejected_before_staging_or_restore() -> 
     );
     Ok(())
 }
+
+#[test]
+fn chunked_backup_authenticates_order_length_and_legacy_compatibility() -> TestResult {
+    use gateway_store::backup::{
+        create_encrypted_backup_file, preflight_encrypted_backup_reader,
+        restore_encrypted_backup_reader_to_empty_target,
+    };
+    let directory = TemporaryDirectory::new()?;
+    let source = populated_source(&directory.join("source.sqlite3"))?;
+    let key = backup_key(0xA5)?;
+    let artifact_path = directory.join("chunked.backup");
+    create_encrypted_backup_file(&source, directory.path(), &artifact_path, &key)?;
+    let artifact = fs::read(&artifact_path)?;
+    assert_eq!(&artifact[..9], b"CPABKP02\x02");
+    assert!(artifact.len() > 2 * 65552 + 45);
+    assert!(
+        preflight_encrypted_backup_reader(&mut artifact.as_slice(), directory.path(), &key)?
+            .compatible()
+    );
+    let target = directory.join("restored.sqlite3");
+    restore_encrypted_backup_reader_to_empty_target(&mut artifact.as_slice(), &target, &key)?;
+    assert_eq!(
+        schema_version(&open(&target)?)?,
+        Some(CURRENT_SCHEMA_VERSION)
+    );
+    assert_eq!(
+        restore_encrypted_backup_reader_to_empty_target(&mut artifact.as_slice(), &target, &key),
+        Err(BackupError::RestoreTargetUnavailable)
+    );
+    assert_eq!(
+        preflight_encrypted_backup_reader(
+            &mut artifact.as_slice(),
+            directory.path(),
+            &backup_key(0x5A)?
+        ),
+        Err(BackupError::AuthenticationFailed)
+    );
+
+    let mut cases = Vec::new();
+    cases.push(artifact[..artifact.len() - 1].to_vec());
+    let mut appended = artifact.clone();
+    appended.push(0);
+    cases.push(appended);
+    let mut modified = artifact.clone();
+    modified[45] ^= 1;
+    cases.push(modified);
+    let mut header = artifact.clone();
+    header[12] ^= 1;
+    cases.push(header);
+    let mut reordered = artifact.clone();
+    for offset in 0..65552 {
+        reordered.swap(45 + offset, 45 + 65552 + offset);
+    }
+    cases.push(reordered);
+    let mut oversized = artifact[..45].to_vec();
+    oversized[37..45].copy_from_slice(
+        &(gateway_store::backup::MAX_STREAM_BACKUP_PLAINTEXT_BYTES as u64 + 1).to_be_bytes(),
+    );
+    cases.push(oversized);
+    for (index, bytes) in cases.iter().enumerate() {
+        let target = directory.join(&format!("invalid-{index}.sqlite3"));
+        assert!(
+            restore_encrypted_backup_reader_to_empty_target(&mut bytes.as_slice(), &target, &key)
+                .is_err()
+        );
+        assert!(!target.exists());
+    }
+    let legacy = create_encrypted_backup(&source, directory.path(), &key)?;
+    assert!(
+        preflight_encrypted_backup_reader(&mut legacy.as_slice(), directory.path(), &key)?
+            .compatible()
+    );
+    restore_encrypted_backup_reader_to_empty_target(
+        &mut legacy.as_slice(),
+        &directory.join("legacy.sqlite3"),
+        &key,
+    )?;
+    Ok(())
+}
+
+#[test]
+fn chunked_backup_write_failure_and_restore_interruption_preserve_source() -> TestResult {
+    use gateway_store::backup::{
+        create_encrypted_backup_to_writer, restore_encrypted_backup_reader_to_empty_target,
+    };
+    use std::io::{self, Read, Write};
+    struct Full;
+    impl Write for Full {
+        fn write(&mut self, _: &[u8]) -> io::Result<usize> {
+            Err(io::Error::from(io::ErrorKind::WriteZero))
+        }
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+    struct Interrupted;
+    impl Read for Interrupted {
+        fn read(&mut self, _: &mut [u8]) -> io::Result<usize> {
+            Err(io::Error::from(io::ErrorKind::ConnectionReset))
+        }
+    }
+    let directory = TemporaryDirectory::new()?;
+    let path = directory.join("source.sqlite3");
+    let source = populated_source(&path)?;
+    let key = backup_key(0xA5)?;
+    assert_eq!(
+        create_encrypted_backup_to_writer(&source, directory.path(), &mut Full, &key),
+        Err(BackupError::FilesystemUnavailable)
+    );
+    let target = directory.join("interrupted.sqlite3");
+    assert_eq!(
+        restore_encrypted_backup_reader_to_empty_target(&mut Interrupted, &target, &key),
+        Err(BackupError::InvalidArtifact)
+    );
+    assert!(!target.exists());
+    assert_eq!(
+        source.query_row("SELECT count(*) FROM config_versions", [], |row| row
+            .get::<_, i64>(0))?,
+        1
+    );
+    assert_eq!(
+        fs::read_dir(directory.path())?
+            .filter_map(Result::ok)
+            .filter(|entry| entry
+                .file_name()
+                .to_string_lossy()
+                .starts_with(".cpa-backup-"))
+            .count(),
+        0
+    );
+    Ok(())
+}
+
+#[test]
+#[ignore = "explicit disk-capacity boundary; allocates an owned database larger than 128 MiB"]
+fn chunked_backup_rejects_oversized_source_before_artifact_publication() -> TestResult {
+    let directory = TemporaryDirectory::new()?;
+    let source = populated_source(&directory.join("large.sqlite3"))?;
+    source.execute_batch("CREATE TABLE capacity_fixture (material BLOB)")?;
+    source.execute(
+        "INSERT INTO capacity_fixture VALUES(zeroblob(?1))",
+        [i64::try_from(
+            gateway_store::backup::MAX_STREAM_BACKUP_PLAINTEXT_BYTES,
+        )?],
+    )?;
+    let target = directory.join("must-not-exist.backup");
+    assert_eq!(
+        gateway_store::backup::create_encrypted_backup_file(
+            &source,
+            directory.path(),
+            &target,
+            &backup_key(0xA5)?,
+        ),
+        Err(BackupError::MaterialTooLarge)
+    );
+    assert!(!target.exists());
+    assert_eq!(
+        source.query_row("SELECT length(material) FROM capacity_fixture", [], |row| {
+            row.get::<_, i64>(0)
+        })?,
+        i64::try_from(gateway_store::backup::MAX_STREAM_BACKUP_PLAINTEXT_BYTES)?
+    );
+    Ok(())
+}

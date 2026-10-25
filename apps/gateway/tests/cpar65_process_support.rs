@@ -3,7 +3,9 @@
 use gateway_core::{EventEmission, GatewayEventSink};
 use gateway_observability::{BoundedEventQueue, EventQueueConfig};
 use gateway_store::{
-    backup::{BackupKey, create_encrypted_backup},
+    backup::{
+        BackupKey, create_encrypted_backup_file, restore_encrypted_backup_reader_to_empty_target,
+    },
     event_store::{AsyncSqliteEventWriter, EventWriterConfig},
     messages_summary::MessagesSummaryRecord,
     native_usage::NativeUsageRecord,
@@ -11,9 +13,7 @@ use gateway_store::{
     secret_store::{KeyVersion, MasterKeyRing, SecretStore},
 };
 use serde::Deserialize;
-use std::{
-    error::Error, fs, io::Write, os::unix::fs::OpenOptionsExt, path::PathBuf, time::Duration,
-};
+use std::{error::Error, fs, path::PathBuf, time::Duration};
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -36,18 +36,20 @@ async fn cpar65_operator_job() -> Result<(), Box<dyn Error>> {
     match job.action.as_str() {
         "encrypted_backup" => {
             let key = BackupKey::try_from_bytes(fs::read(&job.input)?)?;
-            let artifact = create_encrypted_backup(
+            create_encrypted_backup_file(
                 &gateway_store::open(&job.database)?,
                 job.output.parent().ok_or("missing staging directory")?,
+                &job.output,
                 &key,
             )?;
-            let mut output = fs::OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .mode(0o600)
-                .open(&job.output)?;
-            output.write_all(&artifact)?;
-            output.sync_all()?;
+        }
+        "restore_encrypted_backup" => {
+            let key = BackupKey::try_from_bytes(fs::read(&job.input)?)?;
+            restore_encrypted_backup_reader_to_empty_target(
+                &mut fs::File::open(&job.database)?,
+                &job.output,
+                &key,
+            )?;
         }
         "replay_summary" | "replay_usage" | "replay_metadata" => replay(&job).await?,
         _ => return Err("unsupported operator action".into()),
