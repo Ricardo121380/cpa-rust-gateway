@@ -122,7 +122,7 @@ async fn reviewed_price(job: &Job, input: &Value, secrets: SecretStore) -> Resul
     let mappings = ["public-wave2", "team/public-wave2(high)", "gpt-5.5"].into_iter().map(|model| json!({
         "source_provider":"synthetic", "source_model":if model == "public-wave2" {"public"} else {"decoy"},
         "provider_id":"ordinary", "channel_id":"ordinary-endpoint", "model":model,
-        "missing_rates":{"reasoning":0,"cached":0,"cache_read":0,"cache_creation":0}
+        "missing_rates":{"reasoning":if model == "public-wave2" {3_000_000} else {99_000_000},"cached":0,"cache_read":0,"cache_creation":0}
     })).collect::<Vec<_>>();
     let response = client.post(format!("{base}/admin/billing/price-source/preview"))
         .header("X-Management-Key", key).header("X-Config-Version", scope).header("If-Match", revision)
