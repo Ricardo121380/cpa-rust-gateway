@@ -81,6 +81,55 @@ def verify(c):
     details = pages(prefix + "/rows?limit=1")
     check("snapshot_full_filter_not_page_sum", len(details) == 5 and len({r["request_id"] for r in details}) == 4
           and all(r["client_key_id"] == "local-key" for r in details))
+    # Independent oracle: select from the already checked full detail set, then compare a
+    # new backend-filtered capture and every page/export. Source writes are paused here.
+    def check_filtered(label, patch):
+        query = {**filters, **patch}
+        expected = [row for row in details
+                    if query["from_ms"] <= row["occurred_at_ms"] <= query["to_ms"]
+                    and all(row[field] == query[field] for field in
+                            ("model", "protocol", "provider_id", "channel_id", "account_id",
+                             "client_key_id", "access_group_id") if field in query)]
+        scoped = api("POST", "/admin/operations/usage-snapshots", query, expected=201)
+        scope_path = "/admin/operations/usage-snapshots/" + scoped["snapshot_id"]
+        summary = scoped["summary"]
+        check(label + "_whole_summary", summary["requests"] == len({r["request_id"] for r in expected})
+              and summary["attempts"] == sum(r["attempt_id"] is not None for r in expected)
+              and scoped["detail_rows"] == len(expected))
+        for source, aggregate in (("input_tokens", "input_tokens"), ("cost_microunits", "known_cost_microunits")):
+            observed = [r[source] for r in expected if r[source] is not None]
+            total = summary[aggregate]["total"] if source == "input_tokens" else summary[aggregate]
+            check(label + "_" + source, total == (sum(observed) if observed else None))
+        check(label + "_all_detail_pages", pages(scope_path + "/rows?limit=1") == expected)
+        check(label + "_jsonl_details", pages(scope_path + "/export?format=jsonl&limit=2", True) == expected)
+        scoped_buckets = pages(scope_path + "/rows?grain=buckets&limit=1")
+        check(label + "_jsonl_buckets", pages(scope_path + "/export?format=jsonl&grain=buckets&limit=1", True) == scoped_buckets
+              and sum(row["attempts"] for row in scoped_buckets) == summary["attempts"])
+        csv_details = pages(scope_path + "/export?format=csv&limit=1", True)
+        check(label + "_csv_details", [(r["request_id"], r["attempt_id"]) for r in csv_details]
+              == [(r["request_id"], r["attempt_id"] or "") for r in expected])
+        for field in ("input_tokens", "cost_microunits"):
+            check(label + "_csv_" + field, [r[field] for r in csv_details]
+                  == [str(r[field]) if r[field] is not None else "" for r in expected])
+        csv_buckets = pages(scope_path + "/export?format=csv&grain=buckets&limit=1", True)
+        check(label + "_csv_buckets", len(csv_buckets) == len(scoped_buckets)
+              and [json.loads(r["input_tokens"]) for r in csv_buckets] == [r["input_tokens"] for r in scoped_buckets])
+        api("DELETE", scope_path, expected=204)
+
+    for field in ("model", "protocol", "provider_id", "channel_id", "account_id"):
+        for index, value in enumerate(sorted({r[field] for r in details if r[field] is not None})):
+            check_filtered("snapshot_filter_" + field + "_" + str(index), {field: value})
+        absent = "anthropic_messages" if field == "protocol" else "absent"
+        check_filtered("snapshot_filter_" + field + "_absent", {field: absent})
+    check_filtered("snapshot_filter_key_absent", {"client_key_id": "absent"})
+    check_filtered("snapshot_filter_group_absent", {"access_group_id": "absent"})
+    first_time = min(row["occurred_at_ms"] for row in details)
+    last_time = max(row["occurred_at_ms"] for row in details)
+    check_filtered("snapshot_time_lower_upper_inclusive", {"from_ms": first_time, "to_ms": first_time})
+    check_filtered("snapshot_time_before", {"from_ms": first_time - 1, "to_ms": first_time - 1})
+    check_filtered("snapshot_time_after", {"from_ms": last_time + 1, "to_ms": last_time + 1})
+    combined = {field: details[0][field] for field in ("model", "protocol", "provider_id", "channel_id", "account_id")}
+    check_filtered("snapshot_filters_combined", {**combined, "from_ms": first_time, "to_ms": first_time})
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
         pending = pool.submit(data, "/v1/chat/completions", body_for("chat", "chat", "text-round"))
         jsonl = pages(prefix + "/export?format=jsonl&limit=1", True)
