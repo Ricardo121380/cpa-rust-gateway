@@ -159,7 +159,10 @@ class Matrix(capacity.Matrix):
         self.check(label + " native identity and disabled intent", not native["enabled"] and native["identity"]["email"] == "recovery65@example.invalid")
         status, raw, _ = self.data("/v1/models", method="GET")
         names = {r["id"] for r in json.loads(raw)["data"]}
-        self.check(label + " restored model and prefix graph", status == 200 and names == {"grok-4.5","legacy-model","public-wave2","team/public-wave2"})
+        # Existing discovery lists exact upstream names plus explicit prefixed aliases.
+        # The resolved public billing identity is checked separately on the captured Request.
+        self.report.setdefault("model_discovery", {})[label] = sorted(names)
+        self.check(label + " restored model and prefix graph", status == 200 and names == {"grok-4.5","legacy-model","gpt-5.5","team/public-wave2"})
         status, raw, _ = self.data("/v1/models", method="GET", key=self.restricted)
         self.check(label + " restricted discovery remains empty", status == 200 and json.loads(raw)["data"] == [])
         status, _, _ = self.data("/v1/responses", {"model":"team/public-wave2(high)","input":"denied"}, key=self.restricted)
