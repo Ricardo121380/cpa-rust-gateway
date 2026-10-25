@@ -1,0 +1,45 @@
+{
+  "comparison": "444558a8de930f5f1febd5a40ec5bdbbc30a15fb...196d58d7de2dfcc7775066d6b66bb0128ff2481f",
+  "standards": {
+    "hard_violations": 0,
+    "findings": [
+      {
+        "priority": "P2",
+        "kind": "resource lifecycle",
+        "location": "apps/gateway/src/runtime/account_quota.rs:86,97",
+        "finding": "Outer management timeout releases its permit while unbounded spawn_blocking quota capture/append continues.",
+        "resolution_commit": "6a7ae73e79b57576ee37b3ace1d70d60f1909a9b",
+        "resolution": "shared four-slot semaphore; permit owned by blocking closure",
+        "followup_review": "No actionable defect in fix; runtime regression pending Full."
+      },
+      {
+        "priority": "P3",
+        "kind": "existing maintenance judgement",
+        "location": "crates/gateway-router/src/token_count.rs:113-178",
+        "finding": "Counting selection preparation partly duplicates inference selection preparation.",
+        "disposition": "Retained existing primitives; no unrelated routing refactor in integration."
+      }
+    ]
+  },
+  "spec": {
+    "actionable_findings": 0,
+    "qualification": "static review only"
+  },
+  "fix_review_comparison": "196d58d7de2dfcc7775066d6b66bb0128ff2481f..6a7ae73e79b57576ee37b3ace1d70d60f1909a9b",
+  "source_union": {
+    "ancestors_included": [
+      "3bf4ffef6badcb172f64784d4d16b4b24702dfc6",
+      "60073e72e8abd22f533178f6ec1b9fe97ce36c4c",
+      "709aa4111726fb0c8efcc2f02ee740cdf6b5d60b",
+      "d78f44c76c16c4b18b740646aa0cb9389e04136c"
+    ],
+    "packages": 378,
+    "normalized_dependency_edges": 1148,
+    "missing_or_extra": 0,
+    "historical_security_reports": "byte-identical",
+    "adr_numbers": "unique; quota branch 0128 mapped to integrated 0129",
+    "migration_registry": "1-39 once each",
+    "openapi_new_operations": 6,
+    "openapi_new_schemas": 9
+  }
+}

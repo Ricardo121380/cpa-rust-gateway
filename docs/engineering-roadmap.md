@@ -13,7 +13,7 @@ CPAR 是 CPA/CLIProxyAPI 网关行为的 Rust 实现。优先直接对照固定�
 
 | 基线 | 当前身份及用途 |
 |---|---|
-| 当前本地集成 | `feature/parallel-68-72-74-integration`；纳入 #68 `3bf4ffef`、#72 `60073e72`、#74 安全后继 `d78f44c7`；精确受测SHA及结果见[集成记录](reports/parallel-integration-20261025.md) |
+| 当前本地集成 | `feature/parallel-68-72-74-integration`；受测源码 `6a7ae73e79b57576ee37b3ace1d70d60f1909a9b`，纳入 #68/#72/#74及安全后继；Full 44/44，最终文档后继SHA及结果见[集成记录](reports/parallel-integration-20261025.md) |
 | 实际检查目录 | `worktrees/cpar-parallel-68-72-74-integration-20261025`；原功能、安全及dirty工作区保留 |
 | 当前功能对照及后续移植参考 | [CPA v8.0.40](https://github.com/router-for-me/CLIProxyAPI/tree/d946c4fba6fc9a5cfbca1f3d85184d62ad2fb683)，commit `d946c4fba6fc9a5cfbca1f3d85184d62ad2fb683` |
 | 上游核对时间 | 2026-10-23 14:48:53 UTC；当时最新 release tag 与 main 一致。固定此提交，不追随浮动 main 改变预期 |
@@ -45,8 +45,8 @@ CPAR 是 CPA/CLIProxyAPI 网关行为的 Rust 实现。优先直接对照固定�
 | 通用 session/cache affinity | 精确 continuation pin 已有；Build cache_affinity 库/测试未发现 serving 接线 | **待接线/补策略**，不能把两者合并报为通用亲和已完成 |
 | 管理 API、配置发布/回滚 | /admin 已有；管理 API 发布时装配新运行代 | 本地离线 admin CLI 与运行中管理 API 的生效方式分开；无需重建控制面 |
 | Request/Attempt/Usage、账本和加密恢复 | 持久化与查询/恢复已有；#72 新增统一过滤、全范围汇总、冻结快照和 CSV/JSONL 分页导出，已接入管理 API | 见 [#72 实施记录](reports/issue-72-usage-query-export-20261025.md)；未知费用及 cost_in_usd_ticks 未准入保持；后续[独立安全升级](reports/crypto-bigint-security-fix-20261025-issue72.md)已消除 RUSTSEC-2026-0387 阻塞，原分支本地 Full 44/44 通过；本轮集成结果单独记录。有限快照不代表大规模性能、实际生产数据或 #75 容量验收 |
-| 账号配额观察历史（#74） | 独立历史表、现有额度读取/Kimi后台观察接线、有界管理查询已实现 | 本地功能验收通过；[原交付记录](reports/issue-74-quota-history-20261025.md)保留Full供应链失败；集成验证见[集成记录](reports/parallel-integration-20261025.md)，历史安全分支结果见下行；真实Provider、部署未运行；与Token Usage/费用分离 |
-| RUSTSEC-2026-0387安全修复（#74后继独立分支） | p256 0.14.0 / crypto-bigint 0.7.8及必要DPoP API适配，无ignore或门禁放宽 | 本地Full 44/44、Rust测试1677通过/21跳过、双轴审查无发现；见[安全修复记录](reports/rustsec-2026-0387-from74-20261025.md)；未合并、部署或调用真实Provider |
+| 账号配额观察历史（#74） | 独立历史表、现有额度读取/Kimi后台观察接线、有界管理查询已实现 | 本地功能验收通过；[原交付记录](reports/issue-74-quota-history-20261025.md)保留Full供应链失败；集成验证见[集成记录](reports/parallel-integration-20261025.md)，原安全后继见[历史记录](reports/rustsec-2026-0387-from74-20261025.md)；真实Provider、部署未运行；与Token Usage/费用分离 |
+| RUSTSEC-2026-0387安全修复（已集成） | p256 0.14.0 / crypto-bigint 0.7.8；保留显式Randomness错误、三个调用点与独有回归，无ignore或门禁放宽 | 本轮集成Full 44/44，1695 passed / 0 failed / 21 ignored；见[集成验收](reports/parallel-integration-20261025.md)，原分支证据按原身份保留 |
 | 外部 OTel 输出 | 接口已有，serve 使用 Noop exporter | **待接线**，不宣称已把 tracing 送到外部系统 |
 | 通用 payload 覆盖、自定义 headers、模型前缀/后缀等 | 未发现 CPA 等价用户配置入口 | **待实现**，按实际兼容需求排序 |
 | HTTP/HTTPS/SOCKS5h/认证代理 | 已有直连/固定/池化出口；当前只接纳限定 SOCKS5 | **范围差异**，后续扩展须保持明确的出站约束 |
@@ -111,6 +111,13 @@ OPEN不等于没有代码，CLOSED也不代表整个渠道已完成；本轮没�
 #61–#67和#68–#75已关联为其15个原生子票。#9的既有48个子票关系保持，父子关系不等于阻塞。
 
 ## 5. 下一项与后续顺序
+
+**2026-10-25集成完成：#68/#72/#74及安全修复已在同一源码重验。**
+受测源码`6a7ae73e`：Full44/44，Rust1695/0/21，#68生产HTTP4/4，#72进程517/517，
+#74退出/重启及交叉检查20/20，schema38→39原事件/账本/价格保持。
+详见[集成记录](reports/parallel-integration-20261025.md)。#68/#72/#74本轮读取仍OPEN、无评论、未分配；
+本地完成不等于远端关闭。下一批建议#69 + #73 + #75从该记录中的最终文档后继SHA分别启动。
+下面的effort/Tokio/#68原分支结果保留其原日期及身份，不能代替集成结果。
 
 **已完成本地实现：对齐 CPA v8 的 Messages effort 提取和优先级。**
 

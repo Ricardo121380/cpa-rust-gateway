@@ -1,0 +1,110 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "OS denies external connection",
+      "pass": true
+    },
+    {
+      "name": "cross-account samples",
+      "pass": true
+    },
+    {
+      "name": "exhaustion and expiration independent",
+      "pass": true
+    },
+    {
+      "name": "reset is reported evidence with sampling gap",
+      "pass": true
+    },
+    {
+      "name": "partial projection retained",
+      "pass": true
+    },
+    {
+      "name": "failure is unknown quantity",
+      "pass": true
+    },
+    {
+      "name": "history excludes synthetic credentials",
+      "pass": true
+    },
+    {
+      "name": "late response rejected after disable",
+      "pass": true
+    },
+    {
+      "name": "late response rejected after delete",
+      "pass": true
+    },
+    {
+      "name": "operator disable and deletion preserved",
+      "pass": true
+    },
+    {
+      "name": "actual process exited cleanly",
+      "pass": true
+    },
+    {
+      "name": "new process reads same durable evidence",
+      "pass": true
+    },
+    {
+      "name": "restart and history query send no upstream request",
+      "pass": true
+    },
+    {
+      "name": "quota history is not Usage or cost in snapshot",
+      "pass": true
+    },
+    {
+      "name": "schema39 empty Usage export remains empty",
+      "pass": true
+    },
+    {
+      "name": "snapshot and export do not alter quota history or call upstream",
+      "pass": true
+    },
+    {
+      "name": "schema 39 loaded",
+      "pass": true
+    },
+    {
+      "name": "no Usage or billing fabrication",
+      "pass": true
+    },
+    {
+      "name": "receiver saw quota reads only",
+      "pass": true
+    },
+    {
+      "name": "actual process exited cleanly",
+      "pass": true
+    }
+  ],
+  "processes": [
+    {
+      "pid": 89383,
+      "exit_code": 0
+    },
+    {
+      "pid": 89636,
+      "exit_code": 0
+    }
+  ],
+  "real_provider": "NOT_RUN",
+  "inference": "NOT_RUN",
+  "background_provider_tasks": "disabled",
+  "cost": "UNKNOWN",
+  "binary_sha256": "d66580b1c2464d7a94b6467a21fd88546fb0dd6d8e4eef3ba680f2816ab6a54e",
+  "source_head": "6a7ae73e79b57576ee37b3ace1d70d60f1909a9b",
+  "source_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "receiver_paths": [
+    "/v1/billing?format=credits",
+    "/v1/billing?format=credits",
+    "/v1/billing?format=credits",
+    "/v1/billing?format=credits",
+    "/v1/billing?format=credits",
+    "/v1/billing?format=credits"
+  ]
+}

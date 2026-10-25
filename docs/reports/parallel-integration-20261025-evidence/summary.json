@@ -1,0 +1,111 @@
+{
+  "status": "PASS_LOCAL_INTEGRATION",
+  "tested_source": "6a7ae73e79b57576ee37b3ace1d70d60f1909a9b",
+  "tested_tree": "2b0b9fab02c156a1f70311354c7742416d590a8f",
+  "lock_sha256": "a3950a764ae2dcae4e04a8a32ada596f33ea105dbfda8e9714b3e32d3216cd6d",
+  "full": {
+    "status": "PASS",
+    "steps": 44,
+    "exit_code": 0,
+    "rust_suites": 133,
+    "passed": 1695,
+    "failed": 0,
+    "ignored": 21
+  },
+  "count_http": {
+    "tests": 4,
+    "status": "PASS",
+    "scope": "actual RuntimeFactory, public socket HTTP, independent loopback transport; no inference events/ledger/quota history"
+  },
+  "usage_process": {
+    "checks": 517,
+    "status": "PASS",
+    "calls": 7,
+    "receives": 7
+  },
+  "quota_process": {
+    "checks": 20,
+    "status": "PASS",
+    "original_checks": 17,
+    "added_cross_checks": 3,
+    "receives": 6,
+    "processes": [
+      {
+        "pid": 89383,
+        "exit_code": 0
+      },
+      {
+        "pid": 89636,
+        "exit_code": 0
+      }
+    ]
+  },
+  "schema_upgrade": {
+    "from": 38,
+    "to": 39,
+    "status": "PASS",
+    "method": "complete registered schema38 prefix created by rollback of empty migration39, seeded via event/materializer APIs; actual repository reopen upgrades to39; raw cells compared",
+    "tables": [
+      "gateway_event_log",
+      "billing_ledger_entries",
+      "billing_price_catalog_versions",
+      "billing_price_catalog_entries",
+      "billing_materializer_checkpoints"
+    ],
+    "historical_binary_upgrade": "NOT_RUN"
+  },
+  "binary": {
+    "source_commit": "6a7ae73e79b57576ee37b3ace1d70d60f1909a9b",
+    "source_tree": "2b0b9fab02c156a1f70311354c7742416d590a8f",
+    "cargo_lock_sha256": "a3950a764ae2dcae4e04a8a32ada596f33ea105dbfda8e9714b3e32d3216cd6d",
+    "source_manifest_sha256": "b99df864fa74508823c4d133363942fc53205ca046ddc5658988ad5ca4aeb7de",
+    "binary": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-parallel-68-72-74-integration-20261025/output/integration/bin/gateway-6a7ae73e79b5",
+    "binary_sha256": "d66580b1c2464d7a94b6467a21fd88546fb0dd6d8e4eef3ba680f2816ab6a54e",
+    "full_default_metadata_binary_sha256": "d1238b30750145615f09f4a04a9d6c9bb2756775e9efc9eab39331dc7da7203c",
+    "build_environment": {
+      "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-parallel-68-72-74-integration-20261025/target-integration",
+      "CARGO_BUILD_JOBS": "2",
+      "TMPDIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-parallel-68-72-74-integration-20261025/output/integration/tmp",
+      "GATEWAY_RELEASE_REVISION": "6a7ae73e79b57576ee37b3ace1d70d60f1909a9b",
+      "GATEWAY_RELEASE_RUST_VERSION": "1.97.1",
+      "GATEWAY_RELEASE_TARGET": "aarch64-apple-darwin"
+    },
+    "runner_sha256": "cbcd7e958320aaad600236baf6fdbc87c2204a2f20fafe4dbbe74666a628b922",
+    "inputs": {
+      "scripts/acceptance/cpar-batch-b-http.py": "4ab1151ee3db2f19895e29e5665abba10bd27749f4153ab8c60eb59cb64a3428",
+      "scripts/acceptance/cpar_usage_snapshot_http.py": "6e53569757c643c84c688c41a152bdf18648b0f5aaaf7002688896a2256e32f1",
+      "scripts/acceptance/cpar_t12_upgrade_http.py": "d01614324e55fdf292b6aa0e33328fc619a286142551d486ca336ee5dc02a201",
+      "scripts/acceptance/cpar74-quota-history.py": "872990433131b3427ab202a6a7dc21eac2adae5e11a5d2f771ab5c3d54e65037",
+      "scripts/acceptance/cpar74-quota-loopback.c": "ceb3f0f2102d01ca748af7b4e9d4a916cc29fdccdfd646ba4ceb3678ade81ada",
+      "tests/fixtures/count-tokens/cpa-v8.json": "9701e7b0b17fd229911cdfc04b853d0a029457168b5a418d95f9a720965af955"
+    }
+  },
+  "initial_full": {
+    "source": "196d58d7de2dfcc7775066d6b66bb0128ff2481f",
+    "status": "INTERRUPTED",
+    "reason": "review P2 fixed before new Full; original logs preserved"
+  },
+  "evidence_hashes": {
+    "source-01.json": "ce33fa3e69d4cfca346cb913d3aab1d6de8e7950b952fa2374401bc75628371f",
+    "source-02.json": "b99df864fa74508823c4d133363942fc53205ca046ddc5658988ad5ca4aeb7de",
+    "test-binaries.json": "f6360342210c52376a87947e62af484353546c258dcbde5387d0d92a3e692b02",
+    "full-01-interrupted.json": "42f68ba6efbc29f5215849bea5946358b10b176d3e25f8abecb2d1eb709679ae",
+    "logs/full-01.log": "b14db0bc8a7a8527f0fad0c3a1672573b30a2cde6fd4f7fefcd214f3d63fd514",
+    "logs/full-02.log": "835f68b900efdf1e174ab4910f35a2f602a4fb8553c0a1f3cb2be14cc804cae0",
+    "full-02.md": "0b1c08c2d919df4cc81623ace1307f841f299e39af2dc51d55d71690e710d98f",
+    "process72-01/receipt.json": "6f71551190dfc80b41c62795cba4b5befdedbdaae48c850745c6fa31a672b63e",
+    "process74-01/receipt.json": "3030893e2facd6f77e821413ab31598e3f393e89d3d886927c52855fae3bbcf8",
+    "binary-manifest.json": "74dbeb47f12c6e380a0ab2d8d8b4cd326d01eba5942af86905b8d6a6966a68dd",
+    "process-commands.json": "f6577cce9178d0d8ebd47adbec9548f40cb364f563d88d97cc71fe7231a37f08",
+    "review.json": "bb480a25346ed1922c23eedb4b91520edcf2627d61561f4fcf91d1390fc4f47c"
+  },
+  "limits": {
+    "real_provider": "NOT_RUN",
+    "real_clients": "NOT_RUN",
+    "fixed_build_service": "NOT_RUN",
+    "remote_CI": "NOT_RUN",
+    "release_deployment": "NOT_RUN",
+    "large_scale_capacity": "NOT_RUN",
+    "cost": "UNKNOWN"
+  }
+}

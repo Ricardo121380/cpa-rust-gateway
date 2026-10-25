@@ -387,3 +387,11 @@ from actual-client, fixed-service, real Provider and release qualification.
 ## #74 quota observation history (2026-10-25)
 
 OPT-07 / T22 → [ADR-0129](adr/ADR-0129-account-quota-history.md) → [BC-MGMT-018](contracts/BC-MGMT-018-account-quota-history.md). Independent quota samples; no Usage/ledger semantic change or new polling.
+
+## 2026-10-25 integrated baseline
+
+#68 / #72 / #74 and their security successors → source `6a7ae73e79b57576ee37b3ace1d70d60f1909a9b`
+→ [integration acceptance](reports/parallel-integration-20261025.md): Full44/44; count HTTP4/4;
+Usage process517/517; quota process20/20; schema38→39 preserves original Usage/ledger/price cells.
+`quota_history_cancelled_waiter_keeps_blocking_capacity` preserves bounded blocking work after cancellation.
+Historical branch evidence keeps its original identities; final documentation successor is recorded separately.
