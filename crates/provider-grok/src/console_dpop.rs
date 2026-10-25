@@ -14,7 +14,10 @@ use std::{
 };
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
-use p256::ecdsa::{Signature, SigningKey, signature::Signer};
+use p256::{
+    ecdsa::{Signature, SigningKey, signature::Signer},
+    elliptic_curve::Generate,
+};
 use serde::Serialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -117,7 +120,7 @@ impl GrokConsoleDpopSession {
     /// Generates the ephemeral P-256 signing key used in the `DPoP` token request.
     #[must_use]
     pub fn generate_key() -> SigningKey {
-        SigningKey::random(&mut rand_core::OsRng)
+        SigningKey::generate()
     }
 
     /// Returns the `DPoP` access token for immediate Authorization header construction.
@@ -259,7 +262,7 @@ struct DpopJwk {
 
 impl DpopJwk {
     fn from_key(key: &p256::ecdsa::VerifyingKey) -> Self {
-        let point = key.to_encoded_point(false);
+        let point = key.to_sec1_point(false);
         Self {
             kty: "EC",
             crv: "P-256",
@@ -365,6 +368,7 @@ impl std::error::Error for GrokConsoleDpopError {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use p256::ecdsa::{VerifyingKey, signature::Verifier};
     use std::error::Error;
 
     type TestResult<T = ()> = Result<T, Box<dyn Error>>;
@@ -385,15 +389,91 @@ mod tests {
         let now = UNIX_EPOCH + Duration::from_secs(1_700_000_000);
         let key = GrokConsoleDpopSession::generate_key();
         let token = token_for(&key, 1_700_000_600)?;
+        let expected_ath = URL_SAFE_NO_PAD.encode(Sha256::digest(token.as_bytes()));
         let session = GrokConsoleDpopSession::from_token_response(token, "DPoP", 600, key, now)?;
-        let proof = session.proof("post", "https://console.x.ai/v1/responses", now)?;
-        let parts: Vec<_> = proof.split('.').collect();
-        assert_eq!(parts.len(), 3);
-        assert_eq!(URL_SAFE_NO_PAD.decode(parts[2])?.len(), 64);
-        let claims: Value = serde_json::from_slice(&URL_SAFE_NO_PAD.decode(parts[1])?)?;
-        assert_eq!(claims["htm"], "POST");
-        assert_eq!(claims["htu"], "https://console.x.ai/v1/responses");
-        assert!(claims["ath"].as_str().is_some());
+        for (method, url) in [
+            ("post", "https://console.x.ai/v1/responses"),
+            ("get", "https://console.x.ai/v1/usage"),
+        ] {
+            let proof = session.proof(method, url, now)?;
+            let parts: Vec<_> = proof.split('.').collect();
+            assert_eq!(parts.len(), 3);
+            let signature_bytes = URL_SAFE_NO_PAD.decode(parts[2])?;
+            assert_eq!(signature_bytes.len(), 64);
+            let signature = Signature::from_slice(&signature_bytes)?;
+            let header: Value = serde_json::from_slice(&URL_SAFE_NO_PAD.decode(parts[0])?)?;
+            assert_eq!(header["typ"], "dpop+jwt");
+            assert_eq!(header["alg"], "ES256");
+            assert_eq!(header["jwk"]["kty"], "EC");
+            assert_eq!(header["jwk"]["crv"], "P-256");
+            let x = URL_SAFE_NO_PAD.decode(header["jwk"]["x"].as_str().ok_or("x")?)?;
+            let y = URL_SAFE_NO_PAD.decode(header["jwk"]["y"].as_str().ok_or("y")?)?;
+            assert_eq!((x.len(), y.len()), (32, 32));
+            let mut point = vec![4];
+            point.extend(x);
+            point.extend(y);
+            let verifier = VerifyingKey::from_sec1_bytes(&point)?;
+            let signed = format!("{}.{}", parts[0], parts[1]);
+            verifier.verify(signed.as_bytes(), &signature)?;
+            assert!(
+                verifier
+                    .verify(format!("{signed}x").as_bytes(), &signature)
+                    .is_err()
+            );
+            let claims: Value = serde_json::from_slice(&URL_SAFE_NO_PAD.decode(parts[1])?)?;
+            assert_eq!(claims["htm"], method.to_ascii_uppercase());
+            assert_eq!(claims["htu"], url);
+            assert_eq!(claims["iat"], 1_700_000_000);
+            assert_eq!(claims["ath"], expected_ath);
+            assert_eq!(
+                URL_SAFE_NO_PAD
+                    .decode(claims["jti"].as_str().ok_or("jti")?)?
+                    .len(),
+                16
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn p256_sha256_matches_rfc6979_vector_and_jwk_thumbprint() -> TestResult {
+        // Public test vector: RFC 6979, Thomas Pornin, Appendix A.2.5, SHA-256 / "sample".
+        // https://www.rfc-editor.org/rfc/rfc6979.html#appendix-A.2.5
+        // Values below are the published scalar, coordinates and r || s in base64url.
+        let key = SigningKey::from_slice(
+            &URL_SAFE_NO_PAD.decode("ya-p2EW6dRZrXCFXZ7HWk05Qw9s26JsSe4piKxIPZyE")?,
+        )?;
+        let signature: Signature = key.sign(b"sample");
+        assert_eq!(
+            URL_SAFE_NO_PAD.encode(signature.to_bytes()),
+            "79SLKqy2qP0RQN2c1F6B1p0sh3tWqvmRw00OqE6vNxb3yxyULWV8QdQ2x6G24p9l8-kA27mv9AZNxKsvhDrNqA"
+        );
+        let jwk = DpopJwk::from_key(key.verifying_key());
+        assert_eq!(jwk.x, "YP7UuiVanTHJYet0xjVtaMBJuJI7Yfps5mliLmDyn7Y");
+        assert_eq!(jwk.y, "eQP-EAi4vJmkGunpVii8ZPLxsgwtfp9Rd6PClNRGIpk");
+        // Independently SHA-256 hashed canonical RFC 7638 JWK using the published coordinates.
+        assert_eq!(
+            jwk.thumbprint()?,
+            "DOvxvJiAdIqVWIkFt5hDtCunXLF0BV4-JGv4f-ALSm0"
+        );
+        key.verifying_key().verify(b"sample", &signature)?;
+        assert!(key.verifying_key().verify(b"tampered", &signature).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn token_bound_to_a_different_generated_key_is_rejected() -> TestResult {
+        let now = UNIX_EPOCH + Duration::from_secs(1_700_000_000);
+        let first = GrokConsoleDpopSession::generate_key();
+        let other = GrokConsoleDpopSession::generate_key();
+        let result = GrokConsoleDpopSession::from_token_response(
+            token_for(&first, 1_700_000_600)?,
+            "DPoP",
+            600,
+            other,
+            now,
+        );
+        assert!(matches!(result, Err(GrokConsoleDpopError::KeyMismatch)));
         Ok(())
     }
 
