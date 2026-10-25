@@ -418,7 +418,7 @@ mod tests {
             InputTokenCount::ProviderReported(0)
         );
         for raw in [
-            r#"{}"#,
+            "{}",
             r#"{"input_tokens":-1}"#,
             r#"{"input_tokens":1.5}"#,
             r#"{"input_tokens":17,"input_tokens":18}"#,
