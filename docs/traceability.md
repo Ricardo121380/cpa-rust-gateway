@@ -442,3 +442,19 @@ Historical RED/FAIL and schema39 evidence remain source-bound; remote/client/Pro
 ## #70 production strategies and ordinary Build affinity (2026-10-25)
 
 OPT-03 → [ADR-0133](adr/ADR-0133-production-routing-build-affinity.md) → [BC-ROUTE-010](contracts/BC-ROUTE-010-production-strategies-build-affinity.md). Local implementation and qualification evidence are tracked separately; no remote closure or Provider qualification is inferred.
+## #71 / OPT-04 — versioned request rules and custom upstream headers
+
+[ADR-0134](adr/ADR-0134-versioned-request-rules-upstream-headers.md) →
+[BC-MGMT-022](contracts/BC-MGMT-022-request-rules-upstream-headers.md) →
+[public scope and examples](support/request-rules-upstream-headers.md).
+Endpoint configuration owns scope/revision; ordinary three-protocol runtime owns final-body
+validation; existing Secret Store owns header values. No #70 selection policy or frontend.
+
+Local delivery: [implementation receipt](reports/issue-71-request-rules-upstream-headers-20261025.md),
+tested2dc8c87c / Full44/44 / Rust1733 passed,0 failed,23 ignored / explicit backup7/7.
+61 inference receives +1 native count are controlled local HTTP evidence; real clients/providers and
+shared #70 migration integration remain separate. Original FAIL/INTERRUPTED and partial scout evidence retained.
+
+## #70/#71 shared schema42 integration
+
+[ADR-0135](adr/ADR-0135-integrated-schema-identity-and-atomic-downgrade.md) → [BC-STORE-001](contracts/BC-STORE-001-versioned-control-plane-schema.md) → `integrated_schema` regressions and the schema42 mode of `scripts/acceptance/cpar-wave2-integration.py`. Historical standalone41 evidence remains source-bound.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Schema39 -> 40, reviewed prices, named thinking and stock-process large recovery.
+"""Schema39 -> 40/42, reviewed prices, controls and stock-process large recovery.
 
 Extends the unchanged #75 frozen distribution; helpers only use synthetic sources.
 All raw state, payloads and credential materials remain in the private state root.
@@ -25,6 +25,7 @@ class Provider(base.Provider):
     def do_POST(self):
         raw = self.rfile.read(int(self.headers.get("Content-Length", "0")))
         self.server.wave2_bodies.append(json.loads(raw))
+        self.server.wave3_headers.append(self.headers.get("x-request-tag") == self.server.wave3_header)
         self.rfile = io.BytesIO(raw)
         super().do_POST()
 
@@ -37,7 +38,9 @@ class Matrix(capacity.Matrix):
         self.report["wave2_support_sha256"] = capacity.digest_file(self.wave2_binary)
         self.peer.RequestHandlerClass = Provider
         self.peer.wave2_bodies = []
-        self.report["scope"] = "wave2_schema40_frozen_capacity"
+        self.peer.wave3_headers = []
+        self.peer.wave3_header = "synthetic-" + os.urandom(16).hex()
+        self.report["scope"] = f"integrated_schema{args.expected_schema}_frozen_capacity"
         self.report["historical_binary_label"] = "schema35 label reused for actual schema39 binary"
 
     def helper(self, action, value):
@@ -68,24 +71,31 @@ class Matrix(capacity.Matrix):
         self.settle_billing("schema39")
         self.stop()
         before = self.snapshot("schema39-before-upgrade")
-        self.start("current", "schema40-upgrade")
-        self.settle_billing("schema40")
+        self.start("current", f"schema{self.args.expected_schema}-upgrade")
+        self.settle_billing("integrated")
         self.check_schema()
-        after = self.snapshot("schema40-after-upgrade")
+        after = self.snapshot("integrated-after-upgrade")
+        retained = self.snapshot("original-column-projection", projection=before)
         self.check("upgrade retains every original business cell and ciphertext", all(
-            after[table] == value for table, value in before.items() if table != "schema_migrations"))
+            retained[table] == value for table, value in before.items() if table != "schema_migrations"))
         self.check("migration40 initially has an empty review table", after["billing_catalog_reviews"]["rows"] == 0)
         fork = self.api("POST", f"/admin/config-versions/{self.scope}/fork", {"id":"wave2-names", "description":"synthetic integration"}, 201)
         self.scope, self.revision = fork["id"], '"' + fork["revision"] + '"'
         self.api("POST", "/admin/public-models", {"id":"wave2-model", "model_name":"public-wave2", "display_name":"Wave2",
             "status":"active", "capabilities":{"reasoning":True,"stored_responses":True}}, 201)
         self.api("POST", "/admin/public-models/wave2-model/aliases", {"prefix":"team", "alias":"public-wave2"}, 201)
-        self.api("POST", "/admin/public-models/wave2-model/routes", {"id":"wave2-route", "policy":"smooth_weighted_round_robin",
+        self.api("POST", "/admin/public-models/wave2-model/routes", {"id":"wave2-route", "policy":"fill_first" if self.args.expected_schema == 42 else "smooth_weighted_round_robin",
             "max_attempts":1,"bootstrap_timeout_ms":10000}, 201)
         self.api("POST", "/admin/routes/wave2-route/candidates", {"id":"wave2-candidate","endpoint_id":"ordinary-endpoint",
             "upstream_model":"gpt-5.5","credential_scope":"all_active","transform_mode":"canonical_bridge","enabled":True,
             "priority":0,"weight":1,"capability_override":{"allow_unlisted_model":True,"stored_responses":True}}, 201)
         self.api("POST", "/admin/access-groups/owner-group/routes", {"route_id":"wave2-route","enabled":True}, 201)
+        if self.args.expected_schema == 42:
+            self.api("POST", "/admin/upstreams/ordinary/credentials", {"id":"wave3-header", "kind":"upstream_header", "secret":self.peer.wave3_header, "status":"active"}, 201)
+            endpoint = self.api("GET", "/admin/endpoints/ordinary-endpoint")
+            body = {k:endpoint[k] for k in ("id","adapter_id","api_format","base_url","inference_path","models_path","transport","enabled")}
+            body["request_policy"] = {"rules":[{"models":["public-wave2"],"default":{"temperature":0.2},"override":{"max_output_tokens":128},"filter":["top_p"]}], "headers":{"x-request-tag":"wave3-header"}}
+            self.api("PATCH", "/admin/endpoints/ordinary-endpoint", body)
         self.publish()
         price = self.api("POST", "/admin/config-versions", {"id":"wave2-prices","description":"synthetic price review"}, 201)
         price_revision = '"' + price["revision"] + '"'
@@ -96,18 +106,25 @@ class Matrix(capacity.Matrix):
         # The stock gateway subsequently reads the durable result through its normal API.
         while time.time() * 1000 <= self.review["effective_at_ms"]:
             time.sleep(.05)
-        self.start("current", "schema40-reviewed-source")
+        self.start("current", "integrated-reviewed-source")
         self.verify_review("source")
         self.capture_thinking()
         self.verify_thinking("source")
         self.stop()
+        if self.args.expected_schema == 42:
+            # Synthetic durable continuity state; live selection is verified by #70 socket tests.
+            with sqlite3.connect(self.db) as db:
+                now = int(time.time() * 1000)
+                db.execute("INSERT INTO grok_build_cache_affinities(client_key_id,provider_id,upstream_model,cache_identity,credential_id,expires_at_ms,reason,updated_at_ms,binding_fingerprint,credential_revision) VALUES ('wave3-fixture','grok.build','grok-4.5','opaque-fixture','synthetic-account',?,'prompt_cache',?,?,7)", [now+86400000,now,"7"*64])
+                db.execute("INSERT INTO grok_build_affinity_breaks(client_key_id,upstream_model,cache_identity,prior_credential_id,next_credential_id,reason,estimated_cache_loss_tokens,occurred_at_ms) VALUES ('wave3-fixture','grok-4.5','opaque-fixture','old','synthetic-account','policy_reselection',NULL,?)", [now])
+                db.commit()
         base.dump(self.private / "context.json", {"scope":self.scope,"revision":self.revision,"owner":self.owner,
             "sibling":self.sibling,"restricted":self.restricted,"disabled_native":self.disabled_native,
             "records":self.records,"unknowns":self.unknowns,"materials":self.peer.materials})
 
     def check_schema(self):
         with sqlite3.connect(self.db) as db:
-            self.check("schema40 complete unique migration prefix", db.execute("SELECT version FROM schema_migrations ORDER BY version").fetchall() == [(i,) for i in range(1, 41)])
+            self.check(f"schema{self.args.expected_schema} complete unique migration prefix", db.execute("SELECT version FROM schema_migrations ORDER BY version").fetchall() == [(i,) for i in range(1, self.args.expected_schema + 1)])
             self.check("39 and 40 registered exactly once", db.execute("SELECT count(*) FROM schema_migrations WHERE version IN (39,40)").fetchone() == (2,))
 
     def verify_review(self, label):
@@ -122,7 +139,7 @@ class Matrix(capacity.Matrix):
     def capture_thinking(self):
         self.peer.case = "ordinary"
         name = "team/public-wave2(high)"
-        status, raw, headers = self.data("/v1/responses", {"model":name,"input":"wave2 question","store":True,"reasoning":{"effort":"low"}})
+        status, raw, headers = self.data("/v1/responses", {"model":name,"input":"wave2 question","store":True,"top_p":0.9,"max_output_tokens":1000,"reasoning":{"effort":"low"}})
         self.check("named stored thinking succeeds", status == 200)
         self.thinking_response = json.loads(raw)["id"]
         request = next(v for k,v in headers.items() if k.lower() == "x-request-id")
@@ -136,7 +153,24 @@ class Matrix(capacity.Matrix):
             self.check("nonempty encrypted stored response exists", db.execute("SELECT count(*) FROM stored_responses WHERE client_key_id='owner' AND response_id=? AND length(ciphertext)>0", [self.thinking_response]).fetchone() == (1,))
         wire = self.peer.wave2_bodies[-1]
         self.check("independent receiver sees actual model and suffix priority", wire["model"] == "gpt-5.5" and wire["reasoning"]["effort"] == "high")
+        self.verify_rule_wire("source")
         self.report["thinking_storage"] = self.helper("thinking", {"response_id":self.thinking_response})
+
+    def verify_rule_wire(self, label):
+        if self.args.expected_schema != 42:
+            return
+        wire = self.peer.wave2_bodies[-1]
+        self.check(label + " stock sends default override filter and decrypted header", wire.get("temperature") == 0.2 and wire.get("max_output_tokens") == 128 and "top_p" not in wire and self.peer.wave3_headers[-1])
+
+    def verify_integrated_state(self, label):
+        if self.args.expected_schema != 42:
+            return
+        endpoint = self.api("GET", "/admin/endpoints/ordinary-endpoint")
+        self.check(label + " stock reads nonempty rules and header references", endpoint["request_policy"]["headers"] == {"x-request-tag":"wave3-header"} and len(endpoint["request_policy"]["rules"]) == 1)
+        self.check(label + " stock reads explicit selection strategy", self.api("GET", "/admin/routes/wave2-route")["policy"] == "fill_first")
+        with sqlite3.connect(self.db) as db:
+            self.check(label + " encrypted header remains ciphertext", db.execute("SELECT count(*) FROM upstream_credentials WHERE config_version_id=? AND id='wave3-header' AND kind='upstream_header' AND length(ciphertext)>0", [self.scope]).fetchone() == (1,))
+            self.check(label + " qualified affinity and unknown loss survive", db.execute("SELECT binding_fingerprint,credential_revision FROM grok_build_cache_affinities WHERE client_key_id='wave3-fixture'").fetchone() == ("7"*64,7) and db.execute("SELECT reason,estimated_cache_loss_tokens FROM grok_build_affinity_breaks WHERE client_key_id='wave3-fixture'").fetchone() == ("policy_reselection",None))
 
     def verify_thinking(self, label):
         before = len(self.peer.receives)
@@ -168,6 +202,7 @@ class Matrix(capacity.Matrix):
         status, _, _ = self.data("/v1/responses", {"model":"team/public-wave2(high)","input":"denied"}, key=self.restricted)
         self.check(label + " permissions deny before sending", status == 404 and len(self.peer.receives) == before)
         self.check_schema()
+        self.verify_integrated_state(label)
         if hasattr(self, "review"):
             self.verify_review(label)
 
@@ -175,21 +210,22 @@ class Matrix(capacity.Matrix):
         super().run()
         with (self.root / "coherent.encrypted").open("rb") as artifact:
             header = artifact.read(45)
-        self.check("v2 authentic format identifies schema40", header[:9] == b"CPABKP02\x02" and int.from_bytes(header[9:13],"big") == 40)
+        self.check(f"v2 authentic format identifies schema{self.args.expected_schema}", header[:9] == b"CPABKP02\x02" and int.from_bytes(header[9:13],"big") == self.args.expected_schema)
         self.start("current", "restored-thinking-continuation")
         self.verify_thinking("restored")
         self.verify_review("restored")
         before = len(self.peer.receives)
         self.peer.case = "ordinary"
-        status, raw, _ = self.data("/v1/responses", {"model":"team/public-wave2(low)","input":"wave2 followup",
+        status, raw, _ = self.data("/v1/responses", {"model":"team/public-wave2(low)","input":"wave2 followup","top_p":0.9,"max_output_tokens":1000,
             "previous_response_id":self.thinking_response})
         self.check("restored named continuation succeeds with exactly one send", status == 200 and len(self.peer.receives) == before + 1)
         wire = self.peer.wave2_bodies[-1]
         history = json.dumps(wire["input"])
         self.check("restored continuation carries exact supported history and current controls", "wave2 question" in history and "legacy known reply" in history
             and "wave2 followup" in history and wire["model"] == "gpt-5.5" and wire["reasoning"]["effort"] == "low")
+        self.verify_rule_wire("restored")
         self.stop()
-        self.report["status"] = "PASS_LOCAL_WAVE2_INTEGRATION"
+        self.report["status"] = "PASS_LOCAL_WAVE3_INTEGRATION" if self.args.expected_schema == 42 else "PASS_LOCAL_WAVE2_INTEGRATION"
         self.save()
 
 
@@ -197,8 +233,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("current-binary", "historical-binary", "support-binary", "wave2-support", "current-source", "historical-source", "output"):
         parser.add_argument("--" + name, type=Path, required=True)
+    parser.add_argument("--expected-schema", type=int, choices=(40,42), default=40)
     args = parser.parse_args()
-    args.mode, args.fixture, args.expected_schema = "fixed", None, 40
+    args.mode, args.fixture = "fixed", None
     os.umask(0o077)
     matrix = Matrix(args)
     try:

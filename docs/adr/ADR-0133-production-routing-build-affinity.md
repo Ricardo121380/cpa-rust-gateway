@@ -104,3 +104,5 @@ validation/publication/rollback and closed inputs; capacity/migration tests exer
 NULL loss. Full, explicit backup checks, review findings and frozen source/binary manifests are
 recorded in the [issue70 implementation report](../reports/issue-70-routing-build-affinity-20261025.md). Real Providers/clients, fixed-service qualification,
 remote CI, release, deployment and cost admission remain separate.
+
+Integration successor: [ADR-0135](ADR-0135-integrated-schema-identity-and-atomic-downgrade.md) fixes the combined migration order, distinguishes the two historical schema41 layouts, and makes failed multi-step downgrade atomic. The original branch-specific decision above remains historical.

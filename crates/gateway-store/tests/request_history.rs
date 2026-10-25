@@ -190,13 +190,16 @@ fn request_counts_snapshot_percentiles_and_unknown_history_are_distinct()
     // Refuse data-destructive rollback while terminal records exist; all originals survive.
     let mut db = gateway_store::open(&file.0)?;
     assert!(gateway_store::rollback_to_version(&mut db, 26).is_err());
-    assert_eq!(gateway_store::schema_version(&db)?, Some(27));
+    assert_eq!(
+        gateway_store::schema_version(&db)?,
+        Some(gateway_store::CURRENT_SCHEMA_VERSION)
+    );
     assert_eq!(
         db.query_row("SELECT COUNT(*) FROM gateway_event_log", [], |r| r
             .get::<_, i64>(0))?,
         7
     );
-    // Restore the current query indexes after the explicit rollback-preservation check.
+    // Failed downgrade retains the current query indexes; migrate remains idempotent.
     gateway_store::migrate(&mut db)?;
     // A narrow window remains complete above the old 100,000-row global ceiling.
     db.execute_batch("BEGIN;

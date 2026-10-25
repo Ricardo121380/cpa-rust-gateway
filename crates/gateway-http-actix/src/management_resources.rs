@@ -3280,6 +3280,8 @@ struct UpstreamInput {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct EndpointInput {
+    #[serde(default)]
+    request_policy: gateway_core::request_policy::RequestPolicy,
     id: String,
     adapter_id: String,
     api_format: String,
@@ -3469,6 +3471,7 @@ struct UpstreamResponse {
 
 #[derive(Serialize)]
 struct EndpointResponse {
+    request_policy: gateway_core::request_policy::RequestPolicy,
     id: String,
     upstream_id: String,
     adapter_id: String,
@@ -9372,6 +9375,7 @@ fn endpoint(
         return Err(invalid_input());
     }
     Ok(EndpointConfiguration {
+        request_policy: input.request_policy,
         id: EndpointId::try_new(input.id).map_err(|_| invalid_input())?,
         upstream_id,
         adapter_id: bounded_text(input.adapter_id, 128)?,
@@ -9794,6 +9798,11 @@ fn empty_with_revision(revision: ConfigRevision) -> HttpResponse {
 
 fn management_error(error: ManagementResourceError) -> HttpResponse {
     let response = match &error {
+        ManagementResourceError::InvalidRequestPolicy(code) => error_response(
+            StatusCode::BAD_REQUEST,
+            code,
+            "Endpoint request policy is invalid",
+        ),
         ManagementResourceError::ConfigVersionNotFound
         | ManagementResourceError::ResourceNotFound
         | ManagementResourceError::Store(
@@ -11166,6 +11175,7 @@ impl From<UpstreamConfiguration> for UpstreamResponse {
 impl From<EndpointConfiguration> for EndpointResponse {
     fn from(value: EndpointConfiguration) -> Self {
         Self {
+            request_policy: value.request_policy,
             id: value.id.as_str().to_owned(),
             upstream_id: value.upstream_id.as_str().to_owned(),
             adapter_id: value.adapter_id,

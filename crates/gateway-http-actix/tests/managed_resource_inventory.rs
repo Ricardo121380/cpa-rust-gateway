@@ -393,6 +393,7 @@ fn fixture_with_workflow_inner(
             egress_policy_id: None,
         });
         configuration.endpoints.push(EndpointConfiguration {
+            request_policy: gateway_core::request_policy::RequestPolicy::default(),
             id: EndpointId::try_new(format!("endpoint-{owner}"))?,
             upstream_id: UpstreamId::try_new(owner)?,
             adapter_id: "openai-compatible.responses".to_owned(),

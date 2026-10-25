@@ -715,6 +715,31 @@ impl UpstreamHttpRequest {
         &self.body
     }
 
+    /// Replaces opaque body bytes and adds nonconflicting headers after provider assembly.
+    /// Additional values are marked sensitive; diagnostic formatting remains value-free.
+    ///
+    /// # Errors
+    /// Rejects invalid/duplicate names, invalid values and transport-owned headers.
+    pub fn with_body_and_additional_headers(
+        mut self,
+        body: Vec<u8>,
+        headers: impl IntoIterator<Item = (String, String)>,
+    ) -> Result<Self, UpstreamHttpRequestError> {
+        let additional = Self::try_new(self.target.clone(), self.method, headers, Vec::new())?;
+        for (name, value) in &additional.headers {
+            if self.headers.contains_key(name) {
+                return Err(UpstreamHttpRequestError::new(
+                    UpstreamHttpRequestErrorCode::DuplicateHeader,
+                ));
+            }
+            let mut value = value.clone();
+            value.set_sensitive(true);
+            self.headers.insert(name.clone(), value);
+        }
+        self.body = body;
+        Ok(self)
+    }
+
     fn into_reqwest(self) -> reqwest::Request {
         let mut request =
             reqwest::Request::new(self.method.as_reqwest(), self.target.request_url().clone());

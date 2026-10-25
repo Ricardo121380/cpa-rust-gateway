@@ -803,6 +803,8 @@ pub struct CompatibleEgressBindingConfiguration {
 /// One protocol-specific upstream endpoint.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EndpointConfiguration {
+    /// Bounded versioned target request options and encrypted header references.
+    pub request_policy: gateway_core::request_policy::RequestPolicy,
     /// Stable endpoint identity within the version.
     pub id: EndpointId,
     /// The owning upstream.
@@ -2583,7 +2585,7 @@ impl ControlPlaneTransaction<'_> {
         }
         let updated = self.transaction.execute(
             "UPDATE upstream_endpoints SET adapter_id = ?3, api_format = ?4, base_url = ?5, \
-             inference_path = ?6, models_path = ?7, transport = ?8, enabled = ?9 \
+             inference_path = ?6, models_path = ?7, transport = ?8, enabled = ?9, request_policy_json = ?11 \
              WHERE config_version_id = ?1 AND id = ?2 AND upstream_id = ?10",
             params![
                 config_version_id.as_str(),
@@ -2596,6 +2598,7 @@ impl ControlPlaneTransaction<'_> {
                 endpoint.transport.as_sql(),
                 boolean_to_sql(endpoint.enabled),
                 endpoint.upstream_id.as_str(),
+                serde_json::to_string(&endpoint.request_policy).map_err(|_| malformed("upstream_endpoints"))?,
             ],
         )?;
         resource_updated(updated)
@@ -3184,8 +3187,8 @@ impl ControlPlaneTransaction<'_> {
         self.transaction.execute(
             "INSERT INTO upstream_endpoints (\
                 config_version_id, id, upstream_id, adapter_id, api_format, base_url, \
-                inference_path, models_path, transport, enabled\
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                inference_path, models_path, transport, enabled, request_policy_json\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
             params![
                 config_version_id.as_str(),
                 endpoint.id.as_str(),
@@ -3197,6 +3200,8 @@ impl ControlPlaneTransaction<'_> {
                 &endpoint.models_path,
                 endpoint.transport.as_sql(),
                 boolean_to_sql(endpoint.enabled),
+                serde_json::to_string(&endpoint.request_policy)
+                    .map_err(|_| malformed("upstream_endpoints"))?,
             ],
         )?;
         Ok(())
@@ -4230,7 +4235,7 @@ fn load_endpoints(
     config_version_id: &ConfigVersionId,
 ) -> StoreResult<Vec<EndpointConfiguration>> {
     let mut statement = transaction.prepare(
-        "SELECT id, upstream_id, adapter_id, api_format, base_url, inference_path, models_path, transport, enabled \
+        "SELECT id, upstream_id, adapter_id, api_format, base_url, inference_path, models_path, transport, enabled, request_policy_json \
          FROM upstream_endpoints WHERE config_version_id = ?1 ORDER BY id",
     )?;
     let mut rows = statement.query([config_version_id.as_str()])?;
@@ -4247,6 +4252,8 @@ fn load_endpoints(
             transport: EndpointTransport::from_sql(&row.get::<_, String>(7)?)
                 .ok_or_else(|| malformed("upstream_endpoints"))?,
             enabled: read_boolean(row, 8, "upstream_endpoints")?,
+            request_policy: serde_json::from_str(&row.get::<_, String>(9)?)
+                .map_err(|_| malformed("upstream_endpoints"))?,
         });
     }
     Ok(endpoints)
@@ -5180,6 +5187,7 @@ mod tests {
                 maximum_concurrency: 8,
             });
         configuration.endpoints.push(EndpointConfiguration {
+            request_policy: gateway_core::request_policy::RequestPolicy::default(),
             id: endpoint_id.clone(),
             upstream_id: upstream_id.clone(),
             adapter_id: "openai-compatible.responses".to_owned(),

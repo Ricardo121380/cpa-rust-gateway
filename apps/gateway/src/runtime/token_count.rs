@@ -88,6 +88,15 @@ impl CountTokensExecutor for P12RoutedResponsesExecutor {
                 candidate.upstream_model(),
                 admitted,
             )?;
+            // Only endpoint headers apply to native count. All rule fields are generation-only;
+            // count content/history/model cannot be changed and the estimator stays unchanged.
+            let count_body = outbound.body().to_vec();
+            let outbound = outbound
+                .with_body_and_additional_headers(
+                    count_body,
+                    super::request_policy::headers(runtime),
+                )
+                .map_err(|_| internal_error())?;
             let timeout = UpstreamTimeouts::try_new(
                 P12_CONNECT_TIMEOUT.min(COUNT_TIMEOUT),
                 COUNT_TIMEOUT,

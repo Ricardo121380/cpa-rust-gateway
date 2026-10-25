@@ -512,6 +512,7 @@ mod kimi_metadata;
 mod management;
 use management::SnapshotManagementRuntimeFacade;
 mod reload;
+mod request_policy;
 mod token_count;
 pub(crate) use reload::RuntimePublicationController;
 
@@ -1306,7 +1307,7 @@ impl P12RoutedResponsesExecutor {
         let adapters = p12_api_format_adapter_registry().map_err(|_| {
             RuntimeCompositionError::Stage(RuntimeCompositionStage::AdapterRegistry)
         })?;
-        let endpoints = Arc::new(
+        let mut endpoints = Arc::new(
             endpoint_runtimes(
                 configuration,
                 &snapshot,
@@ -1320,6 +1321,11 @@ impl P12RoutedResponsesExecutor {
                 RuntimeCompositionError::Stage(RuntimeCompositionStage::EndpointRuntime)
             })?,
         );
+        request_policy::prepare_headers(
+            configuration,
+            secret_store,
+            Arc::get_mut(&mut endpoints).ok_or(RuntimeCompositionError::Unavailable)?,
+        )?;
         let (compatible_transport_registries, compatible_binding_settings) =
             compatible_egress_runtime_inputs(configuration, &endpoints, secret_store).map_err(
                 |_| RuntimeCompositionError::Stage(RuntimeCompositionStage::EndpointRuntime),
@@ -3162,6 +3168,8 @@ fn endpoint_runtimes(
             .insert(
                 configured.id.clone(),
                 EndpointRuntime {
+                    request_policy: configured.request_policy.clone(),
+                    custom_headers: BTreeMap::new(),
                     channel: execution_identity::endpoint_channel(configuration, configured)?,
                     adapter,
                     policy,
@@ -3615,7 +3623,15 @@ fn validate_p12_credential_bindings(
         // checks before a byte can become an Authorization header.  Keeping this admission here
         // is the important distinction between a persisted OAuth rotation and a startup outage.
         if (credential.status == CredentialStatus::Active
-            && !matches!(credential.kind.as_str(), "bearer" | "oauth_json"))
+            && !matches!(
+                credential.kind.as_str(),
+                "bearer" | "oauth_json" | "upstream_header"
+            ))
+            || (credential.kind == "upstream_header"
+                && configuration
+                    .endpoint_credential_bindings
+                    .iter()
+                    .any(|b| b.credential_id == credential.id))
             || !upstream_ids.contains(&credential.upstream_id)
         {
             return Err(RuntimeCompositionError::Unavailable);
@@ -3872,6 +3888,8 @@ fn validate_endpoint_shape(
 
 /// One Endpoint's declared-format adapter plus the egress and transport state it executes on.
 struct EndpointRuntime {
+    request_policy: gateway_core::request_policy::RequestPolicy,
+    custom_headers: BTreeMap<String, gateway_store::secret_store::PlaintextSecret>,
     channel: String,
     adapter: EndpointAdapter,
     policy: EgressPolicy,
@@ -5298,6 +5316,7 @@ impl EndpointAttemptDriver {
         let mut response = self
             .send_admitted_request(
                 runtime,
+                candidate,
                 request,
                 HttpFailureProfile::OpenAiCompatible,
                 false,
@@ -5401,6 +5420,7 @@ impl EndpointAttemptDriver {
         let mut response = self
             .send_admitted_request(
                 runtime,
+                candidate,
                 request,
                 HttpFailureProfile::OpenAiCompatible,
                 is_codex_oauth,
@@ -5513,6 +5533,7 @@ impl EndpointAttemptDriver {
         let mut response = self
             .send_admitted_request(
                 runtime,
+                candidate,
                 request,
                 HttpFailureProfile::AnthropicCompatible,
                 false,
@@ -6005,6 +6026,7 @@ impl EndpointAttemptDriver {
     async fn send_admitted_request(
         &self,
         runtime: &EndpointRuntime,
+        candidate: &SnapshotRouteCandidate,
         request: UpstreamHttpRequest,
         failure_profile: HttpFailureProfile,
         codex_sse_transport: bool,
@@ -6017,6 +6039,9 @@ impl EndpointAttemptDriver {
         {
             return Err(AttemptFailure::NonRetryable(stale_runtime_error()));
         }
+        let request = self
+            .apply_request_policy(runtime, candidate, request)
+            .map_err(AttemptFailure::NonRetryable)?;
         self.attempt_stages.record_stage(
             &self.request_id,
             ManagementRequestAttemptStage::HttpTransport,
@@ -9385,6 +9410,8 @@ mod tests {
             endpoints.insert(
                 configured.id.clone(),
                 EndpointRuntime {
+                    request_policy: gateway_core::request_policy::RequestPolicy::default(),
+                    custom_headers: BTreeMap::new(),
                     channel: "openai-compatible".to_owned(),
                     adapter: EndpointAdapter::OpenAiResponses(OpenAiResponsesEndpoint::try_new(
                         &configured.base_url,
@@ -9719,6 +9746,8 @@ mod tests {
         endpoints.insert(
             endpoint_id.clone(),
             EndpointRuntime {
+                request_policy: gateway_core::request_policy::RequestPolicy::default(),
+                custom_headers: BTreeMap::new(),
                 channel: "openai-compatible".to_owned(),
                 adapter: EndpointAdapter::OpenAiResponses(OpenAiResponsesEndpoint::try_new(
                     &format!("http://relay.test:{dead_port}/v1"),
@@ -12035,6 +12064,7 @@ mod tests {
     fn endpoint_shape_admission_requires_a_paired_adapter_and_serving_format()
     -> Result<(), Box<dyn Error>> {
         let base = EndpointConfiguration {
+            request_policy: gateway_core::request_policy::RequestPolicy::default(),
             id: EndpointId::try_new("p12-shape-endpoint")?,
             upstream_id: UpstreamId::try_new("p12-shape-upstream")?,
             adapter_id: "openai-compatible.responses".to_owned(),
@@ -12086,6 +12116,7 @@ mod tests {
     fn kiro_endpoint_shape_derives_its_kind_and_region_and_rejects_foreign_hosts()
     -> Result<(), Box<dyn Error>> {
         let base = EndpointConfiguration {
+            request_policy: gateway_core::request_policy::RequestPolicy::default(),
             id: EndpointId::try_new("p12-kiro-endpoint")?,
             upstream_id: UpstreamId::try_new("p12-kiro-upstream")?,
             adapter_id: "kiro.messages".to_owned(),
@@ -12211,6 +12242,7 @@ mod tests {
     fn grok_endpoint_factories_pin_credentials_to_their_verified_targets()
     -> Result<(), Box<dyn Error>> {
         let build = EndpointConfiguration {
+            request_policy: gateway_core::request_policy::RequestPolicy::default(),
             id: EndpointId::try_new("p12-grok-build-endpoint")?,
             upstream_id: UpstreamId::try_new("p12-grok-upstream")?,
             adapter_id: "grok.build.responses".to_owned(),
@@ -14288,6 +14320,7 @@ mod tests {
             egress_policy_id: Some(ids.egress_policy.clone()),
         });
         configuration.endpoints.push(EndpointConfiguration {
+            request_policy: gateway_core::request_policy::RequestPolicy::default(),
             id: ids.endpoint.clone(),
             upstream_id: ids.upstream.clone(),
             adapter_id: "openai-compatible.responses".to_owned(),
@@ -14751,6 +14784,7 @@ mod tests {
             ),
         ] {
             configuration.endpoints.push(EndpointConfiguration {
+                request_policy: gateway_core::request_policy::RequestPolicy::default(),
                 id: EndpointId::try_new(format!("p12-widened-endpoint-{suffix}"))?,
                 upstream_id: UpstreamId::try_new(format!("p12-widened-upstream-{suffix}"))?,
                 adapter_id: adapter.to_owned(),

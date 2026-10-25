@@ -4,6 +4,9 @@
 > effort-only extraction and enabled-without-budget precedence/fallback on 2026-10-24.
 > The original decision and source identity below remain as historical context.
 
+> Operator-configured bounded target options and deliberate filters are defined separately by
+> [ADR-0134](ADR-0134-versioned-request-rules-upstream-headers.md); empty policy retains this behavior.
+
 | Field | Value |
 |---|---|
 | Status | Accepted |

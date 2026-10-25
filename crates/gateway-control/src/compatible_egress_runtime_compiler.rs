@@ -494,6 +494,7 @@ mod tests {
             egress_policy_id: Some(policy),
         });
         config.endpoints.push(EndpointConfiguration {
+            request_policy: gateway_core::request_policy::RequestPolicy::default(),
             id: endpoint.clone(),
             upstream_id: upstream.clone(),
             adapter_id: "openai-compatible.responses".to_owned(),

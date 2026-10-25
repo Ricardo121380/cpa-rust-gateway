@@ -76,6 +76,10 @@ A foreign-key violation is a write failure; it never silently creates an orphan 
 Binding. A database with an unsupported migration sequence is rejected rather than guessed at.
 The migration runner does not activate a Config Version, compile a route, or publish a Snapshot.
 
+## Current integration extension
+
+[ADR-0135](../adr/ADR-0135-integrated-schema-identity-and-atomic-downgrade.md) retains routing41 and adds endpoint policy42. Known incompatible standalone41 and mixed layouts reject before writes or restore publication. Nonempty endpoint policy blocks downgrade; every requested down step is atomic with its bookkeeping, so rejection preserves the complete pre-call state.
+
 ## Corresponding tests
 
 - Migration `0001` records schema version 1 and creates exactly the five P2-01 control-plane
@@ -85,3 +89,9 @@ The migration runner does not activate a Config Version, compile a route, or pub
   foreign-key enforcement.
 - Migration up followed by rollback restores the initial user-table inventory and no migration
   bookkeeping remains.
+
+- `integrated_schema_upgrades_historical40_and_routing41_without_data_loss`
+- `integrated_schema_rejects_standalone_policy41_and_mixed_history_without_writes`
+- `integrated_schema_failed_multistep_downgrade_preserves_all_columns_and_history`
+- `integrated_schema_policy_downgrade_preserves_nonempty_and_accepts_semantic_empty`
+- `integrated_schema_wrong41_backup_rejected_without_publishing_target`

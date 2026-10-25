@@ -182,3 +182,6 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0132 Bounded disk-backed encrypted backup](ADR-0132-bounded-disk-backed-backup.md) — Accepted; #75 measured schema39 capacity, v2 chunks and legacy v1 reads; wave2 schema40 integration is recorded separately.
 
 - [ADR-0133 Explicit production strategies and ordinary Build affinity](ADR-0133-production-routing-build-affinity.md) — Accepted; #70 / OPT-03, migration0041; legacy policy and strict lineage preserved.
+- [ADR-0134 Versioned request rules and encrypted upstream headers](ADR-0134-versioned-request-rules-upstream-headers.md) — Accepted; #71 / OPT-04; bounded Endpoint policy; original standalone schema41, integrated42 per ADR-0135.
+
+- [ADR-0135 Integrated schema identity and atomic downgrade](ADR-0135-integrated-schema-identity-and-atomic-downgrade.md) — Accepted; combined42, historical41 identity checks and guarded atomic downgrade.

@@ -11,7 +11,7 @@ async fn native_deletion_preview_is_concrete_revision_guarded_and_preserves_shar
         [],
     )?;
     db.execute("UPDATE upstream_endpoints SET adapter_id='grok.console.responses',base_url='https://api.x.ai/v1',inference_path='/responses',enabled=0 WHERE id='endpoint-owner-a'", [])?;
-    db.execute("INSERT INTO upstream_endpoints SELECT config_version_id,'wrong-adapter',upstream_id,'openai-compatible.responses',api_format,base_url,inference_path,models_path,transport,1 FROM upstream_endpoints WHERE id='endpoint-owner-a'", [])?;
+    db.execute("INSERT INTO upstream_endpoints (config_version_id,id,upstream_id,adapter_id,api_format,base_url,inference_path,models_path,transport,enabled) SELECT config_version_id,'wrong-adapter',upstream_id,'openai-compatible.responses',api_format,base_url,inference_path,models_path,transport,1 FROM upstream_endpoints WHERE id='endpoint-owner-a'", [])?;
     db.execute("INSERT INTO public_models VALUES (?1,'delete-model','public-grok-model','active','Reviewed Grok model','{}')", [VERSION])?;
     db.execute("INSERT INTO model_routes (config_version_id,id,public_model_id,policy,max_attempts,bootstrap_timeout_ms) VALUES (?1,'delete-route','delete-model','round_robin',1,1000)", [VERSION])?;
     db.execute("INSERT INTO route_candidates (config_version_id,id,route_id,endpoint_id,upstream_model,credential_scope,transform_mode,enabled,priority,weight) VALUES (?1,'delete-candidate','delete-route','endpoint-owner-a','upstream-grok-model','endpoint_bindings','canonical',0,0,1)", [VERSION])?;

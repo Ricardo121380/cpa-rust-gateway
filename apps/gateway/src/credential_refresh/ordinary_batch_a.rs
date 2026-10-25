@@ -103,6 +103,7 @@ impl Fixture {
                 egress_policy_id: None,
             });
             config.endpoints.push(EndpointConfiguration {
+                request_policy: gateway_core::request_policy::RequestPolicy::default(),
                 id: endpoint.clone(),
                 upstream_id: owner.clone(),
                 adapter_id: "test.responses".into(),

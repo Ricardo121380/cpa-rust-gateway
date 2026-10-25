@@ -67,7 +67,7 @@ const NATIVE_ACCOUNT_MANAGEMENT_SCHEMA_VERSION: i64 = 26;
 const REQUEST_TERMINAL_SCHEMA_VERSION: i64 = 27;
 
 /// Current durable control-plane schema.
-pub const CURRENT_SCHEMA_VERSION: i64 = 41;
+pub const CURRENT_SCHEMA_VERSION: i64 = 42;
 
 const CREATE_SCHEMA_MIGRATIONS: &str = "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -281,6 +281,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 41,
         up: include_str!("../migrations/0041_routing_build_affinity.up.sql"),
         down: include_str!("../migrations/0041_routing_build_affinity.down.sql"),
+    },
+    Migration {
+        version: 42,
+        up: include_str!("../migrations/0042_endpoint_request_policy.up.sql"),
+        down: include_str!("../migrations/0042_endpoint_request_policy.down.sql"),
     },
 ];
 
@@ -515,7 +520,7 @@ pub fn open_in_memory() -> StoreResult<Connection> {
 pub fn migrate(connection: &mut Connection) -> StoreResult<()> {
     enable_foreign_keys(connection)?;
     let applied = applied_migration_versions(connection)?;
-    ensure_supported_prefix(&applied)?;
+    ensure_supported_schema(connection, &applied)?;
 
     for migration in MIGRATIONS.iter().skip(applied.len()) {
         let transaction = connection.transaction()?;
@@ -548,8 +553,8 @@ pub fn rollback_all(connection: &mut Connection) -> StoreResult<()> {
 ///
 /// A target of zero represents the unmigrated user-table base state. The target must be an exact
 /// schema version known to this build and may not be newer than the database's currently applied
-/// prefix. Every down migration and its bookkeeping deletion commits in its own transaction, so
-/// an unsupported history or rejected down step cannot be silently skipped.
+/// prefix. All requested down migrations and bookkeeping changes commit in one transaction.
+/// A rejected later step therefore preserves the complete original schema and data.
 ///
 /// # Errors
 ///
@@ -559,7 +564,7 @@ pub fn rollback_all(connection: &mut Connection) -> StoreResult<()> {
 pub fn rollback_to_version(connection: &mut Connection, target_version: i64) -> StoreResult<()> {
     enable_foreign_keys(connection)?;
     let applied = applied_migration_versions(connection)?;
-    ensure_supported_prefix(&applied)?;
+    ensure_supported_schema(connection, &applied)?;
 
     let target_is_known = target_version == 0
         || MIGRATIONS
@@ -573,25 +578,25 @@ pub fn rollback_to_version(connection: &mut Connection, target_version: i64) -> 
         });
     }
 
+    let transaction = connection.transaction()?;
     for migration in MIGRATIONS.iter().take(applied.len()).rev() {
         if migration.version <= target_version {
             break;
         }
-        let transaction = connection.transaction()?;
         transaction.execute_batch(migration.down)?;
         transaction.execute(
             "DELETE FROM schema_migrations WHERE version = ?1",
             [migration.version],
         )?;
-        transaction.commit()?;
     }
 
     if target_version == 0
-        && table_exists(connection, "schema_migrations")?
-        && applied_migration_versions(connection)?.is_empty()
+        && table_exists(&transaction, "schema_migrations")?
+        && applied_migration_versions(&transaction)?.is_empty()
     {
-        connection.execute_batch("DROP TABLE schema_migrations;")?;
+        transaction.execute_batch("DROP TABLE schema_migrations;")?;
     }
+    transaction.commit()?;
 
     Ok(())
 }
@@ -604,7 +609,7 @@ pub fn rollback_to_version(connection: &mut Connection, target_version: i64) -> 
 /// of the migrations known to this build.
 pub fn schema_version(connection: &Connection) -> StoreResult<Option<i64>> {
     let applied = applied_migration_versions(connection)?;
-    ensure_supported_prefix(&applied)?;
+    ensure_supported_schema(connection, &applied)?;
     Ok(applied.last().copied())
 }
 
@@ -650,6 +655,57 @@ fn applied_migration_versions(connection: &Connection) -> StoreResult<Vec<i64>> 
         .query_map([], |row| row.get(0))?
         .collect::<Result<Vec<i64>, SqliteError>>()?;
     Ok(versions)
+}
+
+// The two standalone wave3 branches both wrote version41. Check their distinguishing
+// physical features before migration, rollback, serving or backup admission. No row values
+// are read or exposed. Older prefixes retain their established migration contract.
+fn ensure_supported_schema(connection: &Connection, applied: &[i64]) -> StoreResult<()> {
+    ensure_supported_prefix(applied)?;
+    let version = applied.last().copied().unwrap_or(0);
+    if version < 40 {
+        return Ok(());
+    }
+    let routing = version >= 41;
+    for (table, column, expected) in [
+        ("model_routes", "selection_policy", routing),
+        (
+            "grok_build_cache_affinities",
+            "binding_fingerprint",
+            routing,
+        ),
+        (
+            "grok_build_cache_affinities",
+            "credential_revision",
+            routing,
+        ),
+        ("upstream_endpoints", "request_policy_json", version >= 42),
+    ] {
+        let present: bool = connection.query_row(
+            "SELECT EXISTS(SELECT 1 FROM pragma_table_info(?1) WHERE name = ?2)",
+            [table, column],
+            |row| row.get(0),
+        )?;
+        if present != expected {
+            return Err(StoreError::UnsupportedMigrationHistory {
+                applied: applied.to_vec(),
+            });
+        }
+    }
+    let loss_nullable: bool = connection.query_row(
+        "SELECT EXISTS(SELECT 1 FROM pragma_table_info('grok_build_affinity_breaks') WHERE name = 'estimated_cache_loss_tokens' AND \"notnull\" = 0)",
+        [], |row| row.get(0),
+    )?;
+    let reselection: bool = connection.query_row(
+        "SELECT EXISTS(SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'grok_build_affinity_breaks' AND instr(sql, 'policy_reselection') > 0)",
+        [], |row| row.get(0),
+    )?;
+    if loss_nullable != routing || reselection != routing {
+        return Err(StoreError::UnsupportedMigrationHistory {
+            applied: applied.to_vec(),
+        });
+    }
+    Ok(())
 }
 
 fn ensure_supported_prefix(applied: &[i64]) -> StoreResult<()> {

@@ -5,6 +5,8 @@
 [GitHub 工单](https://github.com/Ricardo121380/cpa-rust-gateway/issues)负责具体验收条件及远端状态。
 旧计划的“待定”“未实现”和历史 PASS 均按原日期理解；后续实现与证据在这里汇总。
 
+本轮正在形成 `feature/parallel-70-71-integration` 共同候选：#70路由41、#71规则42；[ADR-0135](adr/ADR-0135-integrated-schema-identity-and-atomic-downgrade.md)记录物理身份检查与原子降级。数据库专项已复现4个失败并修复；共同Full、实际进程恢复及GitHub同步尚待本轮回执确认。下方wave2和独立分支结果仍按各自来源理解。
+
 ## 1. 产品方向与当前基线
 
 CPAR 是 CPA/CLIProxyAPI 网关行为的 Rust 实现。优先直接对照固定的 Go 实现，再修改对应 Rust 模块。
@@ -50,7 +52,7 @@ CPAR 是 CPA/CLIProxyAPI 网关行为的 Rust 实现。优先直接对照固定�
 | RUSTSEC-2026-0387安全修复（已集成） | p256 0.14.0 / crypto-bigint 0.7.8；保留显式Randomness错误、三个调用点与独有回归，无ignore或门禁放宽 | 上一批集成Full44/44，1695 passed /0 failed /21 ignored；见[集成验收](reports/parallel-integration-20261025.md)，原分支证据按原身份保留 |
 | 外部 OTel 输出 | 接口已有，serve 使用 Noop exporter | **待接线**，不宣称已把 tracing 送到外部系统 |
 | 模型前缀/后缀、请求控制 #69 | 已纳入第二批共同基线；冻结模型范围、服务档位、显式Alias与suffix | [本批集成](reports/wave2-integration-20261025.md)覆盖count/权限、public计价身份、非空model_thinking加密恢复及合法续接；[原分支记录](reports/issue-69-controls-model-names-20261025.md)保持原受测身份 |
-| 通用 payload 覆盖、自定义 headers | 未发现 CPA 等价用户配置入口 | **待实现**，本票未扩张到这些策略 |
+| 请求规则、自定义上游 headers（#71） | 已接入现有 Endpoint 的版本化配置、加密 header 引用与三个普通兼容 adapter；schema41 | [明确作用域和 CPA 差异](support/request-rules-upstream-headers.md)、[ADR-0134](adr/ADR-0134-versioned-request-rules-upstream-headers.md)；[本票交付](reports/issue-71-request-rules-upstream-headers-20261025.md)：受测2dc8c87c，Full44/44、Rust1733/0/23，真实socket规则/headers/回滚及备份专项通过；专用Grok/Kiro非空策略明确拒绝，#70独立 |
 | HTTP/HTTPS/SOCKS5h/认证代理 | 已有直连/固定/池化出口；当前只接纳限定 SOCKS5 | **范围差异**，后续扩展须保持明确的出站约束 |
 | Gemini 等新增 Provider、图片/音频/视频、Realtime | 当前原生注册/公共路径未发现 | **未实现、尚未列入近期批次**，保留需求选择空间 |
 | 动态插件、Home、多存储后端、对外 SDK/TUI | 未发现 CPA 等价产品功能 | **未实现、按需后置** |
@@ -120,9 +122,10 @@ OPEN不等于没有代码，CLOSED也不代表整个渠道已完成；本轮没�
 [第二批记录](reports/wave2-integration-20261025.md)：受测代码6165a9f1；Full44/44、Rust1726/0/23，
 联合schema40容量/恢复198/198，#72正式进程517/517，#74正式进程21/21，显式备份专项7/7。
 本地完成不等于远端关闭；三票本轮读取仍OPEN、无评论、未分配。
-下一步从容器本批INTEGRATION-RESULT.md的真实最终文档SHA，分别建立
-`feature/70-routing-build-affinity`和`feature/71-request-rules-upstream-headers`的独立worktree。
-本轮不启动新票。模型控制、价格身份、权限和精确续接边界继续保留。
+#70/#71已从该批最终基线7c16070b建立独立worktree。#71的本地受限实现和验证已完成：
+[交付报告](reports/issue-71-request-rules-upstream-headers-20261025.md)，受测2dc8c87c；Full44/44、Rust1733/0/23、备份专项7/7。
+#70工作区保持独立，本票不代替其验收，也没有合入共同基线。两票独立采用不同的migration0041/schema41；
+共享集成必须先统一迁移链，不能交换两种schema41库/备份。模型控制、价格身份、权限和精确续接边界保留。
 
 上一批#68/#72/#74及安全修复的84fbfbf7是本批祖先，原Full44/44、Rust1695/0/21、
 schema38→39及[原集成报告](reports/parallel-integration-20261025.md)按原身份保留。

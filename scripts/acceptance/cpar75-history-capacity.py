@@ -110,7 +110,7 @@ class Matrix(base.Matrix):
                 self.check(label + " complete expected schema prefix", db.execute(
                     "SELECT version FROM schema_migrations ORDER BY version").fetchall()
                     == [(n,) for n in range(1, self.args.expected_schema + 1)])
-                if self.args.expected_schema == 40:
+                if self.args.expected_schema >= 40:
                     self.check(label + " schema40 review table exists", db.execute(
                         "SELECT count(*) FROM billing_catalog_reviews").fetchone() is not None)
         self.rss_stop.clear()
@@ -154,7 +154,7 @@ class Matrix(base.Matrix):
             return meta.Matrix.read(self, item, *args, **kwargs)
         return base.Matrix.read(self, item, *args, **kwargs)
 
-    def snapshot(self, label):
+    def snapshot(self, label, projection=None):
         result = {}
         with sqlite3.connect(self.db) as db:
             self.check(label + " SQLite integrity", db.execute("PRAGMA quick_check").fetchone() == ("ok",)
@@ -164,9 +164,14 @@ class Matrix(base.Matrix):
                 if table in ("sqlite_sequence", "billing_materializer_checkpoints", "gateway_request_recording"):
                     continue  # Worker/checkpoint and recovery state have their own ownership.
                 columns = list(db.execute('PRAGMA table_info("' + table + '")'))
+                if projection is not None:
+                    if table not in projection:
+                        continue
+                    columns = [c for c in columns if c[1] in projection[table]["columns"]]
                 order = [r[1] for r in sorted(columns, key=lambda c: c[5]) if r[5]] or [r[1] for r in columns]
                 where = " WHERE request_id NOT LIKE 'concurrent75-%'" if table in ('gateway_event_log', 'billing_ledger_entries') else ''
-                query = 'SELECT * FROM "' + table + '"' + where + ' ORDER BY ' + ','.join('"' + c + '"' for c in order)
+                selected = ','.join('"' + c[1] + '"' for c in columns)
+                query = 'SELECT ' + selected + ' FROM "' + table + '"' + where + ' ORDER BY ' + ','.join('"' + c + '"' for c in order)
                 digest, count = hashlib.sha256(), 0
                 for row in db.execute(query):
                     digest.update(json.dumps([{"blob_sha256": base.sha(v)} if isinstance(v, bytes) else v for v in row],
@@ -490,7 +495,7 @@ def main():
         parser.add_argument("--" + name, required=True, type=Path)
     parser.add_argument("--mode", choices=("baseline", "fixed"), required=True)
     parser.add_argument("--fixture", type=Path)
-    parser.add_argument("--expected-schema", type=int, choices=(39, 40), default=39)
+    parser.add_argument("--expected-schema", type=int, choices=(39, 40, 42), default=39)
     args = parser.parse_args()
     args.historical_binary, args.historical_source = args.current_binary, args.current_source
     os.umask(0o077)

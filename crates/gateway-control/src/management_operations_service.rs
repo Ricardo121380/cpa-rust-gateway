@@ -2474,6 +2474,7 @@ mod tests {
             egress_policy_id: None,
         });
         configuration.endpoints.push(EndpointConfiguration {
+            request_policy: gateway_core::request_policy::RequestPolicy::default(),
             id: EndpointId::try_new("channel-a")?,
             upstream_id: UpstreamId::try_new("provider-a")?,
             adapter_id: "provider.responses".to_owned(),

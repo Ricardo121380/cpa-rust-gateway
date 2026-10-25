@@ -332,6 +332,8 @@ mod tests {
     > {
         let endpoint_id = EndpointId::try_new("execution-endpoint")?;
         let runtime = EndpointRuntime {
+            request_policy: gateway_core::request_policy::RequestPolicy::default(),
+            custom_headers: BTreeMap::new(),
             channel: "openai-compatible".to_owned(),
             adapter: EndpointAdapter::OpenAiResponses(OpenAiResponsesEndpoint::try_new(
                 "https://127.0.0.1/v1",

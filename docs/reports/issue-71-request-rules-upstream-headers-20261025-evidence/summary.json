@@ -1,0 +1,153 @@
+{
+  "status": "PASS_LOCAL_IMPLEMENTATION",
+  "date": "2026-10-25",
+  "tested": {
+    "checked_at": "2026-10-25T10:14:05.643277+00:00",
+    "tested_commit": "2dc8c87c9c8f7c78db4c368d62932be5b4573e82",
+    "tested_tree": "1a1ea84e86e16bca9f1740d5dfe09c97819837c1",
+    "files_checked": 7219,
+    "drift": [],
+    "controlled_input_digest": "ee53c78ceea8f56020ff23092d719bce8ef913b5cf3b9023f03836095ed646f7",
+    "lock_sha256": "3b0c82a72bea2fba0b9de42ff4fa6083d08b42fb2a7ba1a33d007807079de445",
+    "fixed_gateway_sha256": "cbdca45f6a33bbbb438ec54092553aea381d962669765f3b0b88f0a360573fe9"
+  },
+  "source_manifest": {
+    "local_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-71-request-rules-upstream-headers-20261025/output/issue-71/source-03.json",
+    "sha256": "2e6a9094ed12f92ca91decb368580afbebdd4111e2dbf4a64274ee2b8b005c65"
+  },
+  "binary": {
+    "local_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-71-request-rules-upstream-headers-20261025/output/issue-71/bin/gateway-final-tested",
+    "sha256": "cbdca45f6a33bbbb438ec54092553aea381d962669765f3b0b88f0a360573fe9",
+    "profile": "macOS debug; locally built stock binary; rule-specific HTTP tests use production RuntimeFactory with owned loopback handoff, not a stock-process qualification"
+  },
+  "test_binaries": {
+    "count": 118,
+    "local_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-71-request-rules-upstream-headers-20261025/output/issue-71/test-binaries.json",
+    "sha256": "5a85726f6d1922e667f3aa24a615847ebd5bdc5428f4ca97ec85084d9da8df85"
+  },
+  "logs": {
+    "local_path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-71-request-rules-upstream-headers-20261025/output/issue-71/logs.json",
+    "sha256": "3408ecd095c83289ab78949af669229a72555dcec6f17bba6cc0e3d5006ee830"
+  },
+  "full": {
+    "run": "Full03",
+    "exit": 0,
+    "steps_passed": 44,
+    "steps_failed": 0,
+    "rust_result_sets": 136,
+    "rust_passed": 1733,
+    "rust_failed": 0,
+    "rust_ignored": 23
+  },
+  "backup_explicit": {
+    "exit": 0,
+    "passed": 7,
+    "failed": 0,
+    "ignored": 0,
+    "includes": "128MiB oversized-source rejection and legacy/v2 integrity/recovery tests"
+  },
+  "http_final": {
+    "exit": 0,
+    "test_functions_passed": 3,
+    "inference_receives": {
+      "responses": 22,
+      "chat": 20,
+      "messages": 19
+    },
+    "native_count_receives": 1,
+    "local_estimate_receives": 0,
+    "scope": "actual protected admin save/publish and public JSON/SSE sockets, independent owned receiver, synthetic secrets only"
+  },
+  "supply_chain": {
+    "deny": "advisories/bans/licenses/sources passed; inherited duplicate-version warnings retained",
+    "audit": "378 dependencies, no vulnerabilities reported",
+    "dependency_versions_changed": false
+  },
+  "history": {
+    "Full01": "INTERRUPTED/143 at436f9e6d after independent review findings",
+    "Full02": "FAIL/101 atefe0fb1a; one old positional SQL fixture, repaired without assertion changes",
+    "prepin_wip_source_identity": "UNKNOWN; failures kept in separate logs",
+    "fixture_sql_scan": {
+      "crates_primary_scan": "COMPLETE; one positional endpoint INSERT located",
+      "crates_supplementary_scan": "PARTIAL; nonexistent issue71 shell glob rejected after primary scan; exact failure source read by root",
+      "apps_scripts_tests_scan": "COMPLETE; no analogous endpoint insert found",
+      "historical_schema39_40_drivers": "retained unchanged"
+    }
+  },
+  "review": {
+    "reviewed_commit": "efe0fb1a9f2cbd5cd7ed489941b57cb5fef90102",
+    "baseline": "7c16070bb66f7f3008022f7870b5d1f96b63f167",
+    "standards": {
+      "initial_findings": 1,
+      "initial_smells": 0,
+      "final_independent_status": "COMPLETE",
+      "final_actionable_findings": 0,
+      "scope": "initial45 files plus six-file correction review; exact source and OpenAPI ownership checked"
+    },
+    "spec": {
+      "initial_findings": 2,
+      "final_independent_status": "PARTIAL",
+      "final_independent_actionable_findings_in_covered_scope": 0,
+      "partial_reason": "Last narrow lookup used a nonexistent shell glob; schemas, scope partition algorithm and regression sources were checked, remaining caller/helper check incomplete in scout turn.",
+      "root_completion": "COMPLETE; exact remaining paths read without glob, no unresolved findings",
+      "root_checked": [
+        "crates/gateway-http-actix/tests/p10_01_management_openapi_contract.rs:894 validate_references recursively checks every local ref with document.pointer",
+        "crates/gateway-control/src/management_mutation_service.rs:880 create_endpoint and :934 update_endpoint both call :3165 validate_endpoint_policy",
+        "crates/gateway-control/src/route_compiler.rs:94 compile invokes request_policy::validate",
+        "crates/gateway-control/src/request_policy.rs:14 validates each endpoint policy",
+        "apps/gateway/src/runtime.rs:1322 prepares authenticated policy headers before runtime use",
+        "apps/gateway/src/runtime/request_policy.rs:40 applies pinned policy using shared matches and revalidates final body"
+      ]
+    },
+    "distinct_corrected_defects": [
+      "OpenAPI policy definitions moved into components.schemas; no dangling refs",
+      "Static overlapping model/protocol rule combinations reject forced dual Chat output limits after final filters"
+    ],
+    "qualification": "Static review is separate from dynamic tests; known #70 migration0041 collision remains disclosed.",
+    "production_reviewed_commit": "efe0fb1a9f2cbd5cd7ed489941b57cb5fef90102",
+    "final_tested_commit": "2dc8c87c9c8f7c78db4c368d62932be5b4573e82",
+    "root_fixture_delta": {
+      "commit": "2dc8c87c9c8f7c78db4c368d62932be5b4573e82",
+      "file": "crates/gateway-http-actix/tests/managed_resource_inventory/native_deletion_impact.rs:14",
+      "change": "One implicit target-column INSERT changed to explicit original10 columns; source projection, assertions and production code unchanged.",
+      "standards": "Root checked no assertion removal or unrelated change.",
+      "spec": "Retains exact deletion/revision/shared-graph fixture semantics under new default column; failing regression and final Full pass."
+    }
+  },
+  "issue_final_observation": {
+    "comments": [],
+    "state": "OPEN",
+    "updatedAt": "2026-10-24T14:11:28Z",
+    "blocked_by": []
+  },
+  "boundaries": {
+    "supported_adapters": [
+      "openai-compatible.chat-completions",
+      "openai-compatible.responses",
+      "anthropic-compatible.messages"
+    ],
+    "dedicated_grok_kiro_nonempty_policy": "explicitly rejected",
+    "schema": 41,
+    "migration": "0041_endpoint_request_policy",
+    "parallel_70_collision": "0041_routing_build_affinity also exists in independent #70 worktree; schema41 layouts/artifacts not interchangeable; integration required",
+    "not_run": [
+      "real Provider/cost",
+      "actual unmodified clients",
+      "fixed Build service",
+      "real official counting",
+      "remote CI",
+      "release/OCI/Linux",
+      "deployment",
+      "old schema39/40 frozen large-capacity process matrix"
+    ],
+    "cost_in_usd_ticks": "NOT_ADMITTED"
+  },
+  "final_doc_checks": {
+    "document_links": "1348 Markdown files resolved",
+    "contract_tests": "414 references resolved",
+    "git_whitespace": "PASS"
+  },
+  "post_docs_code_drift": [],
+  "source_after_tests_manifest_sha256": "cb2f72f3cc77ffaa404e30e92cf2f2b55728ab47021f2e9ae42df5fb7129661f",
+  "review_manifest_sha256": "99aec8ec4ff53c5f3789f126129b7b6c4ac47ea951ad8fc7a531ad4072356fe5"
+}

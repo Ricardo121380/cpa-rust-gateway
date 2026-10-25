@@ -933,6 +933,7 @@ mod tests {
                 true,
             ),
             EndpointConfiguration {
+                request_policy: gateway_core::request_policy::RequestPolicy::default(),
                 id: kimi_endpoint.clone(),
                 upstream_id: kimi_upstream.clone(),
                 adapter_id: CODEX_RESPONSES_ADAPTER_ID.to_owned(),
@@ -1083,6 +1084,7 @@ mod tests {
         enabled: bool,
     ) -> EndpointConfiguration {
         EndpointConfiguration {
+            request_policy: gateway_core::request_policy::RequestPolicy::default(),
             id,
             upstream_id,
             adapter_id: adapter_id.to_owned(),

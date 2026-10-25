@@ -80,6 +80,7 @@ fn run_in_directory(directory: &Path, status: u16) -> Result<(), Box<dyn Error>>
         egress_policy_id: None,
     });
     config.endpoints.push(EndpointConfiguration {
+        request_policy: gateway_core::request_policy::RequestPolicy::default(),
         id: endpoint.clone(),
         upstream_id: owner,
         adapter_id: "grok.build.responses".into(),

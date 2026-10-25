@@ -529,7 +529,10 @@ fn issue70_affinity_migrates_schema40_and_bounds_unknown_break_history() -> Test
         |row| Ok((row.get(0)?, row.get(1)?)),
     )?;
     let store = GrokBuildContinuityStore::open(database.path(), secret_store()?)?;
-    assert_eq!(gateway_store::schema_version(&connection)?, Some(41));
+    assert_eq!(
+        gateway_store::schema_version(&connection)?,
+        Some(gateway_store::CURRENT_SCHEMA_VERSION)
+    );
     let legacy_after: (String, i64) = connection.query_row(
         "SELECT credential_id, expires_at_ms FROM grok_build_cache_affinities",
         [],
@@ -595,6 +598,9 @@ fn issue70_affinity_migrates_schema40_and_bounds_unknown_break_history() -> Test
     )?;
     assert_eq!((breaks, unknown), (4096, 4096));
     assert!(gateway_store::rollback_to_version(&mut connection, 40).is_err());
-    assert_eq!(gateway_store::schema_version(&connection)?, Some(41));
+    assert_eq!(
+        gateway_store::schema_version(&connection)?,
+        Some(gateway_store::CURRENT_SCHEMA_VERSION)
+    );
     Ok(())
 }
