@@ -1,0 +1,54 @@
+{
+  "base": "84fbfbf778b582f746c1cafe31a2ce58962e8f77",
+  "candidate": "5a837a044c7f652c4b6f1ce2a7738c08cfb5cddb",
+  "method": "independent static Standards and Spec; no tests or Provider calls by reviewers",
+  "standards": [
+    {
+      "severity": "P2",
+      "finding": "suffix bypassed malformed Messages thinking.type validation",
+      "file": "crates/gateway-router/src/protocol_transform/named_controls.rs",
+      "line": 31
+    },
+    {
+      "severity": "P2",
+      "finding": "native suffix rejected/lost other output_config members",
+      "file": "crates/gateway-router/src/protocol_transform/model_thinking.rs",
+      "line": 228
+    },
+    {
+      "severity": "P2",
+      "finding": "qualified Alias reintroduced an ambiguous exact ID into model lists",
+      "file": "crates/gateway-router/src/route_snapshot.rs",
+      "line": 1048
+    }
+  ],
+  "spec": [
+    {
+      "severity": "P1",
+      "finding": "numeric suffix lost budget on OpenAI to budget/hybrid Messages",
+      "file": "crates/gateway-router/src/protocol_transform/model_thinking.rs",
+      "line": 192
+    },
+    {
+      "severity": "P2",
+      "finding": "suffix bypassed malformed Messages thinking.type validation",
+      "file": "crates/gateway-router/src/protocol_transform/named_controls.rs",
+      "line": 32
+    },
+    {
+      "severity": "P2",
+      "finding": "same-family rejection tested codex but frozen metadata type is openai",
+      "file": "crates/gateway-router/src/protocol_transform/model_thinking.rs",
+      "line": 164
+    }
+  ],
+  "unique_findings": 5,
+  "observed_regression_red": 4,
+  "ambiguous_alias_initial_regression": "COMPILE_FAILURE_NOT_BEHAVIOR_RED",
+  "after_fix": {
+    "router": "17/17",
+    "alias_snapshot": "1/1",
+    "public_http_count": "8/8"
+  },
+  "second_review": "PENDING"
+}

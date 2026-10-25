@@ -581,3 +581,162 @@ fn cpa_69_suffix_controls_keep_lossless_and_capability_guards() -> TestResult {
     }
     Ok(())
 }
+
+fn named_project(
+    request: &CanonicalRequest,
+    source: ProtocolFormat,
+    target: ProtocolFormat,
+    model: &str,
+    mode: SnapshotTransformMode,
+) -> Result<gateway_router::ProjectedProtocolRequest, Box<dyn std::error::Error>> {
+    let capabilities = CapabilitySet::try_new([SemanticCapability::Reasoning])?;
+    Ok(project_protocol_request(ProtocolTransformInput {
+        target_model: Some(model),
+        target_supports_service_tier: true,
+        source,
+        target,
+        mode,
+        native_payload: NativePayloadAvailability::Exact,
+        request,
+        streaming: false,
+        requires_json_schema: false,
+        requires_parallel_tools: false,
+        target_capabilities: &capabilities,
+    })?)
+}
+
+#[test]
+fn cpa_69_numeric_suffix_keeps_exact_manual_budget() -> TestResult {
+    for model in ["claude-sonnet-4-5-20250929", "claude-sonnet-4-6"] {
+        for source in [
+            ProtocolFormat::OpenAiResponses,
+            ProtocolFormat::OpenAiChatCompletions,
+        ] {
+            let mut request = if source == ProtocolFormat::OpenAiResponses {
+                protocol_openai_responses::decode_request(
+                    &json!({"model":"public","input":"question","max_output_tokens":32000})
+                        .to_string(),
+                )?
+                .request
+            } else {
+                protocol_openai_chat::decode_request(&json!({"model":"public","messages":[{"role":"user","content":"question"}],"max_completion_tokens":32000}).to_string())?.request
+            };
+            request.model_thinking = Some(gateway_core::ModelThinking::Budget(4096));
+            let ProjectedProtocolRequest::Canonical(projected) = named_project(
+                &request,
+                source,
+                ProtocolFormat::AnthropicMessages,
+                model,
+                SnapshotTransformMode::CanonicalBridge,
+            )?
+            else {
+                return Err("canonical".into());
+            };
+            let wire: Value = serde_json::from_str(&protocol_anthropic::encode_upstream_request(
+                model,
+                &projected,
+                protocol_anthropic::ResponseMode::NonStreaming,
+            )?)?;
+            assert_eq!(wire["thinking"]["type"], "enabled", "{model} {source:?}");
+            assert_eq!(
+                wire["thinking"]["budget_tokens"], 4096,
+                "{model} {source:?}"
+            );
+            assert!(wire["output_config"].get("effort").is_none());
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn cpa_69_suffix_never_hides_malformed_body_thinking_type() -> TestResult {
+    let mut body = body();
+    body["thinking"] = json!({"type":"bogus"});
+    let mut request = protocol_anthropic::decode_request(&body.to_string())?.request;
+    request.model_thinking = Some(gateway_core::ModelThinking::Budget(4096));
+    for (target, model, mode) in [
+        (
+            ProtocolFormat::OpenAiResponses,
+            "gpt-5.5",
+            SnapshotTransformMode::CanonicalBridge,
+        ),
+        (
+            ProtocolFormat::AnthropicMessages,
+            "claude-sonnet-4-6",
+            SnapshotTransformMode::Passthrough,
+        ),
+    ] {
+        assert!(
+            named_project(
+                &request,
+                ProtocolFormat::AnthropicMessages,
+                target,
+                model,
+                mode
+            )
+            .is_err()
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn cpa_69_native_suffix_retains_other_output_config_members() -> TestResult {
+    let mut body = body();
+    body["thinking"] = json!({"type":"enabled","budget_tokens":2048});
+    body["output_config"] = json!({"effort":"low","format":{"type":"json_schema","schema":{"type":"object"}},"future_option":17});
+    let mut request = protocol_anthropic::decode_request(&body.to_string())?.request;
+    request.model_thinking = Some(gateway_core::ModelThinking::Effort(
+        gateway_core::ThinkingEffort::try_new("high")?,
+    ));
+    let wire: Value = serde_json::from_slice(&gateway_router::model_name_native_payload(
+        body.to_string().as_bytes(),
+        &request,
+        ProtocolFormat::AnthropicMessages,
+        "claude-sonnet-4-6",
+    )?)?;
+    assert_eq!(wire["output_config"]["effort"], "high");
+    assert_eq!(
+        wire["output_config"]["format"],
+        body["output_config"]["format"]
+    );
+    assert_eq!(wire["output_config"]["future_option"], 17);
+    Ok(())
+}
+
+#[test]
+fn cpa_69_same_family_explicit_unsupported_effort_rejects() -> TestResult {
+    for named in [false, true] {
+        let mut request=protocol_openai_chat::decode_request(&json!({"model":"public","messages":[{"role":"user","content":"question"}],"reasoning_effort":"max"}).to_string())?.request;
+        if named {
+            request.model_thinking = Some(gateway_core::ModelThinking::Effort(
+                gateway_core::ThinkingEffort::try_new("max")?,
+            ));
+        }
+        assert!(
+            named_project(
+                &request,
+                ProtocolFormat::OpenAiChatCompletions,
+                ProtocolFormat::OpenAiResponses,
+                "gpt-5.5",
+                SnapshotTransformMode::CanonicalBridge
+            )
+            .is_err()
+        );
+    }
+    let mut request = protocol_anthropic::decode_request(&body().to_string())?.request;
+    request.model_thinking = Some(gateway_core::ModelThinking::Effort(
+        gateway_core::ThinkingEffort::try_new("minimal")?,
+    ));
+    assert!(
+        named_project(
+            &request,
+            ProtocolFormat::AnthropicMessages,
+            ProtocolFormat::AnthropicMessages,
+            "claude-sonnet-4-6",
+            SnapshotTransformMode::Passthrough
+        )
+        .is_err()
+    );
+    Ok(())
+}

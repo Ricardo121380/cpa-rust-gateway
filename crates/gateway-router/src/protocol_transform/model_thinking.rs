@@ -109,7 +109,7 @@ pub(super) fn normalize(
         return Ok(());
     };
     if target == ProtocolFormat::AnthropicMessages {
-        normalize_messages(source_request, projected, source, support)
+        normalize_messages(source_request, projected, source, profile)
     } else {
         normalize_openai(source_request, thinking, source, profile, support)
     }
@@ -161,7 +161,7 @@ fn normalize_openai(
     if let Some(levels) = levels {
         if !matches!(effort.as_str(), "none" | "auto") {
             if source != ProtocolFormat::AnthropicMessages
-                && profile["type"] == "codex"
+                && profile["type"] == "openai"
                 && !matches!(
                     source_request.model_thinking,
                     Some(gateway_core::ModelThinking::Budget(_))
@@ -181,8 +181,9 @@ fn normalize_messages(
     source_request: &CanonicalRequest,
     projected: &mut CanonicalRequest,
     source: ProtocolFormat,
-    support: &Value,
+    profile: &Value,
 ) -> Result<(), ProtocolTransformRejection> {
+    let support = profile.get("thinking").ok_or_else(invalid)?;
     let thinking = projected.thinking.as_ref().ok_or_else(invalid)?;
     let levels = support.get("levels").and_then(Value::as_array);
     let zero = support["zero_allowed"].as_bool().unwrap_or(false);
@@ -196,15 +197,28 @@ fn normalize_messages(
         Some(gateway_core::ModelThinking::Effort(effort)) => Some(effort.as_str()),
         None => source_request.thinking.as_ref().map(|t| t.effort.as_str()),
     };
-    let is_level = (source != ProtocolFormat::AnthropicMessages
+    let is_level = !matches!(
+        source_request.model_thinking,
+        Some(gateway_core::ModelThinking::Budget(_))
+    ) && (source != ProtocolFormat::AnthropicMessages
         || matches!(
             source_request.model_thinking,
             Some(gateway_core::ModelThinking::Effort(_))
         ))
         && source_effort.is_some_and(|e| !matches!(e, "none" | "auto"));
+    if source == ProtocolFormat::AnthropicMessages
+        && profile["type"] == "claude"
+        && let (Some(gateway_core::ModelThinking::Effort(effort)), Some(levels)) =
+            (&source_request.model_thinking, levels)
+        && !matches!(effort.as_str(), "none" | "auto")
+        && !levels.iter().any(|v| v.as_str() == Some(effort.as_str()))
+    {
+        return Err(invalid());
+    }
     let effort = thinking.effort.as_str();
     let mut extensions = thinking.extensions.clone();
     let mode;
+    update_output_effort(&mut projected.extensions, None)?;
     if let Some(levels) = levels.filter(|_| is_level || maximum == 0) {
         let effort = match source_effort {
             Some("none") if zero => None,
@@ -225,11 +239,7 @@ fn normalize_messages(
         } else {
             mode = "adaptive";
             if let Some(effort) = effort {
-                put(
-                    &mut projected.extensions,
-                    "anthropic.messages.output_config",
-                    serde_json::json!({"effort":effort}),
-                )?;
+                update_output_effort(&mut projected.extensions, Some(effort))?;
             }
         }
     } else if is_level && maximum > 0 {
@@ -277,6 +287,36 @@ fn normalize_messages(
         extensions,
     });
     Ok(())
+}
+
+fn update_output_effort(
+    fields: &mut RawExtensions,
+    effort: Option<&str>,
+) -> Result<(), ProtocolTransformRejection> {
+    const NAME: &str = "anthropic.messages.output_config";
+    let Some(raw) = fields.get(NAME).cloned() else {
+        return if let Some(effort) = effort {
+            put(fields, NAME, serde_json::json!({"effort":effort}))
+        } else {
+            Ok(())
+        };
+    };
+    let mut value: serde_json::Map<String, Value> =
+        serde_json::from_str(raw.get()).map_err(|_| invalid())?;
+    value.remove("effort");
+    if let Some(effort) = effort {
+        value.insert("effort".into(), Value::from(effort));
+    }
+    put(fields, NAME, Value::Object(value))
+}
+
+pub(super) fn is_level_only(model: Option<&str>) -> Result<bool, ProtocolTransformRejection> {
+    Ok(match model {
+        Some(model) => profile(model)?.is_some_and(|p| {
+            p["thinking"]["levels"].is_array() && p["thinking"]["max"].as_u64().unwrap_or(0) == 0
+        }),
+        None => false,
+    })
 }
 
 pub(super) fn has_levels(model: Option<&str>) -> Result<bool, ProtocolTransformRejection> {

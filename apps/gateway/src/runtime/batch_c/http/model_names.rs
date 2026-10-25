@@ -163,6 +163,21 @@ async fn cpa_69_prefixed_suffix_names_keep_permissions_and_native_wire() -> Test
                 assert!(reply.status().is_client_error());
                 let _ = test::read_body(reply).await;
             }
+            if uri == "/v1/messages" {
+                let mut invalid = source(uri, "team/p12-test-model(512)", streaming);
+                invalid["thinking"] = json!({"type":"bogus"});
+                let reply = test::call_service(
+                    &app,
+                    test::TestRequest::post()
+                        .uri(uri)
+                        .insert_header(("authorization", format!("Bearer {}", fixture.key)))
+                        .set_json(invalid)
+                        .to_request(),
+                )
+                .await;
+                assert_eq!(reply.status(), StatusCode::BAD_REQUEST);
+                let _ = test::read_body(reply).await;
+            }
             let denied_key = denied_key.ok_or("denied key")?;
             for name in [
                 "team/p12-test-model",
@@ -260,6 +275,9 @@ async fn cpa_69_native_messages_and_chat_suffix_overlay_preserves_options() -> T
             .await;
             let mut body = source(uri, "p12-test-model(high)", streaming);
             body["vendor_option"] = json!({"retained":[true,17]});
+            if uri == "/v1/messages" {
+                body["output_config"] = json!({"effort":"low","format":{"type":"json_schema","schema":{"type":"object"}},"future_option":17});
+            }
             let reply = test::call_service(
                 &app,
                 test::TestRequest::post()
@@ -283,6 +301,11 @@ async fn cpa_69_native_messages_and_chat_suffix_overlay_preserves_options() -> T
             assert_eq!(wire.pointer(pointer).and_then(Value::as_str), Some("high"));
             assert_eq!(wire["vendor_option"], body["vendor_option"]);
             if uri == "/v1/messages" {
+                assert_eq!(
+                    wire["output_config"]["format"],
+                    body["output_config"]["format"]
+                );
+                assert_eq!(wire["output_config"]["future_option"], 17);
                 assert_eq!(wire["thinking"]["type"], "adaptive");
                 assert!(wire["thinking"].get("budget_tokens").is_none());
             }
@@ -403,5 +426,157 @@ async fn cpa_69_named_controls_keep_two_tool_cycles_and_followup() -> TestResult
         assert_eq!(fixture.events.attempts()?, 5);
         peer.server.stop(false).await;
     }
+    Ok(())
+}
+
+#[actix_web::test]
+async fn cpa_69_numeric_suffix_budget_reaches_messages_receiver_unchanged() -> TestResult {
+    for model in ["claude-sonnet-4-5-20250929", "claude-sonnet-4-6"] {
+        for uri in ["/v1/responses", "/v1/chat/completions"] {
+            for streaming in [false, true] {
+                let peer = Peer::start(false, None)?;
+                let fixture = fixture(
+                    Channel {
+                        adapter: "anthropic-compatible.messages",
+                        format: "anthropic/messages",
+                        path: "/messages",
+                        base: "https://api.anthropic.com/v1",
+                        model,
+                    },
+                    b"synthetic-key",
+                    |endpoint| {
+                        let mut profiles = P12TransportProfiles::try_new()?;
+                        profiles.http = Some(peer.clone());
+                        endpoint.transports = Arc::new(profiles);
+                        endpoint.resolver = Arc::new(PublicResolver);
+                        Ok(())
+                    },
+                )?;
+                let app = test::init_service(
+                    App::new()
+                        .app_data(web::Data::new(fixture.state.clone()))
+                        .configure(gateway_http_actix::configure),
+                )
+                .await;
+                let body = source(uri, "p12-test-model(4096)", streaming);
+                let reply = test::call_service(
+                    &app,
+                    test::TestRequest::post()
+                        .uri(uri)
+                        .insert_header(("authorization", format!("Bearer {}", fixture.key)))
+                        .set_json(body)
+                        .to_request(),
+                )
+                .await;
+                let status = reply.status();
+                let bytes = test::read_body(reply).await;
+                assert_eq!(
+                    status,
+                    StatusCode::OK,
+                    "{model} {uri}: {}",
+                    String::from_utf8_lossy(&bytes)
+                );
+                let received = peer.received.lock().map_err(|_| "receiver")?;
+                assert_eq!(received.len(), 1);
+                let wire = received.last().ok_or("wire")?;
+                assert_eq!(wire["thinking"]["type"], "enabled");
+                assert_eq!(wire["thinking"]["budget_tokens"], 4096);
+                assert!(wire["output_config"].get("effort").is_none());
+                drop(received);
+                peer.server.stop(false).await;
+            }
+        }
+    }
+    Ok(())
+}
+
+#[actix_web::test]
+async fn cpa_69_ambiguous_exact_id_stays_out_of_prefix_discovery() -> TestResult {
+    let peer = Peer::start(false, None)?;
+    let mut group = None;
+    let fixture = fixture_with_configuration(
+        Channel {
+            adapter: "openai-compatible.responses",
+            format: "openai/responses",
+            base: "https://api.moonshot.cn/v1",
+            path: "/responses",
+            model: "team/model",
+        },
+        b"synthetic-key",
+        false,
+        |config| {
+            let mut other = config.public_models[0].clone();
+            other.id = gateway_core::PublicModelId::try_new("other-model")?;
+            other.model_name = "other-model".into();
+            let mut route = config.model_routes[0].clone();
+            route.id = RouteId::try_new("other-route")?;
+            route.public_model_id = other.id.clone();
+            let mut candidate = config.route_candidates[0].clone();
+            candidate.id = gateway_core::RouteCandidateId::try_new("other-candidate")?;
+            candidate.route_id = route.id.clone();
+            let mut grant = config.access_group_routes[0].clone();
+            grant.route_id = route.id.clone();
+            config.model_aliases.push(ModelAliasConfiguration {
+                alias: "team/model".into(),
+                public_model_id: config.public_models[0].id.clone(),
+            });
+            group = Some(config.access_groups[0].id.clone());
+            config.public_models.push(other);
+            config.model_routes.push(route);
+            config.route_candidates.push(candidate);
+            config.access_group_routes.push(grant);
+            Ok(())
+        },
+        |endpoints| {
+            for endpoint in endpoints.values_mut() {
+                let mut profiles = P12TransportProfiles::try_new()?;
+                profiles.http = Some(peer.clone());
+                endpoint.transports = Arc::new(profiles);
+                endpoint.resolver = Arc::new(PublicResolver);
+            }
+            Ok(())
+        },
+    )?;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(fixture.state.clone()))
+            .configure(gateway_http_actix::configure),
+    )
+    .await;
+    let list = test::call_service(
+        &app,
+        test::TestRequest::get()
+            .uri("/v1/models")
+            .insert_header(("authorization", format!("Bearer {}", fixture.key)))
+            .to_request(),
+    )
+    .await;
+    let list: Value = test::read_body_json(list).await;
+    assert_eq!(list["data"], json!([]));
+    let snapshot = fixture.executor.scheduler.snapshot();
+    assert!(
+        snapshot
+            .effective_models_for_access_group(&group.ok_or("group")?)
+            .ok_or("models")?
+            .is_empty()
+    );
+    for streaming in [false, true] {
+        for name in ["team/model", "team/model(high)"] {
+            let reply = test::call_service(
+                &app,
+                test::TestRequest::post()
+                    .uri("/v1/responses")
+                    .insert_header(("authorization", format!("Bearer {}", fixture.key)))
+                    .set_json(source("/v1/responses", name, streaming))
+                    .to_request(),
+            )
+            .await;
+            assert_eq!(reply.status(), StatusCode::NOT_FOUND);
+            let _ = test::read_body(reply).await;
+        }
+    }
+    assert!(peer.received.lock().map_err(|_| "receiver")?.is_empty());
+    assert_eq!(fixture.events.attempts()?, 0);
+    peer.server.stop(false).await;
     Ok(())
 }

@@ -244,6 +244,24 @@ pub(super) fn thinking(
             match thinking.effort.as_str() {
                 "none" => "disabled".into(),
                 "auto" => "adaptive".into(),
+                _ if matches!(request.model_thinking,Some(gateway_core::ModelThinking::Budget(value)) if value>0)
+                    && !super::model_thinking::is_level_only(target_model)? =>
+                {
+                    let Some(gateway_core::ModelThinking::Budget(budget)) = &request.model_thinking
+                    else {
+                        return Err(invalid());
+                    };
+                    insert(
+                        &mut extensions,
+                        ANTHROPIC_THINKING_BUDGET,
+                        &Value::from(messages_budget(
+                            request,
+                            source,
+                            u64::try_from(*budget).map_err(|_| invalid())?,
+                        )?),
+                    )?;
+                    "enabled".into()
+                }
                 _ if super::model_thinking::has_levels(target_model)? => "adaptive".into(),
                 effort => {
                     let budget = level_budget(effort).ok_or_else(invalid)?;

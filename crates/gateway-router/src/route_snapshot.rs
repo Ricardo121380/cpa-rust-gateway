@@ -1045,6 +1045,13 @@ impl RouteSnapshot {
             if !crate::is_prefixed_model_alias(alias) {
                 return None;
             }
+            // The exact-ID branch owns both Unique provenance and Ambiguous rejection.
+            if !matches!(
+                self.resolve_exact_upstream_model_with_time(&group, alias, at),
+                SnapshotExactModelResolution::Absent
+            ) {
+                return None;
+            }
             let model = self.resolve_public_model_for_access_group(&group, alias)?;
             self.route(model.route_id())?
                 .candidates()
@@ -2392,6 +2399,39 @@ mod tests {
             snapshot
                 .resolve_public_model_for_access_group(&group_a, "alias-expired")
                 .is_none()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn cpa_69_qualified_alias_cannot_reintroduce_ambiguous_exact_id() -> TestResult {
+        let mut snapshot = duplicate_exact_model_snapshot("qualified-collision")?
+            .as_ref()
+            .clone();
+        for route in snapshot.routes.values_mut() {
+            for candidate in &mut route.candidates {
+                candidate.upstream_model = "team/model".into();
+            }
+        }
+        let model = snapshot
+            .public_models
+            .values()
+            .next()
+            .ok_or("model")?
+            .id()
+            .clone();
+        snapshot.aliases.insert("team/model".into(), model);
+        let group = AccessGroupId::try_new("group-a")?;
+        assert_eq!(
+            snapshot.resolve_exact_upstream_model_for_access_group(&group, "team/model"),
+            SnapshotExactModelResolution::Ambiguous
+        );
+        assert_eq!(snapshot.prefixed_aliases_with_time(&group, None).count(), 0);
+        assert!(
+            snapshot
+                .effective_models_for_access_group(&group)
+                .ok_or("group")?
+                .is_empty()
         );
         Ok(())
     }

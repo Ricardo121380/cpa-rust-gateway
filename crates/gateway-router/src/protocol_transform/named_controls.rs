@@ -23,17 +23,55 @@ pub(super) fn source_request(
     request: &CanonicalRequest,
     source: ProtocolFormat,
 ) -> Result<CanonicalRequest, ProtocolTransformRejection> {
+    apply_source_request(request, source, false)
+}
+
+fn validate_body_controls(
+    request: &CanonicalRequest,
+    source: ProtocolFormat,
+    native: bool,
+) -> Result<(), ProtocolTransformRejection> {
+    if source != ProtocolFormat::AnthropicMessages {
+        validate_target_thinking(request.thinking.as_ref(), source)?;
+        return validate_target_root_extensions(request, source);
+    }
+    let mut body = request.clone();
+    body.model_thinking = None;
+    if native {
+        if let Some(raw) = request.extensions.get("anthropic.messages.output_config") {
+            let value: serde_json::Map<String, Value> =
+                serde_json::from_str(raw.get()).map_err(|_| invalid())?;
+            let mut effort = serde_json::Map::new();
+            if let Some(value) = value.get("effort") {
+                effort.insert("effort".into(), value.clone());
+            }
+            model_thinking::put(
+                &mut body.extensions,
+                "anthropic.messages.output_config",
+                Value::Object(effort),
+            )?;
+        }
+        if let Some(thinking) = body.thinking.as_mut()
+            && thinking.effort.as_str() == "between_tools"
+        {
+            validate_target_thinking(Some(thinking), source)?;
+            thinking.effort = ThinkingEffort::try_new("disabled").map_err(|_| invalid())?;
+        }
+    }
+    compatibility::thinking(&body, source, ProtocolFormat::OpenAiResponses, None)?;
+    Ok(())
+}
+
+fn apply_source_request(
+    request: &CanonicalRequest,
+    source: ProtocolFormat,
+    native: bool,
+) -> Result<CanonicalRequest, ProtocolTransformRejection> {
     let Some(control) = &request.model_thinking else {
         return Ok(request.clone());
     };
-    // Validate the losing body controls before applying the winning name; malformed types are
-    // not made valid by precedence. Decoders already rejected duplicate names and bad budgets.
-    if source == ProtocolFormat::AnthropicMessages {
-        compatibility::thinking(request, source, ProtocolFormat::OpenAiResponses, None)?;
-    } else {
-        validate_target_thinking(request.thinking.as_ref(), source)?;
-        validate_target_root_extensions(request, source)?;
-    }
+    // Validate body syntax with name intent removed; winning precedence cannot validate losers.
+    validate_body_controls(request, source, native)?;
     let mut result = request.clone();
     let effort = match control {
         ModelThinking::Budget(budget) if *budget >= -1 => compatibility::budget_level(*budget),
@@ -114,7 +152,7 @@ pub(super) fn native_request(
     source: ProtocolFormat,
     model: &str,
 ) -> Result<CanonicalRequest, ProtocolTransformRejection> {
-    let mut result = source_request(request, source)?;
+    let mut result = apply_source_request(request, source, true)?;
     let original = result.clone();
     model_thinking::normalize(&original, &mut result, source, source, Some(model))?;
     validate_target_thinking(result.thinking.as_ref(), source)?;

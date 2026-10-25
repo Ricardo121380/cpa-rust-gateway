@@ -20,3 +20,15 @@ P0 router 12/12、HTTP 4/4 先通过并提交；P1 本轮 router 13/13、新公�
 最终交付须补上源码/lock/binary/输入 hash、逐项验收、审查和 Full 结果。
 实际客户端、固定 Build、真实 Provider、远端 CI、release/部署均 NOT_RUN；费用 UNKNOWN，
 `cost_in_usd_ticks` 仍 NOT_ADMITTED。未 push、合并、评论/关闭工单或部署。
+
+## 首轮独立审查及修复（完整门禁前）
+
+固定 candidate `5a837a044c7f652c4b6f1ce2a7738c08cfb5cddb`，base `84fbfbf7`。
+Standards：3项P2；Spec：1项P1及2项P2；非法 body 类型两轴重复，共5个独立问题。
+四个问题以新增回归获得实际 RED；歧义 Alias 的首轮测试夹具编译失败，不能算行为 RED。
+修复后 router 17/17、歧义快照1/1、公共 receiver/count 8/8通过。另补 Claude 同族不支持等级边界，
+完整 Full 和第二轮独立复核仍待完成；既有失败日志原样保留，不将静态推导冒充运行结果。
+
+修复保留原预算至目标支持类型明确后再转换；去除名称意图后验证 losing body；native 只更新 effort
+并保留其他 output_config 成员；模型族使用冻结数据的实际 openai/claude 值；qualified Alias 列表
+遵循 data plane 的 exact-first Unique/Ambiguous 判定及实际 provenance。

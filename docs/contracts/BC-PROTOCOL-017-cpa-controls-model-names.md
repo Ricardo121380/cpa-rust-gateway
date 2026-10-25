@@ -47,3 +47,11 @@ CI, release and deployment are independently qualified. Cost remains unknown/una
 - `cpa_69_count_names_reuse_authorized_resolution_without_inference`
 - `cpa_69_management_prefix_alias_is_explicit_validated_and_persisted`
 - `cpa_69_prefix_graph_publish_rollback_and_pinned_names`
+
+- `cpa_69_numeric_suffix_keeps_exact_manual_budget`
+- `cpa_69_suffix_never_hides_malformed_body_thinking_type`
+- `cpa_69_native_suffix_retains_other_output_config_members`
+- `cpa_69_same_family_explicit_unsupported_effort_rejects`
+- `cpa_69_qualified_alias_cannot_reintroduce_ambiguous_exact_id`
+- `cpa_69_numeric_suffix_budget_reaches_messages_receiver_unchanged`
+- `cpa_69_ambiguous_exact_id_stays_out_of_prefix_discovery`

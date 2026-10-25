@@ -94,6 +94,11 @@ are described by this grammar rather than enumerated as new models.
 | 3 | Valid suffix overrides valid body thinking/effort; malformed body controls still reject. ADR-0126 disabled/budget/effort priority continues inside body extraction. |
 | 4 | Normalize against the selected actual upstream model using P0. A name never constructs a new upstream ID, capability, credential entitlement or route grant. |
 
+Numeric suffixes retain their numeric budget on budget-only/hybrid Messages models, bounded by
+the frozen range and caller output limit; only level-only targets convert them to effort.
+Same-family explicitly unsupported effort labels reject; documented cross-family conversion
+can clamp to a supported level.
+
 Accepted suffixes are `(none)`, `(auto)`, `(minimal)`, `(low)`, `(medium)`, `(high)`, `(xhigh)`,
 `(max)`, and signed i64 numeric budgets >=-1 (0 off, -1 auto). Labels ignore ASCII case, while
 model names and Alias/prefix matching retain exact case. Empty/unknown/whitespace-bearing labels,
