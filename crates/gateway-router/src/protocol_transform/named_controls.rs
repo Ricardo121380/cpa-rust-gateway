@@ -1,5 +1,10 @@
 //! Model suffixes use the same source extraction and frozen model normalization as body controls.
-use super::*;
+use super::{
+    ANTHROPIC_THINKING_BUDGET, CanonicalRequest, CapabilitySet, ProtocolFormat,
+    ProtocolTransformInput, ProtocolTransformRejection, RawExtensions, SemanticCapability,
+    SnapshotTransformMode, Thinking, ThinkingEffort, Value, compatibility, model_thinking,
+    validate_target_root_extensions, validate_target_thinking,
+};
 use gateway_core::ModelThinking;
 
 fn invalid() -> ProtocolTransformRejection {
@@ -48,7 +53,7 @@ fn validate_body_controls(
             model_thinking::put(
                 &mut body.extensions,
                 "anthropic.messages.output_config",
-                Value::Object(effort),
+                &Value::Object(effort),
             )?;
         }
         if let Some(thinking) = body.thinking.as_mut()
@@ -67,7 +72,7 @@ fn apply_source_request(
     source: ProtocolFormat,
     native: bool,
 ) -> Result<CanonicalRequest, ProtocolTransformRejection> {
-    let Some(control) = &request.model_thinking else {
+    let Some(control) = request.model_thinking.as_deref() else {
         return Ok(request.clone());
     };
     // Validate body syntax with name intent removed; winning precedence cannot validate losers.
@@ -104,7 +109,7 @@ fn apply_source_request(
                 model_thinking::put(
                     &mut extensions,
                     ANTHROPIC_THINKING_BUDGET,
-                    Value::from(*budget),
+                    &Value::from(*budget),
                 )?;
                 "enabled"
             }
@@ -119,7 +124,7 @@ fn apply_source_request(
             model_thinking::put(
                 &mut result.extensions,
                 "anthropic.messages.output_config",
-                Value::Object(output),
+                &Value::Object(output),
             )?;
         }
         label
@@ -218,25 +223,85 @@ pub fn model_name_native_payload(
     serde_json::to_vec(&body).map_err(|_| invalid())
 }
 
-/// Checks name-control syntax/capability for counting without creating an inference request.
+/// Validates name intent against the same frozen support used by inference normalization.
 ///
 /// # Errors
-/// Rejects explicit lossless routes, models without thinking, or missing Reasoning capability.
+/// Rejects unsupported intent, explicit lossless paths or missing Reasoning capability.
+pub fn validate_model_name_thinking(
+    control: Option<&ModelThinking>,
+    source: ProtocolFormat,
+    target: ProtocolFormat,
+    model: &str,
+    mode: SnapshotTransformMode,
+    capabilities: &CapabilitySet,
+) -> Result<(), ProtocolTransformRejection> {
+    let Some(control) = control else {
+        return Ok(());
+    };
+    if mode == SnapshotTransformMode::LosslessBridge
+        || !capabilities.supports(SemanticCapability::Reasoning)
+    {
+        return Err(invalid());
+    }
+    match control {
+        ModelThinking::Budget(value) if *value < -1 => return Err(invalid()),
+        ModelThinking::Effort(value)
+            if !matches!(
+                value.as_str(),
+                "none" | "auto" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max"
+            ) =>
+        {
+            return Err(invalid());
+        }
+        _ => {}
+    }
+    model_thinking::validate_name_support(control, source, target, model)
+}
+
+/// Checks name-control syntax/capability for counting without constructing an inference request.
+///
+/// # Errors
+/// Rejects malformed body controls and unsupported model name intent before any count transport.
 pub fn validate_model_name_control(
     request: &CanonicalRequest,
     model: &str,
     mode: SnapshotTransformMode,
+    target: ProtocolFormat,
     capabilities: &CapabilitySet,
 ) -> Result<(), ProtocolTransformRejection> {
     if request.model_thinking.is_none() {
         return Ok(());
     }
-    source_request(request, ProtocolFormat::AnthropicMessages)?;
-    if mode == SnapshotTransformMode::LosslessBridge
-        || !capabilities.supports(SemanticCapability::Reasoning)
-        || !model_thinking::supports_name(model)?
-    {
-        return Err(invalid());
+    let source = ProtocolFormat::AnthropicMessages;
+    validate_body_controls(request, source, source == target)?;
+    validate_model_name_thinking(
+        request.model_thinking.as_deref(),
+        source,
+        target,
+        model,
+        mode,
+        capabilities,
+    )
+}
+
+pub(super) fn prepared_request(
+    input: ProtocolTransformInput<'_>,
+) -> Result<Option<CanonicalRequest>, ProtocolTransformRejection> {
+    if input.request.model_thinking.is_none() {
+        return Ok(None);
     }
-    Ok(())
+    let model = input.target_model.ok_or_else(invalid)?;
+    validate_model_name_thinking(
+        input.request.model_thinking.as_deref(),
+        input.source,
+        input.target,
+        model,
+        input.mode,
+        input.target_capabilities,
+    )?;
+    if input.source == input.target || input.mode == SnapshotTransformMode::Passthrough {
+        native_request(input.request, input.source, model).map(Some)
+    } else {
+        source_request(input.request, input.source).map(Some)
+    }
 }

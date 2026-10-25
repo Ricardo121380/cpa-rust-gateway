@@ -755,11 +755,9 @@ mod tests {
         service.publish_version(&mut repository, &first.version.id)?;
         let pinned = registry.load();
         assert!(pinned.resolve_public_model(&alias).is_some());
-        assert!(
-            pinned
-                .resolve_public_model_reference("team/model(high)")
-                .is_some()
-        );
+        let (base, _) =
+            gateway_router::parse_thinking_suffix("team/model(high)")?.ok_or("suffix")?;
+        assert!(pinned.resolve_public_model(base).is_some());
         let group = AccessGroupId::try_new("access-group-a")?;
         assert!(
             pinned

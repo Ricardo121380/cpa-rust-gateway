@@ -16,8 +16,9 @@ pub struct CanonicalRequest {
     /// Client-supplied model reference before alias or public-model resolution.
     pub requested_model: String,
     /// Trusted model-name control resolved after exact-name and route authorization.
+    /// Boxed because this rare optional intent should not enlarge every inline request.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub model_thinking: Option<crate::ModelThinking>,
+    pub model_thinking: Option<Box<crate::ModelThinking>>,
     /// Ordered request messages.
     pub messages: Vec<CanonicalMessage>,
     /// Tool declarations that the client permits for this request.
@@ -117,6 +118,7 @@ impl fmt::Debug for CanonicalRequest {
             .field("message_count", &self.messages.len())
             .field("tool_count", &self.tools.len())
             .field("thinking_configured", &self.thinking.is_some())
+            .field("model_thinking_configured", &self.model_thinking.is_some())
             .field("prompt_cache_key_present", &self.prompt_cache_key.is_some())
             .field(
                 "prompt_cache_retention_present",

@@ -295,21 +295,22 @@ async fn cpa_69_native_messages_and_chat_suffix_overlay_preserves_options() -> T
                 "{}",
                 String::from_utf8_lossy(&bytes)
             );
-            let received = peer.received.lock().map_err(|_| "receiver")?;
-            let wire = received.last().ok_or("wire")?;
-            assert_eq!(wire["model"], model);
-            assert_eq!(wire.pointer(pointer).and_then(Value::as_str), Some("high"));
-            assert_eq!(wire["vendor_option"], body["vendor_option"]);
-            if uri == "/v1/messages" {
-                assert_eq!(
-                    wire["output_config"]["format"],
-                    body["output_config"]["format"]
-                );
-                assert_eq!(wire["output_config"]["future_option"], 17);
-                assert_eq!(wire["thinking"]["type"], "adaptive");
-                assert!(wire["thinking"].get("budget_tokens").is_none());
+            {
+                let received = peer.received.lock().map_err(|_| "receiver")?;
+                let wire = received.last().ok_or("wire")?;
+                assert_eq!(wire["model"], model);
+                assert_eq!(wire.pointer(pointer).and_then(Value::as_str), Some("high"));
+                assert_eq!(wire["vendor_option"], body["vendor_option"]);
+                if uri == "/v1/messages" {
+                    assert_eq!(
+                        wire["output_config"]["format"],
+                        body["output_config"]["format"]
+                    );
+                    assert_eq!(wire["output_config"]["future_option"], 17);
+                    assert_eq!(wire["thinking"]["type"], "adaptive");
+                    assert!(wire["thinking"].get("budget_tokens").is_none());
+                }
             }
-            drop(received);
             let mut malformed = body;
             if uri == "/v1/messages" {
                 malformed["output_config"] = json!({"effort":false});
@@ -322,6 +323,23 @@ async fn cpa_69_native_messages_and_chat_suffix_overlay_preserves_options() -> T
                     .uri(uri)
                     .insert_header(("authorization", format!("Bearer {}", fixture.key)))
                     .set_json(malformed)
+                    .to_request(),
+            )
+            .await;
+            assert_eq!(reply.status(), StatusCode::BAD_REQUEST);
+            let _ = test::read_body(reply).await;
+            let mut invalid_native = source(uri, "p12-test-model", streaming);
+            if uri == "/v1/messages" {
+                invalid_native["output_config"] = json!({"effort":false});
+            } else {
+                invalid_native["reasoning_effort"] = json!(false);
+            }
+            let reply = test::call_service(
+                &app,
+                test::TestRequest::post()
+                    .uri(uri)
+                    .insert_header(("authorization", format!("Bearer {}", fixture.key)))
+                    .set_json(invalid_native)
                     .to_request(),
             )
             .await;
@@ -476,13 +494,14 @@ async fn cpa_69_numeric_suffix_budget_reaches_messages_receiver_unchanged() -> T
                     "{model} {uri}: {}",
                     String::from_utf8_lossy(&bytes)
                 );
-                let received = peer.received.lock().map_err(|_| "receiver")?;
-                assert_eq!(received.len(), 1);
-                let wire = received.last().ok_or("wire")?;
-                assert_eq!(wire["thinking"]["type"], "enabled");
-                assert_eq!(wire["thinking"]["budget_tokens"], 4096);
-                assert!(wire["output_config"].get("effort").is_none());
-                drop(received);
+                {
+                    let received = peer.received.lock().map_err(|_| "receiver")?;
+                    assert_eq!(received.len(), 1);
+                    let wire = received.last().ok_or("wire")?;
+                    assert_eq!(wire["thinking"]["type"], "enabled");
+                    assert_eq!(wire["thinking"]["budget_tokens"], 4096);
+                    assert!(wire["output_config"].get("effort").is_none());
+                }
                 peer.server.stop(false).await;
             }
         }

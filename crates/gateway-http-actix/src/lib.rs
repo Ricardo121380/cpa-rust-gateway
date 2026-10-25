@@ -591,7 +591,7 @@ struct PreparedResponsesExecution {
 }
 
 struct ResolvedPublicModel {
-    model_thinking: Option<gateway_core::ModelThinking>,
+    model_thinking: Option<Box<gateway_core::ModelThinking>>,
     public_model: String,
     route_alias: Option<String>,
     route: ResponsesRouteSelection,
@@ -1129,7 +1129,7 @@ async fn models(request: HttpRequest, state: CapturedResponsesState) -> HttpResp
         .exact_upstream_models()
         .chain(authenticated_client.prefixed_model_aliases())
         .collect::<std::collections::BTreeSet<_>>();
-    let body = match encode_model_list(names.into_iter()) {
+    let body = match encode_model_list(names) {
         Ok(body) => body,
         Err(error) => return pre_header_error(&error),
     };
@@ -2895,7 +2895,7 @@ fn resolve_public_model(
         return Err(route_not_found());
     };
     let mut resolved = resolve_exact_public_model(authenticated_client, base)?;
-    resolved.model_thinking = Some(thinking);
+    resolved.model_thinking = Some(Box::new(thinking));
     resolved.route_alias = Some(requested_model.to_owned());
     Ok(resolved)
 }

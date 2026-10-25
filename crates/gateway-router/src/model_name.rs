@@ -1,5 +1,5 @@
 //! CPA v8.0.40 name suffix syntax (internal/thinking/suffix.go), with exact names admitted first.
-//! MIT attribution and fixed source: THIRD_PARTY_NOTICES.md / ADR-0130.
+//! MIT attribution and fixed source: `THIRD_PARTY_NOTICES.md` / ADR-0130.
 use gateway_core::{ErrorScope, GatewayError, GatewayErrorCode, ModelThinking, ThinkingEffort};
 
 /// Parses a final thinking suffix after the caller has ruled out an exact registered name.
@@ -8,6 +8,9 @@ use gateway_core::{ErrorScope, GatewayError, GatewayErrorCode, ModelThinking, Th
 /// Rejects malformed/unknown suffixes; never invents a new base model or permission.
 pub fn parse_thinking_suffix(name: &str) -> Result<Option<(&str, ModelThinking)>, GatewayError> {
     let invalid = || GatewayError::new(GatewayErrorCode::ClientRequestError, ErrorScope::Model);
+    if name.chars().count() > 256 {
+        return Err(invalid());
+    }
     let Some((base, tail)) = name.rsplit_once('(') else {
         return Ok(None);
     };

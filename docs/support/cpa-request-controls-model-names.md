@@ -3,7 +3,7 @@
 Reference: CLIProxyAPI **v8.0.40**, commit
 `d946c4fba6fc9a5cfbca1f3d85184d62ad2fb683`. Model control metadata is frozen in
 `crates/gateway-router/src/protocol_transform/cpa_model_thinking.json`, a projection of that
-commit's `internal/registry/models/models.json` (Claude and Codex entries only). It does not
+commit's `internal/registry/models/models.json` (40 deduplicated Claude, Codex and xAI entries). It does not
 refresh from the floating models repository and does not establish credential entitlement.
 The existing compiler capability and access-group route grants still apply.
 
@@ -32,7 +32,7 @@ Sources: [`extractClaudeConfig`](https://github.com/router-for-me/CLIProxyAPI/bl
 | Target path/model | Normalization and final wire |
 |---|---|
 | Chat / Responses, unknown/custom model | existing extraction; `reasoning_effort` / `reasoning.effort`, including explicit none/auto; no inferred account support |
-| Chat / Responses, frozen level-only Codex | budget bucket → nearest supported level (ties lower); none → low when zero unsupported; auto → medium when dynamic unsupported |
+| Chat / Responses, frozen level-only Codex/xAI | budget bucket → nearest supported level (ties lower); none → low when zero unsupported; auto → medium when dynamic unsupported |
 | Chat / Responses, frozen Claude budget-only | bound numeric source intent to frozen range before level conversion |
 | Messages, frozen hybrid/adaptive Claude | explicit OpenAI level → supported adaptive `output_config.effort`; dynamic auto → adaptive without effort; zero uses declared disable type or lowest level |
 | Messages, budget-only Claude / unknown custom | manual budget uses existing CPA effort table, model range when known, and remains strictly below caller output limit; too-small limits reject |
@@ -99,6 +99,9 @@ the frozen range and caller output limit; only level-only targets convert them t
 Same-family explicitly unsupported effort labels reject; documented cross-family conversion
 can clamp to a supported level.
 
+New suffix references are limited to256 Unicode scalar values, matching management Explain;
+exact registered names retain their existing admission rules.
+
 Accepted suffixes are `(none)`, `(auto)`, `(minimal)`, `(low)`, `(medium)`, `(high)`, `(xhigh)`,
 `(max)`, and signed i64 numeric budgets >=-1 (0 off, -1 auto). Labels ignore ASCII case, while
 model names and Alias/prefix matching retain exact case. Empty/unknown/whitespace-bearing labels,
@@ -138,4 +141,8 @@ and suffix-before-body control intent follows
 Tier mapping is installed only for the generic Responses and Anthropic Messages adapters with
 the mappings above. Grok Build/Official/Console/Web and Kiro retain their existing adapter contracts;
 unmapped tier hints are omitted on compatible projection. The frozen table currently covers
-Claude/Codex entries; other model IDs retain fallback plus their existing adapter-specific guards.
+Claude/Codex/xAI entries; other model IDs retain fallback plus their existing adapter-specific guards.
+
+Explain uses the existing global operator view, without a Client Key context. It applies exact
+upstream-ID priority, rejects globally ambiguous IDs and constrains candidate selection to the
+resolved ID; it does not certify which grants a particular Client Key currently has.

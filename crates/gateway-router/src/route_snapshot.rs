@@ -1025,16 +1025,6 @@ impl RouteSnapshot {
             })
     }
 
-    /// Resolves a configured public name or a valid suffix of one, preserving exact collisions.
-    #[must_use]
-    pub fn resolve_public_model_reference(&self, name: &str) -> Option<&SnapshotPublicModel> {
-        if self.has_exact_model_name(name) {
-            return self.resolve_public_model(name);
-        }
-        let (base, _) = crate::parse_thinking_suffix(name).ok()??;
-        self.resolve_public_model(base)
-    }
-
     fn prefixed_aliases_with_time<'a>(
         &'a self,
         group: &AccessGroupId,
@@ -1321,9 +1311,30 @@ impl RouteSnapshot {
         let Some(access_group) = self.access_group(access_group_id) else {
             return SnapshotExactModelResolution::Absent;
         };
+        self.resolve_exact_upstream_model_matching(upstream_model, observed_at_ms, |model| {
+            self.public_model_is_visible_to(access_group, model)
+        })
+    }
+
+    /// Resolves an exact ID for the global operator view; this never grants Client Key access.
+    #[must_use]
+    pub fn resolve_exact_upstream_model_for_management_at(
+        &self,
+        model: &str,
+        at: i64,
+    ) -> SnapshotExactModelResolution<'_> {
+        self.resolve_exact_upstream_model_matching(model, Some(at), |_| true)
+    }
+
+    fn resolve_exact_upstream_model_matching(
+        &self,
+        upstream_model: &str,
+        observed_at_ms: Option<i64>,
+        visible: impl Fn(&SnapshotPublicModel) -> bool,
+    ) -> SnapshotExactModelResolution<'_> {
         let mut resolved = None;
         for public_model in self.public_models.values() {
-            if !self.public_model_is_visible_to(access_group, public_model) {
+            if !visible(public_model) {
                 continue;
             }
             let carries_model = self.route(public_model.route_id()).is_some_and(|route| {

@@ -69,9 +69,9 @@ pub use messages_controls::{MESSAGES_CONTEXT_MANAGEMENT, messages_keep_all};
 pub use protocol_transform::{
     NativePayloadAvailability, ProjectedProtocolRequest, ProtocolFormat,
     ProtocolTransformAdmission, ProtocolTransformInput, ProtocolTransformRejection,
-    analyze_protocol_transform, model_name_native_payload, project_protocol_request,
-    project_registered_protocol_request, protocol_pair_is_publishable, protocol_pair_is_registered,
-    validate_model_name_control,
+    ServiceTierMapping, analyze_protocol_transform, model_name_native_payload,
+    project_protocol_request, project_registered_protocol_request, protocol_pair_is_publishable,
+    protocol_pair_is_registered, validate_model_name_control, validate_model_name_thinking,
 };
 pub use provider_egress_state::{
     MAX_PROVIDER_EGRESS_AUXILIARY_REQUESTS, MAX_PROVIDER_EGRESS_CAPABILITIES,

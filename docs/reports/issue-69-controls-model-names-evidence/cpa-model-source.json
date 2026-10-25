@@ -1,0 +1,18 @@
+{
+  "commit": "d946c4fba6fc9a5cfbca1f3d85184d62ad2fb683",
+  "source": "https://raw.githubusercontent.com/router-for-me/CLIProxyAPI/d946c4fba6fc9a5cfbca1f3d85184d62ad2fb683/internal/registry/models/models.json",
+  "source_sha256": "202d50ff901832d8ed915db9a4f852e957ea5c2370b5f8bbfac7db226ba8b7d9",
+  "extraction_keys": [
+    "id",
+    "type",
+    "max_completion_tokens",
+    "thinking"
+  ],
+  "families": [
+    "claude",
+    "codex-*",
+    "xai"
+  ],
+  "profiles": 40,
+  "projection_sha256": "0e980b4cd62807d2a2f081db612cafdaa1b2f41155366291823b902e58f766dd"
+}

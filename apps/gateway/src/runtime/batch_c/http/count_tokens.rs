@@ -600,3 +600,40 @@ async fn cpa_69_count_names_reuse_authorized_resolution_without_inference() -> T
     }
     Ok(())
 }
+
+#[actix_web::test]
+async fn cpa_69_count_native_effort_and_format_match_inference_admission() -> TestResult {
+    let client = reqwest::Client::new();
+    for native in [false, true] {
+        let peer = Peer::start(false, None)?;
+        let mut fixture = production_fixture(peer.clone(), native, false, |config| {
+            config.route_candidates[0].upstream_model = "claude-sonnet-4-6".into();
+            config.route_candidates[0].transform_mode = TransformMode::Passthrough;
+            Ok(())
+        })?;
+        let (origin, server) = serve(fixture.state.clone())?;
+        let mut body = payload("count-alias(high)");
+        body["output_config"] = json!({"effort":"low","format":{"type":"json_schema"}});
+        let response = call(&client, &origin, &fixture.key, body.clone()).await?;
+        let status = response.status();
+        let text = response.text().await?;
+        assert_eq!(status, 200, "{text}");
+        body["model"] = json!("count-alias(minimal)");
+        let response = call(&client, &origin, &fixture.key, body).await?;
+        assert!(!response.status().is_success());
+        let text = response.text().await?;
+        assert!(
+            serde_json::from_str::<Value>(&text)?
+                .get("input_tokens")
+                .is_none()
+        );
+        assert_eq!(
+            peer.received.lock().map_err(|_| "receiver")?.len(),
+            usize::from(native)
+        );
+        assert_no_usage(&mut fixture).await?;
+        server.stop(false).await;
+        peer.server.stop(false).await;
+    }
+    Ok(())
+}

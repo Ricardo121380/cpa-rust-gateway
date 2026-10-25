@@ -4333,6 +4333,16 @@ enum EndpointAdapter {
 }
 
 impl EndpointAdapter {
+    /// Only adapters with an owned reference mapping may project tier hints.
+    const fn service_tier_mapping(&self) -> gateway_router::ServiceTierMapping {
+        match self {
+            Self::OpenAiResponses(_) | Self::AnthropicMessages(_) => {
+                gateway_router::ServiceTierMapping::Mapped
+            }
+            _ => gateway_router::ServiceTierMapping::Unmapped,
+        }
+    }
+
     /// Returns the exact API Format this binding serves.
     const fn api_format(&self) -> ApiFormat {
         match self {
@@ -4906,6 +4916,37 @@ impl EndpointAttemptDriver {
         Ok(())
     }
 
+    /// Builds candidate-specific model controls without taking a lease or reading credentials.
+    fn protocol_transform_input<'a>(
+        &'a self,
+        candidate: &'a SnapshotRouteCandidate,
+        runtime: &EndpointRuntime,
+        target: ProtocolFormat,
+    ) -> Result<ProtocolTransformInput<'a>, ProtocolTransformRejection> {
+        Ok(ProtocolTransformInput {
+            target_service_tier: runtime.adapter.service_tier_mapping(),
+            target_model: Some(candidate.upstream_model()),
+            source: self.client_protocol,
+            target,
+            mode: candidate.transform_mode(),
+            native_payload: self
+                .native_payload
+                .as_ref()
+                .map_or(NativePayloadAvailability::Unavailable, |_| {
+                    NativePayloadAvailability::Exact
+                }),
+            request: &self.request,
+            streaming: self.mode == ResponsesResponseMode::Streaming,
+            requires_json_schema: false,
+            requires_parallel_tools: gateway_router::ToolExecutionConstraints::from_request(
+                &self.request,
+                self.client_protocol,
+            )?
+            .requires_parallel_tools(),
+            target_capabilities: candidate.effective_capabilities(),
+        })
+    }
+
     /// Produces the exact request material for one Candidate without reading a Secret or taking a
     /// lease. The same function is used by the scheduler predicate and again by the driver, so
     /// admission and execution cannot drift.
@@ -4971,30 +5012,11 @@ impl EndpointAttemptDriver {
         } else {
             target
         };
-        let projected = project_registered_protocol_request(ProtocolTransformInput {
-            target_supports_service_tier: matches!(
-                runtime.adapter,
-                EndpointAdapter::OpenAiResponses(_) | EndpointAdapter::AnthropicMessages(_)
-            ),
-            target_model: Some(candidate.upstream_model()),
-            source: self.client_protocol,
-            target: projection_target,
-            mode: candidate.transform_mode(),
-            native_payload: if self.native_payload.is_some() {
-                NativePayloadAvailability::Exact
-            } else {
-                NativePayloadAvailability::Unavailable
-            },
-            request: &self.request,
-            streaming: self.mode == ResponsesResponseMode::Streaming,
-            requires_json_schema: false,
-            requires_parallel_tools: gateway_router::ToolExecutionConstraints::from_request(
-                &self.request,
-                self.client_protocol,
-            )?
-            .requires_parallel_tools(),
-            target_capabilities: candidate.effective_capabilities(),
-        })?;
+        let projected = project_registered_protocol_request(self.protocol_transform_input(
+            candidate,
+            runtime,
+            projection_target,
+        )?)?;
         if let ProjectedProtocolRequest::Canonical(request) = &projected {
             match &runtime.adapter {
                 EndpointAdapter::KiroMessages(policy) => {
@@ -10326,7 +10348,7 @@ mod tests {
                     GatewayError::new(GatewayErrorCode::InternalError, ErrorScope::Internal)
                 })?;
                 let projected = project_registered_protocol_request(ProtocolTransformInput {
-                    target_supports_service_tier: true,
+                    target_service_tier: gateway_router::ServiceTierMapping::Mapped,
                     target_model: None,
                     source,
                     target,

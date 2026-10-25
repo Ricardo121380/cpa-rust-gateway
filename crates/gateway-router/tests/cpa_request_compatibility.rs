@@ -20,7 +20,7 @@ fn project(
     let capabilities =
         CapabilitySet::try_new([SemanticCapability::Reasoning, SemanticCapability::Tools])?;
     match project_protocol_request(ProtocolTransformInput {
-        target_supports_service_tier: true,
+        target_service_tier: gateway_router::ServiceTierMapping::Mapped,
         target_model: None,
         source: ProtocolFormat::AnthropicMessages,
         target,
@@ -126,7 +126,7 @@ fn cpa_v8_effort_keeps_known_controls_and_capability_guards() -> TestResult {
         let capabilities = CapabilitySet::empty();
         assert!(
             project_protocol_request(ProtocolTransformInput {
-                target_supports_service_tier: true,
+                target_service_tier: gateway_router::ServiceTierMapping::Mapped,
                 target_model: None,
                 source: ProtocolFormat::AnthropicMessages,
                 target,
@@ -160,7 +160,7 @@ fn cpa_openai_summary_and_budget_remain_valid_for_messages() -> TestResult {
         let decoded = protocol_openai_responses::decode_request(&json!({"model":"public","input":"hello", "max_output_tokens":2048,"reasoning":reasoning}).to_string())?;
         let ProjectedProtocolRequest::Canonical(request) =
             project_protocol_request(ProtocolTransformInput {
-                target_supports_service_tier: true,
+                target_service_tier: gateway_router::ServiceTierMapping::Mapped,
                 target_model: None,
                 source: ProtocolFormat::OpenAiResponses,
                 target: ProtocolFormat::AnthropicMessages,
@@ -235,7 +235,7 @@ fn cpa_sampling_and_stop_options_use_valid_target_shapes() -> TestResult {
         let decoded = protocol_openai_chat::decode_request(&json!({"model":"public","messages":[{"role":"user","content":"hello"}],"max_completion_tokens":2048,"stop":stop}).to_string())?;
         let ProjectedProtocolRequest::Canonical(request) =
             project_protocol_request(ProtocolTransformInput {
-                target_supports_service_tier: true,
+                target_service_tier: gateway_router::ServiceTierMapping::Mapped,
                 target_model: None,
                 source: ProtocolFormat::OpenAiChatCompletions,
                 target: ProtocolFormat::AnthropicMessages,
@@ -385,8 +385,12 @@ fn cpa_69_special_budgets_and_frozen_model_levels() -> TestResult {
         ("custom-model", -1, "auto"),
         ("gpt-5.5", 0, "low"),
         ("gpt-5.5", -1, "medium"),
-        ("gpt-5.5", 128000, "xhigh"),
+        ("gpt-5.5", 128_000, "xhigh"),
         ("gpt-6.1-sol", 512, "low"),
+        ("grok-4.5", 0, "low"),
+        ("grok-4.5", -1, "medium"),
+        ("grok-4.5", 128_000, "high"),
+        ("grok-4.3", 0, "none"),
     ] {
         for target in [
             ProtocolFormat::OpenAiChatCompletions,
@@ -398,7 +402,7 @@ fn cpa_69_special_budgets_and_frozen_model_levels() -> TestResult {
             let decoded = protocol_anthropic::decode_request(&body.to_string())?;
             let ProjectedProtocolRequest::Canonical(request) =
                 project_protocol_request(ProtocolTransformInput {
-                    target_supports_service_tier: true,
+                    target_service_tier: gateway_router::ServiceTierMapping::Mapped,
                     target_model: Some(model),
                     source: ProtocolFormat::AnthropicMessages,
                     target,
@@ -465,7 +469,7 @@ fn cpa_69_claude_model_ranges_and_adaptive_targets() -> TestResult {
         let decoded = protocol_openai_responses::decode_request(&json!({"model":"public","input":"hello", "max_output_tokens":limit,"reasoning":{"effort":effort}}).to_string())?;
         let ProjectedProtocolRequest::Canonical(request) =
             project_protocol_request(ProtocolTransformInput {
-                target_supports_service_tier: true,
+                target_service_tier: gateway_router::ServiceTierMapping::Mapped,
                 target_model: Some(model),
                 source: ProtocolFormat::OpenAiResponses,
                 target: ProtocolFormat::AnthropicMessages,
@@ -544,7 +548,7 @@ fn cpa_69_service_tier_mapping_and_malformed_controls() -> TestResult {
 #[test]
 fn cpa_69_suffix_controls_keep_lossless_and_capability_guards() -> TestResult {
     let mut decoded = protocol_anthropic::decode_request(&body().to_string())?.request;
-    decoded.model_thinking = Some(gateway_core::ModelThinking::Budget(-1));
+    decoded.model_thinking = Some(Box::new(gateway_core::ModelThinking::Budget(-1)));
     for (model, mode, capabilities) in [
         (
             "gpt-5.5",
@@ -565,7 +569,7 @@ fn cpa_69_suffix_controls_keep_lossless_and_capability_guards() -> TestResult {
         assert!(
             project_protocol_request(ProtocolTransformInput {
                 target_model: Some(model),
-                target_supports_service_tier: true,
+                target_service_tier: gateway_router::ServiceTierMapping::Mapped,
                 source: ProtocolFormat::AnthropicMessages,
                 target: ProtocolFormat::OpenAiResponses,
                 mode,
@@ -592,7 +596,7 @@ fn named_project(
     let capabilities = CapabilitySet::try_new([SemanticCapability::Reasoning])?;
     Ok(project_protocol_request(ProtocolTransformInput {
         target_model: Some(model),
-        target_supports_service_tier: true,
+        target_service_tier: gateway_router::ServiceTierMapping::Mapped,
         source,
         target,
         mode,
@@ -621,7 +625,7 @@ fn cpa_69_numeric_suffix_keeps_exact_manual_budget() -> TestResult {
             } else {
                 protocol_openai_chat::decode_request(&json!({"model":"public","messages":[{"role":"user","content":"question"}],"max_completion_tokens":32000}).to_string())?.request
             };
-            request.model_thinking = Some(gateway_core::ModelThinking::Budget(4096));
+            request.model_thinking = Some(Box::new(gateway_core::ModelThinking::Budget(4096)));
             let ProjectedProtocolRequest::Canonical(projected) = named_project(
                 &request,
                 source,
@@ -653,7 +657,7 @@ fn cpa_69_suffix_never_hides_malformed_body_thinking_type() -> TestResult {
     let mut body = body();
     body["thinking"] = json!({"type":"bogus"});
     let mut request = protocol_anthropic::decode_request(&body.to_string())?.request;
-    request.model_thinking = Some(gateway_core::ModelThinking::Budget(4096));
+    request.model_thinking = Some(Box::new(gateway_core::ModelThinking::Budget(4096)));
     for (target, model, mode) in [
         (
             ProtocolFormat::OpenAiResponses,
@@ -686,9 +690,9 @@ fn cpa_69_native_suffix_retains_other_output_config_members() -> TestResult {
     body["thinking"] = json!({"type":"enabled","budget_tokens":2048});
     body["output_config"] = json!({"effort":"low","format":{"type":"json_schema","schema":{"type":"object"}},"future_option":17});
     let mut request = protocol_anthropic::decode_request(&body.to_string())?.request;
-    request.model_thinking = Some(gateway_core::ModelThinking::Effort(
+    request.model_thinking = Some(Box::new(gateway_core::ModelThinking::Effort(
         gateway_core::ThinkingEffort::try_new("high")?,
-    ));
+    )));
     let wire: Value = serde_json::from_slice(&gateway_router::model_name_native_payload(
         body.to_string().as_bytes(),
         &request,
@@ -709,9 +713,9 @@ fn cpa_69_same_family_explicit_unsupported_effort_rejects() -> TestResult {
     for named in [false, true] {
         let mut request=protocol_openai_chat::decode_request(&json!({"model":"public","messages":[{"role":"user","content":"question"}],"reasoning_effort":"max"}).to_string())?.request;
         if named {
-            request.model_thinking = Some(gateway_core::ModelThinking::Effort(
+            request.model_thinking = Some(Box::new(gateway_core::ModelThinking::Effort(
                 gateway_core::ThinkingEffort::try_new("max")?,
-            ));
+            )));
         }
         assert!(
             named_project(
@@ -725,9 +729,9 @@ fn cpa_69_same_family_explicit_unsupported_effort_rejects() -> TestResult {
         );
     }
     let mut request = protocol_anthropic::decode_request(&body().to_string())?.request;
-    request.model_thinking = Some(gateway_core::ModelThinking::Effort(
+    request.model_thinking = Some(Box::new(gateway_core::ModelThinking::Effort(
         gateway_core::ThinkingEffort::try_new("minimal")?,
-    ));
+    )));
     assert!(
         named_project(
             &request,
@@ -737,6 +741,41 @@ fn cpa_69_same_family_explicit_unsupported_effort_rejects() -> TestResult {
             SnapshotTransformMode::Passthrough
         )
         .is_err()
+    );
+    Ok(())
+}
+
+#[test]
+fn cpa_69_count_shares_native_model_effort_and_output_config_admission() -> TestResult {
+    let mut body = body();
+    body["output_config"] = json!({"format":{"type":"json_schema"},"effort":"high"});
+    let mut request = protocol_anthropic::decode_request(&body.to_string())?.request;
+    let capabilities = CapabilitySet::try_new([SemanticCapability::Reasoning])?;
+    request.model_thinking = Some(Box::new(gateway_core::ModelThinking::Effort(
+        gateway_core::ThinkingEffort::try_new("minimal")?,
+    )));
+    assert!(
+        gateway_router::validate_model_name_control(
+            &request,
+            "claude-sonnet-4-6",
+            SnapshotTransformMode::Passthrough,
+            ProtocolFormat::AnthropicMessages,
+            &capabilities
+        )
+        .is_err()
+    );
+    request.model_thinking = Some(Box::new(gateway_core::ModelThinking::Effort(
+        gateway_core::ThinkingEffort::try_new("high")?,
+    )));
+    assert!(
+        gateway_router::validate_model_name_control(
+            &request,
+            "claude-sonnet-4-6",
+            SnapshotTransformMode::Passthrough,
+            ProtocolFormat::AnthropicMessages,
+            &capabilities
+        )
+        .is_ok()
     );
     Ok(())
 }

@@ -75,7 +75,7 @@ fn namespace_controls_use_complete_identities_and_actual_parallel_capability() -
             }
             let caps = CapabilitySet::try_new(capabilities.iter().copied())?;
             let result = project_registered_protocol_request(ProtocolTransformInput {
-                target_supports_service_tier: true,
+                target_service_tier: crate::ServiceTierMapping::Mapped,
                 target_model: None,
                 source: format,
                 target: format,

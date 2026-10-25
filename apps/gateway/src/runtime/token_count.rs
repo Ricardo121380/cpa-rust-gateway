@@ -34,13 +34,16 @@ impl CountTokensExecutor for P12RoutedResponsesExecutor {
                 now,
                 |candidate| {
                     self.endpoints.contains_key(candidate.endpoint_id())
-                        && gateway_router::validate_model_name_control(
-                            execution.request(),
-                            candidate.upstream_model(),
-                            candidate.transform_mode(),
-                            candidate.effective_capabilities(),
-                        )
-                        .is_ok()
+                        && candidate.protocol_format().is_some_and(|target| {
+                            gateway_router::validate_model_name_control(
+                                execution.request(),
+                                candidate.upstream_model(),
+                                candidate.transform_mode(),
+                                target,
+                                candidate.effective_capabilities(),
+                            )
+                            .is_ok()
+                        })
                 },
             )?;
             let (candidate, credential) = selected.into_parts();

@@ -17,7 +17,9 @@ use crate::{SnapshotTransformMode, ToolExecutionConstraints, tool_controls};
 mod compatibility;
 mod model_thinking;
 mod named_controls;
-pub use named_controls::{model_name_native_payload, validate_model_name_control};
+pub use named_controls::{
+    model_name_native_payload, validate_model_name_control, validate_model_name_thinking,
+};
 
 /// Client or Endpoint wire format considered by the P5 transformation boundary.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -77,6 +79,15 @@ pub enum NativePayloadAvailability {
     Unavailable,
 }
 
+/// Whether a concrete adapter owns the reference service-tier field mapping.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ServiceTierMapping {
+    /// The generic adapter owns the documented protocol mapping.
+    Mapped,
+    /// The adapter has no qualifying tier mapping.
+    Unmapped,
+}
+
 /// Fixed, request-local facts used to admit one protocol transformation candidate.
 ///
 /// The caller supplies capability requirements that are not represented directly by the current
@@ -86,7 +97,7 @@ pub enum NativePayloadAvailability {
 #[derive(Clone, Copy)]
 pub struct ProtocolTransformInput<'a> {
     /// Whether this concrete adapter owns the documented target tier mapping.
-    pub target_supports_service_tier: bool,
+    pub target_service_tier: ServiceTierMapping,
     /// Selected upstream identity, never a public alias or an account capability claim.
     pub target_model: Option<&'a str>,
     /// Protocol spoken by the client-facing request.
@@ -114,6 +125,8 @@ impl fmt::Debug for ProtocolTransformInput<'_> {
         formatter
             .debug_struct("ProtocolTransformInput")
             .field("source", &self.source)
+            .field("target_model", &self.target_model.map(|_| "<redacted>"))
+            .field("target_service_tier", &self.target_service_tier)
             .field("target", &self.target)
             .field("mode", &self.mode)
             .field("native_payload", &self.native_payload)
@@ -346,35 +359,10 @@ pub fn analyze_protocol_transform(input: ProtocolTransformInput<'_>) -> Protocol
 pub fn project_protocol_request(
     input: ProtocolTransformInput<'_>,
 ) -> Result<ProjectedProtocolRequest, ProtocolTransformRejection> {
-    let named_request;
-    let input = if input.request.model_thinking.is_some() {
-        if input.mode == SnapshotTransformMode::LosslessBridge
-            || !input
-                .target_capabilities
-                .supports(SemanticCapability::Reasoning)
-            || input
-                .target_model
-                .is_some_and(|model| !model_thinking::supports_name(model).unwrap_or(false))
-        {
-            return Err(ProtocolTransformRejection::ThinkingUnsupported);
-        }
-        named_request = if input.mode == SnapshotTransformMode::Passthrough {
-            named_controls::native_request(
-                input.request,
-                input.source,
-                input
-                    .target_model
-                    .ok_or(ProtocolTransformRejection::ThinkingUnsupported)?,
-            )?
-        } else {
-            named_controls::source_request(input.request, input.source)?
-        };
-        ProtocolTransformInput {
-            request: &named_request,
-            ..input
-        }
-    } else {
-        input
+    let named_request = named_controls::prepared_request(input)?;
+    let input = match named_request.as_ref() {
+        Some(request) => ProtocolTransformInput { request, ..input },
+        None => input,
     };
     input
         .request
@@ -440,7 +428,7 @@ pub fn project_protocol_request(
             input.source,
             input.target,
             input.target_model,
-            input.target_supports_service_tier,
+            input.target_service_tier == ServiceTierMapping::Mapped,
         )?
     } else {
         match project_cross_protocol(input.request, input.source, input.target) {
@@ -1044,6 +1032,17 @@ fn validate_target_root_extensions(
             if !valid {
                 return Err(ProtocolTransformRejection::UnknownRequestExtensions);
             }
+        } else if target == ProtocolFormat::AnthropicMessages
+            && name == "anthropic.messages.output_config"
+        {
+            let valid = serde_json::from_str::<RawExtensions>(raw.get()).is_ok_and(|fields| {
+                fields
+                    .get("effort")
+                    .is_none_or(|effort| serde_json::from_str::<String>(effort.get()).is_ok())
+            });
+            if !valid {
+                return Err(ProtocolTransformRejection::ThinkingUnsupported);
+            }
         } else if name.starts_with(compatibility::root_prefix(target))
             && name != gateway_core::CODEX_CLIENT_METADATA
         {
@@ -1388,7 +1387,7 @@ mod tests {
         target_capabilities: &'a CapabilitySet,
     ) -> ProtocolTransformInput<'a> {
         ProtocolTransformInput {
-            target_supports_service_tier: true,
+            target_service_tier: crate::ServiceTierMapping::Mapped,
             target_model: None,
             source,
             target,
@@ -2383,7 +2382,7 @@ mod tests {
         with_cache_control.prompt_cache_retention = Some("in-memory".to_owned());
         let target_capabilities = all_capabilities()?;
         let projected = project_registered_protocol_request(ProtocolTransformInput {
-            target_supports_service_tier: true,
+            target_service_tier: crate::ServiceTierMapping::Mapped,
             target_model: None,
             source: ProtocolFormat::OpenAiResponses,
             target: ProtocolFormat::OpenAiResponses,

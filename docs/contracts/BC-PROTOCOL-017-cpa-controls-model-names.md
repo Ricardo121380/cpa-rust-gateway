@@ -10,7 +10,7 @@
 
 Source decoding retains signed Messages budgets >=-1 and rejects malformed types/duplicates.
 ADR-0126 effort extraction remains the body precedence. Compatible projection normalizes controls
-against the selected actual upstream model using frozen Claude/Codex metadata. Metadata never
+against the selected actual upstream model using frozen Claude/Codex/xAI metadata. Metadata never
 adds a capability, route grant or credential entitlement. Unknown/custom models retain explicit
 fallback plus existing adapter guards. Only adapters with a documented target tier mapping emit
 that field. Explicit lossless behavior remains separate; native valid JSON remains preserved.
@@ -55,3 +55,7 @@ CI, release and deployment are independently qualified. Cost remains unknown/una
 - `cpa_69_qualified_alias_cannot_reintroduce_ambiguous_exact_id`
 - `cpa_69_numeric_suffix_budget_reaches_messages_receiver_unchanged`
 - `cpa_69_ambiguous_exact_id_stays_out_of_prefix_discovery`
+
+- `cpa_69_count_shares_native_model_effort_and_output_config_admission`
+- `cpa_69_count_native_effort_and_format_match_inference_admission`
+- `cpa_69_explain_prefers_exact_id_and_constrains_candidates`

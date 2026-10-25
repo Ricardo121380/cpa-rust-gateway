@@ -131,6 +131,18 @@ pub(super) fn project(
     )?;
     projected.thinking = thinking(request, source, target, target_model)?;
     project_summary(request, &mut projected, source, target)?;
+    omit_cache_hints(&mut projected, source)?;
+    reject_nested_extensions_and_opaque(&projected)?;
+    if target == ProtocolFormat::AnthropicMessages {
+        project_messages_roles(&mut projected)?;
+    }
+    Ok(projected)
+}
+
+fn omit_cache_hints(
+    projected: &mut CanonicalRequest,
+    source: ProtocolFormat,
+) -> Result<(), ProtocolTransformRejection> {
     projected.prompt_cache_key = None;
     projected.prompt_cache_retention = None;
     for message in &mut projected.messages {
@@ -149,11 +161,7 @@ pub(super) fn project(
     for tool in &mut projected.tools {
         tool.extensions = without_cache(&tool.extensions, source)?;
     }
-    reject_nested_extensions_and_opaque(&projected)?;
-    if target == ProtocolFormat::AnthropicMessages {
-        project_messages_roles(&mut projected)?;
-    }
-    Ok(projected)
+    Ok(())
 }
 
 fn without_cache(
@@ -172,12 +180,9 @@ fn without_cache(
     Ok(result)
 }
 
-pub(super) fn thinking(
+fn messages_output_effort(
     request: &CanonicalRequest,
-    source: ProtocolFormat,
-    target: ProtocolFormat,
-    target_model: Option<&str>,
-) -> Result<Option<Thinking>, ProtocolTransformRejection> {
+) -> Result<Option<String>, ProtocolTransformRejection> {
     let invalid = || ProtocolTransformRejection::ThinkingUnsupported;
     let output_effort = request
         .extensions
@@ -207,9 +212,20 @@ pub(super) fn thinking(
     }) {
         return Err(invalid());
     }
+    Ok(output_effort)
+}
+
+pub(super) fn thinking(
+    request: &CanonicalRequest,
+    source: ProtocolFormat,
+    target: ProtocolFormat,
+    target_model: Option<&str>,
+) -> Result<Option<Thinking>, ProtocolTransformRejection> {
+    let invalid = || ProtocolTransformRejection::ThinkingUnsupported;
+    let output_effort = messages_output_effort(request)?;
     let mut extensions = RawExtensions::default();
     let effort = if source == ProtocolFormat::AnthropicMessages {
-        if let Some(control) = &request.model_thinking {
+        if let Some(control) = request.model_thinking.as_deref() {
             match control {
                 gateway_core::ModelThinking::Budget(budget) => budget_level(*budget).to_owned(),
                 gateway_core::ModelThinking::Effort(effort) => effort.as_str().to_owned(),
@@ -244,10 +260,11 @@ pub(super) fn thinking(
             match thinking.effort.as_str() {
                 "none" => "disabled".into(),
                 "auto" => "adaptive".into(),
-                _ if matches!(request.model_thinking,Some(gateway_core::ModelThinking::Budget(value)) if value>0)
+                _ if matches!(request.model_thinking.as_deref(),Some(gateway_core::ModelThinking::Budget(value)) if *value>0)
                     && !super::model_thinking::is_level_only(target_model)? =>
                 {
-                    let Some(gateway_core::ModelThinking::Budget(budget)) = &request.model_thinking
+                    let Some(gateway_core::ModelThinking::Budget(budget)) =
+                        request.model_thinking.as_deref()
                     else {
                         return Err(invalid());
                     };

@@ -524,10 +524,32 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
         {
             return Err(ManagementRuntimeError::Unavailable);
         }
-        let public_model = snapshot
-            .resolve_public_model_reference(request.requested_model())
-            .filter(|model| model.route_id() == request.route_id())
-            .ok_or(ManagementRuntimeError::Unavailable)?;
+        let mut name = request.requested_model();
+        let mut name_thinking = None;
+        if !snapshot.has_exact_model_name(name)
+            && let Some((base, thinking)) = gateway_router::parse_thinking_suffix(name)
+                .map_err(|_| ManagementRuntimeError::InvalidInput)?
+        {
+            name = base;
+            name_thinking = Some(thinking);
+        }
+        let (public_model, exact_upstream_model) = match snapshot
+            .resolve_exact_upstream_model_for_management_at(name, request.observed_at_ms())
+        {
+            gateway_router::SnapshotExactModelResolution::Unique(model) => (model, Some(name)),
+            gateway_router::SnapshotExactModelResolution::Ambiguous => {
+                return Err(ManagementRuntimeError::Unavailable);
+            }
+            gateway_router::SnapshotExactModelResolution::Absent => (
+                snapshot
+                    .resolve_public_model(name)
+                    .ok_or(ManagementRuntimeError::Unavailable)?,
+                None,
+            ),
+        };
+        if public_model.route_id() != request.route_id() {
+            return Err(ManagementRuntimeError::Unavailable);
+        }
         let route = snapshot
             .route(public_model.route_id())
             .filter(|route| route.id() == request.route_id())
@@ -546,7 +568,16 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
                     target,
                     candidate.transform_mode(),
                     candidate.effective_capabilities(),
-                )
+                ) && exact_upstream_model.is_none_or(|model| candidate.upstream_model() == model)
+                    && gateway_router::validate_model_name_thinking(
+                        name_thinking.as_ref(),
+                        source,
+                        target,
+                        candidate.upstream_model(),
+                        candidate.transform_mode(),
+                        candidate.effective_capabilities(),
+                    )
+                    .is_ok()
             })
         };
         let admitted_candidate_ids = route
@@ -569,10 +600,11 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
                     .map_err(|_| ManagementRuntimeError::Unavailable)
             })
             .collect::<Result<BTreeSet<_>, _>>()?;
-        let exact_model_sources = route
-            .candidates()
-            .iter()
-            .all(|candidate| candidate.upstream_model() == public_model.model_name());
+        let exact_model_sources = exact_upstream_model.is_some()
+            || route
+                .candidates()
+                .iter()
+                .all(|candidate| candidate.upstream_model() == public_model.model_name());
         let inferred_provider = match request.provider_id().cloned() {
             Some(provider_id) => Some(provider_id),
             None if provider_ids.len() == 1 => provider_ids.iter().next().cloned(),
@@ -798,5 +830,114 @@ impl ManagementRuntimeFacade for SnapshotManagementRuntimeFacade {
             }
         }
         Ok(attempts)
+    }
+}
+
+#[cfg(test)]
+mod model_name_tests {
+    use super::*;
+    use gateway_catalog::{CapabilitySet, SemanticCapability};
+    use gateway_core::{PublicModelId, RouteCandidateId, RouteId, UpstreamId};
+    use gateway_router::{
+        RouteSnapshotInput, SnapshotCatalogAdmission, SnapshotPublicModel, SnapshotRoute,
+        SnapshotRouteCandidateInput, SnapshotRoutePolicy, SnapshotTransformMode,
+    };
+
+    #[test]
+    fn cpa_69_explain_prefers_exact_id_and_constrains_candidates()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let version = gateway_store::control_plane::ConfigVersionId::try_new("name-explain")?;
+        let mut models = Vec::new();
+        let mut routes = Vec::new();
+        let mut ids = Vec::new();
+        for index in ["a", "b"] {
+            let id = PublicModelId::try_new(format!("model-{index}"))?;
+            let route = RouteId::try_new(format!("route-{index}"))?;
+            models.push(SnapshotPublicModel::new(
+                id.clone(),
+                format!("public-{index}"),
+                index.into(),
+                CapabilitySet::empty(),
+                route.clone(),
+            ));
+            let candidate = |suffix: &str, model: &str| -> Result<_, Box<dyn std::error::Error>> {
+                Ok(SnapshotRouteCandidate::new(SnapshotRouteCandidateInput {
+                    id: RouteCandidateId::try_new(format!("candidate-{index}-{suffix}"))?,
+                    endpoint_id: EndpointId::try_new(format!("endpoint-{index}"))?,
+                    upstream_id: UpstreamId::try_new(format!("upstream-{index}"))?,
+                    endpoint_api_format: "openai/responses".into(),
+                    upstream_model: model.into(),
+                    transform_mode: SnapshotTransformMode::CanonicalBridge,
+                    priority: 0,
+                    weight: 1,
+                    effective_capabilities: CapabilitySet::try_new([
+                        SemanticCapability::Reasoning,
+                    ])?,
+                    catalog_admission: SnapshotCatalogAdmission::AllowedUnlisted,
+                    active_binding_count: 1,
+                }))
+            };
+            let candidates = if index == "a" {
+                vec![
+                    candidate("exact", "team/model")?,
+                    candidate("other", "other-model")?,
+                ]
+            } else {
+                vec![candidate("alias", "alias-upstream")?]
+            };
+            routes.push(SnapshotRoute::new(
+                route,
+                id.clone(),
+                SnapshotRoutePolicy::RoundRobin,
+                1,
+                1000,
+                candidates,
+            ));
+            ids.push(id);
+        }
+        let snapshot = Arc::new(RouteSnapshot::try_new(RouteSnapshotInput::new(
+            SnapshotVersion::try_new(version.as_str())?,
+            models,
+            vec![("team/model".into(), ids[1].clone())],
+            routes,
+            Vec::new(),
+            Vec::new(),
+        ))?);
+        let mut facade = SnapshotManagementRuntimeFacade {
+            execution_configuration: None,
+            execution_owned_reasoning: BTreeSet::new(),
+            registry: Arc::new(RouteSnapshotRegistry::new(snapshot)),
+            attempt_stages: Arc::new(P12AttemptStageStore::new()),
+            runtime_health: Arc::new(RuntimeHealthRegistry::new()),
+            runtime_quota: Arc::new(RuntimeQuotaRegistry::new()),
+            route_explain_scheduler: None,
+            routing_price_snapshot: None,
+            event_store: SqliteEventStore::open_in_memory()?,
+            catalog_store: SqliteCatalogSnapshotStore::open_in_memory()?,
+            catalog_targets: Vec::new(),
+        };
+        for name in ["team/model", "team/model(high)"] {
+            let request = |route: &str| {
+                ManagementRouteExplainRequest::try_new(
+                    version.clone(),
+                    RouteId::try_new(route).map_err(|_| ManagementRuntimeError::InvalidInput)?,
+                    name.into(),
+                    ManagementRequestProtocol::OpenAiResponses,
+                    None,
+                    1,
+                )
+            };
+            assert!(
+                facade
+                    .explain_route(&request("route-b").map_err(|_| "request")?)
+                    .is_err()
+            );
+            let result = facade
+                .explain_route(&request("route-a").map_err(|_| "request")?)
+                .map_err(|_| "explain")?;
+            assert!(result.candidates()[0].selected_by_projection());
+            assert!(!result.candidates()[1].selected_by_projection());
+        }
+        Ok(())
     }
 }

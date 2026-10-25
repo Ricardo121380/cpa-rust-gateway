@@ -281,7 +281,7 @@ async fn cpa_69_model_controls_reach_independent_receiver() -> TestResult {
                     Some("priority"),
                 ),
                 (
-                    json!({"type":"enabled","budget_tokens":128000}),
+                    json!({"type":"enabled","budget_tokens":128_000}),
                     "xhigh",
                     None,
                     Some("ultrafast"),

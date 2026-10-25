@@ -1,7 +1,7 @@
 //! Frozen CPA v8.0.40 thinking metadata and normalization; never access-grant evidence.
 //! Source d946c4fba6fc9a5cfbca1f3d85184d62ad2fb683:
 //! internal/registry/models/models.json, internal/thinking/{validate,convert}.go,
-//! internal/thinking/provider/claude/apply.go. MIT attribution: THIRD_PARTY_NOTICES.md.
+//! internal/thinking/provider/claude/apply.go. MIT attribution: `THIRD_PARTY_NOTICES.md`.
 
 use std::sync::OnceLock;
 
@@ -42,7 +42,7 @@ fn profile(model: &str) -> Result<Option<&'static Value>, ProtocolTransformRejec
 pub(super) fn put(
     fields: &mut RawExtensions,
     name: &str,
-    value: Value,
+    value: &Value,
 ) -> Result<(), ProtocolTransformRejection> {
     // Replacement is local normalized output, not duplicate input admission.
     let mut replacement = RawExtensions::default();
@@ -95,6 +95,9 @@ pub(super) fn normalize(
     let Some(model) = model else {
         return Ok(());
     };
+    if let Some(control) = source_request.model_thinking.as_deref() {
+        validate_name_support(control, source, target, model)?;
+    }
     let Some(profile) = profile(model)? else {
         return Ok(());
     };
@@ -130,12 +133,12 @@ fn normalize_openai(
     let mut effort = thinking.effort.as_str().to_owned();
     if effort == "none" && !zero {
         if let Some(levels) = levels {
-            effort = supported_level("minimal", levels)?.to_owned();
+            supported_level("minimal", levels)?.clone_into(&mut effort);
         }
     } else if effort == "auto" && !dynamic {
         effort = if maximum > 0 && levels.is_none() {
             super::compatibility::budget_level(
-                i64::try_from((minimum + maximum) / 2).map_err(|_| invalid())?,
+                i64::try_from(minimum.midpoint(maximum)).map_err(|_| invalid())?,
             )
             .to_owned()
         } else {
@@ -158,20 +161,20 @@ fn normalize_openai(
                     .into();
         }
     }
-    if let Some(levels) = levels {
-        if !matches!(effort.as_str(), "none" | "auto") {
-            if source != ProtocolFormat::AnthropicMessages
-                && profile["type"] == "openai"
-                && !matches!(
-                    source_request.model_thinking,
-                    Some(gateway_core::ModelThinking::Budget(_))
-                )
-                && !levels.iter().any(|v| v.as_str() == Some(effort.as_str()))
-            {
-                return Err(invalid());
-            }
-            effort = supported_level(&effort, levels)?.to_owned();
+    if let Some(levels) = levels
+        && !matches!(effort.as_str(), "none" | "auto")
+    {
+        if source != ProtocolFormat::AnthropicMessages
+            && profile["type"] == "openai"
+            && !matches!(
+                source_request.model_thinking.as_deref(),
+                Some(gateway_core::ModelThinking::Budget(_))
+            )
+            && !levels.iter().any(|v| v.as_str() == Some(effort.as_str()))
+        {
+            return Err(invalid());
         }
+        supported_level(&effort, levels)?.clone_into(&mut effort);
     }
     thinking.effort = ThinkingEffort::try_new(effort).map_err(|_| invalid())?;
     Ok(())
@@ -190,7 +193,7 @@ fn normalize_messages(
     let dynamic = support["dynamic_allowed"].as_bool().unwrap_or(false);
     let minimum = support["min"].as_u64().unwrap_or(0);
     let maximum = support["max"].as_u64().unwrap_or(0);
-    let source_effort = match &source_request.model_thinking {
+    let source_effort = match source_request.model_thinking.as_deref() {
         Some(gateway_core::ModelThinking::Budget(budget)) => {
             Some(super::compatibility::budget_level(*budget))
         }
@@ -198,23 +201,14 @@ fn normalize_messages(
         None => source_request.thinking.as_ref().map(|t| t.effort.as_str()),
     };
     let is_level = !matches!(
-        source_request.model_thinking,
+        source_request.model_thinking.as_deref(),
         Some(gateway_core::ModelThinking::Budget(_))
     ) && (source != ProtocolFormat::AnthropicMessages
         || matches!(
-            source_request.model_thinking,
+            source_request.model_thinking.as_deref(),
             Some(gateway_core::ModelThinking::Effort(_))
         ))
         && source_effort.is_some_and(|e| !matches!(e, "none" | "auto"));
-    if source == ProtocolFormat::AnthropicMessages
-        && profile["type"] == "claude"
-        && let (Some(gateway_core::ModelThinking::Effort(effort)), Some(levels)) =
-            (&source_request.model_thinking, levels)
-        && !matches!(effort.as_str(), "none" | "auto")
-        && !levels.iter().any(|v| v.as_str() == Some(effort.as_str()))
-    {
-        return Err(invalid());
-    }
     let effort = thinking.effort.as_str();
     let mut extensions = thinking.extensions.clone();
     let mode;
@@ -251,16 +245,19 @@ fn normalize_messages(
         put(
             &mut extensions,
             ANTHROPIC_THINKING_BUDGET,
-            Value::from(budget),
+            &Value::from(budget),
         )?;
     } else if effort == "adaptive" && !dynamic && maximum > 0 {
         mode = "enabled";
-        let budget =
-            super::compatibility::messages_budget(source_request, source, (minimum + maximum) / 2)?;
+        let budget = super::compatibility::messages_budget(
+            source_request,
+            source,
+            minimum.midpoint(maximum),
+        )?;
         put(
             &mut extensions,
             ANTHROPIC_THINKING_BUDGET,
-            Value::from(budget),
+            &Value::from(budget),
         )?;
     } else if effort == "enabled" {
         mode = "enabled";
@@ -277,7 +274,7 @@ fn normalize_messages(
         put(
             &mut extensions,
             ANTHROPIC_THINKING_BUDGET,
-            Value::from(budget),
+            &Value::from(budget),
         )?;
     } else {
         mode = effort;
@@ -296,7 +293,7 @@ fn update_output_effort(
     const NAME: &str = "anthropic.messages.output_config";
     let Some(raw) = fields.get(NAME).cloned() else {
         return if let Some(effort) = effort {
-            put(fields, NAME, serde_json::json!({"effort":effort}))
+            put(fields, NAME, &serde_json::json!({"effort":effort}))
         } else {
             Ok(())
         };
@@ -307,7 +304,7 @@ fn update_output_effort(
     if let Some(effort) = effort {
         value.insert("effort".into(), Value::from(effort));
     }
-    put(fields, NAME, Value::Object(value))
+    put(fields, NAME, &Value::Object(value))
 }
 
 pub(super) fn is_level_only(model: Option<&str>) -> Result<bool, ProtocolTransformRejection> {
@@ -362,6 +359,33 @@ pub(super) fn validate_native(
     Ok(())
 }
 
-pub(super) fn supports_name(model: &str) -> Result<bool, ProtocolTransformRejection> {
-    Ok(profile(model)?.is_none_or(|p| p.get("thinking").is_some()))
+pub(super) fn validate_name_support(
+    control: &gateway_core::ModelThinking,
+    source: ProtocolFormat,
+    target: ProtocolFormat,
+    model: &str,
+) -> Result<(), ProtocolTransformRejection> {
+    let Some(profile) = profile(model)? else {
+        return Ok(());
+    };
+    let support = profile.get("thinking").ok_or_else(invalid)?;
+    let same_family = match (source, target) {
+        (ProtocolFormat::AnthropicMessages, ProtocolFormat::AnthropicMessages) => {
+            profile["type"] == "claude"
+        }
+        (
+            ProtocolFormat::OpenAiChatCompletions | ProtocolFormat::OpenAiResponses,
+            ProtocolFormat::OpenAiChatCompletions | ProtocolFormat::OpenAiResponses,
+        ) => profile["type"] == "openai",
+        _ => false,
+    };
+    if same_family
+        && let (gateway_core::ModelThinking::Effort(effort), Some(levels)) =
+            (control, support["levels"].as_array())
+        && !matches!(effort.as_str(), "none" | "auto")
+        && !levels.iter().any(|v| v.as_str() == Some(effort.as_str()))
+    {
+        return Err(invalid());
+    }
+    Ok(())
 }
