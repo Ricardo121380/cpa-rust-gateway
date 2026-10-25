@@ -1,0 +1,157 @@
+{
+  "source": {
+    "named_ledger_rows": [
+      [
+        "public-wave2",
+        "wave2-reviewed",
+        20,
+        7,
+        null,
+        81,
+        "exact"
+      ]
+    ],
+    "schema_prefix": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40
+    ],
+    "review_rows": 1,
+    "stored_rows": 1,
+    "database_bytes": 98807808
+  },
+  "restored": {
+    "named_ledger_rows": [
+      [
+        "public-wave2",
+        "wave2-reviewed",
+        20,
+        7,
+        null,
+        81,
+        "exact"
+      ],
+      [
+        "public-wave2",
+        "wave2-reviewed",
+        20,
+        7,
+        null,
+        81,
+        "exact"
+      ]
+    ],
+    "schema_prefix": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40
+    ],
+    "review_rows": 1,
+    "stored_rows": 1,
+    "database_bytes": 98537472
+  },
+  "binary_manifest": {
+    "commit": "6a034382c5f46748a0050cb1464cf16b7f051b99",
+    "tree": "aaeb43ed73696be1a2f4ae8663cdd823dda20c55",
+    "lock_sha256": "a3950a764ae2dcae4e04a8a32ada596f33ea105dbfda8e9714b3e32d3216cd6d",
+    "binaries": {
+      "gateway": {
+        "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-parallel-69-73-75-integration-20261025/output/wave2/bin/gateway-6a034382c5f4",
+        "sha256": "4a2c32e59695e49b930a011a03c34a19356c82d4619283eafd14533e74cc6bc2"
+      },
+      "support": {
+        "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-parallel-69-73-75-integration-20261025/output/wave2/bin/support-6a034382c5f4",
+        "sha256": "28e00ec8844e965f4c0e84e3680190000ac5751551a020ac214cdf6454b519bb"
+      },
+      "wave2": {
+        "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-parallel-69-73-75-integration-20261025/output/wave2/bin/wave2-6a034382c5f4",
+        "sha256": "8252c42a3ef6718b2e94575837cfb9a4f473bfd07e75840d02de784ef3479ab0"
+      }
+    }
+  },
+  "full02_start_commit": "6a034382c5f46748a0050cb1464cf16b7f051b99",
+  "process03_commit": "6165a9f142e86e0a4240d4d6ab6d42b820028acf",
+  "delta_since_full_start": [
+    "scripts/acceptance/cpar-wave2-integration.py"
+  ],
+  "original_request_recording": {
+    "source_rows": 5,
+    "restored_total_after_continuation": 6,
+    "all_original_cells_equal": true,
+    "source_sha256": "aab0c046c7a691f90ba45ca1c7a0004955d28546db3c9644171082b484fbfb71"
+  }
+}

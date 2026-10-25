@@ -1,0 +1,62 @@
+{
+  "status": "PASS_LOCAL_INTEGRATION",
+  "code_commit": "6165a9f142e86e0a4240d4d6ab6d42b820028acf",
+  "code_tree": "1521d54ddaf625825fa7f8474844ec28d1dd2408",
+  "full_start_commit": "6a034382c5f46748a0050cb1464cf16b7f051b99",
+  "full_to_code_delta": [
+    "scripts/acceptance/cpar-wave2-integration.py"
+  ],
+  "full_steps_pass": 44,
+  "rust_result_sets": 135,
+  "rust_passed": 1726,
+  "rust_failed": 0,
+  "rust_ignored": 23,
+  "process_checks": 198,
+  "process72_checks": 517,
+  "process74_checks": 21,
+  "explicit_backup_tests": 7,
+  "wrong_schema_fixture": "EXPECTED_REJECTION",
+  "lock_sha256": "a3950a764ae2dcae4e04a8a32ada596f33ea105dbfda8e9714b3e32d3216cd6d",
+  "binaries": {
+    "gateway": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-parallel-69-73-75-integration-20261025/output/wave2/bin/gateway-6a034382c5f4",
+      "sha256": "4a2c32e59695e49b930a011a03c34a19356c82d4619283eafd14533e74cc6bc2"
+    },
+    "support": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-parallel-69-73-75-integration-20261025/output/wave2/bin/support-6a034382c5f4",
+      "sha256": "28e00ec8844e965f4c0e84e3680190000ac5751551a020ac214cdf6454b519bb"
+    },
+    "wave2": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-parallel-69-73-75-integration-20261025/output/wave2/bin/wave2-6a034382c5f4",
+      "sha256": "8252c42a3ef6718b2e94575837cfb9a4f473bfd07e75840d02de784ef3479ab0"
+    }
+  },
+  "source_workspaces_preserved": 6,
+  "source_union_OpenAPI_operations": 169,
+  "source_union_OpenAPI_schemas": 150,
+  "real_provider": "NOT_RUN",
+  "cost": "UNKNOWN",
+  "cost_in_usd_ticks": "NOT_ADMITTED",
+  "full_log": {
+    "bytes": 324386,
+    "sha256": "c2c6c50b49e189fc3238631789694483ed39cff9d818d93b93a145675458cf8c"
+  },
+  "process_log": {
+    "bytes": 284,
+    "sha256": "96b7bba647b0c3d30c185f45663bdadec763faf327377e8ba3cf25681ec2ee39"
+  },
+  "failure_history": {
+    "build-01": "FAIL: wrong ThinkingEffort constructor in test helper; fixed cea0dd61",
+    "full-01": "INTERRUPTED 143 by root before fixture rate correction; never claimed PASS",
+    "process-01": "FAIL: synthetic oracle81 expected but reasoning-rate0/unknown reasoning correctly yielded partial60",
+    "process-02": "FAIL: synthetic discovery oracle expected public model name rather than existing exact upstream discovery; fixed6165a9f1"
+  },
+  "source_manifests": "Local maintenance audit source-01/02/03.json preserve commits, trees, all tracked input hashes and original identities.",
+  "full_default_gateway": {
+    "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-parallel-69-73-75-integration-20261025/output/wave2/target/debug/gateway",
+    "sha256": "72a66a19e1a9d93c44ec5eba337a442cb9c690add01f9dbd0f72d57a24f9389a"
+  },
+  "toolchain": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "full_command": "CARGO_BUILD_JOBS=2 RUST_TEST_THREADS=4 CARGO_TARGET_DIR=<worktree>/output/wave2/target TMPDIR=<worktree>/output/wave2/tmp CHECK_REPORT_PATH=<worktree>/output/wave2/full-02.md ./scripts/check.sh full",
+  "original_request_recording_rows_preserved": 5
+}

@@ -409,6 +409,7 @@ and `cpa_69_prefix_graph_publish_rollback_and_pinned_names`.
 
 #69最终本地受测源码 `46c2807eacb4390ad7500bba5613414ddc07a365`：Full44/44，Rust1719通过/0失败/21忽略。
 三轮独立静态审查及已修复问题、RED/FAIL历史、binary/lock/输入hash见上述实施记录；不改变远端票或实际服务资格。
+
 ## #73 reviewed price source (2026-10-25)
 
 OPT-06 → [ADR-0131](adr/ADR-0131-reviewed-price-source-versioning.md) → [BC-MGMT-021](contracts/BC-MGMT-021-reviewed-price-source-versioning.md). Uses schema40 review evidence, existing immutable catalogs/ledger and #72 frozen results. Local validation and source identity are recorded in the [implementation report](reports/issue-73-price-preview-20261025.md).
@@ -428,3 +429,12 @@ qualified baseline53/53, stock process86/86, Full44/44; 1699 passed / 0 failed /
 Explicit disk-capacity suite7/7; original recording4/4; 58 original table projections preserved
 plus the exact concurrently committed prefix. This is a documentation successor to tested
 `656c99b2`, not a claim about production, real Provider/client, or a full128MiB qualification.
+
+## 2026-10-25 wave2 integration
+
+#69/#73/#75 → [joint integration](reports/wave2-integration-20261025.md) → ADR0130/0131/0132,
+BC-PROTOCOL017 / BC-MGMT021 / BC-MGMT007. Actual code6165a9f1, Full44/44, Rust1726/0/23;
+`cpar-wave2-integration.py` stock-process schema39→40, nonempty reviewed catalog, exact public-model
+pricing, encrypted model_thinking and supported recovered continuation:198/198.
+Explicit backup suite7/7 includes ignored capacity; #72 process517/517; #74 schema40 process21/21.
+Historical RED/FAIL and schema39 evidence remain source-bound; remote/client/Provider/release boundaries remain.

@@ -1,0 +1,32 @@
+{
+  "base": "84fbfbf778b582f746c1cafe31a2ce58962e8f77",
+  "reviewed_head": "5641f18e4e9d69efc51eeea5469d78035956d783",
+  "method": "independent read-only Standards and Spec agents; static review, not dynamic acceptance",
+  "standards": {
+    "actionable_findings": 0,
+    "scope": "shared runtime projection, disk backup chunk authentication and upload admission, transactional global price fence, new integration helpers; historical large evidence JSON not recalculated"
+  },
+  "spec": {
+    "findings": [
+      {
+        "priority": "P2",
+        "file": "scripts/acceptance/cpar75-history-capacity.py",
+        "line": 283,
+        "problem": "--fixture skips prepare and therefore skips the only actual expected-schema assertion, allowing a mislabeled PASS",
+        "fix_commit": "58bb1c2b",
+        "fix": "Every current startup validates the exact complete migration prefix; schema40 also requires the review table"
+      }
+    ],
+    "other_actionable_findings": 0,
+    "scope": "schema upgrade cell preservation, real socket production price handlers, decoy price identity, key boundaries, encrypted model_thinking and supported recovered continuation"
+  },
+  "limitations": "No real Provider, production, remote CI or whole-project completion inference. Runtime checks and final outcomes are recorded separately.",
+  "followup": {
+    "head": "6165a9f142e86e0a4240d4d6ab6d42b820028acf",
+    "actionable_findings": 0,
+    "P2": "resolved by complete expected-prefix checks on every current startup; wrong-schema-01 dynamically rejects reused schema40 source with expected39",
+    "reasoning_fixture": "explicit equal output/reasoning rates preserve absent reasoning counter; actual SQL postcheck keeps NULL and exact81",
+    "discovery_fixture": "matches owning HTTP union of exact upstream IDs and explicit prefixed aliases; billing uses resolved public identity",
+    "scope": "independent read-only followup review of 5641f18e..6165a9f1 and targeted owning source; no dynamic PASS inferred"
+  }
+}
