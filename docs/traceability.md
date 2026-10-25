@@ -383,3 +383,7 @@ capabilities and adds explicit provider-reported / estimated provenance without 
 or billing. [Support scope](support/messages-count-tokens.md) and
 [local implementation evidence](reports/issue-68-count-tokens-20261025.md) retain the distinction
 from actual-client, fixed-service, real Provider and release qualification.
+
+## #74 quota observation history (2026-10-25)
+
+OPT-07 / T22 → [ADR-0129](adr/ADR-0129-account-quota-history.md) → [BC-MGMT-018](contracts/BC-MGMT-018-account-quota-history.md). Independent quota samples; no Usage/ledger semantic change or new polling.

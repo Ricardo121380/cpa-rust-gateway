@@ -1,4 +1,5 @@
 //! Allowlisted account usage observations, never model grants or billing balances.
+mod history;
 use serde::Serialize;
 use serde_json::Value;
 
@@ -43,10 +44,12 @@ impl AccountQuotaObservation {
     #[must_use]
     pub fn parse(source: &str, value: &Value, now: i64) -> Self {
         let mut windows = Vec::new();
+        let mut incomplete = false;
         if source == "codex" {
             for group in ["rate_limit", "code_review_rate_limit"] {
                 for name in ["primary_window", "secondary_window"] {
                     let entry = &value[group][name];
+                    incomplete |= !entry.is_null() && percentage(&entry["used_percent"]).is_none();
                     if let Some(used_percent) = percentage(&entry["used_percent"]) {
                         windows.push(AccountQuotaWindow {
                             name: format!("{group}.{name}"),
@@ -76,6 +79,7 @@ impl AccountQuotaObservation {
                 "seven_day_cowork",
             ] {
                 let entry = &value[name];
+                incomplete |= !entry.is_null() && percentage(&entry["utilization"]).is_none();
                 if let Some(used_percent) = percentage(&entry["utilization"]) {
                     windows.push(AccountQuotaWindow {
                         name: name.to_owned(),
@@ -96,7 +100,7 @@ impl AccountQuotaObservation {
         let (email, plan, partial) = if source == "kiro" {
             kiro_usage(value, &mut windows)
         } else {
-            (None, None, false)
+            (None, None, incomplete)
         };
         Self {
             partial,

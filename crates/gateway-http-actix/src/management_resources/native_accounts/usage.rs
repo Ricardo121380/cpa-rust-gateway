@@ -40,6 +40,9 @@ pub(crate) async fn usage(
     if let Err(response) = principal(&request) {
         return response;
     }
+    let Some(history) = state.quota_history.clone() else {
+        return unavailable();
+    };
     let Some(native) = state.native_accounts.clone() else {
         return unavailable();
     };
@@ -67,6 +70,27 @@ pub(crate) async fn usage(
     let Ok(_permit) = state.catalog_refresh_slots.clone().try_acquire_owned() else {
         return usage_failure("busy");
     };
+    let provider = match snapshot.provider {
+        provider_grok::GrokAccountProvider::Build => "grok_build",
+        provider_grok::GrokAccountProvider::Console => "grok_console",
+        provider_grok::GrokAccountProvider::Web => "grok_web",
+    };
+    let fence = {
+        let history = history.clone();
+        let account = gateway_store::quota_history::AccountScope {
+            account_kind: "native".into(),
+            config_version_id: String::new(),
+            account_id: id.clone(),
+        };
+        let Ok(revision) = i64::try_from(query.revision) else {
+            return invalid_input();
+        };
+        match read_operations(&state, move || Ok(history.capture(account, Some(revision)))).await {
+            Ok(Ok(fence)) => fence,
+            Ok(Err(gateway_store::quota_history::Error::Conflict)) => return conflict(),
+            _ => return unavailable(),
+        }
+    };
     let result =
         tokio::time::timeout(std::time::Duration::from_secs(20), transport.read(snapshot)).await;
     // Reject a late response after replacement, disable or deletion, including errors.
@@ -74,6 +98,24 @@ pub(crate) async fn usage(
     let current = read_operations(&state, move || Ok(store.identity_snapshot(&id))).await;
     if !matches!(current,Ok(Ok(value)) if value.revision==query.revision) {
         return conflict();
+    }
+    let Ok(completed_at) = state.runtime_clock.now_ms() else {
+        return unavailable();
+    };
+    {
+        let samples = match &result {
+            Ok(Ok(observation)) => observation.history_samples(),
+            _ => vec![gateway_store::quota_history::Sample::missing(
+                provider,
+                completed_at,
+                true,
+            )],
+        };
+        match read_operations(&state, move || Ok(history.append(&fence, &samples))).await {
+            Ok(Ok(())) => {}
+            Ok(Err(gateway_store::quota_history::Error::Conflict)) => return conflict(),
+            _ => return unavailable(),
+        }
     }
     match result {
         Ok(Ok(observation)) => HttpResponse::Ok()

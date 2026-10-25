@@ -13,14 +13,14 @@ CPAR 是 CPA/CLIProxyAPI 网关行为的 Rust 实现。优先直接对照固定�
 
 | 基线 | 当前身份及用途 |
 |---|---|
-| 本次盘点源码 | `feature/62-client-metadata`，HEAD `ab78c65ca68978bf46c7cf530ea795417d8431f3` **加本地未提交修改**；包括后端整理、前端退役、ADR-0125/0126 和 Tokio1.53.3安全修复 |
-| 实际检查目录 | `worktrees/cpar62-client-metadata-20261020`；不是把主克隆路径当作当前 checkout |
+| 当前本地集成 | `feature/parallel-68-72-74-integration`；纳入 #68 `3bf4ffef`、#72 `60073e72`、#74 安全后继 `d78f44c7`；精确受测SHA及结果见[集成记录](reports/parallel-integration-20261025.md) |
+| 实际检查目录 | `worktrees/cpar-parallel-68-72-74-integration-20261025`；原功能、安全及dirty工作区保留 |
 | 当前功能对照及后续移植参考 | [CPA v8.0.40](https://github.com/router-for-me/CLIProxyAPI/tree/d946c4fba6fc9a5cfbca1f3d85184d62ad2fb683)，commit `d946c4fba6fc9a5cfbca1f3d85184d62ad2fb683` |
 | 上游核对时间 | 2026-10-23 14:48:53 UTC；当时最新 release tag 与 main 一致。固定此提交，不追随浮动 main 改变预期 |
 | 已有实现来源 | ADR-0125 等仍基于 v7.2.158；ADR-0126 的 Messages effort 提取基于 v8.0.40。既有差分样例保留 v7.2.80/v7.2.101 的来源，不宣称整体 v8 对齐 |
 | 功能证据 | [10 月 23 日 CPA v8 对照报告](reports/cpa-v8-functional-comparison-20261023.md)；后续 effort 增量和新源码验证见 [10 月 24 日实施记录](reports/cpa-v8-messages-effort-20261024.md) |
 | GitHub 状态核对 | 2026-10-24（Asia/Shanghai）；已修订22张开放票、创建 #68–#75，并独立读回正文、状态和原生关系 |
-| 本轮交付边界 | 在已有 effort/Tokio 修复之上完成规格与工单发布；本轮没有新增业务实现、行为测试、实际客户端、固定服务、Provider、软件发布或部署结果 |
+| 本轮交付边界 | 独立本地集成、验证及提交；旧共同基线 `444558a8` 保留为祖先；不推送、关闭工单、部署或调用真实 Provider |
 
 更新移植参考只决定后续查哪份 Go 代码，不覆盖已接受 ADR 的具体行为，也不重标旧测试、署名和收据。
 此前 effort 增量通过 ADR-0126 限定后继修订记录行为变化；ADR-0125 原始来源和历史回执保留。
@@ -44,7 +44,9 @@ CPAR 是 CPA/CLIProxyAPI 网关行为的 Rust 实现。优先直接对照固定�
 | 账号池、路由、重试和权限组 | 已接入；普通模型入口使用 ProviderScopedSelector | 与 CPA priority/weight/fill-first 行为不同；需要行为对齐时按实际 serving 分支改 |
 | 通用 session/cache affinity | 精确 continuation pin 已有；Build cache_affinity 库/测试未发现 serving 接线 | **待接线/补策略**，不能把两者合并报为通用亲和已完成 |
 | 管理 API、配置发布/回滚 | /admin 已有；管理 API 发布时装配新运行代 | 本地离线 admin CLI 与运行中管理 API 的生效方式分开；无需重建控制面 |
-| Request/Attempt/Usage、账本和加密恢复 | 持久化与查询/恢复已有；#72 新增统一过滤、全范围汇总、冻结快照和 CSV/JSONL 分页导出，已接入管理 API | 见 [#72 实施记录](reports/issue-72-usage-query-export-20261025.md)；未知费用及 cost_in_usd_ticks 未准入保持；后续[独立安全升级](reports/crypto-bigint-security-fix-20261025-issue72.md)已消除 RUSTSEC-2026-0387 阻塞，本地 Full 44/44 通过。有限快照不代表大规模性能、实际生产数据或 #75 容量验收 |
+| Request/Attempt/Usage、账本和加密恢复 | 持久化与查询/恢复已有；#72 新增统一过滤、全范围汇总、冻结快照和 CSV/JSONL 分页导出，已接入管理 API | 见 [#72 实施记录](reports/issue-72-usage-query-export-20261025.md)；未知费用及 cost_in_usd_ticks 未准入保持；后续[独立安全升级](reports/crypto-bigint-security-fix-20261025-issue72.md)已消除 RUSTSEC-2026-0387 阻塞，原分支本地 Full 44/44 通过；本轮集成结果单独记录。有限快照不代表大规模性能、实际生产数据或 #75 容量验收 |
+| 账号配额观察历史（#74） | 独立历史表、现有额度读取/Kimi后台观察接线、有界管理查询已实现 | 本地功能验收通过；[原交付记录](reports/issue-74-quota-history-20261025.md)保留Full供应链失败；集成验证见[集成记录](reports/parallel-integration-20261025.md)，历史安全分支结果见下行；真实Provider、部署未运行；与Token Usage/费用分离 |
+| RUSTSEC-2026-0387安全修复（#74后继独立分支） | p256 0.14.0 / crypto-bigint 0.7.8及必要DPoP API适配，无ignore或门禁放宽 | 本地Full 44/44、Rust测试1677通过/21跳过、双轴审查无发现；见[安全修复记录](reports/rustsec-2026-0387-from74-20261025.md)；未合并、部署或调用真实Provider |
 | 外部 OTel 输出 | 接口已有，serve 使用 Noop exporter | **待接线**，不宣称已把 tracing 送到外部系统 |
 | 通用 payload 覆盖、自定义 headers、模型前缀/后缀等 | 未发现 CPA 等价用户配置入口 | **待实现**，按实际兼容需求排序 |
 | HTTP/HTTPS/SOCKS5h/认证代理 | 已有直连/固定/池化出口；当前只接纳限定 SOCKS5 | **范围差异**，后续扩展须保持明确的出站约束 |
@@ -157,7 +159,7 @@ Gemini、多模态、插件、Home 和新前端是单独扩展项，本页没有
 | [#75](https://github.com/Ricardo121380/cpa-rust-gateway/issues/75) | 大历史查询与加密备份恢复的容量闭环 | P1 |
 
 8张新增票均为OPEN、ready-for-agent，之间没有新增阻塞边；请求控制→模型命名和统计查询→导出按票内顺序实施。
-#69的请求控制保留P0、模型命名保留P1；合并不增加首版门槛。2026-10-24 规格轮未实施这些新增工单；2026-10-25 本分支实现 #72 及后续独立安全升级，#68/#74 并行分支未在此集成。
+#69的请求控制保留P0、模型命名保留P1；合并不增加首版门槛。#68/#72/#74及安全后继现已纳入独立本地集成分支；本次验证单独记录，不复用原分支PASS。
 
 已接受的 native-v1 方向及原 N1–N4、Kiro cap、Grok Web 多轮/能力、#9/#47/#57 的剩余承诺保留。
 具体历史范围见[归档路线图](reports/engineering-roadmap-20261018.md)及原工单；本次没有取消这些目标，
@@ -189,3 +191,5 @@ README、AGENTS、文档索引保持短入口，不再复制一整份动态进�
 
 10 月 23 日入口整理保留为文档历史；10 月 24 日 effort 代码与契约变化已按 ADR-0126 登记。
 本轮没有修改 AGENTS/CLAUDE，也没有改写旧失败、原请求计数或已保存的测试源码身份。
+
+本次共同基线以[集成记录](reports/parallel-integration-20261025.md)的实际受测源码及文档后继为准。后续建议 #69、#73、#75 从该新基线分别启动；不从旧 `444558a8` 启动新实现。

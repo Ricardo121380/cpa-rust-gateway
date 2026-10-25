@@ -584,7 +584,11 @@ impl ProviderAccountPoolFacade for RuntimePublicationController {
             for row in &mut page.items {
                 if let Some(observation) = observations
                     .get(&row.account_id)
-                    .filter(|o| o.profile_available)
+                    .filter(|(revision, o)| {
+                        o.profile_available
+                            && worker.quota_revision(&row.account_id) == Some(*revision)
+                    })
+                    .map(|(_, o)| o)
                     && let Some(presentation) = &mut row.presentation
                     && presentation.category == "kimi"
                 {
@@ -769,7 +773,13 @@ impl gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshFa
         if worker.config_version_id != version.as_str() {
             return None;
         }
-        worker.account_quotas.lock().ok()?.get(credential).cloned()
+        worker
+            .account_quotas
+            .lock()
+            .ok()?
+            .get(credential)
+            .filter(|(r, _)| worker.quota_revision(credential) == Some(*r))
+            .map(|(_, o)| o.clone())
     }
     fn kimi_metadata_cached(
         &self,
@@ -781,7 +791,13 @@ impl gateway_http_actix::management_resources::catalog_refresh::CatalogRefreshFa
         if worker.config_version_id != version.as_str() {
             return None;
         }
-        worker.kimi_metadata.lock().ok()?.get(credential).cloned()
+        worker
+            .kimi_metadata
+            .lock()
+            .ok()?
+            .get(credential)
+            .filter(|(r, _)| worker.quota_revision(credential) == Some(*r))
+            .map(|(_, o)| o.clone())
     }
     fn metadata_revision(&self) -> i64 {
         self.current.load().catalog.as_ref().map_or(0, |worker| {

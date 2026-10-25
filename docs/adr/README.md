@@ -174,3 +174,5 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0127 CPA-compatible token counting](ADR-0127-cpa-compatible-token-counting.md) — Accepted product decision; #68 implements production counting with explicit provenance; scope and evidence in [count support](../support/messages-count-tokens.md).
 
 - [ADR-0128 Frozen unified Usage query and export](ADR-0128-frozen-usage-query-export.md) — Accepted; #72 bounded management snapshot over existing events/ledger, no migration.
+
+- [ADR-0129 Account quota observation history](ADR-0129-account-quota-history.md) — Accepted; #74 independent observation storage and bounded management query.

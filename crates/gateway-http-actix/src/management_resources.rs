@@ -20,6 +20,7 @@ pub mod kimi_device;
 pub mod kiro_device;
 pub mod native_accounts;
 mod price_source;
+mod quota_history;
 mod request_history;
 mod resource_inventory;
 mod usage_snapshots;
@@ -124,6 +125,7 @@ const CODEX_OAUTH_USER_AGENT: &str = "codex_cli_rs/0.144.1";
 /// serialized transactions. Provider and OAuth workflows remain separately injected in later
 /// P10-04 code and never run while this lock is held.
 pub struct ManagementResourceHttpState {
+    quota_history: Option<std::sync::Arc<gateway_store::quota_history::QuotaHistoryStore>>,
     catalog_refresh: Option<std::sync::Arc<dyn catalog_refresh::CatalogRefreshFacade>>,
     catalog_refresh_slots: std::sync::Arc<tokio::sync::Semaphore>,
     system_information: Option<ManagementSystemInformation>,
@@ -409,6 +411,7 @@ impl ManagementResourceHttpState {
         usage: Box<dyn ManagementUsageFacade>,
     ) -> Self {
         Self {
+            quota_history: None,
             catalog_refresh: None,
             catalog_refresh_slots: std::sync::Arc::new(tokio::sync::Semaphore::new(4)),
             system_information: None,
@@ -468,6 +471,16 @@ impl ManagementResourceHttpState {
     #[must_use]
     pub fn with_system_information(mut self, information: ManagementSystemInformation) -> Self {
         self.system_information = Some(information);
+        self
+    }
+
+    /// Attaches the independent quota history store.
+    #[must_use]
+    pub fn with_quota_history(
+        mut self,
+        store: std::sync::Arc<gateway_store::quota_history::QuotaHistoryStore>,
+    ) -> Self {
+        self.quota_history = Some(store);
         self
     }
 
@@ -2720,6 +2733,7 @@ pub fn configure_management_resources(config: &mut web::ServiceConfig) {
 }
 
 fn resource_routes(config: &mut web::ServiceConfig) {
+    config.route("/quota-history", web::get().to(quota_history::list));
     config.route(
         "/account-authorization/{session_id}",
         web::get().to(authorization_receipts::status),

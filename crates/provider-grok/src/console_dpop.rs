@@ -431,6 +431,7 @@ mod tests {
             assert_eq!(claims["htu"], htu);
             assert_eq!(claims["iat"], 1_700_000_000_u64);
             assert_eq!(claims["ath"], expected_ath);
+            assert_eq!(URL_SAFE_NO_PAD.decode(claims["jti"].as_str().ok_or("jti")?)?.len(), 16);
             let signature_bytes = URL_SAFE_NO_PAD.decode(parts[2])?;
             assert_eq!(signature_bytes.len(), 64);
             let signature = Signature::from_slice(&signature_bytes)?;
@@ -517,6 +518,32 @@ mod tests {
             .err(),
             Some(GrokConsoleDpopError::ExpiredToken)
         );
+        Ok(())
+    }
+
+    #[test]
+    fn p256_sha256_matches_rfc6979_vector_and_jwk_thumbprint() -> TestResult {
+        // Public test vector: RFC 6979, Thomas Pornin, Appendix A.2.5, SHA-256 / "sample".
+        // https://www.rfc-editor.org/rfc/rfc6979.html#appendix-A.2.5
+        // Values below are the published scalar, coordinates and r || s in base64url.
+        let key = SigningKey::from_slice(
+            &URL_SAFE_NO_PAD.decode("ya-p2EW6dRZrXCFXZ7HWk05Qw9s26JsSe4piKxIPZyE")?,
+        )?;
+        let signature: Signature = key.sign(b"sample");
+        assert_eq!(
+            URL_SAFE_NO_PAD.encode(signature.to_bytes()),
+            "79SLKqy2qP0RQN2c1F6B1p0sh3tWqvmRw00OqE6vNxb3yxyULWV8QdQ2x6G24p9l8-kA27mv9AZNxKsvhDrNqA"
+        );
+        let jwk = DpopJwk::from_key(key.verifying_key());
+        assert_eq!(jwk.x, "YP7UuiVanTHJYet0xjVtaMBJuJI7Yfps5mliLmDyn7Y");
+        assert_eq!(jwk.y, "eQP-EAi4vJmkGunpVii8ZPLxsgwtfp9Rd6PClNRGIpk");
+        // Independently SHA-256 hashed canonical RFC 7638 JWK using the published coordinates.
+        assert_eq!(
+            jwk.thumbprint()?,
+            "DOvxvJiAdIqVWIkFt5hDtCunXLF0BV4-JGv4f-ALSm0"
+        );
+        key.verifying_key().verify(b"sample", &signature)?;
+        assert!(key.verifying_key().verify(b"tampered", &signature).is_err());
         Ok(())
     }
 

@@ -1,0 +1,54 @@
+Quota history supply-chain evidence, 2026-10-25
+
+Baseline: 444558a8de930f5f1febd5a40ec5bdbbc30a15fb
+Code HEAD: 407a962980681d31dcbbbe5fdce448aed576c8d4
+
+Cargo.lock: 9c2e979214f4ecff9aa46ed83ac46e094db00f40 (identical baseline and code HEAD)
+Cargo.toml: 79ec038f93b9bb6bc2ce0ea93e0d2692bf0a61d3 (identical baseline and code HEAD)
+crates/provider-grok/Cargo.toml: 8f8768b312bd1e3f6714036fd207d0364dc080a6 (identical baseline and code HEAD)
+deny.toml: 32df004cbac764cf8351e238acec77a39eaf40c3 (identical baseline and code HEAD)
+
+Full gate: 42 PASS steps; dependency policy FAIL (exit 1).
+The full script stopped before RustSec audit; the audit was then executed separately.
+No policy ignores, dependency versions, Cargo.lock or sibling worktrees were changed.
+
+Current audit: cargo audit (exit 1).
+Baseline audit: git show BASE:Cargo.lock | cargo audit --no-fetch --no-yanked --file - (exit 1).
+The second command audits the baseline lockfile against the same current local advisory DB;
+it is not a baseline full gate and does not check yanked packages.
+Only the user-home path is redacted below; vulnerability results are unchanged.
+
+--- Current lockfile audit ---
+    Fetching advisory database from `https://github.com/RustSec/advisory-db.git`
+      Loaded 1352 security advisories (from <user-home>/.cargo/advisory-db)
+    Updating crates.io index
+    Scanning Cargo.lock for vulnerabilities (366 crate dependencies)
+Crate:     crypto-bigint
+Version:   0.5.5
+Title:     Multiple timing variability issues in operations intended to be constant-time
+Date:      2026-10-23
+ID:        RUSTSEC-2026-0387
+URL:       https://github.com/RustCrypto/crypto-bigint/pull/1365
+Solution:  Upgrade to >=0.7.6
+
+error: 1 vulnerability found!
+
+--- Baseline Git-object lockfile audit ---
+      Loaded 1352 security advisories (from <user-home>/.cargo/advisory-db)
+    Scanning - for vulnerabilities (366 crate dependencies)
+Crate:     crypto-bigint
+Version:   0.5.5
+Title:     Multiple timing variability issues in operations intended to be constant-time
+Date:      2026-10-23
+ID:        RUSTSEC-2026-0387
+URL:       https://github.com/RustCrypto/crypto-bigint/pull/1365
+Solution:  Upgrade to >=0.7.6
+
+error: 1 vulnerability found!
+
+
+Official advisory: https://rustsec.org/advisories/RUSTSEC-2026-0387.html
+Affected locked chain: provider-grok -> p256 0.13.2 -> elliptic-curve 0.13.8 -> crypto-bigint 0.5.5.
+Official fixed range: >=0.7.6. The current elliptic-curve release constrains crypto-bigint to ^0.5;
+that range does not include the fix. A usual upstream repair requires a broader cryptographic
+family migration; no migration or exploitability assessment was performed in issue #74.

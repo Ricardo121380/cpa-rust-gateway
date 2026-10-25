@@ -640,6 +640,10 @@ fn build_application_state_with_refresh(
             .map_err(|_| DeploymentError::RuntimeUnavailable)?,
     ));
     let resources = resources
+        .with_quota_history(Arc::new(
+            gateway_store::quota_history::QuotaHistoryStore::open(&database)
+                .map_err(|_| DeploymentError::RuntimeUnavailable)?,
+        ))
         .with_native_accounts(native_accounts.with_runtime(reload.clone()))
         .with_catalog_refresh(reload.clone());
     let resources = resources.with_provider_egress_status(provider_egress_status);

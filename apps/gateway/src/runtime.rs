@@ -3918,17 +3918,18 @@ struct RuntimeCatalogTarget {
 /// Background owner for P13-15C/D durable discovery and atomic route publication.
 #[derive(Clone)]
 pub(crate) struct RuntimeModelCatalogWorker {
+    quota_history: Arc<gateway_store::quota_history::QuotaHistoryStore>,
     kiro_profiles: KiroProfileSnapshots,
     kimi_metadata: Arc<
         std::sync::Mutex<
-            BTreeMap<CredentialId, provider_openai_compatible::KimiAccountObservation>,
+            BTreeMap<CredentialId, (u64, provider_openai_compatible::KimiAccountObservation)>,
         >,
     >,
     account_quotas: Arc<
         std::sync::Mutex<
             BTreeMap<
                 CredentialId,
-                gateway_http_actix::management_resources::account_quota::AccountQuotaObservation,
+                (u64, gateway_http_actix::management_resources::account_quota::AccountQuotaObservation),
             >,
         >,
     >,
@@ -4027,6 +4028,10 @@ impl RuntimeModelCatalogWorker {
         let base_snapshot = Arc::new(base_snapshot.materialize_binding_counts(&binding_counts));
         let worker =
             Self {
+                quota_history: Arc::new(
+                    gateway_store::quota_history::QuotaHistoryStore::open(database)
+                        .map_err(|_| RuntimeCompositionError::Unavailable)?,
+                ),
                 kiro_profiles,
                 kimi_metadata: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
                 account_quotas: Arc::new(std::sync::Mutex::new(BTreeMap::new())),

@@ -444,13 +444,17 @@ fn fixture_with_workflow_inner(
                 store.clone(),
             )?),
         )?;
+    let history = std::sync::Arc::new(gateway_store::quota_history::QuotaHistoryStore::open(
+        &file.0,
+    )?);
     Ok((
         file,
         ManagementResourceHttpState::with_workflow(
             ManagementMutationService::new(repository, store),
             workflow,
         )
-        .with_native_accounts(native),
+        .with_native_accounts(native)
+        .with_quota_history(history),
     ))
 }
 
@@ -4540,3 +4544,6 @@ async fn ordinary_duplicate_import_readback_resolves_actual_existing_account() -
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
     Ok(())
 }
+
+#[path = "managed_resource_inventory/quota_history.rs"]
+mod quota_history;
