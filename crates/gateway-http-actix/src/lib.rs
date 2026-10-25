@@ -74,8 +74,8 @@ use gateway_stream::{
 use protocol_anthropic::{
     AnthropicMessagesSseEncoder, AnthropicResponseMetadata, ResponseMode as AnthropicResponseMode,
     SseFrame as AnthropicSseFrame, decode_count_tokens_request,
-    decode_request as decode_anthropic_request, encode_count_tokens,
-    encode_error as encode_anthropic_error, encode_response as encode_anthropic_response,
+    decode_request as decode_anthropic_request, encode_error as encode_anthropic_error,
+    encode_input_token_count, encode_response as encode_anthropic_response,
 };
 use protocol_openai_chat::{
     ChatResponseMetadata, ChatSseEncoder, ChatSseFrame, ResponseMode as ChatResponseMode,
@@ -2791,7 +2791,7 @@ async fn count_tokens(
     HttpResponse::Ok()
         .content_type("application/json")
         .insert_header(("x-cpar-token-count-method", count.method()))
-        .body(encode_count_tokens(count).to_string())
+        .body(encode_input_token_count(count).to_string())
 }
 
 /// Bounded inbound-body failures observed before any handler state exists.
@@ -7961,7 +7961,9 @@ mod tests {
                 },
                 |mut observed| {
                     observed.push(observation);
-                    Ok(ExactInputTokenCount::new(17).into())
+                    Ok(gateway_core::InputTokenCount::ExactLocal(
+                        ExactInputTokenCount::new(17),
+                    ))
                 },
             );
             Box::pin(async move { result })

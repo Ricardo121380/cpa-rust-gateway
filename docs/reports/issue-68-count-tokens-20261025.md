@@ -42,7 +42,8 @@ HTTP 传递授权快照、Alias/原始模型约束、认证身份与重复检查
 
 - Core 新增 `InputTokenCount`；Router `CountTokensExecutor` 返回该类型，handoff 增加
   精确 Snapshot、raw model constraint 和原始 Messages input。旧 exact Provider capability 未改。
-- `encode_count_tokens` 接受可转换的来源计数，原 ExactInputTokenCount 调用仍可用。
+- `encode_count_tokens` 保留原 ExactInputTokenCount 签名；新增 `encode_input_token_count` 处理
+  来源计数。旧 Router capability 适配器构造时必须指定 `ExactTokenCountSource`，不猜测来源。
 - 公开成功体不变，新增固定可选诊断 header；生产 reload 装配 count executor。
 - 固定新增 `tiktoken-rs 0.12.0` 及其依赖；没有升级已有依赖。
 - 无 SQLite migration、ADR 新编号、管理路由或 management OpenAPI 变化。

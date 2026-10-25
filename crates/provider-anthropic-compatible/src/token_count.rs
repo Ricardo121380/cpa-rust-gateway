@@ -305,12 +305,17 @@ fn content(raw: &RawValue, segments: &mut Vec<String>, system: bool) -> Result<(
     if raw.get().starts_with('"') {
         return push_string(raw, segments);
     }
-    if raw.get().starts_with('[') {
-        for part in array(raw)? {
-            content(part, segments, system)?;
-        }
-        return Ok(());
+    for part in array(raw)? {
+        content_block(part, segments, system)?;
     }
+    Ok(())
+}
+
+fn content_block(
+    raw: &RawValue,
+    segments: &mut Vec<String>,
+    system: bool,
+) -> Result<(), GatewayError> {
     let block = object(raw.get())?;
     let kind: String =
         serde_json::from_str(required(&block, "type")?.get()).map_err(|_| client_error())?;

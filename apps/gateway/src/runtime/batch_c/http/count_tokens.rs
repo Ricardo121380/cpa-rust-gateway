@@ -257,6 +257,9 @@ async fn count_production_http_native_and_estimated_never_infer_or_bill() -> Tes
             }
             for body in [
                 payload("invisible"),
+                json!({"model":"count-alias","messages":[{"role":"user","content":[{"type":"tool_result","tool_use_id":"c","content":[["x"]]}]}]}),
+                json!({"model":"count-alias","messages":[{"role":"user","content":[{"type":"tool_result","tool_use_id":"c","content":["x"]}]}]}),
+                json!({"model":"count-alias","messages":[{"role":"user","content":[{"type":"tool_result","tool_use_id":"c","content":{"type":"text","text":"x"}}]}]}),
                 json!({"model":"count-alias","messages":[{"role":"user","content":"x"}],"max_tokens":0}),
                 json!({"model":"count-alias","messages":[{"role":"user","content":"x"}],"tool_choice":{"type":"tool"}}),
                 json!({"model":"count-alias","messages":[]}),

@@ -14,8 +14,9 @@
 | `proven-exact-local` | 显式证明适配模型的本地精确能力；类型接口保留，生产未安装这类 tokenizer |
 | `estimated-cpa-o200k-base` | 固定 CPA 算法的本地估算，不是模型精确 tokenizer，也不是实际 Usage |
 
-已有 exact Provider capability 仍只接受 `ExactInputTokenCount`，其 Router 适配器标记为
-`provider-reported`。估算分支只构造 `InputTokenCount::Estimated`，不存在估算转精确的转换。
+已有 exact Provider capability 仍只接受 `ExactInputTokenCount`；Router 适配器的构造者必须通过
+`ExactTokenCountSource` 明确选择 Upstream 或 ProvenLocal，不能仅凭 exact 值推断来源。
+估算分支只构造 `InputTokenCount::Estimated`，不存在估算转精确的转换。
 
 ## 渠道和模型
 
@@ -39,7 +40,7 @@
 
 图像、音频、视频、文档、redacted thinking、服务器/MCP/搜索工具、citations、未知内容块、
 未知输入字段明确拒绝，不静默丢弃；该限制同时适用于当前 native 和估算路径。
-工具结果仅支持字符串或 text 块，未知嵌套内容同样拒绝。
+工具结果仅支持字符串或单层 text 对象数组；嵌套数组、数组内裸字符串、裸对象和未知内容拒绝。
 
 固定参考为 [CPA v8.0.40 / d946c4f](https://github.com/router-for-me/CLIProxyAPI/blob/d946c4fba6fc9a5cfbca1f3d85184d62ad2fb683/internal/runtime/executor/helps/claude_input_tokens.go)：
 先 system，再每条 role/content，再工具定义，最后 tool_choice；片段 trim 后去空、换行连接，

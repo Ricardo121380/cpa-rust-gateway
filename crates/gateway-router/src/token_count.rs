@@ -7,7 +7,9 @@ use crate::{
     RouteExplainInput, RouteSnapshot, RuntimeHealthRegistry, RuntimeQuotaRegistry,
     SelectedRouteCredential, SnapshotRouteCandidate,
 };
-use gateway_core::{CanonicalRequest, GatewayError, InputTokenCount, RequestContext, RouteId};
+use gateway_core::{
+    CanonicalRequest, ExactInputTokenCount, GatewayError, InputTokenCount, RequestContext, RouteId,
+};
 use gateway_provider::{TokenCountCapability, token_count_unsupported};
 
 /// A boxed, sendable input-token-count operation without coupling the Router facade to a Provider
@@ -201,20 +203,40 @@ pub trait CountTokensExecutor: Send + Sync {
     ) -> CountTokensFuture<'_, Result<InputTokenCount, GatewayError>>;
 }
 
+/// Explicit provenance for a legacy exact capability, which does not carry its own source.
+#[derive(Clone, Copy, Debug, Default)]
+pub enum ExactTokenCountSource {
+    /// An upstream counting capability reported the value.
+    #[default]
+    Upstream,
+    /// An embedding has proven its local tokenizer compatible with the selected model.
+    ProvenLocal,
+}
+
+impl ExactTokenCountSource {
+    const fn label(self, count: ExactInputTokenCount) -> InputTokenCount {
+        match self {
+            Self::Upstream => InputTokenCount::ProviderReported(count.input_tokens()),
+            Self::ProvenLocal => InputTokenCount::ExactLocal(count),
+        }
+    }
+}
+
 /// A direct Router executor backed by one explicit Provider token-count capability.
 ///
 /// It preserves explicitly exact Provider embeddings. Production installs a routed executor
-/// separately; the legacy capability reports its result without claiming local provenance.
+/// separately; embeddings explicitly declare upstream or proven local provenance.
 #[derive(Clone, Debug, Default)]
 pub struct ProviderCountTokensExecutor {
     capability: TokenCountCapability,
+    source: ExactTokenCountSource,
 }
 
 impl ProviderCountTokensExecutor {
-    /// Creates an executor from an explicitly exact or explicitly unsupported capability.
+    /// Creates an executor with caller-declared provenance; exactness alone does not imply source.
     #[must_use]
-    pub const fn new(capability: TokenCountCapability) -> Self {
-        Self { capability }
+    pub const fn new(capability: TokenCountCapability, source: ExactTokenCountSource) -> Self {
+        Self { capability, source }
     }
 }
 
@@ -228,7 +250,7 @@ impl CountTokensExecutor for ProviderCountTokensExecutor {
             self.capability
                 .count_tokens(context, request)
                 .await
-                .map(|count| InputTokenCount::ProviderReported(count.input_tokens()))
+                .map(|count| self.source.label(count))
         })
     }
 }
@@ -245,5 +267,23 @@ impl CountTokensExecutor for UnsupportedCountTokensExecutor {
         // Do not invoke a tokenizer or construct a synthetic request for this branch: the
         // rejection itself is the proof that no approximate fallback exists.
         Box::pin(async { Err(token_count_unsupported()) })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn count_legacy_exact_provenance_requires_explicit_source() {
+        let count = ExactInputTokenCount::new(17);
+        assert_eq!(
+            ExactTokenCountSource::Upstream.label(count).method(),
+            "provider-reported"
+        );
+        assert_eq!(
+            ExactTokenCountSource::ProvenLocal.label(count).method(),
+            "proven-exact-local"
+        );
     }
 }

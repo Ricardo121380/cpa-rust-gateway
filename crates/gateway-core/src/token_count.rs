@@ -93,13 +93,6 @@ impl InputTokenCount {
     }
 }
 
-impl From<ExactInputTokenCount> for InputTokenCount {
-    fn from(value: ExactInputTokenCount) -> Self {
-        // Legacy exact capabilities attest the total, not local tokenizer provenance.
-        Self::ProviderReported(value.input_tokens())
-    }
-}
-
 impl fmt::Debug for InputTokenCount {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
