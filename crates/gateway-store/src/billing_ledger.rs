@@ -18,7 +18,7 @@ const MAX_SHORT_ID_BYTES: usize = 128;
 const MAX_MODEL_BYTES: usize = 512;
 
 /// Source of one immutable price catalog version.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize)]
 pub enum BillingCatalogSource {
     /// An operator entered the catalog through a protected management boundary.
     Operator,
@@ -52,7 +52,7 @@ impl BillingCatalogSource {
 /// Every rate is an integer number of micro-units per one million tokens.  For example, a value
 /// of `1_500_000` means 1.5 billing units per million tokens when the ledger unit is a micro-unit.
 #[allow(missing_docs)]
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
 pub struct BillingPriceEntry {
     pub provider_id: String,
     pub channel_id: String,
@@ -67,13 +67,27 @@ pub struct BillingPriceEntry {
 
 /// One immutable, versioned price catalog.
 #[allow(missing_docs)]
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
 pub struct BillingPriceCatalog {
     pub catalog_version_id: String,
     pub effective_at_ms: u64,
     pub source: BillingCatalogSource,
     pub created_at_ms: u64,
     pub entries: Vec<BillingPriceEntry>,
+}
+
+/// Content fingerprint of the entire immutable catalog set, independent of enumeration order.
+/// # Errors
+/// Returns a safe storage error if serialization fails.
+pub fn billing_catalog_fingerprint(catalogs: &[BillingPriceCatalog]) -> StoreResult<String> {
+    let mut ordered = catalogs.to_vec();
+    ordered.sort_by(|a, b| a.catalog_version_id.cmp(&b.catalog_version_id));
+    for catalog in &mut ordered {
+        catalog.entries = sorted_entries(std::mem::take(&mut catalog.entries));
+    }
+    let bytes =
+        serde_json::to_vec(&ordered).map_err(|_| StoreError::InvalidPersistedBillingRecord)?;
+    Ok(format!("{:x}", Sha256::digest(bytes)))
 }
 
 const LEDGER_ROW_SELECT: &str = "SELECT ledger_id, source_event_id, source_fingerprint, request_id, response_id, \

@@ -45,6 +45,7 @@ CPAR 是 CPA/CLIProxyAPI 网关行为的 Rust 实现。优先直接对照固定�
 | 通用 session/cache affinity | 精确 continuation pin 已有；Build cache_affinity 库/测试未发现 serving 接线 | **待接线/补策略**，不能把两者合并报为通用亲和已完成 |
 | 管理 API、配置发布/回滚 | /admin 已有；管理 API 发布时装配新运行代 | 本地离线 admin CLI 与运行中管理 API 的生效方式分开；无需重建控制面 |
 | Request/Attempt/Usage、账本和加密恢复 | 持久化与查询/恢复已有；#72 新增统一过滤、全范围汇总、冻结快照和 CSV/JSONL 分页导出，已接入管理 API | 见 [#72 实施记录](reports/issue-72-usage-query-export-20261025.md)；未知费用及 cost_in_usd_ticks 未准入保持；后续[独立安全升级](reports/crypto-bigint-security-fix-20261025-issue72.md)已消除 RUSTSEC-2026-0387 阻塞，原分支本地 Full 44/44 通过；本轮集成结果单独记录。有限快照不代表大规模性能、实际生产数据或 #75 容量验收 |
+| 价格获取、审阅与版本化应用（#73） | 独立分支新增来源预览、内容/revision与全局目录围栏确认、schema40审阅证据；复用不可变目录及向前回滚 | 本轮验证进行中，见[实施记录](reports/issue-73-price-preview-20261025.md)；缺项保持null/阻止应用，需操作者明确补齐。旧ledger与#72冻结结果不重算；不代表已合并或远端关闭 |
 | 账号配额观察历史（#74） | 独立历史表、现有额度读取/Kimi后台观察接线、有界管理查询已实现 | 本地功能验收通过；[原交付记录](reports/issue-74-quota-history-20261025.md)保留Full供应链失败；集成验证见[集成记录](reports/parallel-integration-20261025.md)，原安全后继见[历史记录](reports/rustsec-2026-0387-from74-20261025.md)；真实Provider、部署未运行；与Token Usage/费用分离 |
 | RUSTSEC-2026-0387安全修复（已集成） | p256 0.14.0 / crypto-bigint 0.7.8；保留显式Randomness错误、三个调用点与独有回归，无ignore或门禁放宽 | 本轮集成Full 44/44，1695 passed / 0 failed / 21 ignored；见[集成验收](reports/parallel-integration-20261025.md)，原分支证据按原身份保留 |
 | 外部 OTel 输出 | 接口已有，serve 使用 Noop exporter | **待接线**，不宣称已把 tracing 送到外部系统 |
@@ -161,7 +162,7 @@ Gemini、多模态、插件、Home 和新前端是单独扩展项，本页没有
 | [#70](https://github.com/Ricardo121380/cpa-rust-gateway/issues/70) | 生产路由策略与 Build 会话亲和 | P1 |
 | [#71](https://github.com/Ricardo121380/cpa-rust-gateway/issues/71) | CPA 请求规则与自定义上游 headers | P1 |
 | [#72](https://github.com/Ricardo121380/cpa-rust-gateway/issues/72) | Token 与费用的统一查询及快照导出；本地实现与证据见 [实施记录](reports/issue-72-usage-query-export-20261025.md)，独立安全升级后本地 Full 已通过，远端仍 OPEN | P1 |
-| [#73](https://github.com/Ricardo121380/cpa-rust-gateway/issues/73) | 价格获取、审阅与版本化应用 | P1 |
+| [#73](https://github.com/Ricardo121380/cpa-rust-gateway/issues/73) | 价格获取、审阅与版本化应用；本地增量与本轮证据见[实施记录](reports/issue-73-price-preview-20261025.md) | P1 |
 | [#74](https://github.com/Ricardo121380/cpa-rust-gateway/issues/74) | 配额观察的历史与重置窗口查询 | P1 |
 | [#75](https://github.com/Ricardo121380/cpa-rust-gateway/issues/75) | 大历史查询与加密备份恢复的容量闭环 | P1 |
 

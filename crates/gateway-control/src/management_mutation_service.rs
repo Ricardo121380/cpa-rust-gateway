@@ -2914,6 +2914,52 @@ impl ManagementMutationService {
         expected_revision: ConfigRevision,
         input: BillingCatalogImport,
     ) -> Result<Revisioned<BillingCatalogMutationReceipt>, ManagementResourceError> {
+        self.import_billing_catalog_inner(actor, config_version_id, expected_revision, input, None)
+    }
+
+    /// Applies a reviewed catalog against the exact global catalog set seen at preview time.
+    /// # Errors
+    /// Source evidence, catalog, audit and revision either commit together or remain unchanged.
+    pub fn import_reviewed_billing_catalog(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        input: BillingCatalogImport,
+        expected_catalog_fingerprint: &str,
+        review_json: &str,
+    ) -> Result<Revisioned<BillingCatalogMutationReceipt>, ManagementResourceError> {
+        self.import_billing_catalog_inner(
+            actor,
+            config_version_id,
+            expected_revision,
+            input,
+            Some((expected_catalog_fingerprint, review_json)),
+        )
+    }
+
+    /// Reads review evidence while enforcing the selected configuration context.
+    /// # Errors
+    /// Missing legacy evidence returns a resource-not-found error.
+    pub fn billing_catalog_review(
+        &mut self,
+        version: &ConfigVersionId,
+        id: &str,
+    ) -> Result<String, ManagementResourceError> {
+        self.configuration(version)?;
+        self.repository
+            .load_billing_catalog_review(id)?
+            .ok_or(ManagementResourceError::ResourceNotFound)
+    }
+
+    fn import_billing_catalog_inner(
+        &mut self,
+        actor: &ManagementActor,
+        config_version_id: &ConfigVersionId,
+        expected_revision: ConfigRevision,
+        input: BillingCatalogImport,
+        review: Option<(&str, &str)>,
+    ) -> Result<Revisioned<BillingCatalogMutationReceipt>, ManagementResourceError> {
         if matches!(input.source, BillingCatalogSource::Test) || input.entries.is_empty() {
             return Err(ManagementResourceError::InvalidBillingCatalogInput);
         }
@@ -2927,7 +2973,11 @@ impl ManagementMutationService {
             entries: input.entries,
         };
         let audit = self.audit(
-            "billing_catalog_imported",
+            if review.is_some() {
+                "billing_catalog_review_applied"
+            } else {
+                "billing_catalog_imported"
+            },
             actor,
             config_version_id,
             "billing_catalog",
@@ -2942,7 +2992,11 @@ impl ManagementMutationService {
             config_version_id,
             expected_revision.as_i64(),
             |transaction| {
-                transaction.insert_billing_catalog(&catalog)?;
+                if let Some((fingerprint, evidence)) = review {
+                    transaction.insert_reviewed_billing_catalog(&catalog, fingerprint, evidence)?;
+                } else {
+                    transaction.insert_billing_catalog(&catalog)?;
+                }
                 transaction.record_management_resource_audit_event(&audit, config_version_id)
             },
         )?;

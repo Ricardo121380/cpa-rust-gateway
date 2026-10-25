@@ -19,7 +19,7 @@ mod grok_device;
 pub mod kimi_device;
 pub mod kiro_device;
 pub mod native_accounts;
-mod price_source;
+pub mod price_source;
 mod quota_history;
 mod request_history;
 mod resource_inventory;
@@ -126,6 +126,8 @@ const CODEX_OAUTH_USER_AGENT: &str = "codex_cli_rs/0.144.1";
 /// P10-04 code and never run while this lock is held.
 pub struct ManagementResourceHttpState {
     quota_history: Option<std::sync::Arc<gateway_store::quota_history::QuotaHistoryStore>>,
+    price_source: std::sync::Arc<dyn price_source::PriceSource>,
+    price_previews: Mutex<price_source::Previews>,
     catalog_refresh: Option<std::sync::Arc<dyn catalog_refresh::CatalogRefreshFacade>>,
     catalog_refresh_slots: std::sync::Arc<tokio::sync::Semaphore>,
     system_information: Option<ManagementSystemInformation>,
@@ -412,6 +414,8 @@ impl ManagementResourceHttpState {
     ) -> Self {
         Self {
             quota_history: None,
+            price_source: std::sync::Arc::new(price_source::ModelsDev),
+            price_previews: Mutex::default(),
             catalog_refresh: None,
             catalog_refresh_slots: std::sync::Arc::new(tokio::sync::Semaphore::new(4)),
             system_information: None,
@@ -3214,6 +3218,7 @@ fn configure_operations_resource_routes(config: &mut web::ServiceConfig) {
 }
 
 fn configure_billing_resource_routes(config: &mut web::ServiceConfig) {
+    price_source::configure(config);
     config
         .route(
             "/billing/price-source/refresh",

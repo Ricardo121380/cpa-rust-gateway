@@ -1626,7 +1626,24 @@ impl SqliteControlPlaneRepository {
         &self,
         limit: usize,
     ) -> StoreResult<Vec<BillingPriceCatalog>> {
-        list_catalogs_bounded_from_connection(&self.connection, limit)
+        let transaction = self.connection.unchecked_transaction()?;
+        let catalogs = list_catalogs_bounded_from_connection(&transaction, limit)?;
+        transaction.commit()?;
+        Ok(catalogs)
+    }
+
+    /// Loads retained, secret-free review evidence for a catalog. Legacy imports have none.
+    /// # Errors
+    /// Returns a safe storage error on read failure.
+    pub fn load_billing_catalog_review(&self, id: &str) -> StoreResult<Option<String>> {
+        Ok(self
+            .connection
+            .query_row(
+                "SELECT review_json FROM billing_catalog_reviews WHERE catalog_version_id = ?1",
+                [id],
+                |row| row.get(0),
+            )
+            .optional()?)
     }
 
     /// Loads the optional routing price policy bound to one exact Config Version.
@@ -2171,6 +2188,35 @@ impl ControlPlaneTransaction<'_> {
             return Err(StoreError::BillingCatalogCapacityReached);
         }
         insert_catalog_in_transaction(&self.transaction, catalog)
+    }
+
+    /// Compares the global price set and appends a reviewed version and provenance atomically.
+    /// # Errors
+    /// A changed global catalog set returns a revision conflict and rolls back the caller's bump.
+    pub fn insert_reviewed_billing_catalog(
+        &mut self,
+        catalog: &BillingPriceCatalog,
+        expected_fingerprint: &str,
+        review_json: &str,
+    ) -> StoreResult<()> {
+        let catalogs = list_catalogs_bounded_from_connection(
+            &self.transaction,
+            MAX_MANAGEMENT_BILLING_CATALOGS + 1,
+        )?;
+        if crate::billing_ledger::billing_catalog_fingerprint(&catalogs)? != expected_fingerprint {
+            return Err(StoreError::ConfigVersionRevisionConflict);
+        }
+        if review_json.len() > 524_288
+            || serde_json::from_str::<serde_json::Value>(review_json).is_err()
+        {
+            return Err(StoreError::InvalidPersistedBillingRecord);
+        }
+        self.insert_billing_catalog(catalog)?;
+        self.transaction.execute(
+            "INSERT INTO billing_catalog_reviews (catalog_version_id, review_json) VALUES (?1, ?2)",
+            params![catalog.catalog_version_id, review_json],
+        )?;
+        Ok(())
     }
 
     /// Verifies a draft graph's exact revision and advances it once for the current transaction.

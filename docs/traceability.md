@@ -395,3 +395,7 @@ OPT-07 / T22 → [ADR-0129](adr/ADR-0129-account-quota-history.md) → [BC-MGMT-
 Usage process517/517; quota process20/20; schema38→39 preserves original Usage/ledger/price cells.
 `quota_history_cancelled_waiter_keeps_blocking_capacity` preserves bounded blocking work after cancellation.
 Historical branch evidence keeps its original identities; final documentation successor is recorded separately.
+
+## #73 reviewed price source (2026-10-25)
+
+OPT-06 → [ADR-0131](adr/ADR-0131-reviewed-price-source-versioning.md) → [BC-MGMT-021](contracts/BC-MGMT-021-reviewed-price-source-versioning.md). Uses schema40 review evidence, existing immutable catalogs/ledger and #72 frozen results. Local validation and source identity are recorded in the [implementation report](reports/issue-73-price-preview-20261025.md).
