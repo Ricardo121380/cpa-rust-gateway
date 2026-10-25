@@ -44,7 +44,7 @@ CPAR 是 CPA/CLIProxyAPI 网关行为的 Rust 实现。优先直接对照固定�
 | 账号池、路由、重试和权限组 | 已接入；普通模型入口使用 ProviderScopedSelector | 与 CPA priority/weight/fill-first 行为不同；需要行为对齐时按实际 serving 分支改 |
 | 通用 session/cache affinity | 精确 continuation pin 已有；Build cache_affinity 库/测试未发现 serving 接线 | **待接线/补策略**，不能把两者合并报为通用亲和已完成 |
 | 管理 API、配置发布/回滚 | /admin 已有；管理 API 发布时装配新运行代 | 本地离线 admin CLI 与运行中管理 API 的生效方式分开；无需重建控制面 |
-| 账号配额观察历史（#74） | 独立历史表、现有额度读取/Kimi后台观察接线、有界管理查询已实现 | 本地验证见[交付记录](reports/issue-74-quota-history-20261025.md)；真实Provider、部署未运行；与Token Usage/费用分离 |
+| 账号配额观察历史（#74） | 独立历史表、现有额度读取/Kimi后台观察接线、有界管理查询已实现 | 本地功能验收通过；Full受共同基线RUSTSEC-2026-0387阻塞，见[交付记录](reports/issue-74-quota-history-20261025.md)；真实Provider、部署未运行；与Token Usage/费用分离 |
 | Request/Attempt/Usage、账本和加密恢复 | 持久化与查询/恢复实现已有 | 未知费用、cost_in_usd_ticks 的未准入状态保持；长期统计工作流仍有差距 |
 | 外部 OTel 输出 | 接口已有，serve 使用 Noop exporter | **待接线**，不宣称已把 tracing 送到外部系统 |
 | 通用 payload 覆盖、自定义 headers、模型前缀/后缀等 | 未发现 CPA 等价用户配置入口 | **待实现**，按实际兼容需求排序 |
