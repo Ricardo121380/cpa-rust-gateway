@@ -1,0 +1,134 @@
+{
+  "status": "PASS_LOCAL_INTEGRATION",
+  "code_commit": "e06ac169fb8217b00530d9f4e70cfefdd594a513",
+  "code_tree": "adb66414ca866f915fcd0a398952d290dc9914fd",
+  "lock_sha256": "3b0c82a72bea2fba0b9de42ff4fa6083d08b42fb2a7ba1a33d007807079de445",
+  "source_file_count": 7241,
+  "source_manifest_sha256": "208f8b66fd057939c9082c782b1a54fe409bd7b081a920f4dcdbd6c463ff09d5",
+  "schema": 42,
+  "parents": [
+    "24253e0e1c63fa6a286f78160d944da1b8f23cfa",
+    "14f9a9e3c15a03765136fc5cecfaa3b28baa3b1b"
+  ],
+  "common_base": "7c16070bb66f7f3008022f7870b5d1f96b63f167",
+  "full_pass": 44,
+  "rust_result_sets": 137,
+  "rust_passed": 1751,
+  "rust_failed": 0,
+  "rust_ignored": 23,
+  "schema_tests_passed": 6,
+  "explicit_backup_tests_passed": 7,
+  "stock_process_checks": 225,
+  "usage_process_checks": 517,
+  "quota_process_checks": 21,
+  "stock_binary": {
+    "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-parallel-70-71-integration-20261025/output/wave3/bin/gateway-stock-e06ac169",
+    "sha256": "5a41b79488c39e23c84eb163c43d8084eef9c6db5546897090fe444466b3a3af",
+    "command": "cargo build --locked -p gateway --bin gateway",
+    "head": "e06ac169fb8217b00530d9f4e70cfefdd594a513"
+  },
+  "helper_binaries": {
+    "gateway": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-parallel-70-71-integration-20261025/output/wave3/bin/gateway-e06ac169",
+      "sha256": "b35db93c577280813b7b4a862849e9d75513a5c14612aa5d6437b7a357acbd35"
+    },
+    "support": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-parallel-70-71-integration-20261025/output/wave3/bin/support-e06ac169",
+      "sha256": "4d896e9d1a21e031c80ddd8f056438e2d537937f7166256e89ef7495ef7017b1"
+    },
+    "wave2": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-parallel-70-71-integration-20261025/output/wave3/bin/wave2-e06ac169",
+      "sha256": "4f857a677f37d4be5fb604a5710ce0f0ef8ef9c9207cc972b1ab3b7d7b0c989a"
+    },
+    "historical": {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-parallel-68-72-74-integration-20261025/output/integration/bin/gateway-6a7ae73e79b5",
+      "sha256": "d66580b1c2464d7a94b6467a21fd88546fb0dd6d8e4eef3ba680f2816ab6a54e"
+    },
+    "head": "e06ac169fb8217b00530d9f4e70cfefdd594a513"
+  },
+  "failure_history": {
+    "schema-red": "1 PASS /4 FAIL before safety fix",
+    "review-loss-red": "missing loss column accepted before follow-up fix",
+    "full-01": "INTERRUPTED143 during Clippy for review fixes",
+    "full-02": "FAIL101 Clippy manual_assert_eq; assertion syntax fixed without semantic change",
+    "process-01": "PASS225 with workspace all-features executable; definitive default-build result is process-02-stock"
+  },
+  "backup": {
+    "seconds": 10.373055041999997,
+    "exit": 0,
+    "os_high_water_rss_bytes": 11452416,
+    "artifact_bytes": 98565677,
+    "artifact_sha256": "a72bb479c840036b34e4d5a1662ed19c41ccc40a6438134b50d9fa87250ef81a"
+  },
+  "real_provider": "NOT_RUN",
+  "actual_external_clients": "NOT_RUN",
+  "remote_CI": "NOT_RUN",
+  "release_deployment": "NOT_RUN",
+  "cost_in_usd_ticks": "NOT_ADMITTED",
+  "logs": {
+    "backup-explicit.log": {
+      "bytes": 1031,
+      "sha256": "27fe95ac42a72a892c457d961878839c82cbc3d5315985eec61d0f2c765a0517"
+    },
+    "build-stock.log": {
+      "bytes": 4512,
+      "sha256": "e8dd9b72f00f960e8b3766e0dd447c3c1c5225eb5a99ada7307aeeba78df0a6c"
+    },
+    "full-01.log": {
+      "bytes": 19282,
+      "sha256": "ae133122eccbef1af52e105163fe7906e390b484be2e5c5a4644ac1f5a1b59e0"
+    },
+    "full-01.md": {
+      "bytes": 1322,
+      "sha256": "fb7824e033d910a2ff8af41d1993ba30650eccbf12412859b4056f2ace75826e"
+    },
+    "full-02.log": {
+      "bytes": 10714,
+      "sha256": "a365381f832e1a82ca7255e3101a8aefba034d63d20e8fc9f1896f83fa0e2841"
+    },
+    "full-02.md": {
+      "bytes": 1350,
+      "sha256": "a8338953b13e0b33443433c47c7864859c3d90fd75d51f03f507301d4b08a01e"
+    },
+    "full-03.log": {
+      "bytes": 327206,
+      "sha256": "b9d47d12473111f7a15ee55c58ea1bad2d3fe18e76511612f23e7e69c81e345f"
+    },
+    "full-03.md": {
+      "bytes": 1816,
+      "sha256": "b00868a9fb09205ed84388afb6bbe3fbdced359fd38097d91a29aa5779197c6c"
+    },
+    "process-01.log": {
+      "bytes": 237,
+      "sha256": "737d0cb29e43f291c189080b69360a512dcaf042f73df46ad40ea928a315086b"
+    },
+    "process-02-stock.log": {
+      "bytes": 243,
+      "sha256": "5140fa876054ce19a0bc1a3fc6a6b2f10876efa0318b45192de91d62fa20e96e"
+    },
+    "quota-process.log": {
+      "bytes": 39,
+      "sha256": "2d1a7f30df67f12accf09d407e3214668d270a381532b8d0c4e735b9bc9a83e2"
+    },
+    "review-loss-red.log": {
+      "bytes": 1126,
+      "sha256": "73f7474d3f66f7a522e49a4bfc815961f992a0d26f3359be79670343da2a82bc"
+    },
+    "schema-green-02.log": {
+      "bytes": 960,
+      "sha256": "6a53eb438f344f139d7ba6ab0166b2c12af9edb7db5161f74a4588c865865f86"
+    },
+    "schema-green.log": {
+      "bytes": 880,
+      "sha256": "45105a712811536b9b79a807ef06ec5f42a0cdcba822cac878af22772e943b25"
+    },
+    "schema-red.log": {
+      "bytes": 5048,
+      "sha256": "bffe99c70bbefa695d0945f8a557a4173beb1389254c15b9528746bae8daeb84"
+    },
+    "usage-process.log": {
+      "bytes": 91,
+      "sha256": "bb57fcbc5804c626bfd5b6758ddc3de2f80314e28f8e929b36a9c271461aabc7"
+    }
+  }
+}

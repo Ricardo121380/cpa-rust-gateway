@@ -1,0 +1,757 @@
+{
+  "status": "VERIFIED_LOCAL_ACCEPTANCE",
+  "count": 75,
+  "criteria": [
+    {
+      "issue": 68,
+      "criterion": 1,
+      "text": "按 ADR-0127 和固定 CPA v8.0.40 明确 native upstream、proven exact-local、estimated 三种来源；修订计数契约，估算不能构造成 ExactInputTokenCount。",
+      "original_tested_source": "1386e428725df3c8f736c3c1a4ab858c7b995a2c",
+      "original_report": "docs/reports/issue-68-count-tokens-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 68,
+      "criterion": 2,
+      "text": "生产 HTTP 鉴权、模型/Alias 解析、Router 和实际 executor 贯通；支持的第一方源使用计数 API，第三方支持路径按冻结算法估算，不触发推理接口。",
+      "original_tested_source": "1386e428725df3c8f736c3c1a4ab858c7b995a2c",
+      "original_report": "docs/reports/issue-68-count-tokens-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 68,
+      "criterion": 3,
+      "text": "支持文本、system、工具定义、工具调用及结果历史的计数；图像、未知内容及模型范围逐项声明，无法可靠支持时明确报错，不静默跳过内容。",
+      "original_tested_source": "1386e428725df3c8f736c3c1a4ab858c7b995a2c",
+      "original_report": "docs/reports/issue-68-count-tokens-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 68,
+      "criterion": 4,
+      "text": "保持标准 input_tokens 响应体；文档和非秘密诊断明确实际方法、来源及局限，实测样例对照不等于承诺通用误差上限。",
+      "original_tested_source": "1386e428725df3c8f736c3c1a4ab858c7b995a2c",
+      "original_report": "docs/reports/issue-68-count-tokens-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 68,
+      "criterion": 5,
+      "text": "非法/不可见模型、坏认证、畸形或超限输入明确失败；上游计数故障不被伪造零值或未声明 fallback 掩盖。",
+      "original_tested_source": "1386e428725df3c8f736c3c1a4ab858c7b995a2c",
+      "original_report": "docs/reports/issue-68-count-tokens-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 68,
+      "criterion": 6,
+      "text": "公开 HTTP 正反例使用独立计数 receiver，证明生产装配、计数调用次数和推理接收为零；不生成虚构 inference Usage 或计费 ledger。",
+      "original_tested_source": "1386e428725df3c8f736c3c1a4ab858c7b995a2c",
+      "original_report": "docs/reports/issue-68-count-tokens-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 68,
+      "criterion": 7,
+      "text": "保留既有推理、权限、取消、错误和精确能力语义；实际客户端若依赖本能力，在 #64 或对应渠道票复验，不能以本票代替三客户端资格。",
+      "original_tested_source": "1386e428725df3c8f736c3c1a4ab858c7b995a2c",
+      "original_report": "docs/reports/issue-68-count-tokens-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 69,
+      "criterion": 1,
+      "text": "冻结 CPA v8.0.40 对预算 0/-1、模型支持等级/范围和 Claude speed/service_tier 到目标字段的适用矩阵；分清 source extraction、model normalization 和最终 wire。",
+      "original_tested_source": "46c2807eacb4390ad7500bba5613414ddc07a365",
+      "original_report": "docs/reports/issue-69-controls-model-names-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 69,
+      "criterion": 2,
+      "text": "沿用已完成 ADR-0126 的 effort-only、enabled 无预算、disabled/正预算优先级，不重复实现或回退已有行为。",
+      "original_tested_source": "46c2807eacb4390ad7500bba5613414ddc07a365",
+      "original_report": "docs/reports/issue-69-controls-model-names-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 69,
+      "criterion": 3,
+      "text": "对已知模型使用有来源的支持等级/预算信息；未知或自定义模型采用明确回退，不借模型目录存在推定账号能力或新增访问权限。",
+      "original_tested_source": "46c2807eacb4390ad7500bba5613414ddc07a365",
+      "original_report": "docs/reports/issue-69-controls-model-names-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 69,
+      "criterion": 4,
+      "text": "普通 CanonicalBridge 实现已说明的兼容转换；同协议 native 保留有效值，显式 LosslessBridge 继续要求其契约；用后继决策限定修改原拒绝条款。",
+      "original_tested_source": "46c2807eacb4390ad7500bba5613414ddc07a365",
+      "original_report": "docs/reports/issue-69-controls-model-names-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 69,
+      "criterion": 5,
+      "text": "服务档位只有在固定参考和目标路径确有映射时保留相应选择；未映射情况明确说明，不伪造优先服务承诺。",
+      "original_tested_source": "46c2807eacb4390ad7500bba5613414ddc07a365",
+      "original_report": "docs/reports/issue-69-controls-model-names-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 69,
+      "criterion": 6,
+      "text": "通过实际公共 JSON/SSE 与独立上游 receiver 检查最终字段、缺省/冲突/畸形输入和工具续轮；鉴权、工具关联、已知历史和输出上限边界仍通过。",
+      "original_tested_source": "46c2807eacb4390ad7500bba5613414ddc07a365",
+      "original_report": "docs/reports/issue-69-controls-model-names-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 69,
+      "criterion": 7,
+      "text": "输出简洁行为矩阵及差分样例来源；客户端完整验收仍复用 #62/#64，cache placement/sampling/历史签名的实际客户端差异在对应旧票继续处理。",
+      "original_tested_source": "46c2807eacb4390ad7500bba5613414ddc07a365",
+      "original_report": "docs/reports/issue-69-controls-model-names-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 69,
+      "criterion": 8,
+      "text": "参照固定 CPA 的模型前缀与 thinking 后缀，定义精确 Alias、前缀匹配、后缀解析及 body 控制的优先级；保留现有精确名称不被误拆。",
+      "original_tested_source": "46c2807eacb4390ad7500bba5613414ddc07a365",
+      "original_report": "docs/reports/issue-69-controls-model-names-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 69,
+      "criterion": 9,
+      "text": "后缀仅在目标模型/协议允许时调用已有思考处理，不以任意字符串制造新的上游模型或能力；使用本票请求控制部分的规范化结果。",
+      "original_tested_source": "46c2807eacb4390ad7500bba5613414ddc07a365",
+      "original_report": "docs/reports/issue-69-controls-model-names-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 69,
+      "criterion": 10,
+      "text": "授权针对实际解析后的公共模型/路由执行，发现或别名不扩大 Key 权限；未知/冲突名称明确失败。",
+      "original_tested_source": "46c2807eacb4390ad7500bba5613414ddc07a365",
+      "original_report": "docs/reports/issue-69-controls-model-names-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 69,
+      "criterion": 11,
+      "text": "管理配置的校验、发布、回滚、模型列表和路由解释一致呈现生效名称；已有模型/路由数据升级不静默改名。",
+      "original_tested_source": "46c2807eacb4390ad7500bba5613414ddc07a365",
+      "original_report": "docs/reports/issue-69-controls-model-names-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 69,
+      "criterion": 12,
+      "text": "公共 JSON/SSE receiver 验证前缀/后缀、显式 body 冲突、精确别名碰撞、跨 Key 访问与畸形输入。",
+      "original_tested_source": "46c2807eacb4390ad7500bba5613414ddc07a365",
+      "original_report": "docs/reports/issue-69-controls-model-names-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 69,
+      "criterion": 13,
+      "text": "支持说明给出可复制命名样例和固定来源；本票不加入新 Provider 或任意正则脚本。",
+      "original_tested_source": "46c2807eacb4390ad7500bba5613414ddc07a365",
+      "original_report": "docs/reports/issue-69-controls-model-names-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 70,
+      "criterion": 1,
+      "text": "复用现有 cache identity 与 affinity 存储接口，实际 serving 在选择账号/出口时读取并更新绑定，不能只编码 prompt_cache_key。",
+      "original_tested_source": "731c318320ae6f9df69cc77a708ea67c468a2695",
+      "original_report": "docs/reports/issue-70-routing-build-affinity-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 70,
+      "criterion": 2,
+      "text": "绑定作用域包含调用方、Provider、模型及缓存/会话身份，具有容量和过期边界，不泄露原始身份或跨所有者复用。",
+      "original_tested_source": "731c318320ae6f9df69cc77a708ea67c468a2695",
+      "original_report": "docs/reports/issue-70-routing-build-affinity-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 70,
+      "criterion": 3,
+      "text": "明确建立、命中、失效、饱和和重新绑定规则；停用、失效、额度、权限和实际 lease 资格仍先于亲和偏好。",
+      "original_tested_source": "731c318320ae6f9df69cc77a708ea67c468a2695",
+      "original_report": "docs/reports/issue-70-routing-build-affinity-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 70,
+      "criterion": 4,
+      "text": "已有精确 stored continuation、compact 和 WebSocket pin 保持严格 lineage；普通亲和不能把它们降为可替换账号的软约束。",
+      "original_tested_source": "731c318320ae6f9df69cc77a708ea67c468a2695",
+      "original_report": "docs/reports/issue-70-routing-build-affinity-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 70,
+      "criterion": 5,
+      "text": "在并发、配置发布、凭据 revision 变化和账号退出时保持可解释行为；按现有接口要求记录适用的 rebind 原因。",
+      "original_tested_source": "731c318320ae6f9df69cc77a708ea67c468a2695",
+      "original_report": "docs/reports/issue-70-routing-build-affinity-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 70,
+      "criterion": 6,
+      "text": "从公开请求到独立 receiver 证明命中同一账号/出口、过期重选、跨 Key 隔离和失败切换；检查租约释放、重试预算及语义输出后不重试。",
+      "original_tested_source": "731c318320ae6f9df69cc77a708ea67c468a2695",
+      "original_report": "docs/reports/issue-70-routing-build-affinity-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 70,
+      "criterion": 7,
+      "text": "先完成 Build 已有接缝，不把本票扩大为全 Provider 会话框架或 Grok Web 原生续接修复；Web 义务仍在 #49。",
+      "original_tested_source": "731c318320ae6f9df69cc77a708ea67c468a2695",
+      "original_report": "docs/reports/issue-70-routing-build-affinity-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 70,
+      "criterion": 8,
+      "text": "明确区分 provider candidate 排序与 endpoint 内 credential 调度；记录当前 quota/price/load/priority/weight 行为，不能把末端 weight 排序称为份额分流。",
+      "original_tested_source": "731c318320ae6f9df69cc77a708ea67c468a2695",
+      "original_report": "docs/reports/issue-70-routing-build-affinity-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 70,
+      "criterion": 9,
+      "text": "复用现有选择/租约边界实现显式 round-robin、weighted-round-robin、fill-first 行为，固定其 CPA 来源与相同优先层语义。",
+      "original_tested_source": "731c318320ae6f9df69cc77a708ea67c468a2695",
+      "original_report": "docs/reports/issue-70-routing-build-affinity-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 70,
+      "criterion": 10,
+      "text": "保留已有配置的选择语义和 priority 数值方向；以明确策略/迁移映射接纳 CPA 配置，不静默反转历史数字或改变现有默认策略。",
+      "original_tested_source": "731c318320ae6f9df69cc77a708ea67c468a2695",
+      "original_report": "docs/reports/issue-70-routing-build-affinity-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 70,
+      "criterion": 11,
+      "text": "健康、额度、权限、过期、容量和实际 lease 复核继续生效；禁止跨 Provider 或精确 continuation 的隐式 fallback。",
+      "original_tested_source": "731c318320ae6f9df69cc77a708ea67c468a2695",
+      "original_report": "docs/reports/issue-70-routing-build-affinity-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 70,
+      "criterion": 12,
+      "text": "管理配置校验、发布、回滚和运行解释共同呈现实际采用策略；非法权重/边界拒绝且旧配置继续服务。",
+      "original_tested_source": "731c318320ae6f9df69cc77a708ea67c468a2695",
+      "original_report": "docs/reports/issue-70-routing-build-affinity-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 70,
+      "criterion": 13,
+      "text": "生产公开请求证明 RR 轮转、加权完整周期、fill-first 持续选择及不可用切换；覆盖并发、失败排除和候选集变化，不只测孤立 selector。",
+      "original_tested_source": "731c318320ae6f9df69cc77a708ea67c468a2695",
+      "original_report": "docs/reports/issue-70-routing-build-affinity-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 70,
+      "criterion": 14,
+      "text": "按契约记录新配置选择方式及旧配置兼容；架构整理仅限该职责必要改动。",
+      "original_tested_source": "731c318320ae6f9df69cc77a708ea67c468a2695",
+      "original_report": "docs/reports/issue-70-routing-build-affinity-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 71,
+      "criterion": 1,
+      "text": "固定支持的模型/协议/渠道作用域和 default、override、filter 顺序；参照 CPA，明确与客户端值、协议转换、Provider 必需字段的优先关系。",
+      "original_tested_source": "2dc8c87c9c8f7c78db4c368d62932be5b4573e82",
+      "original_report": "docs/reports/issue-71-request-rules-upstream-headers-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 71,
+      "criterion": 2,
+      "text": "复用版本化配置的校验、发布、回滚和审计；无规则时保持原请求行为，不引入通用脚本或新的配置服务。",
+      "original_tested_source": "2dc8c87c9c8f7c78db4c368d62932be5b4573e82",
+      "original_report": "docs/reports/issue-71-request-rules-upstream-headers-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 71,
+      "criterion": 3,
+      "text": "仅允许规则修改明示可配置字段；路由身份、凭据、所有权、内部 metadata 和内容历史不能借通用覆盖绕过验证。",
+      "original_tested_source": "2dc8c87c9c8f7c78db4c368d62932be5b4573e82",
+      "original_report": "docs/reports/issue-71-request-rules-upstream-headers-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 71,
+      "criterion": 4,
+      "text": "自定义 header 校验名称和值、换行与大小；账号授权和传输必需头的覆盖边界明确，秘密不进入普通响应/审计。",
+      "original_tested_source": "2dc8c87c9c8f7c78db4c368d62932be5b4573e82",
+      "original_report": "docs/reports/issue-71-request-rules-upstream-headers-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 71,
+      "criterion": 5,
+      "text": "配置冲突、非法路径/值或不适用目标在校验或最早可判定阶段给出清楚错误；用户选择的 filter 记录为配置行为，不冒充无损透传。",
+      "original_tested_source": "2dc8c87c9c8f7c78db4c368d62932be5b4573e82",
+      "original_report": "docs/reports/issue-71-request-rules-upstream-headers-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 71,
+      "criterion": 6,
+      "text": "经管理 HTTP 保存/发布，再经公开推理到独立 receiver 验证 default、override、filter、headers 组合及回滚；覆盖并发 revision 与跨 Key 隔离。",
+      "original_tested_source": "2dc8c87c9c8f7c78db4c368d62932be5b4573e82",
+      "original_report": "docs/reports/issue-71-request-rules-upstream-headers-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 71,
+      "criterion": 7,
+      "text": "同步管理 OpenAPI 和使用样例；未来前端可消费接口，本票不创建前端或自动发真实 Provider 请求。",
+      "original_tested_source": "2dc8c87c9c8f7c78db4c368d62932be5b4573e82",
+      "original_report": "docs/reports/issue-71-request-rules-upstream-headers-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 72,
+      "criterion": 1,
+      "text": "复用 Request/Attempt/Usage 和版本价格 ledger；管理查询至少贯通时间、模型、账号、Client Key 与 Access Group 的适用维度。",
+      "original_tested_source": "daf4718b14ba58be00ede963b957e8fdfaaf14ac",
+      "original_report": "docs/reports/issue-72-usage-query-export-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 72,
+      "criterion": 2,
+      "text": "提供有界时间分桶和稳定分页的聚合读模型，区分请求数、尝试数、失败/取消已知用量，不把多次尝试当重复请求或丢弃失败消耗。",
+      "original_tested_source": "daf4718b14ba58be00ede963b957e8fdfaaf14ac",
+      "original_report": "docs/reports/issue-72-usage-query-export-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 72,
+      "criterion": 3,
+      "text": "费用基于已验证账本，明确已定价、部分、缺价与未知数量；估算 count_tokens、原生 cost_in_usd_ticks 和未证明历史不成为实际账单。",
+      "original_tested_source": "daf4718b14ba58be00ede963b957e8fdfaaf14ac",
+      "original_report": "docs/reports/issue-72-usage-query-export-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 72,
+      "criterion": 4,
+      "text": "同一筛选的汇总与明细使用明示一致性范围，提供来源水位或快照标识，处理中/不可用状态不能显示成零消费。",
+      "original_tested_source": "daf4718b14ba58be00ede963b957e8fdfaaf14ac",
+      "original_report": "docs/reports/issue-72-usage-query-export-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 72,
+      "criterion": 5,
+      "text": "权限和调用方隔离由后端执行；不为实现统计复制秘密 Key，也不新增外部采集队列或第二套账本。",
+      "original_tested_source": "daf4718b14ba58be00ede963b957e8fdfaaf14ac",
+      "original_report": "docs/reports/issue-72-usage-query-export-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 72,
+      "criterion": 6,
+      "text": "管理 HTTP 使用含重试、失败、取消、缺价、跨 Key 和并发写入的数据验证全过滤聚合与明细一致；不限于返回页求和。",
+      "original_tested_source": "daf4718b14ba58be00ede963b957e8fdfaaf14ac",
+      "original_report": "docs/reports/issue-72-usage-query-export-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 72,
+      "criterion": 7,
+      "text": "更新 OpenAPI、指标口径和新前端可用样例；实现存在与大规模性能、实际生产数据验证分别记录。",
+      "original_tested_source": "daf4718b14ba58be00ede963b957e8fdfaaf14ac",
+      "original_report": "docs/reports/issue-72-usage-query-export-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 72,
+      "criterion": 8,
+      "text": "复用本票统计查询部分的过滤和快照语义，明确请求明细与聚合用量的不同数据粒度，不把一个总览数字冒充逐事件导出。",
+      "original_tested_source": "daf4718b14ba58be00ede963b957e8fdfaaf14ac",
+      "original_report": "docs/reports/issue-72-usage-query-export-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 72,
+      "criterion": 9,
+      "text": "支持 CSV/JSONL 的有界流式或分页导出，固定字段版本、时间/单位以及未知/null/零/部分状态表达。",
+      "original_tested_source": "daf4718b14ba58be00ede963b957e8fdfaaf14ac",
+      "original_report": "docs/reports/issue-72-usage-query-export-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 72,
+      "criterion": 10,
+      "text": "导出期间新增事件不改变已冻结批次；若采用分页或续传，固定批次内无漏行或重复且快照失效明确报错。单次流式方案明确取消、失败和重新发起语义，不强制建设持久化导出任务。",
+      "original_tested_source": "daf4718b14ba58be00ede963b957e8fdfaaf14ac",
+      "original_report": "docs/reports/issue-72-usage-query-export-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 72,
+      "criterion": 11,
+      "text": "延用管理权限与范围限制；不导出凭据、prompt/私有响应、原始 metadata 或其他未授权秘密；CSV 字段防公式执行。",
+      "original_tested_source": "daf4718b14ba58be00ede963b957e8fdfaaf14ac",
+      "original_report": "docs/reports/issue-72-usage-query-export-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 72,
+      "criterion": 12,
+      "text": "通过实际管理 HTTP 验证筛选一致、页边界、并发写入、取消、超限、缺价和失败历史；导出总量与同快照查询可核对。",
+      "original_tested_source": "daf4718b14ba58be00ede963b957e8fdfaaf14ac",
+      "original_report": "docs/reports/issue-72-usage-query-export-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 72,
+      "criterion": 13,
+      "text": "文档明确导出是可读数据产品，不替代完整加密备份或承诺可恢复所有控制面状态。",
+      "original_tested_source": "daf4718b14ba58be00ede963b957e8fdfaaf14ac",
+      "original_report": "docs/reports/issue-72-usage-query-export-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 73,
+      "criterion": 1,
+      "text": "复用现有价格目录、来源刷新与版本服务，提供预览而非一读取就覆盖当前目录。",
+      "original_tested_source": "5bbe4af62eb2cee3407c17ca0138d1c60c33822e",
+      "original_report": "docs/reports/issue-73-price-preview-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 73,
+      "criterion": 2,
+      "text": "预览列出来源/观察时间、模型与单位、增删改及不能可靠匹配项；缺价不补零，未知 tier/阶梯不擅自换算。",
+      "original_tested_source": "5bbe4af62eb2cee3407c17ca0138d1c60c33822e",
+      "original_report": "docs/reports/issue-73-price-preview-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 73,
+      "criterion": 3,
+      "text": "确认应用绑定预览内容和当前 revision；发生并发改价或来源变化时重新核对，失败保留原有效版本。",
+      "original_tested_source": "5bbe4af62eb2cee3407c17ca0138d1c60c33822e",
+      "original_report": "docs/reports/issue-73-price-preview-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 73,
+      "criterion": 4,
+      "text": "新价格的适用范围和生效时间明确；历史 ledger 保留原价格版本，本票不静默重算或改写历史费用。",
+      "original_tested_source": "5bbe4af62eb2cee3407c17ca0138d1c60c33822e",
+      "original_report": "docs/reports/issue-73-price-preview-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 73,
+      "criterion": 5,
+      "text": "管理权限、审计及 rollback/再次应用语义明确，秘密来源材料不进入公开日志。",
+      "original_tested_source": "5bbe4af62eb2cee3407c17ca0138d1c60c33822e",
+      "original_report": "docs/reports/issue-73-price-preview-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 73,
+      "criterion": 6,
+      "text": "管理 HTTP 覆盖获取失败、未知模型、精度/单位冲突、预览后变化、重复确认和缺价查询；正确成本来源可追溯到具体版本。",
+      "original_tested_source": "5bbe4af62eb2cee3407c17ca0138d1c60c33822e",
+      "original_report": "docs/reports/issue-73-price-preview-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 73,
+      "criterion": 7,
+      "text": "需要历史重新计价或复杂 tier 规则时形成独立明确范围，不把它们作为本票隐含完成条件。",
+      "original_tested_source": "5bbe4af62eb2cee3407c17ca0138d1c60c33822e",
+      "original_report": "docs/reports/issue-73-price-preview-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 74,
+      "criterion": 1,
+      "text": "利用现有渠道额度读取/后台观察记录历史，保留 Provider/账号/窗口、source、observed_at、confidence 与完整性。",
+      "original_tested_source": "407a962980681d31dcbbbe5fdce448aed576c8d4",
+      "original_report": "docs/reports/issue-74-quota-history-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 74,
+      "criterion": 2,
+      "text": "未知、失败、陈旧、部分和明确耗尽分开；不把不同窗口相减为实际消费，也不推断充值或账单。",
+      "original_tested_source": "407a962980681d31dcbbbe5fdce448aed576c8d4",
+      "original_report": "docs/reports/issue-74-quota-history-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 74,
+      "criterion": 3,
+      "text": "明确已有观察的采样和重复合并规则，晚到观察不能覆盖新 revision/已删除账号或操作者停用意图。",
+      "original_tested_source": "407a962980681d31dcbbbe5fdce448aed576c8d4",
+      "original_report": "docs/reports/issue-74-quota-history-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 74,
+      "criterion": 4,
+      "text": "提供有界管理历史查询和时间/账号/窗口过滤，展示采样空缺与重置事件的证据性质。",
+      "original_tested_source": "407a962980681d31dcbbbe5fdce448aed576c8d4",
+      "original_report": "docs/reports/issue-74-quota-history-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 74,
+      "criterion": 5,
+      "text": "不新增推理探针、自动启用或自动恢复额度；新增真实轮询的环境/频率遵守明确配置和既有授权，不在规格阶段调用。",
+      "original_tested_source": "407a962980681d31dcbbbe5fdce448aed576c8d4",
+      "original_report": "docs/reports/issue-74-quota-history-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 74,
+      "criterion": 6,
+      "text": "管理 HTTP 验证跨窗口、跨账号、过期/失败、并发更新及重启读回；历史不含秘密凭据。",
+      "original_tested_source": "407a962980681d31dcbbbe5fdce448aed576c8d4",
+      "original_report": "docs/reports/issue-74-quota-history-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 74,
+      "criterion": 7,
+      "text": "额度、Token Usage 和费用继续是三个不同口径，接口和文档不得合并为一个余额值。",
+      "original_tested_source": "407a962980681d31dcbbbe5fdce448aed576c8d4",
+      "original_report": "docs/reports/issue-74-quota-history-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 75,
+      "criterion": 1,
+      "text": "先冻结代表性合成数据量、字段分布、并发写入和现有失败边界，包含超出现有小备份规模的样例；记录耗时、峰值内存和产物大小，不发明生产 SLA。",
+      "original_tested_source": "656c99b2fad042ba57030c4d4c1c40626cc87045",
+      "original_report": "docs/reports/issue-75-history-backup-capacity-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 75,
+      "criterion": 2,
+      "text": "修复实测暴露的必要有界查询/备份限制；保持快照一致、内存/分页边界和校验，不通过全量常驻内存规避问题。",
+      "original_tested_source": "656c99b2fad042ba57030c4d4c1c40626cc87045",
+      "original_report": "docs/reports/issue-75-history-backup-capacity-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 75,
+      "criterion": 3,
+      "text": "在本票冻结的大数据集上复用 #65 的恢复行为和证据结构，验证账号、停用意图、权限、路由、请求/Usage/账本及加密证据的一致性；不重新建设基础恢复功能。",
+      "original_tested_source": "656c99b2fad042ba57030c4d4c1c40626cc87045",
+      "original_report": "docs/reports/issue-75-history-backup-capacity-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 75,
+      "criterion": 4,
+      "text": "仅对容量相关改动和大数据集补验：恢复到新空目标并由新 gateway 进程采用，核对授权读回与代表性查询；仅对象重开或解密成功不算恢复，不新增 #65 整票完成依赖。",
+      "original_tested_source": "656c99b2fad042ba57030c4d4c1c40626cc87045",
+      "original_report": "docs/reports/issue-75-history-backup-capacity-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 75,
+      "criterion": 5,
+      "text": "复用已有损坏、缺 key、版本不兼容等基础负例；对本票影响的空间/写入失败、恢复中断及规模边界补验，保留原数据，不覆盖运行中的重要数据库。",
+      "original_tested_source": "656c99b2fad042ba57030c4d4c1c40626cc87045",
+      "original_report": "docs/reports/issue-75-history-backup-capacity-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 75,
+      "criterion": 6,
+      "text": "本票不默认删除历史、不改 append-only 规则、不启用自动保留期；需要 rollup/可恢复归档/清理时根据测量另定后继 ADR 和范围。",
+      "original_tested_source": "656c99b2fad042ba57030c4d4c1c40626cc87045",
+      "original_report": "docs/reports/issue-75-history-backup-capacity-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    },
+    {
+      "issue": 75,
+      "criterion": 7,
+      "text": "保留原历史失败和生产未验边界；输出适用规模和操作限制，复用既有恢复接口而不建设新统计服务。",
+      "original_tested_source": "656c99b2fad042ba57030c4d4c1c40626cc87045",
+      "original_report": "docs/reports/issue-75-history-backup-capacity-20261025.md",
+      "original_ac_evidence": "covered by report per-criterion mapping; independently audited against current body",
+      "combined_candidate_status": "PASS_APPLICABLE_FULL_AND_CONTROLLED_PROCESS",
+      "joint_report": "docs/reports/wave3-integration-20261025.md"
+    }
+  ],
+  "joint_source": "e06ac169fb8217b00530d9f4e70cfefdd594a513"
+}

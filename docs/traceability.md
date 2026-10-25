@@ -458,3 +458,5 @@ shared #70 migration integration remain separate. Original FAIL/INTERRUPTED and 
 ## #70/#71 shared schema42 integration
 
 [ADR-0135](adr/ADR-0135-integrated-schema-identity-and-atomic-downgrade.md) → [BC-STORE-001](contracts/BC-STORE-001-versioned-control-plane-schema.md) → `integrated_schema` regressions and the schema42 mode of `scripts/acceptance/cpar-wave2-integration.py`. Historical standalone41 evidence remains source-bound.
+
+Current joint receipt: [wave3 integration](reports/wave3-integration-20261025.md), tested e06ac169 / schema42 / Full44 / Rust1751/0/23 / default-process225 / Usage517 / quota21 / explicit backup7. All75 optimization AC mappings retain their original reports and measured sources.

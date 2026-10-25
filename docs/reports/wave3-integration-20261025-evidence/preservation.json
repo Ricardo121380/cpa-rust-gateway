@@ -1,0 +1,56 @@
+{
+  "status": "PASS",
+  "worktrees": [
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/repo/cpa-rust-gateway",
+      "head_unchanged": true,
+      "branch_unchanged": true,
+      "status_unchanged": true,
+      "index_bytes_unchanged": true,
+      "worktree_diff_unchanged": true,
+      "changed_files": [],
+      "file_count": 7020
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar62-client-metadata-20261020",
+      "head_unchanged": true,
+      "branch_unchanged": true,
+      "status_unchanged": true,
+      "index_bytes_unchanged": true,
+      "worktree_diff_unchanged": true,
+      "changed_files": [],
+      "file_count": 7497
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-parallel-69-73-75-integration-20261025",
+      "head_unchanged": true,
+      "branch_unchanged": true,
+      "status_unchanged": true,
+      "index_bytes_unchanged": true,
+      "worktree_diff_unchanged": true,
+      "changed_files": [],
+      "file_count": 7209
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-70-routing-build-affinity-20261025",
+      "head_unchanged": true,
+      "branch_unchanged": true,
+      "status_unchanged": true,
+      "index_bytes_unchanged": true,
+      "worktree_diff_unchanged": true,
+      "changed_files": [],
+      "file_count": 7225
+    },
+    {
+      "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-71-request-rules-upstream-headers-20261025",
+      "head_unchanged": true,
+      "branch_unchanged": true,
+      "status_unchanged": true,
+      "index_bytes_unchanged": true,
+      "worktree_diff_unchanged": true,
+      "changed_files": [],
+      "file_count": 7223
+    }
+  ],
+  "checker_correction": "compared raw index hashes and retained pre-existing missing-file markers exactly; initial checker mismatch retained separately"
+}

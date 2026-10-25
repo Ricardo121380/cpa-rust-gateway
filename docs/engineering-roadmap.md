@@ -5,7 +5,8 @@
 [GitHub 工单](https://github.com/Ricardo121380/cpa-rust-gateway/issues)负责具体验收条件及远端状态。
 旧计划的“待定”“未实现”和历史 PASS 均按原日期理解；后续实现与证据在这里汇总。
 
-本轮正在形成 `feature/parallel-70-71-integration` 共同候选：#70路由41、#71规则42；[ADR-0135](adr/ADR-0135-integrated-schema-identity-and-atomic-downgrade.md)记录物理身份检查与原子降级。数据库专项已复现4个失败并修复；共同Full、实际进程恢复及GitHub同步尚待本轮回执确认。下方wave2和独立分支结果仍按各自来源理解。
+**当前共同候选已通过：`e06ac169fb8217b00530d9f4e70cfefdd594a513`，schema42。**
+[第三批集成记录](reports/wave3-integration-20261025.md)：Full44/44、Rust1751/0/23、默认gateway联合恢复225/225、Usage517/517、额度21/21、显式备份7/7。八票均已纳入同一后端；GitHub同步待本轮独立读回。首版仍未READY。
 
 ## 1. 产品方向与当前基线
 
@@ -15,14 +16,14 @@ CPAR 是 CPA/CLIProxyAPI 网关行为的 Rust 实现。优先直接对照固定�
 
 | 基线 | 当前身份及用途 |
 |---|---|
-| 当前本地集成 | `feature/parallel-69-73-75-integration`；受测代码 `6165a9f142e86e0a4240d4d6ab6d42b820028acf`，在84fbfbf7上纳入#69/#73/#75；Full44/44、Rust1726/0/23及schema40联合198/198；最终文档后继见[第二批集成记录](reports/wave2-integration-20261025.md) |
-| 实际检查目录 | `worktrees/cpar-parallel-69-73-75-integration-20261025`；原功能、安全、上一批集成及dirty工作区保留 |
+| 当前本地集成 | `feature/parallel-70-71-integration`；受测代码 `e06ac169fb8217b00530d9f4e70cfefdd594a513`；#68–#75和安全维护共存，schema42；[第三批集成记录](reports/wave3-integration-20261025.md) |
+| 实际检查目录 | `worktrees/cpar-parallel-70-71-integration-20261025`；五个来源工作区的原HEAD/index/dirty内容逐项核对未变 |
 | 当前功能对照及后续移植参考 | [CPA v8.0.40](https://github.com/router-for-me/CLIProxyAPI/tree/d946c4fba6fc9a5cfbca1f3d85184d62ad2fb683)，commit `d946c4fba6fc9a5cfbca1f3d85184d62ad2fb683` |
 | 上游核对时间 | 2026-10-23 14:48:53 UTC；当时最新 release tag 与 main 一致。固定此提交，不追随浮动 main 改变预期 |
 | 已有实现来源 | ADR-0125 等仍基于 v7.2.158；ADR-0126 的 Messages effort 提取基于 v8.0.40。既有差分样例保留 v7.2.80/v7.2.101 的来源，不宣称整体 v8 对齐 |
 | 功能证据 | [10 月 23 日 CPA v8 对照报告](reports/cpa-v8-functional-comparison-20261023.md)；后续 effort 增量和新源码验证见 [10 月 24 日实施记录](reports/cpa-v8-messages-effort-20261024.md) |
-| GitHub 状态核对 | 2026-10-24（Asia/Shanghai）；已修订22张开放票、创建 #68–#75，并独立读回正文、状态和原生关系 |
-| 本轮交付边界 | 独立本地集成、验证及提交；上一批基线 `84fbfbf7` 及更早 `444558a8` 保留为祖先；不推送、关闭工单、部署或调用真实 Provider |
+| GitHub 状态核对 | 2026-10-25（Asia/Shanghai）；同步前重新读取相关正文、评论、状态和原生关系；远端同步结果待最终读回 |
+| 本轮交付边界 | 共同集成、数据库安全、Full/实际进程恢复和获准的GitHub状态同步；保持develop/main、真实客户端/Provider、release/部署边界 |
 
 更新移植参考只决定后续查哪份 Go 代码，不覆盖已接受 ADR 的具体行为，也不重标旧测试、署名和收据。
 此前 effort 增量通过 ADR-0126 限定后继修订记录行为变化；ADR-0125 原始来源和历史回执保留。
@@ -43,8 +44,8 @@ CPAR 是 CPA/CLIProxyAPI 网关行为的 Rust 实现。优先直接对照固定�
 | Claude/Codex/Kimi 账号 | 授权、导入、刷新与兼容 adapter 推理路径已有 | 具体账号/渠道真实调用另验；不是旧矩阵里笼统的“未来 OAuth” |
 | Grok 官方/Build/Web/Console、Kiro | 专用 adapter 与账号管理已有 | Web 当前文本流式、工具不支持等限制保留；不能据注册数宣称全部组合已验收 |
 | 模型发现和目录 | Build、官方 Codex、Kiro，以及配置 models_path 的兼容 endpoint 已有 runtime source | 其余渠道未因此自动获得 discovery；模型发现不自动授予 Key 权限 |
-| 账号池、路由、重试和权限组 | 已接入；#70显式RR/WRR/fill-first使用既有候选/credential租约，旧默认保留 | 本票独立PASS_LOCAL；Full44/44，priority继续lower-is-better；[实施记录](reports/issue-70-routing-build-affinity-20261025.md)；[ADR-0133](adr/ADR-0133-production-routing-build-affinity.md) |
-| Build 普通 cache affinity | #70已接通既有HMAC identity/affinity store与实际serving；精确continuation保持独立 | 本票独立PASS_LOCAL；[实施记录](reports/issue-70-routing-build-affinity-20261025.md)；15分钟TTL/4096绑定和break；不推广为全Provider会话亲和；[契约](contracts/BC-ROUTE-010-production-strategies-build-affinity.md) |
+| 账号池、路由、重试和权限组 | #70显式RR/WRR/fill-first已进入共同后端，沿用候选/credential租约，旧默认和priority方向保持 | [共同Full和进程验证](reports/wave3-integration-20261025.md)，原独立分支报告保留 |
+| Build 普通 cache affinity | 同一运行代与普通请求规则共存；实际请求生成绑定，发布后重绑，恢复后保留 | [第三批证据](reports/wave3-integration-20261025.md)；15分钟TTL/4096边界，严格lineage不软切换；不据此扩大Provider/固定服务资格 |
 | 管理 API、配置发布/回滚 | /admin 已有；管理 API 发布时装配新运行代 | 本地离线 admin CLI 与运行中管理 API 的生效方式分开；无需重建控制面 |
 | Request/Attempt/Usage、账本和加密恢复 | 持久化与查询/恢复已有；#72 新增统一过滤、全范围汇总、冻结快照和 CSV/JSONL 分页导出，已接入管理 API | 见 [#72 实施记录](reports/issue-72-usage-query-export-20261025.md)；未知费用及 cost_in_usd_ticks 未准入保持；后续[独立安全升级](reports/crypto-bigint-security-fix-20261025-issue72.md)已消除 RUSTSEC-2026-0387 阻塞，原分支本地 Full 44/44 通过；本轮集成结果单独记录。有限快照不代表大规模性能或实际生产数据；#75 容量扩展见 [ADR-0132](adr/ADR-0132-bounded-disk-backed-backup.md)，[本轮容量验收](reports/issue-75-history-backup-capacity-20261025.md)单独记录 |
 | 价格获取、审阅与版本化应用（#73） | 已纳入本批共同基线：来源预览、内容/revision及全局目录围栏确认、schema40审阅证据；保留不可变目录与向前回滚 | [第二批集成](reports/wave2-integration-20261025.md)：非空review大备份/恢复、source/content digest及旧ledger/冻结导出保持；[原分支记录](reports/issue-73-price-preview-20261025.md)保留历史身份。真实来源、复杂tier及远端关闭另验 |
@@ -52,7 +53,7 @@ CPAR 是 CPA/CLIProxyAPI 网关行为的 Rust 实现。优先直接对照固定�
 | RUSTSEC-2026-0387安全修复（已集成） | p256 0.14.0 / crypto-bigint 0.7.8；保留显式Randomness错误、三个调用点与独有回归，无ignore或门禁放宽 | 上一批集成Full44/44，1695 passed /0 failed /21 ignored；见[集成验收](reports/parallel-integration-20261025.md)，原分支证据按原身份保留 |
 | 外部 OTel 输出 | 接口已有，serve 使用 Noop exporter | **待接线**，不宣称已把 tracing 送到外部系统 |
 | 模型前缀/后缀、请求控制 #69 | 已纳入第二批共同基线；冻结模型范围、服务档位、显式Alias与suffix | [本批集成](reports/wave2-integration-20261025.md)覆盖count/权限、public计价身份、非空model_thinking加密恢复及合法续接；[原分支记录](reports/issue-69-controls-model-names-20261025.md)保持原受测身份 |
-| 请求规则、自定义上游 headers（#71） | 已接入现有 Endpoint 的版本化配置、加密 header 引用与三个普通兼容 adapter；schema41 | [明确作用域和 CPA 差异](support/request-rules-upstream-headers.md)、[ADR-0134](adr/ADR-0134-versioned-request-rules-upstream-headers.md)；[本票交付](reports/issue-71-request-rules-upstream-headers-20261025.md)：受测2dc8c87c，Full44/44、Rust1733/0/23，真实socket规则/headers/回滚及备份专项通过；专用Grok/Kiro非空策略明确拒绝，#70独立 |
+| 请求规则、自定义上游 headers（#71） | 已纳入schema42共同后端；Endpoint规则、加密header与三个普通兼容adapter | [支持范围](support/request-rules-upstream-headers.md)、[共同恢复225项](reports/wave3-integration-20261025.md)；专用Grok/Kiro非空策略拒绝；旧standalone41按ADR-0135拒绝误用 |
 | HTTP/HTTPS/SOCKS5h/认证代理 | 已有直连/固定/池化出口；当前只接纳限定 SOCKS5 | **范围差异**，后续扩展须保持明确的出站约束 |
 | Gemini 等新增 Provider、图片/音频/视频、Realtime | 当前原生注册/公共路径未发现 | **未实现、尚未列入近期批次**，保留需求选择空间 |
 | 动态插件、Home、多存储后端、对外 SDK/TUI | 未发现 CPA 等价产品功能 | **未实现、按需后置** |
@@ -116,6 +117,10 @@ OPEN不等于没有代码，CLOSED也不代表整个渠道已完成；本轮没�
 
 ## 5. 下一项与后续顺序
 
+**第三批共同集成已完成。** 后续客户端/固定服务工作从受测 `e06ac169` 或其纯文档后继开始；保留独立工作区和所有历史身份。当前先完成GitHub同步，随后可分别准备#62 Codex/Pi和#64 Claude D2当前候选复验；#61固定Build字段/费用依据及#63相关资格按既有依赖继续处理。本次没有启动这些后续实现或真实请求。
+
+### 历史批次记录（下述状态均属于原执行时点）
+
 **#70 独立本地交付完成。** 从共同开发起点 `7c16070bb66f7f3008022f7870b5d1f96b63f167`，分支 `feature/70-routing-build-affinity` 的最终动态受测代码 `731c318320ae6f9df69cc77a708ea67c468a2695` 已通过 Full44/44、Rust1738/0/23、显式备份7/7和双轴审查；[逐项验收及固定身份](reports/issue-70-routing-build-affinity-20261025.md)。此独立结果不改写下面第二批共同基线的历史回执；远端保持OPEN，没有push/合并/部署。#71并行分支与本票独立占用不同schema41，后续共同集成必须协调唯一迁移顺序，禁止按相同版本号交换数据库。
 
 **第二批本地集成完成：#69/#73/#75已进入同一共同开发基线。**
@@ -164,7 +169,7 @@ RUSTSEC-2026-0386 阻碍已通过实际升级消除；cargo deny通过，独立 
 高级工具的生产资格与固定服务证据继续按各自条件推进。
 Gemini、多模态、插件、Home 和新前端是单独扩展项，本页没有自动启动它们。
 
-**已发布的优化队列：**
+**八张优化票的历史交付索引（当前已全部进入共同schema42候选）：**
 
 | 工单 | 交付目标 | 优先级 |
 |---|---|---|
@@ -177,7 +182,7 @@ Gemini、多模态、插件、Home 和新前端是单独扩展项，本页没有
 | [#74](https://github.com/Ricardo121380/cpa-rust-gateway/issues/74) | 配额观察的历史与重置窗口查询 | P1 |
 | [#75](https://github.com/Ricardo121380/cpa-rust-gateway/issues/75) | 大历史查询与加密备份恢复的容量闭环；已纳入[第二批集成](reports/wave2-integration-20261025.md)，以下为原 #75 独立分支历史：已实现 [ADR-0132](adr/ADR-0132-bounded-disk-backed-backup.md) 的 v2 磁盘分块备份、128 MiB 明文上限与管理恢复；[本轮本地验收](reports/issue-75-history-backup-capacity-20261025.md)：新进程86/86、Full44/44；1699 passed / 0 failed / 22 ignored，约94MiB合成数据；真实Provider/客户端/发布独立验收 | P1 |
 
-8张新增票均为OPEN、ready-for-agent，之间没有新增阻塞边；请求控制→模型命名和统计查询→导出按票内顺序实施。
+同步前读取8张票均为OPEN、ready-for-agent；当前75项本地AC已核对，远端同步待执行。票间没有新增阻塞边；请求控制→模型命名和统计查询→导出按票内顺序实施。
 #69的请求控制保留P0、模型命名保留P1；合并不增加首版门槛。#68/#72/#74及安全后继现已纳入独立本地集成分支；本次验证单独记录，不复用原分支PASS。
 
 已接受的 native-v1 方向及原 N1–N4、Kiro cap、Grok Web 多轮/能力、#9/#47/#57 的剩余承诺保留。
@@ -211,7 +216,7 @@ README、AGENTS、文档索引保持短入口，不再复制一整份动态进�
 10 月 23 日入口整理保留为文档历史；10 月 24 日 effort 代码与契约变化已按 ADR-0126 登记。
 本轮没有修改 AGENTS/CLAUDE，也没有改写旧失败、原请求计数或已保存的测试源码身份。
 
-当前共同基线以[第二批集成记录](reports/wave2-integration-20261025.md)及容器本批INTEGRATION-RESULT.md的真实最终SHA为准。84fbfbf7及444558a8均保留为历史祖先，不作为#70/#71的新起点。
+当前共同基线以[第三批集成记录](reports/wave3-integration-20261025.md)与容器INTEGRATION-RESULT.md为准。7c16070b、84fbfbf7及444558a8保留为历史祖先，不是重置或重新实现指令。
 
 ## 2026-10-25 #69 请求控制 P0 / 模型命名 P1
 

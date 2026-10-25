@@ -101,13 +101,19 @@ change serving. `POST /admin/config-versions/next/validate`, then publish with i
 Rollback uses `POST /admin/config-versions/rollback` and the target's current revision. A stale
 revision returns conflict without a partial rule/header update or extra audit row.
 
-Schema41 adds only the Endpoint policy column. Schema40 upgrades empty, existing records remain;
-config fork reseals header Credentials under the new AAD just like account Credentials. Normal
-version rollback retains policies. Downgrading to40 discards policy and is not a lossless rollback.
-#75 v1/v2 formats, empty-target restore and independent keys keep their existing limits.
-Real providers/clients, fixed Build and releases are separate verification scopes.
+The integrated schema42 chain preserves routing/affinity as41 and adds the Endpoint policy
+column as42. Common40 and the routing-only standalone41 upgrade; the historical #71 policy-only
+standalone41 is structurally incompatible and rejects before migration or restore publication.
+Keep its original binary/artifact/keys; do not edit the version number or drop configured policy
+to force admission. [ADR-0135](../adr/ADR-0135-integrated-schema-identity-and-atomic-downgrade.md)
+records this limited successor to ADR-0134.
 
-Parallel #70 independently has a different migration0041/schema41 layout. These standalone
-schema41 binaries/databases/artifacts are not interchangeable. Shared integration must reconcile
-the migration chain first; retain source/lock/binary/migration identity rather than relying on
-the numeric schema version alone. Neither worktree has been merged by #71.
+Config fork reseals header Credentials under the new AAD. Normal version rollback retains policies.
+Schema downgrade rejects nonempty/unknown policies; semantically empty policies may downgrade.
+All requested down steps form one transaction, so a later routing/affinity guard failure preserves
+both the original schema and data. Earlier successful down migrations retain their historical
+contracts; schema downgrade is not a general lossless operational rollback.
+#75 v1/v2 formats, empty-target restore and independent keys retain their existing limits.
+[The joint receipt](../reports/wave3-integration-20261025.md) verifies nonempty rules/header secrets,
+Build affinity and reviewed prices after a new stock gateway adopts the restored schema42 database.
+Real providers/clients, fixed Build and releases remain separate verification scopes.

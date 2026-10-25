@@ -1,0 +1,29 @@
+{
+  "fixed_point": "7c16070bb66f7f3008022f7870b5d1f96b63f167",
+  "initial_head": "5c7ff87e5943be72bb580668ae4fbc6257830fe1",
+  "final_head": "e06ac169fb8217b00530d9f4e70cfefdd594a513",
+  "standards": {
+    "initial_findings": 0,
+    "final_findings": 0,
+    "scope": "shared integration delta plus 11 overlapping files; preceding independent reviews retained"
+  },
+  "spec": {
+    "initial_findings": [
+      {
+        "priority": "P2",
+        "description": "Missing schema40 loss column passed identity",
+        "status": "FIXED",
+        "red": "output/wave3/logs/review-loss-red.log",
+        "regression": "integrated_schema_missing_loss_column_rejects_inspection_and_backup"
+      },
+      {
+        "priority": "P2",
+        "description": "No actual same-generation ordinary rules and Build affinity acceptance",
+        "status": "FIXED",
+        "regression": "capture_joint_generation in cpar-wave2-integration.py; default stock225/225"
+      }
+    ],
+    "final_findings": 0
+  },
+  "dynamic_verification": "Root owned Full and all process runs; scouts read-only"
+}
