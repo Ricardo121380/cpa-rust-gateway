@@ -231,6 +231,71 @@ fn seed(path: &Path) -> Result {
     assert_eq!(receipt.failed_events, 0);
     Ok(())
 }
+// Exact persisted SQLite cells (including NULL and JSON text), independent of DTO projection.
+fn historical_usage_cells(path: &Path) -> Result<Vec<Vec<String>>> {
+    let connection = gateway_store::open(path)?;
+    let mut tables = Vec::new();
+    for table in [
+        "gateway_event_log",
+        "billing_ledger_entries",
+        "billing_price_catalog_versions",
+        "billing_price_catalog_entries",
+        "billing_materializer_checkpoints",
+    ] {
+        let columns = connection
+            .prepare("SELECT name FROM pragma_table_info(?1) ORDER BY cid")?
+            .query_map([table], |row| row.get::<_, String>(0))?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        let quoted = columns
+            .iter()
+            .map(|name| format!("quote(\"{name}\")"))
+            .collect::<Vec<_>>()
+            .join(",");
+        let cells = connection
+            .prepare(&format!(
+                "SELECT json_array({quoted}) FROM {table} ORDER BY rowid"
+            ))?
+            .query_map([], |row| row.get::<_, String>(0))?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        assert!(!cells.is_empty(), "nonempty historical fixture for {table}");
+        tables.push(cells);
+    }
+    Ok(tables)
+}
+
+fn upgrade_schema38_usage_fixture(path: &Path) -> Result {
+    // The registered downgrade drops only the empty 0039 history table and its bookkeeping.
+    // This constructs the complete schema38 prefix with real event/materialized-price fixtures.
+    let mut connection = gateway_store::open(path)?;
+    gateway_store::rollback_to_version(&mut connection, 38)?;
+    assert_eq!(gateway_store::schema_version(&connection)?, Some(38));
+    let absent: bool = connection.query_row(
+        "SELECT NOT EXISTS(SELECT 1 FROM sqlite_schema WHERE name = 'quota_history')",
+        [],
+        |row| row.get(0),
+    )?;
+    assert!(absent);
+    drop(connection);
+    let before = historical_usage_cells(path)?;
+    // The real store open path migrates, just as deployment composition does.
+    let repository = SqliteControlPlaneRepository::open(path)?;
+    drop(repository);
+    let mut connection = gateway_store::open(path)?;
+    assert_eq!(gateway_store::schema_version(&connection)?, Some(39));
+    gateway_store::migrate(&mut connection)?;
+    let registered: i64 = connection.query_row(
+        "SELECT count(*) FROM schema_migrations WHERE version = 39",
+        [],
+        |row| row.get(0),
+    )?;
+    assert_eq!(registered, 1);
+    let history: i64 =
+        connection.query_row("SELECT count(*) FROM quota_history", [], |row| row.get(0))?;
+    assert_eq!(history, 0);
+    assert_eq!(historical_usage_cells(path)?, before);
+    Ok(())
+}
+
 async fn api(
     client: &reqwest::Client,
     base: &str,
@@ -275,6 +340,7 @@ async fn usage_snapshot_http_freezes_totals_details_and_exports() -> Result {
     std::fs::create_dir_all(&root)?;
     let path = root.join("control.sqlite3");
     seed(&path)?;
+    upgrade_schema38_usage_fixture(&path)?;
     let version = KeyVersion::try_new(1)?;
     let secrets = SecretStore::new(MasterKeyRing::try_new(
         version,
@@ -400,6 +466,18 @@ async fn usage_snapshot_http_freezes_totals_details_and_exports() -> Result {
         cursor = page["next_cursor"].clone();
     }
     assert_eq!(rows.len(), 6);
+    for row in &rows {
+        let expected = match row["request_id"].as_str() {
+            Some("retry") => Some("price-v1"),
+            Some("cancel" | "estimated") => Some("price-v2"),
+            _ => None,
+        };
+        assert_eq!(
+            row["catalog_version_id"].as_str(),
+            expected,
+            "original price version survives upgrade and purge"
+        );
+    }
     assert_eq!(
         rows.iter()
             .filter_map(|r| r["input_tokens"].as_u64())

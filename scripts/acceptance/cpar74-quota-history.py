@@ -243,6 +243,17 @@ class Run:
         after = self.history()
         self.check("new process reads same durable evidence", before == after)
         self.check("restart and history query send no upstream request", len(self.peer.paths) == receives)
+        # The same production composition serves #72 on schema39 with real quota history.
+        snapshot = self.api("POST", "/admin/operations/usage-snapshots",
+                            {"from_ms": self.begin - 10000, "to_ms": self.begin + 600000, "bucket_ms": 1000}, expected=201)
+        prefix = "/admin/operations/usage-snapshots/" + snapshot["snapshot_id"]
+        self.check("quota history is not Usage or cost in snapshot", len(after) > 0 and snapshot["detail_rows"] == 0
+                   and snapshot["summary"]["requests"] == 0 and snapshot["summary"]["known_cost_microunits"] is None)
+        with self.client.open(urllib.request.Request(f"http://127.0.0.1:{self.admin}" + prefix + "/export?format=jsonl",
+                              headers={"X-Management-Key": self.key}), timeout=25) as response:
+            self.check("schema39 empty Usage export remains empty", response.status == 200 and response.read() == b"")
+        self.api("DELETE", prefix, expected=204)
+        self.check("snapshot and export do not alter quota history or call upstream", self.history() == after and len(self.peer.paths) == receives)
         with sqlite3.connect(self.private / "state/control.sqlite3") as db:
             self.check("schema 39 loaded", db.execute("SELECT max(version) FROM schema_migrations").fetchone()[0] == 39)
             self.check("no Usage or billing fabrication", db.execute("SELECT count(*) FROM gateway_event_log").fetchone()[0] == 0 and db.execute("SELECT count(*) FROM billing_ledger_entries").fetchone()[0] == 0)

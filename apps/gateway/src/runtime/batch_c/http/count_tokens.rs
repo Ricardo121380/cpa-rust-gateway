@@ -198,9 +198,17 @@ async fn assert_no_usage(fixture: &mut CountFixture) -> TestResult {
     );
     worker.stop().await.map_err(|()| "billing worker")?;
     assert!(
-        SqliteBillingLedger::open_read_only(database)?
+        SqliteBillingLedger::open_read_only(&database)?
             .list_bounded(10)?
             .is_empty()
+    );
+    let connection = gateway_store::open(&database)?;
+    assert_eq!(gateway_store::schema_version(&connection)?, Some(39));
+    let history_rows: i64 =
+        connection.query_row("SELECT count(*) FROM quota_history", [], |row| row.get(0))?;
+    assert_eq!(
+        history_rows, 0,
+        "counting must not manufacture quota observations"
     );
     Ok(())
 }

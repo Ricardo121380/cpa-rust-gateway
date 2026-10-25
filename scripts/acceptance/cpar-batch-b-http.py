@@ -313,11 +313,11 @@ client = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 headers = {"X-Management-Key": (credentials / "management-key").read_text(), "Content-Type": "application/json"}
 scope, revision = None, None
 log = (root / "gateway.log").open("ab")
-serve_options = ["--background-provider-tasks", "disabled"] if os.environ.get("CPAR_EXTENSIONS_ONLY") == "1" else []
+serve_options = ["--background-provider-tasks", "disabled"] if any(os.environ.get(mode) == "1" for mode in ("CPAR_EXTENSIONS_ONLY", "CPAR_USAGE_SNAPSHOT_ONLY")) else []
 binary = pathlib.Path(os.environ.get("CPAR_GATEWAY_BINARY", str(pathlib.Path(os.environ.get("CARGO_TARGET_DIR", str(repo / "target"))) / "debug/gateway"))).resolve()
 subprocess.run([str(binary), "admin-login", "init", "--state-dir", str(state), "--password-file", str(root / "initial-password")], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 gateway_command = [str(binary), "serve", "--state-dir", str(state), "--credential-dir", str(credentials), "--data-listen", f"127.0.0.1:{data_port}", "--management-listen", f"127.0.0.1:{admin_port}", *serve_options]
-if os.environ.get("CPAR_T12_ONLY") == "1" or os.environ.get("CPAR_EXTENSIONS_ONLY") == "1":
+if any(os.environ.get(mode) == "1" for mode in ("CPAR_T12_ONLY", "CPAR_EXTENSIONS_ONLY", "CPAR_USAGE_SNAPSHOT_ONLY")):
     gateway_command = cpar_t12_upgrade_http.sandbox_command(gateway_command)
 gateway = subprocess.Popen(gateway_command, stdout=log, stderr=log, env={**os.environ, "SSL_CERT_FILE": str(ca)})
 
@@ -607,7 +607,7 @@ def restart():
     gateway.terminate()
     gateway.wait(timeout=30)
     command = [str(binary), "serve", "--state-dir", str(state), "--credential-dir", str(credentials), "--data-listen", f"127.0.0.1:{data_port}", "--management-listen", f"127.0.0.1:{admin_port}", *serve_options]
-    if os.environ.get("CPAR_EXTENSIONS_ONLY") == "1":
+    if any(os.environ.get(mode) == "1" for mode in ("CPAR_EXTENSIONS_ONLY", "CPAR_USAGE_SNAPSHOT_ONLY")):
         command = cpar_t12_upgrade_http.sandbox_command(command)
     gateway = subprocess.Popen(command, stdout=log, stderr=log, env={**os.environ, "SSL_CERT_FILE": str(ca)})
     wait_ready()

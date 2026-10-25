@@ -431,13 +431,22 @@ mod tests {
             assert_eq!(claims["htu"], htu);
             assert_eq!(claims["iat"], 1_700_000_000_u64);
             assert_eq!(claims["ath"], expected_ath);
-            assert_eq!(URL_SAFE_NO_PAD.decode(claims["jti"].as_str().ok_or("jti")?)?.len(), 16);
+            assert_eq!(
+                URL_SAFE_NO_PAD
+                    .decode(claims["jti"].as_str().ok_or("jti")?)?
+                    .len(),
+                16
+            );
             let signature_bytes = URL_SAFE_NO_PAD.decode(parts[2])?;
             assert_eq!(signature_bytes.len(), 64);
             let signature = Signature::from_slice(&signature_bytes)?;
             let signing_input = format!("{}.{}", parts[0], parts[1]);
             verifier.verify(signing_input.as_bytes(), &signature)?;
-            assert!(verifier.verify(format!("{signing_input}x").as_bytes(), &signature).is_err());
+            assert!(
+                verifier
+                    .verify(format!("{signing_input}x").as_bytes(), &signature)
+                    .is_err()
+            );
             claims["htm"] = Value::String("PUT".to_owned());
             let tampered = format!(
                 "{}.{}",
