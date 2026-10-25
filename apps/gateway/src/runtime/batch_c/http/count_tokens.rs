@@ -203,7 +203,10 @@ async fn assert_no_usage(fixture: &mut CountFixture) -> TestResult {
             .is_empty()
     );
     let connection = gateway_store::open(&database)?;
-    assert_eq!(gateway_store::schema_version(&connection)?, Some(39));
+    assert_eq!(
+        gateway_store::schema_version(&connection)?,
+        Some(gateway_store::CURRENT_SCHEMA_VERSION)
+    );
     let history_rows: i64 =
         connection.query_row("SELECT count(*) FROM quota_history", [], |row| row.get(0))?;
     assert_eq!(

@@ -960,3 +960,66 @@ fn usage_snapshot_contract_exposes_frozen_query_and_both_export_grains() -> Test
     assert!(export["headers"].get("X-Next-Cursor").is_some());
     Ok(())
 }
+
+#[test]
+fn price_preview_contract_binds_review_source_and_revision() -> TestResult {
+    let document = document()?;
+    for (path, method, operation) in [
+        (
+            "/admin/billing/price-source/preview",
+            "post",
+            "previewPriceSource",
+        ),
+        (
+            "/admin/billing/price-source/apply",
+            "post",
+            "applyPriceSourcePreview",
+        ),
+        (
+            "/admin/billing/catalogs/{catalog_version_id}/review",
+            "get",
+            "getBillingCatalogReview",
+        ),
+    ] {
+        assert_eq!(document["paths"][path][method]["operationId"], operation);
+        let parameters = operation_parameters(&document, path, method)?;
+        assert!(
+            parameters
+                .iter()
+                .any(|p| p["$ref"] == "#/components/parameters/ConfigVersion")
+        );
+        if method == "post" {
+            assert!(
+                parameters
+                    .iter()
+                    .any(|p| p["$ref"] == "#/components/parameters/IfMatch")
+            );
+        }
+    }
+    let preview = &document["components"]["schemas"]["PricePreview"];
+    for field in [
+        "source_digest",
+        "content_digest",
+        "catalog_digest",
+        "observed_at_ms",
+        "effective_at_ms",
+        "changes",
+        "can_apply",
+    ] {
+        assert!(
+            preview["required"]
+                .as_array()
+                .ok_or("preview fields")?
+                .contains(&serde_json::json!(field))
+        );
+    }
+    assert_eq!(
+        document["components"]["schemas"]["PricePreviewApply"]["additionalProperties"],
+        false
+    );
+    assert_eq!(
+        document["paths"]["/admin/billing/price-source/apply"]["post"]["x-audit-action"],
+        "billing_catalog_review_applied"
+    );
+    Ok(())
+}

@@ -1,0 +1,33 @@
+{
+  "source_commit": "5bbe4af62eb2cee3407c17ca0138d1c60c33822e",
+  "source_tree": "99b082602ef29e3c5f95256aba7044d48788c09f",
+  "baseline": "84fbfbf778b582f746c1cafe31a2ce58962e8f77",
+  "worktree": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-73-price-preview-versioning-20261025",
+  "git_status": "",
+  "cargo_lock_sha256": "a3950a764ae2dcae4e04a8a32ada596f33ea105dbfda8e9714b3e32d3216cd6d",
+  "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6",
+  "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+  "changed_files_sha256": {
+    "apps/gateway/src/runtime/batch_c/http/count_tokens.rs": "9d02f4399d4ab7e368784db0d0d6ba1b7542d5d752681ed8e53077a23c17f312",
+    "crates/gateway-control/src/management_mutation_service.rs": "5fa1cd737b637ba21adbca2f28f1dff72a84b8e1a0fdcd8c09ece1cd6e4ac6d5",
+    "crates/gateway-http-actix/src/management_resources.rs": "b007e946c59ece6c85923725845f4f7d2da7e4076de9bf5fcdf79e21df67018b",
+    "crates/gateway-http-actix/src/management_resources/price_source.rs": "07814632d4217b58abae0490d308e4106f9c16af925e2cd22983e5f96153a8ed",
+    "crates/gateway-http-actix/tests/issue72_usage_snapshots.rs": "9556c33a9cc103a48c163dd7f12bd18f5ced991a1d72bc162db2e8b2bb65fec6",
+    "crates/gateway-http-actix/tests/issue73_price_preview.rs": "befdf3ed92725316ccfed9c9c2619d4d088d6904951365fc92ff0f8404ea609f",
+    "crates/gateway-http-actix/tests/p10_01_management_openapi_contract.rs": "2469f88b90c3072480dfd583474b20e259464c501dd306dd49674784eff4147b",
+    "crates/gateway-store/migrations/0040_billing_catalog_reviews.down.sql": "238b9c1cd423b29380548af7d93de9dc70b75039ec53a3abe389a8ce1001be96",
+    "crates/gateway-store/migrations/0040_billing_catalog_reviews.up.sql": "d5edf58a13937a63be4f728ea00b73e889f4400a1d3ce883f1b32e3f6a73a5f1",
+    "crates/gateway-store/src/billing_ledger.rs": "84ecd17ed045c667a2ebb4bc5b0dce4319aab08bfd7083d7c90e42c3315dc88b",
+    "crates/gateway-store/src/control_plane.rs": "3b635d5e89d38b45a1ed879ee13f3954f4f716998ae7c41b8130afe17901be5c",
+    "crates/gateway-store/src/lib.rs": "1600783b2903884c1b560fc71ac4214ce8acfde979f905a798037f10839dd592",
+    "docs/adr/ADR-0131-reviewed-price-source-versioning.md": "52e92b5ef1cbcd39c0a22013df782a5b514c40a17c17be588381482f8bf87978",
+    "docs/adr/README.md": "31158bafa143b46b2cd24f25ecb384b0d480816ba22e3cb5e365e27b96aeb172",
+    "docs/contracts/BC-MGMT-021-reviewed-price-source-versioning.md": "e682f73dd32b6eee669f5e824c55c07dee826e9e57e22d2996516603f15720d9",
+    "docs/engineering-roadmap.md": "d6d8830cecb094e04cd9e19a4a09bc3b4d8e58a1187e11b8c29ea5343c309004",
+    "docs/openapi/management-v1.json": "bd50f21de2bdcd609d3e6c74ce3e10b0f05352f1d2f22e8606a926afb7732034",
+    "docs/reports/issue-73-price-preview-20261025.md": "4e0796e36e4717f709944778f03ccf8a1ccfecc929198e11bac3e91872638e3c",
+    "docs/traceability.md": "8bbb4c71b21317b319ea884bc23e1b4191547bb3cefa24fa3776cea7a37fc000"
+  },
+  "build_jobs": 2,
+  "rust_test_threads": 4
+}

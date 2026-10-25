@@ -178,3 +178,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 - [ADR-0129 Account quota observation history](ADR-0129-account-quota-history.md) — Accepted; #74 independent observation storage and bounded management query.
 
 - [ADR-0130 CPA request controls and model names](ADR-0130-cpa-request-controls-model-names.md) — Accepted; #69 P0 then P1, frozen CPA v8.0.40.
+- [ADR-0131 Reviewed price source versioning](ADR-0131-reviewed-price-source-versioning.md) — #73 / OPT-06; parallel reservation (0130 left for #69).

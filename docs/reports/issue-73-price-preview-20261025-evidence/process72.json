@@ -1,0 +1,2083 @@
+{
+  "status": "PASS",
+  "binary_sha256": "ff45c4997ef847dad0dcc19a6c315a033c29ce4e27ca0cb90da25405b4614519",
+  "source_sha": "5bbe4af62eb2cee3407c17ca0138d1c60c33822e",
+  "checkout_head": "5bbe4af62eb2cee3407c17ca0138d1c60c33822e",
+  "scope": "local_synthetic_only",
+  "checks": [
+    {
+      "check": "publication_has_no_inference_side_effect",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_public_success",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_public_success",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_failed_stream",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_cancel_started",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_cancel_closed_upstream",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_retry_two_attempts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_distinct_request_attempt_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_failed_cancel_usage",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_unpriced_fallback",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_full_filter_not_page_sum",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_bucket_boundaries",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_bucket_1792913653706_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_bucket_1792913653706_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_bucket_1792913653706_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_bucket_1792913653706_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_bucket_1792913653706_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_bucket_1792913653706_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_bucket_1792913653706_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_bucket_1792913653706_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_0_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_bucket_boundaries",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_bucket_1792913653706_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_bucket_1792913653706_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_bucket_1792913653706_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_bucket_1792913653706_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_bucket_1792913653706_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_bucket_1792913653706_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_bucket_1792913653706_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_bucket_1792913653706_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_1_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_absent_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_absent_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_absent_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_absent_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_absent_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_absent_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_absent_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_absent_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_absent_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_absent_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_absent_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_absent_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_absent_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_absent_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_model_absent_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_bucket_boundaries",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_bucket_1792913653706_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_bucket_1792913653706_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_bucket_1792913653706_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_bucket_1792913653706_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_bucket_1792913653706_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_bucket_1792913653706_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_bucket_1792913653706_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_bucket_1792913653706_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_0_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_bucket_boundaries",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_bucket_1792913653706_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_bucket_1792913653706_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_bucket_1792913653706_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_bucket_1792913653706_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_bucket_1792913653706_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_bucket_1792913653706_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_bucket_1792913653706_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_bucket_1792913653706_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_1_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_absent_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_absent_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_absent_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_absent_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_absent_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_absent_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_absent_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_absent_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_absent_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_absent_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_absent_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_absent_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_absent_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_absent_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_protocol_absent_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_bucket_boundaries",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_bucket_1792913653706_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_bucket_1792913653706_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_bucket_1792913653706_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_bucket_1792913653706_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_bucket_1792913653706_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_bucket_1792913653706_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_bucket_1792913653706_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_bucket_1792913653706_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_0_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_bucket_boundaries",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_bucket_1792913653706_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_bucket_1792913653706_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_bucket_1792913653706_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_bucket_1792913653706_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_bucket_1792913653706_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_bucket_1792913653706_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_bucket_1792913653706_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_bucket_1792913653706_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_1_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_bucket_boundaries",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_bucket_1792913653706_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_bucket_1792913653706_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_bucket_1792913653706_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_bucket_1792913653706_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_bucket_1792913653706_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_bucket_1792913653706_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_bucket_1792913653706_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_bucket_1792913653706_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_2_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_absent_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_absent_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_absent_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_absent_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_absent_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_absent_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_absent_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_absent_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_absent_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_absent_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_absent_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_absent_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_absent_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_absent_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_provider_id_absent_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_bucket_boundaries",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_bucket_1792913653706_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_bucket_1792913653706_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_bucket_1792913653706_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_bucket_1792913653706_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_bucket_1792913653706_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_bucket_1792913653706_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_bucket_1792913653706_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_bucket_1792913653706_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_0_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_bucket_boundaries",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_bucket_1792913653706_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_bucket_1792913653706_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_bucket_1792913653706_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_bucket_1792913653706_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_bucket_1792913653706_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_bucket_1792913653706_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_bucket_1792913653706_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_bucket_1792913653706_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_1_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_bucket_boundaries",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_bucket_1792913653706_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_bucket_1792913653706_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_bucket_1792913653706_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_bucket_1792913653706_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_bucket_1792913653706_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_bucket_1792913653706_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_bucket_1792913653706_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_bucket_1792913653706_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_2_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_absent_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_absent_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_absent_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_absent_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_absent_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_absent_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_absent_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_absent_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_absent_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_absent_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_absent_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_absent_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_absent_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_absent_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_channel_id_absent_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_bucket_boundaries",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_bucket_1792913653706_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_bucket_1792913653706_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_bucket_1792913653706_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_bucket_1792913653706_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_bucket_1792913653706_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_bucket_1792913653706_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_bucket_1792913653706_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_bucket_1792913653706_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_0_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_bucket_boundaries",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_bucket_1792913653706_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_bucket_1792913653706_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_bucket_1792913653706_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_bucket_1792913653706_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_bucket_1792913653706_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_bucket_1792913653706_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_bucket_1792913653706_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_bucket_1792913653706_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_1_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_bucket_boundaries",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_bucket_1792913653706_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_bucket_1792913653706_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_bucket_1792913653706_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_bucket_1792913653706_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_bucket_1792913653706_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_bucket_1792913653706_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_bucket_1792913653706_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_bucket_1792913653706_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_2_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_absent_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_absent_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_absent_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_absent_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_absent_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_absent_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_absent_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_absent_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_absent_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_absent_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_absent_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_absent_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_absent_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_absent_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_account_id_absent_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_key_absent_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_key_absent_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_key_absent_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_key_absent_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_key_absent_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_key_absent_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_key_absent_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_key_absent_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_key_absent_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_key_absent_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_key_absent_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_key_absent_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_key_absent_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_key_absent_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_key_absent_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_group_absent_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_group_absent_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_group_absent_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_group_absent_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_group_absent_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_group_absent_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_group_absent_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_group_absent_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_group_absent_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_group_absent_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_group_absent_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_group_absent_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_group_absent_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_group_absent_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filter_group_absent_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_bucket_boundaries",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_bucket_1792913653715_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_bucket_1792913653715_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_bucket_1792913653715_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_bucket_1792913653715_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_bucket_1792913653715_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_bucket_1792913653715_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_bucket_1792913653715_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_bucket_1792913653715_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_lower_upper_inclusive_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_before_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_before_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_before_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_before_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_before_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_before_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_before_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_before_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_before_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_before_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_before_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_before_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_before_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_before_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_before_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_after_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_after_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_after_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_after_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_after_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_after_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_after_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_after_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_after_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_after_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_after_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_after_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_after_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_after_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_time_after_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_row_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_summary_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_summary_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_summary_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_summary_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_summary_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_summary_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_summary_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_summary_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_all_detail_pages",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_jsonl_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_bucket_count",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_bucket_boundaries",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_bucket_1792913653715_counts",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_bucket_1792913653715_input_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_bucket_1792913653715_output_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_bucket_1792913653715_reasoning_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_bucket_1792913653715_cache_read_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_bucket_1792913653715_cache_creation_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_bucket_1792913653715_cached_tokens",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_bucket_1792913653715_cost",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_jsonl_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_csv_details",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_filters_combined_csv_buckets",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_concurrent_public_write",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_export_exact_rows",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_export_totals",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_bucket_export",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_bucket_attempt_totals",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_metadata_frozen",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_disconnect_retry",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_invalid_scope_and_limits",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_cross_key_isolation",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_cancel_invalidation",
+      "status": "PASS"
+    },
+    {
+      "check": "snapshot_restart_invalidation",
+      "status": "PASS"
+    }
+  ],
+  "provider_call_count": 7,
+  "upstream_receive_count": 7,
+  "process_exit": 0,
+  "network_boundary": "OS loopback-only sandbox on initial serve and restart; background provider tasks disabled",
+  "input_script_sha256": "4ab1151ee3db2f19895e29e5665abba10bd27749f4153ab8c60eb59cb64a3428",
+  "oracle_script_sha256": "6e53569757c643c84c688c41a152bdf18648b0f5aaaf7002688896a2256e32f1"
+}

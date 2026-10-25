@@ -409,3 +409,6 @@ and `cpa_69_prefix_graph_publish_rollback_and_pinned_names`.
 
 #69最终本地受测源码 `46c2807eacb4390ad7500bba5613414ddc07a365`：Full44/44，Rust1719通过/0失败/21忽略。
 三轮独立静态审查及已修复问题、RED/FAIL历史、binary/lock/输入hash见上述实施记录；不改变远端票或实际服务资格。
+## #73 reviewed price source (2026-10-25)
+
+OPT-06 → [ADR-0131](adr/ADR-0131-reviewed-price-source-versioning.md) → [BC-MGMT-021](contracts/BC-MGMT-021-reviewed-price-source-versioning.md). Uses schema40 review evidence, existing immutable catalogs/ledger and #72 frozen results. Local validation and source identity are recorded in the [implementation report](reports/issue-73-price-preview-20261025.md).

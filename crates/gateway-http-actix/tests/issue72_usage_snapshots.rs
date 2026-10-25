@@ -4,7 +4,8 @@ use actix_web::{App, HttpServer, web};
 use gateway_control::{
     billing_materializer::{BILLING_MATERIALIZER_ID, materialize_billing_events_with_retention},
     management_mutation_service::{
-        KeyVersion, ManagementMutationService, MasterKey, MasterKeyRing, SecretStore,
+        ConfigVersion, ConfigVersionId, ConfigVersionStatus, ControlPlaneConfiguration, KeyVersion,
+        ManagementMutationService, MasterKey, MasterKeyRing, SecretStore,
         SqliteControlPlaneRepository,
     },
     management_operations_service::{
@@ -264,7 +265,7 @@ fn historical_usage_cells(path: &Path) -> Result<Vec<Vec<String>>> {
 }
 
 fn upgrade_schema38_usage_fixture(path: &Path) -> Result {
-    // The registered downgrade drops only the empty 0039 history table and its bookkeeping.
+    // The registered downgrade drops empty 0039 history/0040 review tables and their bookkeeping.
     // This constructs the complete schema38 prefix with real event/materialized-price fixtures.
     let mut connection = gateway_store::open(path)?;
     gateway_store::rollback_to_version(&mut connection, 38)?;
@@ -281,7 +282,10 @@ fn upgrade_schema38_usage_fixture(path: &Path) -> Result {
     let repository = SqliteControlPlaneRepository::open(path)?;
     drop(repository);
     let mut connection = gateway_store::open(path)?;
-    assert_eq!(gateway_store::schema_version(&connection)?, Some(39));
+    assert_eq!(
+        gateway_store::schema_version(&connection)?,
+        Some(gateway_store::CURRENT_SCHEMA_VERSION)
+    );
     gateway_store::migrate(&mut connection)?;
     let registered: i64 = connection.query_row(
         "SELECT count(*) FROM schema_migrations WHERE version = 39",
@@ -346,12 +350,19 @@ async fn usage_snapshot_http_freezes_totals_details_and_exports() -> Result {
         version,
         [(version, MasterKey::try_from_bytes([7; 32])?)],
     )?);
+    let mut repository = SqliteControlPlaneRepository::open(&path)?;
+    repository.write_configuration(&ControlPlaneConfiguration::new(ConfigVersion {
+        id: ConfigVersionId::try_new("price-review")?,
+        parent_id: None,
+        status: ConfigVersionStatus::Draft,
+        revision: 0,
+        created_at_ms: 1,
+        description: String::new(),
+    }))?;
     let resources = web::Data::new(
-        ManagementResourceHttpState::new(ManagementMutationService::new(
-            SqliteControlPlaneRepository::open(&path)?,
-            secrets,
-        ))
-        .with_usage(Box::new(Source(path.clone()))),
+        ManagementResourceHttpState::new(ManagementMutationService::new(repository, secrets))
+            .with_usage(Box::new(Source(path.clone())))
+            .with_price_source(std::sync::Arc::new(ReviewSource)),
     );
     let security = web::Data::new(ManagementHttpState::new(
         ManagementKey::try_new(KEY)?,
@@ -432,6 +443,7 @@ async fn usage_snapshot_http_freezes_totals_details_and_exports() -> Result {
     )
     .await?;
     assert_eq!(other["summary"]["input_tokens"]["total"], 999);
+    reviewed_price_application_preserves_frozen_exports(&client, &base, &prefix, &path).await?;
     // New events and ledger retention run after creation, between export pages.
     let first = api(
         &client,
@@ -645,5 +657,141 @@ async fn usage_snapshot_http_freezes_totals_details_and_exports() -> Result {
     )
     .await?;
     handle.stop(true).await;
+    Ok(())
+}
+
+struct ReviewSource;
+impl gateway_http_actix::management_resources::price_source::PriceSource for ReviewSource {
+    fn fetch(&self) -> std::result::Result<Vec<u8>, ManagementOperationsError> {
+        Ok(br#"{"official":{"models":{"priced":{"cost":{"input":3,"output":3}}}}}"#.to_vec())
+    }
+}
+
+#[allow(clippy::too_many_lines)]
+async fn reviewed_price_application_preserves_frozen_exports(
+    client: &reqwest::Client,
+    base: &str,
+    prefix: &str,
+    path: &Path,
+) -> Result {
+    let mut before = Vec::new();
+    for grain in ["details", "buckets"] {
+        for format in ["csv", "jsonl"] {
+            let url = format!("{base}{prefix}/export?grain={grain}&format={format}&limit=100");
+            let bytes = client
+                .get(&url)
+                .header("X-Management-Key", KEY)
+                .send()
+                .await?
+                .error_for_status()?
+                .bytes()
+                .await?;
+            before.push((url, bytes));
+        }
+    }
+    let ledger_before = historical_usage_cells(path)?[1].clone();
+    let now = u64::try_from(
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_millis(),
+    )?;
+    let effective = now + 60_000;
+    let preview_response = client.post(format!("{base}/admin/billing/price-source/preview"))
+        .header("X-Management-Key",KEY).header("X-Config-Version","price-review").header("If-Match","\"rev-0\"")
+        .body(json!({"catalog_version_id":"price-v3-reviewed","effective_at_ms":effective,"mappings":[{
+            "source_provider":"official","source_model":"priced","provider_id":"provider","channel_id":"channel","model":"priced",
+            "missing_rates":{"reasoning":0,"cached":0,"cache_read":0,"cache_creation":0}}]}).to_string())
+        .send().await?.error_for_status()?;
+    let preview: Value = serde_json::from_slice(&preview_response.bytes().await?)?;
+    assert_eq!(preview["can_apply"], true, "{preview}");
+    let applied = client
+        .post(format!("{base}/admin/billing/price-source/apply"))
+        .header("X-Management-Key", KEY)
+        .header("X-Config-Version", "price-review")
+        .header("If-Match", "\"rev-0\"")
+        .body(
+            json!({"preview_id":preview["preview_id"],"content_digest":preview["content_digest"]})
+                .to_string(),
+        )
+        .send()
+        .await?;
+    assert_eq!(applied.status().as_u16(), 201, "{}", applied.text().await?);
+    assert_eq!(
+        historical_usage_cells(path)?[1],
+        ledger_before,
+        "no historical ledger cell changes"
+    );
+    let mut events = SqliteEventStore::open(path)?;
+    let request = request(
+        "after-price-review",
+        "a",
+        "priced",
+        i64::try_from(effective)?,
+    )?;
+    let attempt = attempt(
+        &request,
+        1,
+        "account-a",
+        i64::try_from(effective + 1)?,
+        false,
+    )?;
+    events.append_batch(&[
+        GatewayEvent::Request(request.clone()),
+        GatewayEvent::Attempt(attempt.clone()),
+        usage(&attempt, 10, Some(2), UsageProvenance::Measured)?,
+        finished(&request, RequestOutcome::Succeeded),
+    ])?;
+    let mut ledger = SqliteBillingLedger::open(path)?;
+    materialize_billing_events_with_retention(
+        &events,
+        &mut ledger,
+        BILLING_MATERIALIZER_ID,
+        1024,
+        None,
+        effective + 2,
+    )?;
+    let connection = gateway_store::open(path)?;
+    let decision: (String,i64) = connection.query_row(
+        "SELECT catalog_version_id,cost_microunits FROM billing_ledger_entries WHERE request_id='after-price-review'",[],|row|Ok((row.get(0)?,row.get(1)?)))?;
+    assert_eq!(decision, ("price-v3-reviewed".into(), 36));
+    let old_unknown: Option<i64> = connection.query_row(
+        "SELECT cost_microunits FROM billing_ledger_entries WHERE request_id='zero'",
+        [],
+        |r| r.get(0),
+    )?;
+    assert_eq!(old_unknown, None);
+    for (url, bytes) in before {
+        let after = client
+            .get(url)
+            .header("X-Management-Key", KEY)
+            .send()
+            .await?
+            .error_for_status()?
+            .bytes()
+            .await?;
+        assert_eq!(
+            after, bytes,
+            "frozen CSV/JSONL bytes survive reviewed price application and new usage"
+        );
+    }
+    let review_response = client
+        .get(format!(
+            "{base}/admin/billing/catalogs/price-v3-reviewed/review"
+        ))
+        .header("X-Management-Key", KEY)
+        .header("X-Config-Version", "price-review")
+        .send()
+        .await?
+        .error_for_status()?;
+    let review: Value = serde_json::from_slice(&review_response.bytes().await?)?;
+    assert_eq!(review["source_digest"], preview["source_digest"]);
+    assert_eq!(review["catalog_version_id"], "price-v3-reviewed");
+    drop(ledger);
+    drop(connection);
+    assert!(
+        SqliteControlPlaneRepository::open(path)?
+            .load_billing_catalog_review("price-v3-reviewed")?
+            .is_some()
+    );
     Ok(())
 }

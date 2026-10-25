@@ -1,0 +1,25 @@
+{
+  "source_commit": "5bbe4af62eb2cee3407c17ca0138d1c60c33822e",
+  "source_tree": "99b082602ef29e3c5f95256aba7044d48788c09f",
+  "cargo_lock_sha256": "a3950a764ae2dcae4e04a8a32ada596f33ea105dbfda8e9714b3e32d3216cd6d",
+  "binary": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-73-price-preview-versioning-20261025/output/issue-73/bin/gateway-5bbe4af62eb2",
+  "binary_sha256": "ff45c4997ef847dad0dcc19a6c315a033c29ce4e27ca0cb90da25405b4614519",
+  "build_env": {
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-73-price-preview-versioning-20261025/output/issue-73/target",
+    "TMPDIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-73-price-preview-versioning-20261025/output/issue-73/tmp",
+    "GATEWAY_RELEASE_REVISION": "5bbe4af62eb2cee3407c17ca0138d1c60c33822e",
+    "GATEWAY_RELEASE_RUST_VERSION": "1.97.1",
+    "GATEWAY_RELEASE_TARGET": "aarch64-apple-darwin"
+  },
+  "build_command": [
+    "cargo",
+    "build",
+    "--locked",
+    "-p",
+    "gateway",
+    "--bin",
+    "gateway"
+  ],
+  "qualification": "local_debug_binary_not_release"
+}
