@@ -105,6 +105,14 @@ class Matrix(base.Matrix):
 
     def start(self, binary, label):
         super().start(binary, label)
+        if binary == "current":
+            with sqlite3.connect(self.db) as db:
+                self.check(label + " complete expected schema prefix", db.execute(
+                    "SELECT version FROM schema_migrations ORDER BY version").fetchall()
+                    == [(n,) for n in range(1, self.args.expected_schema + 1)])
+                if self.args.expected_schema == 40:
+                    self.check(label + " schema40 review table exists", db.execute(
+                        "SELECT count(*) FROM billing_catalog_reviews").fetchone() is not None)
         self.rss_stop.clear()
         self.rss = {"label": label, "sampled_max_rss_bytes": 0, "samples": 0}
         self.report.setdefault("serve_resources", []).append(self.rss)
