@@ -215,7 +215,7 @@ impl NativeUsageReader {
                         provider_grok::GROK_CONSOLE_USER_AGENT.into(),
                     ),
                 ];
-                let key = GrokConsoleDpopSession::generate_key();
+                let key = GrokConsoleDpopSession::generate_key().map_err(|_| Error::Unavailable)?;
                 let body = GrokConsoleDpopSession::token_exchange_body(&key)
                     .map_err(|_| Error::Unavailable)?;
                 let value = self

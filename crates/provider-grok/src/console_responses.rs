@@ -799,7 +799,8 @@ impl GrokConsoleTransport for GrokConsoleUpstreamTransport {
                         .begin_console_session_bootstrap()
                         .map_err(map_native_egress_error)?;
                 }
-                let signing_key = GrokConsoleDpopSession::generate_key();
+                let signing_key =
+                    GrokConsoleDpopSession::generate_key().map_err(|_| egress_error())?;
                 let token_url =
                     EndpointUrl::compose(GROK_CONSOLE_RESPONSES_BASE_URL, "/v1/dpop/token")
                         .map_err(|_| egress_error())?;
@@ -888,7 +889,8 @@ impl GrokConsoleTransport for GrokConsoleUpstreamTransport {
                         Box::new(ConsoleUpstreamBody { response }),
                     ));
                 }
-                let refreshed = GrokConsoleDpopSession::generate_key();
+                let refreshed =
+                    GrokConsoleDpopSession::generate_key().map_err(|_| egress_error())?;
                 let token_url =
                     EndpointUrl::compose(GROK_CONSOLE_RESPONSES_BASE_URL, "/v1/dpop/token")
                         .map_err(|_| egress_error())?;

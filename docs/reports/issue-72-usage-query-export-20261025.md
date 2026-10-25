@@ -3,7 +3,13 @@
 Date: 2026-10-25 (Asia/Shanghai). Branch: `codex/72-usage-query-export`.
 Common baseline: `444558a8de930f5f1febd5a40ec5bdbbc30a15fb`.
 
-**Status: local implementation and controlled functional acceptance complete; Full gate blocked by an inherited supply-chain advisory.**
+**Historical status at `d3dda4ba`: local implementation and controlled functional acceptance complete; Full gate blocked by an inherited supply-chain advisory.**
+
+Follow-up on 2026-10-25: the separately authorized
+[RUSTSEC-2026-0387 fix](crypto-bigint-security-fix-20261025.md) upgrades the P-256 dependency chain;
+the subsequent local Full passes all 44 steps (1677 Rust tests passed, 0 failed, 21 ignored), with
+no advisory exemption. The original #72 results and failed receipts below remain unchanged.
+This follow-up does not change the Usage/ledger/query/export implementation or schema.
 
 Implementation: [contract](../contracts/BC-MGMT-020-frozen-usage-query-export.md),
 [decision](../adr/ADR-0128-frozen-usage-query-export.md).

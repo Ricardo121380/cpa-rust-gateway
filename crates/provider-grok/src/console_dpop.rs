@@ -14,7 +14,10 @@ use std::{
 };
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
-use p256::ecdsa::{Signature, SigningKey, signature::Signer};
+use p256::{
+    ecdsa::{Signature, SigningKey, signature::Signer},
+    elliptic_curve::Generate,
+};
 use serde::Serialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -115,9 +118,8 @@ impl GrokConsoleDpopSession {
     }
 
     /// Generates the ephemeral P-256 signing key used in the `DPoP` token request.
-    #[must_use]
-    pub fn generate_key() -> SigningKey {
-        SigningKey::random(&mut rand_core::OsRng)
+    pub fn generate_key() -> Result<SigningKey, GrokConsoleDpopError> {
+        SigningKey::try_generate().map_err(|_| GrokConsoleDpopError::Randomness)
     }
 
     /// Returns the `DPoP` access token for immediate Authorization header construction.
@@ -259,7 +261,7 @@ struct DpopJwk {
 
 impl DpopJwk {
     fn from_key(key: &p256::ecdsa::VerifyingKey) -> Self {
-        let point = key.to_encoded_point(false);
+        let point = key.to_sec1_point(false);
         Self {
             kty: "EC",
             crv: "P-256",
@@ -365,6 +367,7 @@ impl std::error::Error for GrokConsoleDpopError {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use p256::ecdsa::{VerifyingKey, signature::Verifier};
     use std::error::Error;
 
     type TestResult<T = ()> = Result<T, Box<dyn Error>>;
@@ -383,24 +386,92 @@ mod tests {
     #[test]
     fn proof_contains_dpop_claims_and_fixed_width_signature() -> TestResult {
         let now = UNIX_EPOCH + Duration::from_secs(1_700_000_000);
-        let key = GrokConsoleDpopSession::generate_key();
+        let key = GrokConsoleDpopSession::generate_key()?;
         let token = token_for(&key, 1_700_000_600)?;
+        let exchange: Value =
+            serde_json::from_slice(&GrokConsoleDpopSession::token_exchange_body(&key)?)?;
+        let jwk = &exchange["jwk"];
+        assert_eq!(jwk["kty"], "EC");
+        assert_eq!(jwk["crv"], "P-256");
+        assert_eq!(jwk.as_object().ok_or("JWK must be an object")?.len(), 4);
+        let x = jwk["x"].as_str().ok_or("missing x")?;
+        let y = jwk["y"].as_str().ok_or("missing y")?;
+        let x_bytes = URL_SAFE_NO_PAD.decode(x)?;
+        let y_bytes = URL_SAFE_NO_PAD.decode(y)?;
+        assert_eq!(x_bytes.len(), 32);
+        assert_eq!(y_bytes.len(), 32);
+        let mut sec1 = vec![4];
+        sec1.extend_from_slice(&x_bytes);
+        sec1.extend_from_slice(&y_bytes);
+        let verifier = VerifyingKey::from_sec1_bytes(&sec1)?;
+        assert_eq!(&verifier, key.verifying_key());
+        let canonical = format!(r#"{{"crv":"P-256","kty":"EC","x":"{x}","y":"{y}"}}"#);
+        let (_, thumbprint) = parse_access_token_claims(&token)?;
+        assert_eq!(
+            thumbprint,
+            URL_SAFE_NO_PAD.encode(Sha256::digest(canonical))
+        );
+        let expected_ath = URL_SAFE_NO_PAD.encode(Sha256::digest(token.as_bytes()));
         let session = GrokConsoleDpopSession::from_token_response(token, "DPoP", 600, key, now)?;
-        let proof = session.proof("post", "https://console.x.ai/v1/responses", now)?;
-        let parts: Vec<_> = proof.split('.').collect();
-        assert_eq!(parts.len(), 3);
-        assert_eq!(URL_SAFE_NO_PAD.decode(parts[2])?.len(), 64);
-        let claims: Value = serde_json::from_slice(&URL_SAFE_NO_PAD.decode(parts[1])?)?;
-        assert_eq!(claims["htm"], "POST");
-        assert_eq!(claims["htu"], "https://console.x.ai/v1/responses");
-        assert!(claims["ath"].as_str().is_some());
+        for (method, htu) in [
+            ("post", "https://console.x.ai/v1/responses"),
+            ("get", "https://console.x.ai/v1/usage"),
+        ] {
+            let proof = session.proof(method, htu, now)?;
+            let parts: Vec<_> = proof.split('.').collect();
+            assert_eq!(parts.len(), 3);
+            let header: Value = serde_json::from_slice(&URL_SAFE_NO_PAD.decode(parts[0])?)?;
+            assert_eq!(header["typ"], "dpop+jwt");
+            assert_eq!(header["alg"], "ES256");
+            assert_eq!(&header["jwk"], jwk);
+            let mut claims: Value = serde_json::from_slice(&URL_SAFE_NO_PAD.decode(parts[1])?)?;
+            assert_eq!(claims["htm"], method.to_ascii_uppercase());
+            assert_eq!(claims["htu"], htu);
+            assert_eq!(claims["iat"], 1_700_000_000_u64);
+            assert_eq!(claims["ath"], expected_ath);
+            let signature_bytes = URL_SAFE_NO_PAD.decode(parts[2])?;
+            assert_eq!(signature_bytes.len(), 64);
+            let signature = Signature::from_slice(&signature_bytes)?;
+            let signing_input = format!("{}.{}", parts[0], parts[1]);
+            verifier.verify(signing_input.as_bytes(), &signature)?;
+            claims["htm"] = Value::String("PUT".to_owned());
+            let tampered = format!(
+                "{}.{}",
+                parts[0],
+                URL_SAFE_NO_PAD.encode(serde_json::to_vec(&claims)?)
+            );
+            assert!(verifier.verify(tampered.as_bytes(), &signature).is_err());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn es256_matches_rfc6979_p256_sha256_vector() -> TestResult {
+        // Public test vector: RFC 6979 Appendix A.2.5, SHA-256 and message "sample".
+        // https://www.rfc-editor.org/rfc/rfc6979#appendix-A.2.5
+        let key = SigningKey::from_slice(&[
+            0xc9, 0xaf, 0xa9, 0xd8, 0x45, 0xba, 0x75, 0x16, 0x6b, 0x5c, 0x21, 0x57, 0x67, 0xb1,
+            0xd6, 0x93, 0x4e, 0x50, 0xc3, 0xdb, 0x36, 0xe8, 0x9b, 0x12, 0x7b, 0x8a, 0x62, 0x2b,
+            0x12, 0x0f, 0x67, 0x21,
+        ])?;
+        let signature: Signature = key.sign(b"sample");
+        assert_eq!(
+            signature.to_bytes().as_slice(),
+            &[
+                0xef, 0xd4, 0x8b, 0x2a, 0xac, 0xb6, 0xa8, 0xfd, 0x11, 0x40, 0xdd, 0x9c, 0xd4, 0x5e,
+                0x81, 0xd6, 0x9d, 0x2c, 0x87, 0x7b, 0x56, 0xaa, 0xf9, 0x91, 0xc3, 0x4d, 0x0e, 0xa8,
+                0x4e, 0xaf, 0x37, 0x16, 0xf7, 0xcb, 0x1c, 0x94, 0x2d, 0x65, 0x7c, 0x41, 0xd4, 0x36,
+                0xc7, 0xa1, 0xb6, 0xe2, 0x9f, 0x65, 0xf3, 0xe9, 0x00, 0xdb, 0xb9, 0xaf, 0xf4, 0x06,
+                0x4d, 0xc4, 0xab, 0x2f, 0x84, 0x3a, 0xcd, 0xa8,
+            ]
+        );
         Ok(())
     }
 
     #[test]
     fn cache_invalidation_does_not_remove_a_successor() -> TestResult {
         let now = UNIX_EPOCH + Duration::from_secs(1_700_000_000);
-        let key = GrokConsoleDpopSession::generate_key();
+        let key = GrokConsoleDpopSession::generate_key()?;
         let first = GrokConsoleDpopSession::from_token_response(
             token_for(&key, 1_700_000_600)?,
             "DPoP",
@@ -408,7 +479,7 @@ mod tests {
             key.clone(),
             now,
         )?;
-        let successor_key = GrokConsoleDpopSession::generate_key();
+        let successor_key = GrokConsoleDpopSession::generate_key()?;
         let successor = GrokConsoleDpopSession::from_token_response(
             token_for(&successor_key, 1_700_000_600)?,
             "DPoP",
