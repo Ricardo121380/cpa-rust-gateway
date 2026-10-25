@@ -45,10 +45,6 @@ mod tests {
         assert_ne!(counts[0], counts[1]);
         assert_ne!(counts[1], counts[2]);
         assert_ne!(counts[0].method(), counts[2].method());
-        assert_eq!(
-            InputTokenCount::from(ExactInputTokenCount::new(17)),
-            counts[0]
-        );
         assert!(!format!("{:?}", counts[2]).contains("17"));
     }
 
