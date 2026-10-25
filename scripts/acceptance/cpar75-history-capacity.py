@@ -318,12 +318,13 @@ class Matrix(base.Matrix):
     def copy_phase(self):
         try: files = [(p, p.stat().st_size) for p in self.root.glob(".cpa-backup-*.sqlite3")]
         except FileNotFoundError: return False
-        growing = [size for _, size in files if 1048576 < size < self.db.stat().st_size]
+        growing = [size for _, size in files if 1048576 < size < self.copy_database_bytes]
         return bool(growing and any(size == 0 for _, size in files))
 
     def concurrent_writer(self):
         self.writer_ready = threading.Event()
         self.writer_receipt = []
+        self.copy_database_bytes = self.db.stat().st_size
         def append():
             try:
                 with sqlite3.connect(self.db, timeout=20) as db:
