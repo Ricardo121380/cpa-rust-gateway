@@ -1,0 +1,427 @@
+{
+  "result": "SYNCED_AND_VERIFIED",
+  "at": "2026-10-25T14:05:06.730226+00:00",
+  "repo": "Ricardo121380/cpa-rust-gateway",
+  "tested_commit": "e06ac169fb8217b00530d9f4e70cfefdd594a513",
+  "published_evidence_commit": "98b6ff6d08c7afe3fca6c56a6c0262e1c361e5ed",
+  "branch": "feature/parallel-70-71-integration",
+  "updated_bodies": 18,
+  "closed_issues": [
+    68,
+    69,
+    70,
+    71,
+    72,
+    73,
+    74,
+    75
+  ],
+  "checked_original_criteria": 75,
+  "new_closeout_comments": 8,
+  "parents_updated_and_remaining_open": [
+    9,
+    41,
+    47,
+    57,
+    58,
+    62,
+    63,
+    64,
+    65,
+    66
+  ],
+  "unchanged_open_sentinels": [
+    61,
+    67
+  ],
+  "native_dependency_mutations": 0,
+  "parent_58_child_membership_unchanged": true,
+  "readback_issues": [
+    {
+      "number": 9,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/9",
+      "state": "OPEN",
+      "body_sha256": "d5996277841da125bd942de1744dd8fa27f1cc9ff5f1cbf870ece0a9f281b24b",
+      "body_updated": true,
+      "comments_added": 0,
+      "title_assignees_preserved": true,
+      "labels": [
+        "ready-for-agent"
+      ],
+      "relationships": {
+        "blocked-by": [],
+        "blocking": []
+      }
+    },
+    {
+      "number": 41,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/41",
+      "state": "OPEN",
+      "body_sha256": "6461746dd119a9f018a279c6b88b0cf23ff1e207066360ada38edf9de16f2738",
+      "body_updated": true,
+      "comments_added": 0,
+      "title_assignees_preserved": true,
+      "labels": [
+        "ready-for-agent"
+      ],
+      "relationships": {
+        "blocked-by": [
+          13,
+          27,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34
+        ],
+        "blocking": [
+          57
+        ]
+      }
+    },
+    {
+      "number": 47,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/47",
+      "state": "OPEN",
+      "body_sha256": "ffbca93fa07babc93e776940e2a2166823a7178b8512f9fe7980387405b675de",
+      "body_updated": true,
+      "comments_added": 0,
+      "title_assignees_preserved": true,
+      "labels": [
+        "ready-for-agent"
+      ],
+      "relationships": {
+        "blocked-by": [
+          16,
+          27,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34
+        ],
+        "blocking": [
+          57
+        ]
+      }
+    },
+    {
+      "number": 57,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/57",
+      "state": "OPEN",
+      "body_sha256": "d69dff99c42b2a9ab43b4ee8fdfd0c9bb8db5cf43b44eb300ff31afc91a4c094",
+      "body_updated": true,
+      "comments_added": 0,
+      "title_assignees_preserved": true,
+      "labels": [
+        "ready-for-agent"
+      ],
+      "relationships": {
+        "blocked-by": [
+          12,
+          17,
+          21,
+          25,
+          26,
+          37,
+          38,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          52,
+          53,
+          54,
+          55,
+          56
+        ],
+        "blocking": []
+      }
+    },
+    {
+      "number": 58,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/58",
+      "state": "OPEN",
+      "body_sha256": "8e676309090b7e485d437dd1516fd400b69ac5f652e72099a45409c2289c10df",
+      "body_updated": true,
+      "comments_added": 0,
+      "title_assignees_preserved": true,
+      "labels": [
+        "ready-for-agent"
+      ],
+      "relationships": {
+        "blocked-by": [],
+        "blocking": []
+      }
+    },
+    {
+      "number": 61,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/61",
+      "state": "OPEN",
+      "body_sha256": "28fa7cd05db30a0b8a38516211673eae291f5d70aaa7ebbb764580998baa1c15",
+      "body_updated": false,
+      "comments_added": 0,
+      "title_assignees_preserved": true,
+      "labels": [
+        "ready-for-agent"
+      ],
+      "relationships": {
+        "blocked-by": [
+          59,
+          60
+        ],
+        "blocking": [
+          62,
+          63
+        ]
+      }
+    },
+    {
+      "number": 62,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/62",
+      "state": "OPEN",
+      "body_sha256": "be174c091043041255d9bd00ef130637736ffe55e7c23de19fea17e211e41c0e",
+      "body_updated": true,
+      "comments_added": 0,
+      "title_assignees_preserved": true,
+      "labels": [
+        "ready-for-agent"
+      ],
+      "relationships": {
+        "blocked-by": [
+          61
+        ],
+        "blocking": [
+          66
+        ]
+      }
+    },
+    {
+      "number": 63,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/63",
+      "state": "OPEN",
+      "body_sha256": "515339aa77e667ea0c572d42dd2f8ad772ab9e11900ad4e7f7e5bae582581c03",
+      "body_updated": true,
+      "comments_added": 0,
+      "title_assignees_preserved": true,
+      "labels": [
+        "ready-for-agent"
+      ],
+      "relationships": {
+        "blocked-by": [
+          61
+        ],
+        "blocking": [
+          64,
+          65
+        ]
+      }
+    },
+    {
+      "number": 64,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/64",
+      "state": "OPEN",
+      "body_sha256": "d3ef8bca9951d73d58488a54a413c5f898c7499739a3c0a993099eb4c7a6628c",
+      "body_updated": true,
+      "comments_added": 0,
+      "title_assignees_preserved": true,
+      "labels": [
+        "ready-for-agent"
+      ],
+      "relationships": {
+        "blocked-by": [
+          63
+        ],
+        "blocking": [
+          66
+        ]
+      }
+    },
+    {
+      "number": 65,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/65",
+      "state": "OPEN",
+      "body_sha256": "068fc2abedbf343507d72aac288d69f99c74ce4d220b88eac452541aec3739e8",
+      "body_updated": true,
+      "comments_added": 0,
+      "title_assignees_preserved": true,
+      "labels": [
+        "ready-for-agent"
+      ],
+      "relationships": {
+        "blocked-by": [
+          63
+        ],
+        "blocking": [
+          66
+        ]
+      }
+    },
+    {
+      "number": 66,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/66",
+      "state": "OPEN",
+      "body_sha256": "e6ddcb6cf6415657ec4a952e803154961377872a943d128d99424e641bc2cfc1",
+      "body_updated": true,
+      "comments_added": 0,
+      "title_assignees_preserved": true,
+      "labels": [
+        "ready-for-agent"
+      ],
+      "relationships": {
+        "blocked-by": [
+          62,
+          64,
+          65
+        ],
+        "blocking": [
+          67
+        ]
+      }
+    },
+    {
+      "number": 67,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/67",
+      "state": "OPEN",
+      "body_sha256": "364671aa99e4a65d1371711ab9c54e04fb59617b3b1ff0b34641c1b0d09c295f",
+      "body_updated": false,
+      "comments_added": 0,
+      "title_assignees_preserved": true,
+      "labels": [
+        "ready-for-agent"
+      ],
+      "relationships": {
+        "blocked-by": [
+          66
+        ],
+        "blocking": []
+      }
+    },
+    {
+      "number": 68,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/68",
+      "state": "CLOSED",
+      "body_sha256": "177b9992cd1130e41621c5df1376168703f073d96f154c82325821bdafa16894",
+      "body_updated": true,
+      "comments_added": 1,
+      "title_assignees_preserved": true,
+      "labels": [],
+      "relationships": {
+        "blocked-by": [],
+        "blocking": []
+      }
+    },
+    {
+      "number": 69,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/69",
+      "state": "CLOSED",
+      "body_sha256": "a91306078b39842eda126b395e18dfeacd6da1fe71085b99a8c8cb3c402c806b",
+      "body_updated": true,
+      "comments_added": 1,
+      "title_assignees_preserved": true,
+      "labels": [],
+      "relationships": {
+        "blocked-by": [],
+        "blocking": []
+      }
+    },
+    {
+      "number": 70,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/70",
+      "state": "CLOSED",
+      "body_sha256": "c8818a436109ca5643e767db18205b89ea752570f0048080e4f8e3561c2fc4ca",
+      "body_updated": true,
+      "comments_added": 1,
+      "title_assignees_preserved": true,
+      "labels": [],
+      "relationships": {
+        "blocked-by": [],
+        "blocking": []
+      }
+    },
+    {
+      "number": 71,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/71",
+      "state": "CLOSED",
+      "body_sha256": "add76daff066f4b0f05de3324ba48c61e60f6af7c0d7dd85fcec36ccfb66f858",
+      "body_updated": true,
+      "comments_added": 1,
+      "title_assignees_preserved": true,
+      "labels": [],
+      "relationships": {
+        "blocked-by": [],
+        "blocking": []
+      }
+    },
+    {
+      "number": 72,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/72",
+      "state": "CLOSED",
+      "body_sha256": "3e8d8da1d58ee624979c3fb76085c7221e611248779c37d5d4409c9e8905aeda",
+      "body_updated": true,
+      "comments_added": 1,
+      "title_assignees_preserved": true,
+      "labels": [],
+      "relationships": {
+        "blocked-by": [],
+        "blocking": []
+      }
+    },
+    {
+      "number": 73,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/73",
+      "state": "CLOSED",
+      "body_sha256": "29ffef20c95b64ce2f4c09780eb294b5cc83f6dccf23207f7ca5886d06a5cae7",
+      "body_updated": true,
+      "comments_added": 1,
+      "title_assignees_preserved": true,
+      "labels": [],
+      "relationships": {
+        "blocked-by": [],
+        "blocking": []
+      }
+    },
+    {
+      "number": 74,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/74",
+      "state": "CLOSED",
+      "body_sha256": "ff8225fa6b0a02167a0113d07d214130d5aa13ab9b435a8c75844e7af90a53c0",
+      "body_updated": true,
+      "comments_added": 1,
+      "title_assignees_preserved": true,
+      "labels": [],
+      "relationships": {
+        "blocked-by": [],
+        "blocking": []
+      }
+    },
+    {
+      "number": 75,
+      "url": "https://github.com/Ricardo121380/cpa-rust-gateway/issues/75",
+      "state": "CLOSED",
+      "body_sha256": "6016c7317ed6dcbac957f9173cd3410b48488f9531d37f8ed97b20a965fc828f",
+      "body_updated": true,
+      "comments_added": 1,
+      "title_assignees_preserved": true,
+      "labels": [],
+      "relationships": {
+        "blocked-by": [],
+        "blocking": []
+      }
+    }
+  ],
+  "open_issue_count": 22,
+  "main_develop_merged": false,
+  "pull_request_created": false,
+  "remote_CI": "NOT_RUN",
+  "release_deployment": "NOT_RUN"
+}

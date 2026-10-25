@@ -120,8 +120,16 @@ dirty状态、文件bytes/modes/uid/gid及既有缺失路径均未变化。未�
 集成提交保留两个父链；develop/main尚未改变。历史检查覆盖1299个新增可达blob（63,823,378 bytes），
 现有秘密规则未发现匹配；该检查不等于通用隐私或安全证明。
 
-**GitHub同步：待此报告与当前入口提交后，发布已审查的单一feature分支并按75项AC逐票同步；
-尚不在此文档提交中宣称远端关闭。** 后续独立读回会记录正文、状态和原生关系。
+**GitHub同步：SYNCED_AND_VERIFIED（2026-10-25 22:05:06 Asia/Shanghai）。**
+已发布单一 `feature/parallel-70-71-integration` 分支；远端证据身份为 `98b6ff6d08c7afe3fca6c56a6c0262e1c361e5ed`，
+该提交记录同步前的受测代码及完整结果。本节及同步回执属于其纯文档后继。
+
+- #68–#75 的75项原验收文字逐项保留并勾选，8张票以 completed 关闭，各追加1条收口评论并移除 ready-for-agent。
+- 同时修订 #9/#41/#47/#57/#58/#62/#63/#64/#65/#66 的旧描述与当前边界，10张票继续OPEN；原勾选、标题、assignee和旧评论保留。
+- 独立GET核对18份正文精确字节、状态、评论与标签；另检查 #61/#67 未改变。20张票的双向原生依赖及 #58 的15个子票成员关系保持。
+- 读回时仓库剩22张开放票。develop/main保持原SHA；未创建PR、未合并或执行远端CI、release、部署。
+
+逐票正文hash、状态和关系见 [GitHub同步回执](wave3-integration-20261025-evidence/github-sync.json)。
 
 机器摘要：[summary.json](wave3-integration-20261025-evidence/summary.json)；
 [Full](wave3-integration-20261025-evidence/full.md)；

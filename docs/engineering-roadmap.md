@@ -6,7 +6,7 @@
 旧计划的“待定”“未实现”和历史 PASS 均按原日期理解；后续实现与证据在这里汇总。
 
 **当前共同候选已通过：`e06ac169fb8217b00530d9f4e70cfefdd594a513`，schema42。**
-[第三批集成记录](reports/wave3-integration-20261025.md)：Full44/44、Rust1751/0/23、默认gateway联合恢复225/225、Usage517/517、额度21/21、显式备份7/7。八票均已纳入同一后端；GitHub同步待本轮独立读回。首版仍未READY。
+[第三批集成记录](reports/wave3-integration-20261025.md)：Full44/44、Rust1751/0/23、默认gateway联合恢复225/225、Usage517/517、额度21/21、显式备份7/7。八票均已纳入同一后端；GitHub #68–#75已关闭，18份正文与原生关系独立读回通过。首版仍未READY。
 
 ## 1. 产品方向与当前基线
 
@@ -22,7 +22,7 @@ CPAR 是 CPA/CLIProxyAPI 网关行为的 Rust 实现。优先直接对照固定�
 | 上游核对时间 | 2026-10-23 14:48:53 UTC；当时最新 release tag 与 main 一致。固定此提交，不追随浮动 main 改变预期 |
 | 已有实现来源 | ADR-0125 等仍基于 v7.2.158；ADR-0126 的 Messages effort 提取基于 v8.0.40。既有差分样例保留 v7.2.80/v7.2.101 的来源，不宣称整体 v8 对齐 |
 | 功能证据 | [10 月 23 日 CPA v8 对照报告](reports/cpa-v8-functional-comparison-20261023.md)；后续 effort 增量和新源码验证见 [10 月 24 日实施记录](reports/cpa-v8-messages-effort-20261024.md) |
-| GitHub 状态核对 | 2026-10-25（Asia/Shanghai）；同步前重新读取相关正文、评论、状态和原生关系；远端同步结果待最终读回 |
+| GitHub 状态核对 | 2026-10-25 22:05:06（Asia/Shanghai）；18份正文、8票关闭、75项AC和20票双向依赖独立读回通过；[回执](reports/wave3-integration-20261025-evidence/github-sync.json) |
 | 本轮交付边界 | 共同集成、数据库安全、Full/实际进程恢复和获准的GitHub状态同步；保持develop/main、真实客户端/Provider、release/部署边界 |
 
 更新移植参考只决定后续查哪份 Go 代码，不覆盖已接受 ADR 的具体行为，也不重标旧测试、署名和收据。
@@ -90,12 +90,13 @@ CPAR 是 CPA/CLIProxyAPI 网关行为的 Rust 实现。优先直接对照固定�
 
 ## 4. 工单、生产资格与远端同步状态
 
-以下状态于2026-10-24规格与票务发布后重新读取；正文、原生blocked-by与sub-issue关系均已核对。
-OPEN不等于没有代码，CLOSED也不代表整个渠道已完成；本轮没有关闭旧票或解除既有阻塞。
+以下状态以2026-10-25共同候选同步及独立读回为准；正文、原生blocked-by与sub-issue成员关系均已核对。
+OPEN不等于没有代码，CLOSED也不代表整个渠道已完成；本轮关闭8张优化子票，父票与既有阻塞保持。
 
 | 工单 | 远端状态 | 当前使用方式 |
 |---|---|---|
 | [#59](https://github.com/Ricardo121380/cpa-rust-gateway/issues/59)、[#60](https://github.com/Ricardo121380/cpa-rust-gateway/issues/60) | CLOSED | 已关闭的诊断/映射切片，不重新排入待实现；原字段、别名及适用范围限制保留 |
+| #68–#75 | CLOSED | 75项原AC、共同schema42、Full与默认gateway恢复通过；详见[逐项映射](reports/wave3-integration-20261025-evidence/acceptance-map.json) |
 | [#61](https://github.com/Ricardo121380/cpa-rust-gateway/issues/61) | OPEN | 适用字段/固定服务依据仍有限；cost_in_usd_ticks 为 NOT_ADMITTED |
 | [#62](https://github.com/Ricardo121380/cpa-rust-gateway/issues/62)、[#63](https://github.com/Ricardo121380/cpa-rust-gateway/issues/63) | OPEN | Responses 客户端与 Messages 本地实现/受控证据已有；各自依赖和完整验收未解除 |
 | [#64](https://github.com/Ricardo121380/cpa-rust-gateway/issues/64)、[#65](https://github.com/Ricardo121380/cpa-rust-gateway/issues/65) | OPEN | Claude D2 和进程恢复已有历史证据；整票条件及新源码验证继续保留 |
@@ -107,17 +108,17 @@ OPEN不等于没有代码，CLOSED也不代表整个渠道已完成；本轮没�
 已核验的原生阻塞：`#59/#60 → #61 → #62/#63`，`#63 → #64/#65`，`#62/#64/#65 → #66 → #67`。
 #66 不要求先通过 #67 的真实 Provider 验收，二者不存在相互等待的要求。
 
-**远端规格与工单已同步（2026-10-24）：** 已修订 #9、#39–#50、#57、#58、#61–#67 共22张开放票，
+**历史规格与工单同步（2026-10-24）：** 已修订 #9、#39–#50、#57、#58、#61–#67 共22张开放票，
 纳入后端方向、ADR-0125/0126请求兼容及ADR-0127计数策略。#64的原始Claude阻断和旧effort预拒绝按历史受测源码解释，
 当前行为与后续重验要求分别列出；原source、214项验收及勾选、依赖和资格边界保留。
-本轮发布不新增运行证据，原版客户端和真实服务验证义务仍未完成。
+当时的规格发布不新增运行证据；10月25日优化票已有本页所列共同验证，当前原版客户端和真实服务验证义务仍未完成。
 
 [当前产品规格 #58](https://github.com/Ricardo121380/cpa-rust-gateway/issues/58)统一列出8张优化票；
 #61–#67和#68–#75已关联为其15个原生子票。#9的既有48个子票关系保持，父子关系不等于阻塞。
 
 ## 5. 下一项与后续顺序
 
-**第三批共同集成已完成。** 后续客户端/固定服务工作从受测 `e06ac169` 或其纯文档后继开始；保留独立工作区和所有历史身份。当前先完成GitHub同步，随后可分别准备#62 Codex/Pi和#64 Claude D2当前候选复验；#61固定Build字段/费用依据及#63相关资格按既有依赖继续处理。本次没有启动这些后续实现或真实请求。
+**第三批共同集成已完成。** 后续客户端/固定服务工作从受测 `e06ac169` 或其纯文档后继开始；保留独立工作区和所有历史身份。GitHub同步与读回已完成；下一步可分别准备#62 Codex/Pi和#64 Claude D2当前候选复验；#61固定Build字段/费用依据及#63相关资格按既有依赖继续处理。本次没有启动这些后续实现或真实请求。
 
 ### 历史批次记录（下述状态均属于原执行时点）
 
@@ -162,10 +163,10 @@ RUSTSEC-2026-0386 阻碍已通过实际升级消除；cargo deny通过，独立 
 完整门禁 **PASS 44/44**，Rust测试1683通过、0失败、21忽略。
 修复范围、受测源码及重复依赖评估见[安全维护记录](reports/crypto-bigint-security-fix-20261025-issue68.md)；
 原 #68 实施记录及原始失败日志保留，不追溯改写历史结果。
-上述为 #68 原分支历史；当前集成已纳入三票，重新验证结果见[集成记录](reports/parallel-integration-20261025.md)。远端工单保持原状态。
+上述为 #68 原分支历史；三票首次共同验证见[历史集成记录](reports/parallel-integration-20261025.md)。当前八票已进入schema42共同候选并在GitHub关闭。
 当前第一方与估算输入限制见[计数支持范围](support/messages-count-tokens.md)。
 实际客户端若依赖此能力，仍需在 #64 或对应渠道票复验；不替代三客户端和固定服务资格。
-其后按需要推进常用 Claude/Codex 兼容与当前客户端验证 → 会话亲和/路由配置便利性。
+其中兼容控制、普通亲和与路由配置已由后续优化票实现；当前下一项是实际客户端在新候选上的复验。
 高级工具的生产资格与固定服务证据继续按各自条件推进。
 Gemini、多模态、插件、Home 和新前端是单独扩展项，本页没有自动启动它们。
 
@@ -175,15 +176,15 @@ Gemini、多模态、插件、Home 和新前端是单独扩展项，本页没有
 |---|---|---|
 | [#68](https://github.com/Ricardo121380/cpa-rust-gateway/issues/68) | Messages 计数：上游计数与明确标识的本地估算 | P0 |
 | [#69](https://github.com/Ricardo121380/cpa-rust-gateway/issues/69) | CPA 请求控制与模型命名兼容 | P0/P1 |
-| [#70](https://github.com/Ricardo121380/cpa-rust-gateway/issues/70) | 生产路由策略与 Build 会话亲和；[独立本地实现/Full/审查](reports/issue-70-routing-build-affinity-20261025.md)完成，远端仍OPEN，#71迁移共同集成另验 | P1 |
+| [#70](https://github.com/Ricardo121380/cpa-rust-gateway/issues/70) | 生产路由策略与 Build 会话亲和；[独立本地实现/Full/审查](reports/issue-70-routing-build-affinity-20261025.md)完成；本轮schema42共同集成通过，远端已CLOSED | P1 |
 | [#71](https://github.com/Ricardo121380/cpa-rust-gateway/issues/71) | CPA 请求规则与自定义上游 headers | P1 |
-| [#72](https://github.com/Ricardo121380/cpa-rust-gateway/issues/72) | Token 与费用的统一查询及快照导出；本地实现与证据见 [实施记录](reports/issue-72-usage-query-export-20261025.md)，独立安全升级后本地 Full 已通过，远端仍 OPEN | P1 |
+| [#72](https://github.com/Ricardo121380/cpa-rust-gateway/issues/72) | Token 与费用的统一查询及快照导出；本地实现与证据见 [实施记录](reports/issue-72-usage-query-export-20261025.md)，独立安全升级后本地 Full 已通过；共同候选已复验，远端已CLOSED | P1 |
 | [#73](https://github.com/Ricardo121380/cpa-rust-gateway/issues/73) | 价格获取、审阅与版本化应用；已纳入[第二批本地集成](reports/wave2-integration-20261025.md)，原分支记录保留 | P1 |
 | [#74](https://github.com/Ricardo121380/cpa-rust-gateway/issues/74) | 配额观察的历史与重置窗口查询 | P1 |
 | [#75](https://github.com/Ricardo121380/cpa-rust-gateway/issues/75) | 大历史查询与加密备份恢复的容量闭环；已纳入[第二批集成](reports/wave2-integration-20261025.md)，以下为原 #75 独立分支历史：已实现 [ADR-0132](adr/ADR-0132-bounded-disk-backed-backup.md) 的 v2 磁盘分块备份、128 MiB 明文上限与管理恢复；[本轮本地验收](reports/issue-75-history-backup-capacity-20261025.md)：新进程86/86、Full44/44；1699 passed / 0 failed / 22 ignored，约94MiB合成数据；真实Provider/客户端/发布独立验收 | P1 |
 
-同步前读取8张票均为OPEN、ready-for-agent；当前75项本地AC已核对，远端同步待执行。票间没有新增阻塞边；请求控制→模型命名和统计查询→导出按票内顺序实施。
-#69的请求控制保留P0、模型命名保留P1；合并不增加首版门槛。#68/#72/#74及安全后继现已纳入独立本地集成分支；本次验证单独记录，不复用原分支PASS。
+2026-10-25同步后8张票均为CLOSED，ready-for-agent已移除；75项原AC保留并勾选。票间没有新增阻塞边；请求控制→模型命名和统计查询→导出已按票内顺序完成。
+#69的请求控制保留P0、模型命名保留P1；合并不增加首版门槛。八票及安全后继均在单一feature分支；共同验证单独记录，不复用原分支PASS。
 
 已接受的 native-v1 方向及原 N1–N4、Kiro cap、Grok Web 多轮/能力、#9/#47/#57 的剩余承诺保留。
 具体历史范围见[归档路线图](reports/engineering-roadmap-20261018.md)及原工单；本次没有取消这些目标，
