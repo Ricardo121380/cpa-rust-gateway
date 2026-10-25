@@ -146,3 +146,11 @@ Claude/Codex/xAI entries; other model IDs retain fallback plus their existing ad
 Explain uses the existing global operator view, without a Client Key context. It applies exact
 upstream-ID priority, rejects globally ambiguous IDs and constrains candidate selection to the
 resolved ID; it does not certify which grants a particular Client Key currently has.
+
+For an OpenAI adapter carrying a frozen Claude budget-only model, CPAR applies the declared
+range to numeric intent before producing an OpenAI effort level. This is a deliberate CPAR
+normalization guarantee, not byte-for-byte equivalence with CPA's provider/model-family mismatch
+branches: the fixed [OpenAI applier](https://github.com/router-for-me/CLIProxyAPI/blob/d946c4fba6fc9a5cfbca1f3d85184d62ad2fb683/internal/thinking/provider/openai/apply.go#L49)
+and [Codex applier](https://github.com/router-for-me/CLIProxyAPI/blob/d946c4fba6fc9a5cfbca1f3d85184d62ad2fb683/internal/thinking/provider/codex/apply.go#L52)
+leave an already translated body unchanged for known-model ModeBudget. The existing ADR-0126
+body effort extraction remains separate from this numeric range rule.

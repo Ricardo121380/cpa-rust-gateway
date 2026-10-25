@@ -1,0 +1,44 @@
+{
+  "candidate": "65d83fa05aae9626464b82081286d86fa6a52ff6",
+  "base": "84fbfbf778b582f746c1cafe31a2ce58962e8f77",
+  "method": "Two independent read-only static reviews; no Cargo, Provider or remote write by reviewers",
+  "name_admission": {
+    "standards": "No new substantiated finding in the assigned scope",
+    "spec": "No new substantiated finding in Explain exact-first, count shared name support/native format or qualified Alias visibility",
+    "limits": "Operator Explain has no Client Key context; count is not full inference validation"
+  },
+  "control_wire": {
+    "standards": [
+      {
+        "priority": "P1",
+        "finding": "Existing Grok receiver oracle expects pre-normalization xhigh/none for frozen grok-4.5",
+        "path": "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/messages/claude/controls.rs:123",
+        "evidence": "Static expected/actual mismatch; runtime result recorded separately by Full"
+      }
+    ],
+    "spec": [
+      {
+        "priority": "P2",
+        "finding": "OpenAI-origin numeric suffix does not clamp to Claude budget-only minimum on OpenAI target",
+        "path": "crates/gateway-router/src/protocol_transform/model_thinking.rs:148",
+        "trigger": "Chat to Responses; claude-sonnet-4-5-20250929; name(512); emits minimal instead of low",
+        "evidence": "Static derivation; runtime red/green recorded separately"
+      }
+    ],
+    "coverage_observation": "Add explicit unmapped tier receiver assertion"
+  },
+  "fix_commit": "46c2807eacb4390ad7500bba5613414ddc07a365",
+  "fixes": [
+    {
+      "finding": "numeric intent minimum clamp",
+      "change": "prefer trusted ModelThinking::Budget then source body extension before clamping",
+      "regression_red": "final-review-budget-red.log: minimal vs low for budget 1",
+      "targeted_green": "final-review-budget-green.log: router19/19; final-review-http-green.log: gateway11/11"
+    },
+    {
+      "finding": "frozen Grok oracle / Unmapped tier",
+      "change": "known grok-4.5 high/low; preserve original unknown-model extraction tests; assert speed/service_tier omitted at receiver",
+      "targeted_green": "final-review-unmapped-green.log: 1/1 public JSON/SSE Grok receiver"
+    }
+  ]
+}

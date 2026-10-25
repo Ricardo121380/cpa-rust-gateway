@@ -33,7 +33,7 @@ CPAR 是 CPA/CLIProxyAPI 网关行为的 Rust 实现。优先直接对照固定�
 | 功能 | 当前代码与装配 | 验证边界 / 下一动作 |
 |---|---|---|
 | Chat / Responses / Messages，JSON/SSE、常规工具 | 已实现并接入公共 handler 与 runtime | 按所选渠道/模式限制；当前候选真实客户端结果另验，不重开基础协议开发 |
-| Claude adaptive/effort/cache 兼容 | ADR-0125 已接入 native / CanonicalBridge；ADR-0126 已补齐 v8 显式 effort 提取及优先级 | effort-only、enabled 无预算、预算/disabled 优先级和 native JSON/SSE receiver 已验证；模型默认/预算输入范围仍有差异，最新源码实际客户端待重跑 |
+| Claude adaptive/effort/cache 兼容 | ADR-0125 已接入 native / CanonicalBridge；ADR-0126 已补齐 v8 显式 effort 提取及优先级 | effort-only、enabled 无预算、预算/disabled 优先级已验证；#69限定后继补充冻结模型范围、0/-1及tier，见新矩阵；最新源码实际客户端待重跑 |
 | Messages count_tokens | #68 已按 ADR-0127 接通生产 RuntimeFactory、HTTP、Router 与 executor；适用 Anthropic 第一方 count API，其余支持路径为明确标识的 CPA O200kBase 估算 | [支持范围](support/messages-count-tokens.md)、[本地实施记录](reports/issue-68-count-tokens-20261025.md)；计数不产生推理 Usage/账本；真实 Provider、实际客户端、发布独立验收 |
 | namespace、hosted search、部分 input IDs/history、Build parallel | codec/受控测试已有；适用请求的生产资格分支仍为 false | **待满足明确资格并启用**，不重复造 parser，也不直接删除资格检查 |
 | Responses 查询/删除、续接、compact | 已实现归属保护和存储；StoredResponses 限 Build/Web，compact 限 Build | 按渠道及精确 lineage 验收，不推广到全部 adapter |
@@ -48,7 +48,7 @@ CPAR 是 CPA/CLIProxyAPI 网关行为的 Rust 实现。优先直接对照固定�
 | 账号配额观察历史（#74） | 独立历史表、现有额度读取/Kimi后台观察接线、有界管理查询已实现 | 本地功能验收通过；[原交付记录](reports/issue-74-quota-history-20261025.md)保留Full供应链失败；集成验证见[集成记录](reports/parallel-integration-20261025.md)，原安全后继见[历史记录](reports/rustsec-2026-0387-from74-20261025.md)；真实Provider、部署未运行；与Token Usage/费用分离 |
 | RUSTSEC-2026-0387安全修复（已集成） | p256 0.14.0 / crypto-bigint 0.7.8；保留显式Randomness错误、三个调用点与独有回归，无ignore或门禁放宽 | 本轮集成Full 44/44，1695 passed / 0 failed / 21 ignored；见[集成验收](reports/parallel-integration-20261025.md)，原分支证据按原身份保留 |
 | 外部 OTel 输出 | 接口已有，serve 使用 Noop exporter | **待接线**，不宣称已把 tracing 送到外部系统 |
-| 模型前缀/后缀、请求控制 #69 | 新共同基线上的 P0/P1 已接线；冻结 Claude/Codex 范围、服务档位、显式 qualified Alias 与 suffix | 受控功能已通过；完整门禁和审查进行中，见[本票记录](reports/issue-69-controls-model-names-20261025.md) |
+| 模型前缀/后缀、请求控制 #69 | 新共同基线上的 P0/P1 本地完成；冻结 Claude/Codex/xAI 范围、服务档位、显式 qualified Alias 与 suffix | Full44/44、Rust1719通过/21忽略；审查发现均已修复并回归，见[本票记录](reports/issue-69-controls-model-names-20261025.md) |
 | 通用 payload 覆盖、自定义 headers | 未发现 CPA 等价用户配置入口 | **待实现**，本票未扩张到这些策略 |
 | HTTP/HTTPS/SOCKS5h/认证代理 | 已有直连/固定/池化出口；当前只接纳限定 SOCKS5 | **范围差异**，后续扩展须保持明确的出站约束 |
 | Gemini 等新增 Provider、图片/音频/视频、Realtime | 当前原生注册/公共路径未发现 | **未实现、尚未列入近期批次**，保留需求选择空间 |
@@ -82,7 +82,7 @@ CPAR 是 CPA/CLIProxyAPI 网关行为的 Rust 实现。优先直接对照固定�
 | S5 候选/交付 | 已有 binary/OCI 生命周期证据；同源三客户端、固定服务资格和真实验收仍未完成 |
 
 这些对应关系只纠正开发状态，不抹掉旧失败和未勾选验收。
-具体源码、版本、限制以[候选支持清单](support/first-release-candidates.md)和原报告为准；最近行为增量只补 effort 本地验证；本轮票务同步没有重跑这些历史客户端或制品资格。
+具体源码、版本、限制以[候选支持清单](support/first-release-candidates.md)和原报告为准；最近行为增量包括 effort 与 #69 请求控制/模型命名的本地验证；没有重跑这些历史客户端或制品资格。
 
 ## 4. 工单、生产资格与远端同步状态
 
@@ -117,7 +117,7 @@ OPEN不等于没有代码，CLOSED也不代表整个渠道已完成；本轮没�
 受测源码`6a7ae73e`：Full44/44，Rust1695/0/21，#68生产HTTP4/4，#72进程517/517，
 #74退出/重启及交叉检查20/20，schema38→39原事件/账本/价格保持。
 详见[集成记录](reports/parallel-integration-20261025.md)。#68/#72/#74本轮读取仍OPEN、无评论、未分配；
-本地完成不等于远端关闭。下一批建议#69 + #73 + #75从该记录中的最终文档后继SHA分别启动。
+本地完成不等于远端关闭。#69已从该共同基线独立完成P0/P1；#73/#75以该共同基线及各自实际实施记录为准。
 下面的effort/Tokio/#68原分支结果保留其原日期及身份，不能代替集成结果。
 
 **已完成本地实现：对齐 CPA v8 的 Messages effort 提取和优先级。**
@@ -200,13 +200,14 @@ README、AGENTS、文档索引保持短入口，不再复制一整份动态进�
 10 月 23 日入口整理保留为文档历史；10 月 24 日 effort 代码与契约变化已按 ADR-0126 登记。
 本轮没有修改 AGENTS/CLAUDE，也没有改写旧失败、原请求计数或已保存的测试源码身份。
 
-本次共同基线以[集成记录](reports/parallel-integration-20261025.md)的实际受测源码及文档后继为准。后续建议 #69、#73、#75 从该新基线分别启动；不从旧 `444558a8` 启动新实现。
+本次共同基线以[集成记录](reports/parallel-integration-20261025.md)的实际受测源码及文档后继为准。#69已从该新基线独立实施；#73/#75的共同起点仍是该记录。不从旧 `444558a8` 启动新实现。
 
 ## 2026-10-25 #69 请求控制 P0 / 模型命名 P1
 
 从已验证集成基线 `84fbfbf778b582f746c1cafe31a2ce58962e8f77` 独立实施。
-P0 先提交 `551961c0`，随后 P1 复用同一规范化和 #68 计数解析。当前本地接线及受控
-JSON/SSE/name/count 矩阵通过，Full 与独立 Standards/Spec 审查仍在进行。
+P0 先提交 `551961c0`，随后 P1 复用同一规范化和 #68 计数解析。最终受测源码
+`46c2807eacb4390ad7500bba5613414ddc07a365`：Full44/44，Rust1719通过/0失败/21忽略；
+公共JSON/SSE/name/count、发布/回滚、旧payload均纳入。独立Standards/Spec发现已修复并有回归。
 [行为与资格边界](support/cpa-request-controls-model-names.md)、[ADR-0130](adr/ADR-0130-cpa-request-controls-model-names.md)、
 [实施记录](reports/issue-69-controls-model-names-20261025.md)给出真实源码绑定及最终结果。
 本页前述 10 月 24 日 effort 的 0/-1 拒绝和无模型 clamp 是历史原受测范围；本票限定后继见新矩阵。

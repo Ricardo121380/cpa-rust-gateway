@@ -1,0 +1,96 @@
+[
+  {
+    "log": "p0-router-final.log",
+    "sha256": "d5bb284e506f521b93494dcf4b2a702a1c99c1d4891f751be8fcad4e4215e16a",
+    "results": [
+      "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s"
+    ],
+    "scope": "Earlier stage unless prefixed final-review; immutable final Full binds final source separately"
+  },
+  {
+    "log": "p0-http-final.log",
+    "sha256": "ddc1d2d04826f84ef44dfedc7745a33fd62957dd9334b16718cb675f690da82f",
+    "results": [
+      "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 327 filtered out; finished in 3.07s"
+    ],
+    "scope": "Earlier stage unless prefixed final-review; immutable final Full binds final source separately"
+  },
+  {
+    "log": "p1-management.log",
+    "sha256": "731866df3ea178425ec0c38ddc54c3c9f026530af853c3cef3e8dccfa24645b7",
+    "results": [
+      "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.11s"
+    ],
+    "scope": "Earlier stage unless prefixed final-review; immutable final Full binds final source separately"
+  },
+  {
+    "log": "p1-publish.log",
+    "sha256": "168f34ecb7236e333166d66f5ec8721ed855adc6de741030bd703ca3cd83f222",
+    "results": [
+      "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 112 filtered out; finished in 0.15s"
+    ],
+    "scope": "Earlier stage unless prefixed final-review; immutable final Full binds final source separately"
+  },
+  {
+    "log": "p1-legacy.log",
+    "sha256": "e3ecb7ccb67841b9ecdf482c3df531cbd395a035f160cf8eac110591730ec111",
+    "results": [
+      "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 111 filtered out; finished in 0.13s"
+    ],
+    "scope": "Earlier stage unless prefixed final-review; immutable final Full binds final source separately"
+  },
+  {
+    "log": "p1-count-regression.log",
+    "sha256": "35a79f74cc37b6b8c1513d4a60dbbcc00de9e887a87483738c0b6986e028fd62",
+    "results": [
+      "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 330 filtered out; finished in 7.48s"
+    ],
+    "scope": "Earlier stage unless prefixed final-review; immutable final Full binds final source separately"
+  },
+  {
+    "log": "review-regressions-red.log",
+    "sha256": "a5e45ece85bb3894c3f4dbf238a600758119f0401413566056e0b9c3ba09165e",
+    "results": [
+      "test result: FAILED. 4 passed; 4 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.00s"
+    ],
+    "scope": "Earlier stage unless prefixed final-review; immutable final Full binds final source separately"
+  },
+  {
+    "log": "review-alias-red.log",
+    "sha256": "f5d8327db7f50517656b1ccf213a25a2a4e7a6c8f800d2f555a6075968dc6926",
+    "results": [],
+    "scope": "Earlier stage unless prefixed final-review; immutable final Full binds final source separately"
+  },
+  {
+    "log": "final-review-budget-red.log",
+    "sha256": "3b646c5127afb5d1a987afdd2daeb288bc0e451748040502c0b4196f85122196",
+    "results": [
+      "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 18 filtered out; finished in 0.00s"
+    ],
+    "scope": "Earlier stage unless prefixed final-review; immutable final Full binds final source separately"
+  },
+  {
+    "log": "final-review-budget-green.log",
+    "sha256": "c21eea6269c9bd93e16f6bcdf75509bdaa970371279381d6be5cffef824578f7",
+    "results": [
+      "test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s"
+    ],
+    "scope": "Earlier stage unless prefixed final-review; immutable final Full binds final source separately"
+  },
+  {
+    "log": "final-review-http-green.log",
+    "sha256": "23167dca4aad9a97a0e32a5d4a2e1370144684de804c147d20d5d38545206731",
+    "results": [
+      "test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 329 filtered out; finished in 4.02s"
+    ],
+    "scope": "Earlier stage unless prefixed final-review; immutable final Full binds final source separately"
+  },
+  {
+    "log": "final-review-unmapped-green.log",
+    "sha256": "85f24cfc7e24aa7a0496d1f14d19bb41bcb95e6e67c950e2bb51d3a98458f240",
+    "results": [
+      "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 339 filtered out; finished in 3.72s"
+    ],
+    "scope": "Earlier stage unless prefixed final-review; immutable final Full binds final source separately"
+  }
+]

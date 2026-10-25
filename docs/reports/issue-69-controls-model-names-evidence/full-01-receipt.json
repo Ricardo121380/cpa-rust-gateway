@@ -1,0 +1,13 @@
+{
+  "command": [
+    "./scripts/check.sh",
+    "full"
+  ],
+  "source_commit": "3ed8ac010e8cfad64ba8db85f33d2f42e2c897b3",
+  "source_tree": "5f70a146794473e91b616564d87b5fa0546a791f",
+  "started_utc": "2026-10-25T07:20:59.451959+00:00",
+  "ended_utc": "2026-10-25T07:22:42.829556+00:00",
+  "exit": 101,
+  "report": "output/issue69/full-01.md",
+  "log_sha256": "b517f66c36b14d1eed67cdcca94927a311b7768cd35509ec78cea7c8304c3a21"
+}

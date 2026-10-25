@@ -1,0 +1,99 @@
+{
+  "scope": "Local controlled Full; no real Provider or actual clients",
+  "source_commit": "46c2807eacb4390ad7500bba5613414ddc07a365",
+  "source_tree": "020ee5c9f2f814a0ab29dec950899b32f93ef381",
+  "baseline": "84fbfbf778b582f746c1cafe31a2ce58962e8f77",
+  "lock_sha256": "a3950a764ae2dcae4e04a8a32ada596f33ea105dbfda8e9714b3e32d3216cd6d",
+  "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+  "command": [
+    "./scripts/check.sh",
+    "full"
+  ],
+  "env": {
+    "CARGO_TARGET_DIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-69-request-controls-model-names-20261025/output/issue69/target",
+    "CARGO_BUILD_JOBS": "2",
+    "RUST_TEST_THREADS": "2",
+    "TMPDIR": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-69-request-controls-model-names-20261025/output/issue69/tmp",
+    "CHECK_REPORT_PATH": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-69-request-controls-model-names-20261025/output/issue69/full-03.md"
+  },
+  "started": "2026-10-25T07:52:49.419937+00:00",
+  "ended": "2026-10-25T08:05:07.573817+00:00",
+  "full_steps_passed": 44,
+  "rust_results": {
+    "passed": 1719,
+    "failed": 0,
+    "ignored": 21,
+    "result_lines": 133
+  },
+  "tracked_files_changed_during_run": [],
+  "status_before": "",
+  "status_after": "",
+  "source_manifest_sha256": "f7322005dec033c8269be052749c4327ff6fbaa511cbfe94f4ac51827a26ca34",
+  "full_log_sha256": "898d5ba3abfbd1c88b3459db1e8c1081b29d572facfcfc85be00b97eae7d2f2e",
+  "full_report_sha256": "1b94bd32da27fa25eb6158981729ebfab436d4f7e94887171192fcfd61ef4414",
+  "binary": {
+    "build_command": "cargo build --locked --package gateway (Full serve envelope)",
+    "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-69-request-controls-model-names-20261025/output/issue69/target/debug/gateway",
+    "archive": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-69-request-controls-model-names-20261025/output/issue69/bin/gateway-46c2807eacb4",
+    "sha256": "a5dcf0cffaae0b0083821640dfac0a5644ebc53126c1c21a81c5496010008ce6",
+    "size_bytes": 141214424,
+    "release_metadata": {
+      "gateway-release-revision": "development",
+      "gateway-release-rust-version": "development",
+      "gateway-release-target": "development"
+    },
+    "qualification": "Local gate binary; not a qualified release artifact"
+  },
+  "executed_test_binary_sha256": {
+    "output/issue69/target/debug/deps/gateway-6edb14b4de1a0a7a": "d59253c097d8743f6f0850031f65388ab1c42a8ba982d1de25a8a46ae379cbc3",
+    "output/issue69/target/debug/deps/gateway_control-a807efbd4f885e73": "242f7dab507dc460f09c0ea4dd9eea94b362bd4c51fe9aa924e91915046920ec",
+    "output/issue69/target/debug/deps/gateway_http_actix-4d5e0da04f80fdd5": "3afbca1a5bbf56faacf4e51c2d8dd316ead3abf41b68998da4e1929818d67690",
+    "output/issue69/target/debug/deps/p10_05_management_routing-d07248ad2e065ac6": "4992d40db67589e29e9e0fd9bfa93bfed9095e59ff3ba0263108b9a18d8900da",
+    "output/issue69/target/debug/deps/gateway_router-774e0d697430df8b": "f0b6203399a677ab8fdc6f88a1b5a7d6c2daeaa939aef8e1638825bd7952a7ab",
+    "output/issue69/target/debug/deps/cpa_request_compatibility-af1a2e3840be2023": "6ad63707164c2390c308e9712796de932a3846666f289cdb716298f5e5f5cd17",
+    "output/issue69/target/debug/deps/gateway_store-34ce3646365a6cf9": "158a9698e8bd0c7fad27ac32832c4f4f718dc756f4ab9d4867c305e42f5828c9"
+  },
+  "input_file_sha256": {
+    "Cargo.lock": "a3950a764ae2dcae4e04a8a32ada596f33ea105dbfda8e9714b3e32d3216cd6d",
+    "scripts/check.sh": "f3664389e078e2e760c48afdb318c9dd0a494810365cec3ce299b9dd141f0678",
+    "crates/gateway-router/src/protocol_transform/cpa_model_thinking.json": "0e980b4cd62807d2a2f081db612cafdaa1b2f41155366291823b902e58f766dd",
+    "crates/gateway-router/tests/cpa_request_compatibility.rs": "5bfbba0132dc09ff4e0e605294f34faec386c7aa1183aad7c45a47d0a9e7a138",
+    "apps/gateway/src/runtime/batch_c/http/cpa_compatibility.rs": "c62c81a77e3762960d5dd28cb0defc9da6b542c2d9f13fc1a8135dc22098d223",
+    "apps/gateway/src/runtime/batch_c/http/model_names.rs": "8c399532604110b5508f4190a98dbb26250c64631c2e54a88dcdd55027ae00df",
+    "apps/gateway/src/runtime/batch_c/http/count_tokens.rs": "5b224da09e49e94a33afaa61fbee339226eedfa990c417cbee04ab26dba33446",
+    "apps/gateway/src/runtime/batch_c/grok/standard_responses/lifecycle/messages/claude/controls.rs": "d4847ef1edec4258f6cadc520159eff2c48bc6b5943634a6fa03337f0652176b",
+    "apps/gateway/src/runtime/management.rs": "870074ef773450881ee00779d98b5dca9b051314b4d7f58565bc8720a0308112",
+    "crates/gateway-control/src/snapshot_publisher.rs": "386c3bf992f5484761079eaa4cf9bb64dcf8d0328f861013aa7649af4822ed43",
+    "crates/gateway-http-actix/tests/p10_05_management_routing.rs": "2c31fbc0834695e860c4bea6548c54ce8027aeb428cf0e4a63c19dbea7fe81e6",
+    "tests/fixtures/count-tokens/cpa-v8.json": "9701e7b0b17fd229911cdfc04b853d0a029457168b5a418d95f9a720965af955"
+  },
+  "related_tests_passed": [
+    "test runtime::batch_c::http::count_tokens::count_production_http_native_and_estimated_never_infer_or_bill ... ok",
+    "test runtime::batch_c::http::count_tokens::cpa_69_count_names_reuse_authorized_resolution_without_inference ... ok",
+    "test runtime::batch_c::http::count_tokens::cpa_69_count_native_effort_and_format_match_inference_admission ... ok",
+    "test runtime::batch_c::http::cpa_compatibility::cpa_69_model_controls_reach_independent_receiver ... ok",
+    "test runtime::batch_c::http::cpa_compatibility::cpa_69_responses_controls_reach_claude_receiver ... ok",
+    "test runtime::batch_c::http::model_names::cpa_69_ambiguous_exact_id_stays_out_of_prefix_discovery ... ok",
+    "test runtime::batch_c::http::model_names::cpa_69_named_controls_keep_two_tool_cycles_and_followup ... ok",
+    "test runtime::batch_c::http::model_names::cpa_69_native_messages_and_chat_suffix_overlay_preserves_options ... ok",
+    "test runtime::batch_c::http::model_names::cpa_69_numeric_suffix_budget_reaches_messages_receiver_unchanged ... ok",
+    "test runtime::batch_c::http::model_names::cpa_69_numeric_suffix_range_reaches_openai_receiver ... ok",
+    "test runtime::batch_c::http::model_names::cpa_69_prefixed_suffix_names_keep_permissions_and_native_wire ... ok",
+    "test runtime::management::model_name_tests::cpa_69_explain_prefers_exact_id_and_constrains_candidates ... ok",
+    "test snapshot_publisher::tests::cpa_69_prefix_graph_publish_rollback_and_pinned_names ... ok",
+    "test cpa_69_management_prefix_alias_is_explicit_validated_and_persisted ... ok",
+    "test route_snapshot::tests::cpa_69_qualified_alias_cannot_reintroduce_ambiguous_exact_id ... ok",
+    "test cpa_69_count_shares_native_model_effort_and_output_config_admission ... ok",
+    "test cpa_69_claude_model_ranges_and_adaptive_targets ... ok",
+    "test cpa_69_native_suffix_retains_other_output_config_members ... ok",
+    "test cpa_69_numeric_suffix_keeps_exact_manual_budget ... ok",
+    "test cpa_69_same_family_explicit_unsupported_effort_rejects ... ok",
+    "test cpa_69_openai_numeric_suffix_uses_budget_only_model_range ... ok",
+    "test cpa_69_service_tier_mapping_and_malformed_controls ... ok",
+    "test cpa_69_suffix_controls_keep_lossless_and_capability_guards ... ok",
+    "test cpa_69_suffix_never_hides_malformed_body_thinking_type ... ok",
+    "test cpa_69_special_budgets_and_frozen_model_levels ... ok",
+    "test stored_response::tests::summary_only_and_legacy_effort_payloads_reopen_without_rewriting_or_replay_conflicts ... ok"
+  ]
+}

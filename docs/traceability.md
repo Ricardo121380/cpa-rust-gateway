@@ -406,3 +406,6 @@ Historical branch evidence keeps its original identities; final documentation su
 and `cpa_69_prefix_graph_publish_rollback_and_pinned_names`.
 [Implementation and actual gates](reports/issue-69-controls-model-names-20261025.md) remain local evidence;
 #62/#64 clients, fixed service, real Provider, CI and release qualification remain separate.
+
+#69最终本地受测源码 `46c2807eacb4390ad7500bba5613414ddc07a365`：Full44/44，Rust1719通过/0失败/21忽略。
+三轮独立静态审查及已修复问题、RED/FAIL历史、binary/lock/输入hash见上述实施记录；不改变远端票或实际服务资格。
