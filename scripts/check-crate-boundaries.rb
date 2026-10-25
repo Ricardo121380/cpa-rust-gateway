@@ -55,7 +55,9 @@ allowed = {
   "protocol-openai-chat" => %w[gateway-core proptest serde serde_json],
   # ADR-0117 reuses the existing pure URL parser for closed hosted sources/citations; no I/O.
   "protocol-openai-responses" => %w[gateway-core gateway-protocol proptest serde serde_json url],
-  "provider-anthropic-compatible" => %w[gateway-core gateway-provider gateway-upstream protocol-anthropic serde serde_json zeroize],
+  # ADR-0127 / #68 confines the pinned CPA o200k estimator to this Provider adapter.
+  # Core, Router and protocol crates remain independent of the tokenizer implementation.
+  "provider-anthropic-compatible" => %w[gateway-core gateway-provider gateway-upstream protocol-anthropic serde serde_json tiktoken-rs zeroize],
   "provider-grok" => %w[base64 flate2 gateway-catalog gateway-core gateway-provider gateway-router gateway-store gateway-upstream getrandom hmac p256 protocol-openai-responses rand_core rusqlite serde serde_json sha2 time tokio tracing url zeroize],
   "provider-kiro" => %w[gateway-catalog gateway-core gateway-provider gateway-store gateway-stream gateway-upstream protocol-anthropic serde serde_json tokio url zeroize],
   "provider-openai-compatible" => %w[base64 gateway-catalog gateway-core gateway-provider gateway-upstream protocol-openai-chat protocol-openai-responses serde serde_json time tokio zeroize],
