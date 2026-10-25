@@ -21,10 +21,20 @@ use chacha20poly1305::{
     XChaCha20Poly1305, XNonce,
     aead::{Aead, KeyInit, Payload},
 };
-use rusqlite::{Connection, backup::Backup};
+use rusqlite::{
+    Connection,
+    backup::{Backup, StepResult},
+};
 use zeroize::{Zeroize, Zeroizing};
 
 use crate::{CURRENT_SCHEMA_VERSION, StoreError, migrate, schema_version};
+
+mod stream;
+pub use stream::{
+    MAX_STREAM_BACKUP_ARTIFACT_BYTES, MAX_STREAM_BACKUP_PLAINTEXT_BYTES,
+    create_encrypted_backup_file, create_encrypted_backup_to_writer, create_restore_upload,
+    preflight_encrypted_backup_reader, restore_encrypted_backup_reader_to_empty_target,
+};
 
 /// Exact raw byte length accepted for the independent encrypted-backup key.
 pub const BACKUP_KEY_BYTES: usize = 32;
@@ -215,9 +225,12 @@ pub fn create_encrypted_backup(
             Connection::open(staging.path()).map_err(|_| BackupError::SnapshotUnavailable)?;
         let backup =
             Backup::new(source, &mut snapshot).map_err(|_| BackupError::SnapshotUnavailable)?;
-        backup
+        let result = backup
             .step(-1)
             .map_err(|_| BackupError::SnapshotUnavailable)?;
+        if result != StepResult::Done {
+            return Err(BackupError::SnapshotUnavailable);
+        }
     }
 
     let snapshot_bytes = Zeroizing::new(read_bounded(staging.path(), MAX_BACKUP_PLAINTEXT_BYTES)?);
@@ -507,6 +520,10 @@ struct TemporarySqliteFile {
 
 impl TemporarySqliteFile {
     fn create_in(directory: &Path) -> Result<Self, BackupError> {
+        Self::create_file_in(directory).map(|(staging, _file)| staging)
+    }
+
+    fn create_file_in(directory: &Path) -> Result<(Self, File), BackupError> {
         let metadata =
             fs::symlink_metadata(directory).map_err(|_| BackupError::InvalidStagingDirectory)?;
         if metadata.file_type().is_symlink() || !metadata.is_dir() {
@@ -518,18 +535,20 @@ impl TemporarySqliteFile {
             getrandom::fill(&mut random).map_err(|_| BackupError::RandomnessUnavailable)?;
             let path = directory.join(format!(".cpa-backup-{}.sqlite3", hexadecimal(&random)));
             let mut options = OpenOptions::new();
-            options.write(true).create_new(true);
+            options.read(true).write(true).create_new(true);
             #[cfg(unix)]
             {
                 options.mode(0o600).custom_flags(libc::O_NOFOLLOW);
             }
             match options.open(&path) {
                 Ok(file) => {
-                    drop(file);
-                    return Ok(Self {
-                        path,
-                        retained: false,
-                    });
+                    return Ok((
+                        Self {
+                            path,
+                            retained: false,
+                        },
+                        file,
+                    ));
                 }
                 Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
                 Err(_) => return Err(BackupError::StagingUnavailable),

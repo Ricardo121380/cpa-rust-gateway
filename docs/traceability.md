@@ -412,3 +412,19 @@ and `cpa_69_prefix_graph_publish_rollback_and_pinned_names`.
 ## #73 reviewed price source (2026-10-25)
 
 OPT-06 → [ADR-0131](adr/ADR-0131-reviewed-price-source-versioning.md) → [BC-MGMT-021](contracts/BC-MGMT-021-reviewed-price-source-versioning.md). Uses schema40 review evidence, existing immutable catalogs/ledger and #72 frozen results. Local validation and source identity are recorded in the [implementation report](reports/issue-73-price-preview-20261025.md).
+
+## #75 bounded historical backup capacity (2026-10-25)
+
+OPT-08 / #75 → [ADR-0132](adr/ADR-0132-bounded-disk-backed-backup.md) →
+[BC-MGMT-007](contracts/BC-MGMT-007-encrypted-control-plane-backup.md) →
+`gateway_store::backup::{create_encrypted_backup_file,preflight_encrypted_backup_reader,restore_encrypted_backup_reader_to_empty_target}`
+and protected existing restore handlers. Fixed scale and pre-change boundaries are in
+[the experiment plan](reports/issue-75-capacity-plan-20261025.md). No migration; schema39,
+#72 query/export limits and #74 quota history ownership remain unchanged. Final process,
+Full and review evidence are recorded separately from implementation and historical #65.
+
+#75 final local acceptance → [capacity report](reports/issue-75-history-backup-capacity-20261025.md):
+qualified baseline53/53, stock process86/86, Full44/44; 1699 passed / 0 failed / 22 ignored.
+Explicit disk-capacity suite7/7; original recording4/4; 58 original table projections preserved
+plus the exact concurrently committed prefix. This is a documentation successor to tested
+`656c99b2`, not a claim about production, real Provider/client, or a full128MiB qualification.

@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "head": "656c99b2fad042ba57030c4d4c1c40626cc87045",
+  "tree": "8920c01b6c970d38d63ef14586cbbd8888820298",
+  "cargo_lock_sha256": "a3950a764ae2dcae4e04a8a32ada596f33ea105dbfda8e9714b3e32d3216cd6d",
+  "controlled_files": 7159,
+  "changed_after_full": [],
+  "manifest_sha256": "9922d62157c785e0898486718d2e443f108d9be8b9781d713c6ebc76c96917b1"
+}

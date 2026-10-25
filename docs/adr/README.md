@@ -179,3 +179,4 @@ P0 期间不创建重复描述开发计划技术基线的 ADR。P1 开始只对�
 
 - [ADR-0130 CPA request controls and model names](ADR-0130-cpa-request-controls-model-names.md) — Accepted; #69 P0 then P1, frozen CPA v8.0.40.
 - [ADR-0131 Reviewed price source versioning](ADR-0131-reviewed-price-source-versioning.md) — #73 / OPT-06; parallel reservation (0130 left for #69).
+- [ADR-0132 Bounded disk-backed encrypted backup](ADR-0132-bounded-disk-backed-backup.md) — Accepted; #75 measured schema39 capacity, v2 chunks and legacy v1 reads; 0130/0131 left for parallel #69/#73 reconciliation.

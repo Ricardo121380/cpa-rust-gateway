@@ -3211,7 +3211,7 @@
       "RoutingPricePolicyInput": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RoutingPricePolicyInput" } } } },
       "CredentialExportInput": { "required": true, "content": { "application/json": { "schema": { "type": "object", "additionalProperties": false, "required": ["format"], "properties": { "format": { "type": "string", "enum": ["cpa", "sub2api"] } } } } } },
       "OAuthCallbackInput": { "required": true, "content": { "application/json": { "schema": { "type": "object", "additionalProperties": false, "required": ["state"], "properties": { "state": { "type": "string", "minLength": 1, "maxLength": 512 }, "code": { "type": "string", "maxLength": 16384 }, "error": { "type": "string", "maxLength": 256 }, "callback_url": { "type": "string", "maxLength": 20480, "format": "uri" } } } } } },
-      "BackupMaterial": { "required": true, "content": { "application/octet-stream": { "schema": { "type": "string", "format": "binary", "writeOnly": true } } } }
+      "BackupMaterial": { "description": "Encrypted v1 artifact (16 MiB legacy limit) or disk-backed v2 artifact (128 MiB SQLite plaintext; at most 134250541 artifact bytes). One restore upload/validation operation per process; busy returns 503. Complete authentication, SQLite integrity and migration checks precede empty-target publication. No in-place replacement or automatic adoption.", "required": true, "content": { "application/octet-stream": { "schema": { "type": "string", "format": "binary", "writeOnly": true } } } }
     },
     "responses": {
       "ConfigVersion": { "description": "Version metadata", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ConfigVersion" } } } },

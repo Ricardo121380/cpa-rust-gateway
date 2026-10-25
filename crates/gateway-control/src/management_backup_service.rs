@@ -9,6 +9,8 @@
 
 use std::{
     fmt,
+    fs::File,
+    io::Read,
     path::{Path, PathBuf},
 };
 
@@ -23,7 +25,7 @@ use gateway_store::{
 
 /// Maximum encrypted artifact body accepted by the protected management HTTP boundary.
 pub const MAX_MANAGEMENT_BACKUP_BODY_BYTES: usize =
-    gateway_store::backup::MAX_BACKUP_ARTIFACT_BYTES;
+    gateway_store::backup::MAX_STREAM_BACKUP_ARTIFACT_BYTES;
 
 /// Configured control-plane backup/restore service.
 pub struct ManagementBackupService {
@@ -136,6 +138,47 @@ impl ManagementBackupService {
     ) -> Result<EmptyTargetRestore, ManagementBackupServiceError> {
         restore_encrypted_backup_to_empty_target(artifact, &self.restore_target, &self.backup_key)
             .map_err(ManagementBackupServiceError::from_backup_error)
+    }
+
+    /// Creates a private anonymous disk spool using only the configured staging authority.
+    ///
+    /// # Errors
+    /// Returns a value-free error if staging is unavailable.
+    pub fn create_restore_upload(&self) -> Result<File, ManagementBackupServiceError> {
+        gateway_store::backup::create_restore_upload(&self.staging_directory)
+            .map_err(ManagementBackupServiceError::from_backup_error)
+    }
+
+    /// Validates disk-backed legacy or chunk-authenticated material.
+    ///
+    /// # Errors
+    /// Returns a value-free error for invalid material or unavailable staging.
+    pub fn restore_preflight_reader(
+        &self,
+        artifact: &mut impl Read,
+    ) -> Result<BackupRestorePreflight, ManagementBackupServiceError> {
+        gateway_store::backup::preflight_encrypted_backup_reader(
+            artifact,
+            &self.staging_directory,
+            &self.backup_key,
+        )
+        .map_err(ManagementBackupServiceError::from_backup_error)
+    }
+
+    /// Restores disk-backed material into the same configured absent target.
+    ///
+    /// # Errors
+    /// Returns a value-free error if validation or empty-target publication fails.
+    pub fn restore_reader_to_empty_target(
+        &self,
+        artifact: &mut impl Read,
+    ) -> Result<EmptyTargetRestore, ManagementBackupServiceError> {
+        gateway_store::backup::restore_encrypted_backup_reader_to_empty_target(
+            artifact,
+            &self.restore_target,
+            &self.backup_key,
+        )
+        .map_err(ManagementBackupServiceError::from_backup_error)
     }
 
     /// Returns whether the configured restore destination exists, without returning its path.

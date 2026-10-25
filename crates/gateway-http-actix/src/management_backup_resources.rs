@@ -6,7 +6,12 @@
 
 #![deny(unsafe_code)]
 
-use std::sync::Mutex;
+use std::{
+    fs::File,
+    io::{Seek, Write},
+    sync::{Arc, Mutex},
+};
+use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
 use actix_web::{
     HttpRequest, HttpResponse,
@@ -18,7 +23,6 @@ use gateway_control::management_backup_service::{
     MAX_MANAGEMENT_BACKUP_BODY_BYTES, ManagementBackupService, ManagementBackupServiceError,
 };
 use serde::Serialize;
-use zeroize::Zeroizing;
 
 use crate::management_security::configure_management;
 
@@ -26,6 +30,7 @@ use crate::management_security::configure_management;
 /// configured filesystem authority outside the inference path.
 pub struct ManagementBackupHttpState {
     facade: Mutex<Box<dyn ManagementBackupFacade>>,
+    admission: Arc<Semaphore>,
 }
 
 impl ManagementBackupHttpState {
@@ -40,6 +45,7 @@ impl ManagementBackupHttpState {
     pub fn with_facade(facade: Box<dyn ManagementBackupFacade>) -> Self {
         Self {
             facade: Mutex::new(facade),
+            admission: Arc::new(Semaphore::new(1)),
         }
     }
 }
@@ -153,9 +159,15 @@ pub enum ManagementBackupError {
     Unavailable,
 }
 
-/// Explicit P10-08 transport seam. Implementations receive only raw encrypted artifact bytes and
+/// Explicit P10-08 transport seam. Implementations receive anonymous encrypted disk spools and
 /// retain all filesystem/key authority from embedding-time configuration.
 pub trait ManagementBackupFacade: Send {
+    /// Allocates an anonymous disk upload using configured filesystem authority.
+    ///
+    /// # Errors
+    /// Returns a value-free error if staging is unavailable.
+    fn create_restore_upload(&mut self) -> Result<File, ManagementBackupError>;
+
     /// Returns safe source metadata without generating artifact bytes.
     ///
     /// # Errors
@@ -171,7 +183,7 @@ pub trait ManagementBackupFacade: Send {
     /// Returns a value-free [`ManagementBackupError`] when the artifact cannot safely preflight.
     fn restore_preflight(
         &mut self,
-        artifact: &[u8],
+        artifact: &mut File,
     ) -> Result<ManagementRestoreMetadata, ManagementBackupError>;
 
     /// Restores supplied material only into the configured, absent target.
@@ -179,8 +191,10 @@ pub trait ManagementBackupFacade: Send {
     /// # Errors
     ///
     /// Returns a value-free [`ManagementBackupError`] when validation or target creation fails.
-    fn restore(&mut self, artifact: &[u8])
-    -> Result<ManagementRestoreState, ManagementBackupError>;
+    fn restore(
+        &mut self,
+        artifact: &mut File,
+    ) -> Result<ManagementRestoreState, ManagementBackupError>;
 }
 
 struct ManagementBackupServiceFacade {
@@ -188,6 +202,12 @@ struct ManagementBackupServiceFacade {
 }
 
 impl ManagementBackupFacade for ManagementBackupServiceFacade {
+    fn create_restore_upload(&mut self) -> Result<File, ManagementBackupError> {
+        self.service
+            .create_restore_upload()
+            .map_err(map_service_error)
+    }
+
     fn backup_preflight(&mut self) -> Result<ManagementBackupMetadata, ManagementBackupError> {
         let preflight = self.service.backup_preflight().map_err(map_service_error)?;
         ManagementBackupMetadata::try_new(
@@ -198,11 +218,11 @@ impl ManagementBackupFacade for ManagementBackupServiceFacade {
 
     fn restore_preflight(
         &mut self,
-        artifact: &[u8],
+        artifact: &mut File,
     ) -> Result<ManagementRestoreMetadata, ManagementBackupError> {
         let preflight = self
             .service
-            .restore_preflight(artifact)
+            .restore_preflight_reader(artifact)
             .map_err(map_service_error)?;
         ManagementRestoreMetadata::try_new(
             preflight.source_schema_version(),
@@ -213,10 +233,10 @@ impl ManagementBackupFacade for ManagementBackupServiceFacade {
 
     fn restore(
         &mut self,
-        artifact: &[u8],
+        artifact: &mut File,
     ) -> Result<ManagementRestoreState, ManagementBackupError> {
         self.service
-            .restore_to_empty_target(artifact)
+            .restore_reader_to_empty_target(artifact)
             .map_err(map_service_error)?;
         Ok(ManagementRestoreState::Complete)
     }
@@ -240,20 +260,24 @@ impl Default for RejectingManagementBackupFacade {
 }
 
 impl ManagementBackupFacade for RejectingManagementBackupFacade {
+    fn create_restore_upload(&mut self) -> Result<File, ManagementBackupError> {
+        Err(ManagementBackupError::Unavailable)
+    }
+
     fn backup_preflight(&mut self) -> Result<ManagementBackupMetadata, ManagementBackupError> {
         Err(ManagementBackupError::Unavailable)
     }
 
     fn restore_preflight(
         &mut self,
-        _artifact: &[u8],
+        _artifact: &mut File,
     ) -> Result<ManagementRestoreMetadata, ManagementBackupError> {
         Err(ManagementBackupError::Unavailable)
     }
 
     fn restore(
         &mut self,
-        _artifact: &[u8],
+        _artifact: &mut File,
     ) -> Result<ManagementRestoreState, ManagementBackupError> {
         Err(ManagementBackupError::Unavailable)
     }
@@ -277,7 +301,7 @@ pub(crate) fn configure_protected_backup_routes(config: &mut web::ServiceConfig)
 }
 
 async fn preview_backup(state: web::Data<ManagementBackupHttpState>) -> HttpResponse {
-    let Ok(mut facade) = state.facade.lock() else {
+    let Ok(mut facade) = state.facade.try_lock() else {
         return unavailable();
     };
     match facade.backup_preflight() {
@@ -293,19 +317,7 @@ async fn preview_restore(
     state: web::Data<ManagementBackupHttpState>,
     payload: web::Payload,
 ) -> HttpResponse {
-    let material = match read_binary_material(&request, payload).await {
-        Ok(material) => material,
-        Err(response) => return response,
-    };
-    let Ok(mut facade) = state.facade.lock() else {
-        return unavailable();
-    };
-    match facade.restore_preflight(&material) {
-        Ok(value) => HttpResponse::Ok()
-            .insert_header((header::CACHE_CONTROL, "no-store"))
-            .json(RestorePreflightResponse::from(value)),
-        Err(error) => backup_error(error),
-    }
+    restore_material(request, state, payload, true).await
 }
 
 async fn restore_backup(
@@ -313,42 +325,96 @@ async fn restore_backup(
     state: web::Data<ManagementBackupHttpState>,
     payload: web::Payload,
 ) -> HttpResponse {
-    let material = match read_binary_material(&request, payload).await {
+    restore_material(request, state, payload, false).await
+}
+
+async fn restore_material(
+    request: HttpRequest,
+    state: web::Data<ManagementBackupHttpState>,
+    payload: web::Payload,
+    preflight: bool,
+) -> HttpResponse {
+    if !is_octet_stream(&request) || content_length_exceeds_limit(&request) {
+        return invalid_input();
+    }
+    let Ok(permit) = state.admission.clone().try_acquire_owned() else {
+        return unavailable();
+    };
+    let material = match read_binary_material(&state, payload, permit).await {
         Ok(material) => material,
         Err(response) => return response,
     };
-    let Ok(mut facade) = state.facade.lock() else {
-        return unavailable();
-    };
-    match facade.restore(&material) {
-        Ok(ManagementRestoreState::Complete) => HttpResponse::Accepted()
+    // The permit and anonymous file follow the blocking operation after HTTP cancellation.
+    match web::block(move || complete_restore(&state, material, preflight)).await {
+        Ok(Ok(value)) if preflight => HttpResponse::Ok()
+            .insert_header((header::CACHE_CONTROL, "no-store"))
+            .json(value),
+        Ok(Ok(_)) => HttpResponse::Accepted()
             .insert_header((header::CACHE_CONTROL, "no-store"))
             .json(RestoreOperationResponse { state: "complete" }),
-        Err(error) => backup_error(error),
+        Ok(Err(error)) => backup_error(error),
+        Err(_) => unavailable(),
     }
 }
 
-async fn read_binary_material(
-    request: &HttpRequest,
-    mut payload: web::Payload,
-) -> Result<Zeroizing<Vec<u8>>, HttpResponse> {
-    if !is_octet_stream(request) || content_length_exceeds_limit(request) {
-        return Err(invalid_input());
+fn complete_restore(
+    state: &ManagementBackupHttpState,
+    mut material: RestoreUpload,
+    preflight: bool,
+) -> Result<Option<RestorePreflightResponse>, ManagementBackupError> {
+    material
+        .file
+        .rewind()
+        .map_err(|_| ManagementBackupError::Unavailable)?;
+    let mut facade = state
+        .facade
+        .lock()
+        .map_err(|_| ManagementBackupError::Unavailable)?;
+    if preflight {
+        facade
+            .restore_preflight(&mut material.file)
+            .map(|value| Some(RestorePreflightResponse::from(value)))
+    } else {
+        facade.restore(&mut material.file).map(|_| None)
     }
+}
 
-    let mut material = Zeroizing::new(Vec::new());
+struct RestoreUpload {
+    file: File,
+    _permit: OwnedSemaphorePermit,
+}
+
+async fn read_binary_material(
+    state: &ManagementBackupHttpState,
+    mut payload: web::Payload,
+    permit: OwnedSemaphorePermit,
+) -> Result<RestoreUpload, HttpResponse> {
+    let file = state
+        .facade
+        .lock()
+        .map_err(|_| unavailable())?
+        .create_restore_upload()
+        .map_err(backup_error)?;
+    let mut material = RestoreUpload {
+        file,
+        _permit: permit,
+    };
+    let mut length = 0usize;
     while let Some(chunk) = payload.next().await {
         let chunk = chunk.map_err(|_| invalid_input())?;
-        let new_length = material
-            .len()
-            .checked_add(chunk.len())
-            .ok_or_else(invalid_input)?;
-        if new_length > MAX_MANAGEMENT_BACKUP_BODY_BYTES {
+        length = length.checked_add(chunk.len()).ok_or_else(invalid_input)?;
+        if length > MAX_MANAGEMENT_BACKUP_BODY_BYTES {
             return Err(invalid_input());
         }
-        material.extend_from_slice(&chunk);
+        material = web::block(move || {
+            material.file.write_all(&chunk)?;
+            Ok::<_, std::io::Error>(material)
+        })
+        .await
+        .map_err(|_| unavailable())?
+        .map_err(|_| unavailable())?;
     }
-    if material.is_empty() {
+    if length == 0 {
         return Err(invalid_input());
     }
     Ok(material)
@@ -458,6 +524,45 @@ impl From<ManagementRestoreMetadata> for RestorePreflightResponse {
             quick_check_required: value.quick_check_required(),
             compatible: value.compatible(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[actix_web::test]
+    async fn cancelled_disk_work_keeps_restore_upload_admission()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let admission = Arc::new(Semaphore::new(1));
+        let upload = RestoreUpload {
+            file: gateway_store::backup::create_restore_upload(&std::env::temp_dir())?,
+            _permit: admission.clone().acquire_owned().await?,
+        };
+        let (started, wait_started) = tokio::sync::oneshot::channel();
+        let (finish, wait_finish) = std::sync::mpsc::channel();
+        let task = actix_web::rt::spawn(async move {
+            web::block(move || {
+                let _ = started.send(());
+                let result = wait_finish.recv();
+                drop(upload);
+                result
+            })
+            .await
+        });
+        wait_started.await?;
+        task.abort();
+        tokio::task::yield_now().await;
+        assert!(admission.clone().try_acquire_owned().is_err());
+        finish.send(())?;
+        tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            while admission.available_permits() == 0 {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await?;
+        assert!(admission.try_acquire_owned().is_ok());
+        Ok(())
     }
 }
 
