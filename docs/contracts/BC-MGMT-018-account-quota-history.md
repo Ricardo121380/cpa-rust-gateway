@@ -39,6 +39,8 @@
 
 - `quota_history_http_filters_gaps_resets_failures_and_duplicates`
 - `quota_history_ordinary_revision_fence_unknown_and_reopen`
+- `quota_history_kimi_partial_projection_and_source_isolation`
+- `quota_history_missing_store_fails_before_native_transport`
 - `native_quota_rejects_late_response_after_account_changed`
 - `migrations_are_idempotent_and_create_all_known_schema_tables`
 

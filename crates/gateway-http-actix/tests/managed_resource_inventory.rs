@@ -444,13 +444,17 @@ fn fixture_with_workflow_inner(
                 store.clone(),
             )?),
         )?;
+    let history = std::sync::Arc::new(gateway_store::quota_history::QuotaHistoryStore::open(
+        &file.0,
+    )?);
     Ok((
         file,
         ManagementResourceHttpState::with_workflow(
             ManagementMutationService::new(repository, store),
             workflow,
         )
-        .with_native_accounts(native),
+        .with_native_accounts(native)
+        .with_quota_history(history),
     ))
 }
 

@@ -58,6 +58,8 @@ pub struct KimiAccountObservation {
     pub profile_available: bool,
     /// Usage read succeeded and supplied at least one recognized quota window.
     pub quota_available: bool,
+    /// Some supplied quota windows were invalid, unrecognized or omitted by the bound.
+    pub quota_partial: bool,
     /// Independent profile failure, when present.
     pub profile_error: Option<KimiMetadataFailure>,
     /// Independent quota failure, when present.
@@ -95,13 +97,17 @@ fn counted_quota(entry: &Value, window: &str) -> Option<KimiQuotaWindow> {
         reset_at: text(&entry["resetTime"]).or_else(|| text(&entry["reset_time"])),
     })
 }
-fn counted_windows(usage: &Value, windows: &mut Vec<KimiQuotaWindow>) {
+fn counted_windows(usage: &Value, windows: &mut Vec<KimiQuotaWindow>) -> bool {
+    let mut partial = false;
     // The official Python Kimi CLI defines the top-level usage as the weekly summary.
     let mut candidates = Vec::new();
     if let Some(summary) = counted_quota(&usage["usage"], "limit_7d") {
         candidates.push(summary);
+    } else if !usage["usage"].is_null() {
+        partial = true;
     }
     if let Some(limits) = usage["limits"].as_array() {
+        partial |= limits.len() > 32;
         for item in limits.iter().take(32) {
             let duration = quota_number(&item["window"]["duration"]);
             let seconds = match item["window"]["timeUnit"].as_str() {
@@ -114,13 +120,19 @@ fn counted_windows(usage: &Value, windows: &mut Vec<KimiQuotaWindow>) {
             let window = match seconds {
                 Some(seconds) if (seconds - 18_000.0).abs() < f64::EPSILON => "limit_5h",
                 Some(seconds) if (seconds - 604_800.0).abs() < f64::EPSILON => "limit_7d",
-                _ => continue,
+                _ => {
+                    partial = true;
+                    continue;
+                }
             };
             if let Some(value) = counted_quota(&item["detail"], window) {
                 candidates.push(value);
+            } else {
+                partial = true;
             }
         }
     }
+    partial |= !usage["limits"].is_null() && !usage["limits"].is_array();
     for candidate in candidates {
         if !windows
             .iter()
@@ -129,6 +141,7 @@ fn counted_windows(usage: &Value, windows: &mut Vec<KimiQuotaWindow>) {
             windows.push(candidate);
         }
     }
+    partial
 }
 impl KimiAccountObservation {
     /// Retains independent safe failures while projecting any successful counterpart.
@@ -180,6 +193,7 @@ impl KimiAccountObservation {
             }
         });
         let mut quota_windows = Vec::new();
+        let mut quota_partial = false;
         if let Some(usage) = usage {
             for window in [
                 "limit_5h",
@@ -191,6 +205,8 @@ impl KimiAccountObservation {
                 let ratio = entry["used_ratio"]
                     .as_f64()
                     .or_else(|| entry["used_ratio"].as_str()?.parse().ok());
+                quota_partial |=
+                    !entry.is_null() && ratio.is_none_or(|r| !r.is_finite() || r < 0.0);
                 if let Some(used_ratio) = ratio.filter(|r| r.is_finite() && *r >= 0.0) {
                     quota_windows.push(KimiQuotaWindow {
                         window: window.to_owned(),
@@ -201,12 +217,13 @@ impl KimiAccountObservation {
             }
         }
         if let Some(usage) = usage {
-            counted_windows(usage, &mut quota_windows);
+            quota_partial |= counted_windows(usage, &mut quota_windows);
         }
         Self {
             observed_at_ms,
             profile_available: profile.is_some(),
             quota_available: !quota_windows.is_empty(),
+            quota_partial,
             profile_error: if profile.is_some() {
                 None
             } else {

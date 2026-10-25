@@ -287,16 +287,11 @@ impl QuotaHistoryStore {
             || q.to_ms - q.from_ms > MAX_SPAN_MS
             || !(1..=200).contains(&q.limit)
             || q.after_id < 0
-            || [
-                &q.account_kind,
-                &q.config_version_id,
-                &q.account_id,
-                &q.provider,
-                &q.window,
-            ]
-            .into_iter()
-            .flatten()
-            .any(|s| s.is_empty() || s.len() > 128)
+            || [&q.account_kind, &q.account_id, &q.provider, &q.window]
+                .into_iter()
+                .flatten()
+                .any(|s| s.is_empty() || s.len() > 128)
+            || q.config_version_id.as_ref().is_some_and(|s| s.len() > 128)
             || q.account_kind
                 .as_deref()
                 .is_some_and(|s| !matches!(s, "native" | "credential"))

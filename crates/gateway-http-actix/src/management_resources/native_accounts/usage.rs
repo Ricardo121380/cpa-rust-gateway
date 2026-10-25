@@ -40,6 +40,9 @@ pub(crate) async fn usage(
     if let Err(response) = principal(&request) {
         return response;
     }
+    let Some(history) = state.quota_history.clone() else {
+        return unavailable();
+    };
     let Some(native) = state.native_accounts.clone() else {
         return unavailable();
     };
@@ -72,7 +75,8 @@ pub(crate) async fn usage(
         provider_grok::GrokAccountProvider::Console => "grok_console",
         provider_grok::GrokAccountProvider::Web => "grok_web",
     };
-    let fence = if let Some(history) = state.quota_history.clone() {
+    let fence = {
+        let history = history.clone();
         let account = gateway_store::quota_history::AccountScope {
             account_kind: "native".into(),
             config_version_id: String::new(),
@@ -82,12 +86,10 @@ pub(crate) async fn usage(
             return invalid_input();
         };
         match read_operations(&state, move || Ok(history.capture(account, Some(revision)))).await {
-            Ok(Ok(fence)) => Some(fence),
+            Ok(Ok(fence)) => fence,
             Ok(Err(gateway_store::quota_history::Error::Conflict)) => return conflict(),
             _ => return unavailable(),
         }
-    } else {
-        None
     };
     let result =
         tokio::time::timeout(std::time::Duration::from_secs(20), transport.read(snapshot)).await;
@@ -100,7 +102,7 @@ pub(crate) async fn usage(
     let Ok(completed_at) = state.runtime_clock.now_ms() else {
         return unavailable();
     };
-    if let (Some(history), Some(fence)) = (state.quota_history.clone(), fence) {
+    {
         let samples = match &result {
             Ok(Ok(observation)) => observation.history_samples(),
             _ => vec![gateway_store::quota_history::Sample::missing(

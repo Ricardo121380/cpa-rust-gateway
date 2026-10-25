@@ -137,7 +137,7 @@ async fn quota_history_http_filters_gaps_resets_failures_and_duplicates() -> Tes
     let now = i64::try_from(SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis())?;
     // The small historical fixture interval exposes gaps without sleeping or changing production clocks.
     let path = format!(
-        "/admin/quota-history?from_ms=0&to_ms=1000000&limit=200&account_id={a}&window=console.chat"
+        "/admin/quota-history?from_ms=0&to_ms=1000000&limit=200&account_id={a}&window=console.chat&config_version_id="
     );
     let denied = test::call_service(&app, test::TestRequest::get().uri(&path).to_request()).await;
     assert_eq!(denied.status(), StatusCode::NOT_FOUND);
@@ -309,5 +309,79 @@ async fn quota_history_ordinary_revision_fence_unknown_and_reopen() -> TestResul
     assert_eq!(result.entries.len(), 1);
     assert_eq!(result.entries[0].sample.status, "unknown");
     assert_eq!(result.entries[0].sample.used_percent, None);
+    Ok(())
+}
+
+#[actix_web::test]
+async fn quota_history_kimi_partial_projection_and_source_isolation() -> TestResult {
+    let kimi = provider_openai_compatible::KimiAccountObservation::from_payloads(
+        None,
+        Some(
+            &serde_json::json!({"usages":{"limit_5h":{"used_ratio":0},"limit_7d":{"used_ratio":-1}}}),
+        ),
+        1_000,
+    );
+    assert!(kimi.quota_available);
+    let samples = AccountQuotaObservation::from_kimi(&kimi).history_samples();
+    assert_eq!(samples.len(), 1);
+    assert_eq!(samples[0].completeness, "partial");
+    assert_eq!(samples[0].used_percent, Some(0.0));
+    let mut web = sample(1_000, 10.0, 2_000);
+    web.source = "grok_web".into();
+    web.windows[0].name = "web.auto".into();
+    web.windows[1].name = "web.credits".into();
+    let samples = web.history_samples();
+    assert_eq!(samples[0].source, "rest");
+    assert_eq!(samples[1].source, "grpc");
+    Ok(())
+}
+
+#[actix_web::test]
+async fn quota_history_missing_store_fails_before_native_transport() -> TestResult {
+    let (file, _resources) = fixture(false)?;
+    let key = KeyVersion::try_new(1)?;
+    let secrets = SecretStore::new(MasterKeyRing::try_new(
+        key,
+        [(key, MasterKey::try_from_bytes([0x51; 32])?)],
+    )?);
+    let transport = Arc::new(Sequence(Mutex::new([Ok(sample(1000, 0.0, 2000))].into())));
+    let native =
+        gateway_http_actix::management_resources::native_accounts::NativeAccountManagement::new(
+            Arc::new(provider_grok::GrokAccountPoolStore::try_open(
+                &file.0,
+                secrets.clone(),
+            )?),
+        )?
+        .with_usage_transport(transport.clone());
+    let resources = ManagementResourceHttpState::with_workflow(
+        ManagementMutationService::new(SqliteControlPlaneRepository::open(&file.0)?, secrets),
+        Box::new(gateway_http_actix::management_resources::CodexOAuthManagementWorkflow::new()),
+    )
+    .with_native_accounts(native);
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(security()?))
+            .app_data(web::Data::new(resources))
+            .configure(configure_management_resources),
+    )
+    .await;
+    let imported=test::call_service(&app,authorized(test::TestRequest::post().uri("/admin/native-accounts/import")).set_json(serde_json::json!({"id":"no-history","channel":"grok.console","secret":"synthetic-no-history"})).to_request()).await;
+    assert_eq!(imported.status(), StatusCode::CREATED);
+    let rows: Value = test::call_and_read_body_json(
+        &app,
+        authorized(test::TestRequest::get().uri("/admin/native-accounts")).to_request(),
+    )
+    .await;
+    let id = rows["items"][0]["id"].as_str().ok_or("id")?;
+    let r = test::call_service(
+        &app,
+        authorized(
+            test::TestRequest::get().uri(&format!("/admin/native-accounts/{id}/usage?revision=0")),
+        )
+        .to_request(),
+    )
+    .await;
+    assert_eq!(r.status(), StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(transport.0.lock().map_err(|_| "lock")?.len(), 1);
     Ok(())
 }

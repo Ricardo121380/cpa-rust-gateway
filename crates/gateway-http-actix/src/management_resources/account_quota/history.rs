@@ -75,7 +75,7 @@ impl AccountQuotaObservation {
             observed_at_ms: value.observed_at_ms,
             email: None,
             plan: None,
-            partial: !value.quota_available,
+            partial: value.quota_partial || !value.quota_available,
             windows: value
                 .quota_windows
                 .iter()
