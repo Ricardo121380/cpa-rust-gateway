@@ -95,3 +95,4 @@ The migration runner does not activate a Config Version, compile a route, or pub
 - `integrated_schema_failed_multistep_downgrade_preserves_all_columns_and_history`
 - `integrated_schema_policy_downgrade_preserves_nonempty_and_accepts_semantic_empty`
 - `integrated_schema_wrong41_backup_rejected_without_publishing_target`
+- `integrated_schema_missing_loss_column_rejects_inspection_and_backup`

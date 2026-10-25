@@ -692,15 +692,15 @@ fn ensure_supported_schema(connection: &Connection, applied: &[i64]) -> StoreRes
             });
         }
     }
-    let loss_nullable: bool = connection.query_row(
-        "SELECT EXISTS(SELECT 1 FROM pragma_table_info('grok_build_affinity_breaks') WHERE name = 'estimated_cache_loss_tokens' AND \"notnull\" = 0)",
-        [], |row| row.get(0),
+    let loss_shape_valid: bool = connection.query_row(
+        "SELECT EXISTS(SELECT 1 FROM pragma_table_info('grok_build_affinity_breaks') WHERE name = 'estimated_cache_loss_tokens' AND \"notnull\" = ?1)",
+        [i64::from(!routing)], |row| row.get(0),
     )?;
     let reselection: bool = connection.query_row(
         "SELECT EXISTS(SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'grok_build_affinity_breaks' AND instr(sql, 'policy_reselection') > 0)",
         [], |row| row.get(0),
     )?;
-    if loss_nullable != routing || reselection != routing {
+    if !loss_shape_valid || reselection != routing {
         return Err(StoreError::UnsupportedMigrationHistory {
             applied: applied.to_vec(),
         });

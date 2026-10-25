@@ -191,6 +191,27 @@ fn integrated_schema_wrong41_backup_rejected_without_publishing_target() -> Test
         "../migrations/0042_endpoint_request_policy.up.sql"
     ))?;
     db.execute("INSERT INTO schema_migrations(version) VALUES (41)", [])?;
+    rejected_backup(&db, 41)
+}
+
+#[test]
+fn integrated_schema_missing_loss_column_rejects_inspection_and_backup() -> TestResult {
+    let mut db = historical40()?;
+    db.execute_batch(
+        "ALTER TABLE grok_build_affinity_breaks DROP COLUMN estimated_cache_loss_tokens;",
+    )?;
+    assert!(matches!(
+        schema_version(&db),
+        Err(StoreError::UnsupportedMigrationHistory { .. })
+    ));
+    assert!(matches!(
+        migrate(&mut db),
+        Err(StoreError::UnsupportedMigrationHistory { .. })
+    ));
+    rejected_backup(&db, 40)
+}
+
+fn rejected_backup(db: &Connection, version: u32) -> TestResult {
     let dir = std::env::temp_dir().join(format!(
         "wave3-wrong41-{}-{}",
         std::process::id(),
@@ -201,7 +222,7 @@ fn integrated_schema_wrong41_backup_rejected_without_publishing_target() -> Test
     fs::create_dir(&dir)?;
     let snapshot = dir.join("snapshot.sqlite3");
     let mut target = Connection::open(&snapshot)?;
-    let copy = rusqlite::backup::Backup::new(&db, &mut target)?;
+    let copy = rusqlite::backup::Backup::new(db, &mut target)?;
     assert_eq!(copy.step(-1)?, rusqlite::backup::StepResult::Done);
     drop(copy);
     drop(target);
@@ -209,7 +230,7 @@ fn integrated_schema_wrong41_backup_rejected_without_publishing_target() -> Test
     let nonce = [0x42; 24];
     let key = BackupKey::try_from_bytes([0x71; 32])?;
     let mut artifact = b"CPABKP01\x01".to_vec();
-    artifact.extend_from_slice(&41_u32.to_be_bytes());
+    artifact.extend_from_slice(&version.to_be_bytes());
     artifact.extend_from_slice(&nonce);
     let ciphertext = XChaCha20Poly1305::new_from_slice(&[0x71; 32])
         .map_err(|_| "key")?
@@ -240,7 +261,7 @@ fn integrated_schema_wrong41_backup_rejected_without_publishing_target() -> Test
         Err(BackupError::IncompatibleSchema)
     ));
     assert!(!restored.exists());
-    assert_retained(&db)?;
+    assert_retained(db)?;
     fs::remove_dir_all(dir)?;
     Ok(())
 }

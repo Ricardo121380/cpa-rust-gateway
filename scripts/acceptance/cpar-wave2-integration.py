@@ -96,6 +96,7 @@ class Matrix(capacity.Matrix):
             body = {k:endpoint[k] for k in ("id","adapter_id","api_format","base_url","inference_path","models_path","transport","enabled")}
             body["request_policy"] = {"rules":[{"models":["public-wave2"],"default":{"temperature":0.2},"override":{"max_output_tokens":128},"filter":["top_p"]}], "headers":{"x-request-tag":"wave3-header"}}
             self.api("PATCH", "/admin/endpoints/ordinary-endpoint", body)
+            self.api("PATCH", "/admin/routes/native-route", {"id":"native-route","policy":"round_robin","max_attempts":1,"bootstrap_timeout_ms":10000})
         self.publish()
         price = self.api("POST", "/admin/config-versions", {"id":"wave2-prices","description":"synthetic price review"}, 201)
         price_revision = '"' + price["revision"] + '"'
@@ -108,16 +109,11 @@ class Matrix(capacity.Matrix):
             time.sleep(.05)
         self.start("current", "integrated-reviewed-source")
         self.verify_review("source")
+        if self.args.expected_schema == 42:
+            self.capture_joint_generation()
         self.capture_thinking()
         self.verify_thinking("source")
         self.stop()
-        if self.args.expected_schema == 42:
-            # Synthetic durable continuity state; live selection is verified by #70 socket tests.
-            with sqlite3.connect(self.db) as db:
-                now = int(time.time() * 1000)
-                db.execute("INSERT INTO grok_build_cache_affinities(client_key_id,provider_id,upstream_model,cache_identity,credential_id,expires_at_ms,reason,updated_at_ms,binding_fingerprint,credential_revision) VALUES ('wave3-fixture','grok.build','grok-4.5','opaque-fixture','synthetic-account',?,'prompt_cache',?,?,7)", [now+86400000,now,"7"*64])
-                db.execute("INSERT INTO grok_build_affinity_breaks(client_key_id,upstream_model,cache_identity,prior_credential_id,next_credential_id,reason,estimated_cache_loss_tokens,occurred_at_ms) VALUES ('wave3-fixture','grok-4.5','opaque-fixture','old','synthetic-account','policy_reselection',NULL,?)", [now])
-                db.commit()
         base.dump(self.private / "context.json", {"scope":self.scope,"revision":self.revision,"owner":self.owner,
             "sibling":self.sibling,"restricted":self.restricted,"disabled_native":self.disabled_native,
             "records":self.records,"unknowns":self.unknowns,"materials":self.peer.materials})
@@ -156,6 +152,35 @@ class Matrix(capacity.Matrix):
         self.verify_rule_wire("source")
         self.report["thinking_storage"] = self.helper("thinking", {"response_id":self.thinking_response})
 
+    def capture_joint_generation(self):
+        prior = None
+        for label in ("joint-source", "joint-published"):
+            if prior is not None:
+                fork = self.api("POST", f"/admin/config-versions/{self.scope}/fork", {"id":"wave3-published","description":"joint generation test"}, 201)
+                self.scope, self.revision = fork["id"], '"' + fork["revision"] + '"'
+                self.publish()
+            before = len(self.peer.receives)
+            for _ in range(3):
+                self.peer.case = "ordinary"
+                status, _, headers = self.data("/v1/responses", {"model":"grok-4.5","input":"joint cache request","prompt_cache_key":"wave3-joint-owner"})
+                self.check(label + " Build affinity request succeeds", status == 200)
+                self.wait_lineage(next(v for k,v in headers.items() if k.lower() == "x-request-id"), 1)
+            rows = self.peer.receives[before:]
+            self.check(label + " independent receiver sees only three native authenticated sends without ordinary header", len(rows) == 3 and all(r["native"] and r["auth_match"] and "x-request-tag" not in r["header_names"] for r in rows))
+            with sqlite3.connect(self.db) as db:
+                binding = db.execute("SELECT credential_id,binding_fingerprint,credential_revision FROM grok_build_cache_affinities WHERE client_key_id='owner' AND upstream_model='grok-4.5'").fetchall()
+            self.check(label + " production persisted one qualified account binding", len(binding) == 1 and len(binding[0][1]) == 64 and binding[0][2] is not None)
+            if prior is not None:
+                self.check("publish rebinds affinity fingerprint while retaining eligible account", binding[0][0] == prior[0] and binding[0][1] != prior[1])
+                with sqlite3.connect(self.db) as db:
+                    self.check("publish records unknown-loss affinity reselection", db.execute("SELECT count(*) FROM grok_build_affinity_breaks WHERE client_key_id='owner' AND reason='policy_reselection' AND estimated_cache_loss_tokens IS NULL").fetchone()[0] > 0)
+            prior = binding[0]
+            status, _, headers = self.data("/v1/responses", {"model":"team/public-wave2(high)","input":"joint rules request","top_p":0.9,"max_output_tokens":1000})
+            self.check(label + " same generation serves compatible rules endpoint", status == 200)
+            self.wait_lineage(next(v for k,v in headers.items() if k.lower() == "x-request-id"), 1)
+            self.verify_rule_wire(label)
+        self.joint_binding = prior
+
     def verify_rule_wire(self, label):
         if self.args.expected_schema != 42:
             return
@@ -170,7 +195,7 @@ class Matrix(capacity.Matrix):
         self.check(label + " stock reads explicit selection strategy", self.api("GET", "/admin/routes/wave2-route")["policy"] == "fill_first")
         with sqlite3.connect(self.db) as db:
             self.check(label + " encrypted header remains ciphertext", db.execute("SELECT count(*) FROM upstream_credentials WHERE config_version_id=? AND id='wave3-header' AND kind='upstream_header' AND length(ciphertext)>0", [self.scope]).fetchone() == (1,))
-            self.check(label + " qualified affinity and unknown loss survive", db.execute("SELECT binding_fingerprint,credential_revision FROM grok_build_cache_affinities WHERE client_key_id='wave3-fixture'").fetchone() == ("7"*64,7) and db.execute("SELECT reason,estimated_cache_loss_tokens FROM grok_build_affinity_breaks WHERE client_key_id='wave3-fixture'").fetchone() == ("policy_reselection",None))
+            self.check(label + " qualified affinity and unknown loss survive", db.execute("SELECT credential_id,binding_fingerprint,credential_revision FROM grok_build_cache_affinities WHERE client_key_id='owner' AND upstream_model='grok-4.5'").fetchone() == self.joint_binding and db.execute("SELECT count(*) FROM grok_build_affinity_breaks WHERE client_key_id='owner' AND reason='policy_reselection' AND estimated_cache_loss_tokens IS NULL").fetchone()[0] > 0)
 
     def verify_thinking(self, label):
         before = len(self.peer.receives)
