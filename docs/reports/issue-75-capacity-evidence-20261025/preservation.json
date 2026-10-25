@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "same_qualified_baseline_business_tables": true,
+  "recording_original_rows_preserved": 4,
+  "recording_total_restored_rows": 4,
+  "columns": [
+    "request_id",
+    "started_at_ms",
+    "state"
+  ],
+  "original_rows_sha256": "85bb2ffe62780c917f43a2527c0e2637837c01353c86499b082b0c1baba13854",
+  "source_data_retained": true,
+  "original_qualified_source_retained": true
+}

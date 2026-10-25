@@ -9,9 +9,12 @@
 
 The [frozen experiment](../reports/issue-75-capacity-plan-20261025.md) generated
 25,000 complete synthetic lineages plus 40,000 quota observations on schema39.
-The unchanged baseline's 98,484,224-byte database cannot pass the 16 MiB backup
-limit. Its selective Usage capture, explicit full-window limit and quota page
-completed; that evidence does not require changing the query model or limits.
+The qualified baseline-06 database is 84,889,600 bytes before real BillingWorker
+materialization and 98,541,568 bytes afterwards; the latter cannot pass the 16 MiB
+backup limit. The earlier 98,484,224-byte measurement used the subsequently corrected
+ledger fixture and is retained only as historical evidence. On qualified baseline-06,
+selective Usage capture, the explicit full-window limit and quota paging completed;
+that evidence does not require changing the query model or limits.
 
 CPA remains fixed at v8.0.40 / `d946c4fba6fc9a5cfbca1f3d85184d62ad2fb683`:
 `internal/api/handlers/management/usage.go::GetUsageQueue` and

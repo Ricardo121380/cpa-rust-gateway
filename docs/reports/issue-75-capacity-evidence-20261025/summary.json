@@ -1,0 +1,469 @@
+{
+  "status": "PASS_LOCAL_CAPACITY_AND_FULL",
+  "base": "84fbfbf778b582f746c1cafe31a2ce58962e8f77",
+  "source": "656c99b2fad042ba57030c4d4c1c40626cc87045",
+  "tree": "8920c01b6c970d38d63ef14586cbbd8888820298",
+  "source_files": 7159,
+  "source_manifest_sha256": "9922d62157c785e0898486718d2e443f108d9be8b9781d713c6ebc76c96917b1",
+  "cargo_lock_sha256": "a3950a764ae2dcae4e04a8a32ada596f33ea105dbfda8e9714b3e32d3216cd6d",
+  "binary_build": {
+    "source": "875ea3590dab23c635699c1f34c55c690e6f1885",
+    "binaries": {
+      "gateway": {
+        "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-75-history-backup-capacity-20261025/output/issue75/bin/gateway-875ea3590dab",
+        "sha256": "326e2a2ef343260b7cdf598cd53d90558d028eda2ad0bde7705d801ce7a66532"
+      },
+      "support": {
+        "path": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-75-history-backup-capacity-20261025/output/issue75/bin/support-875ea3590dab",
+        "sha256": "651ebe326f85959e2f4d71282d3249352659f67848bfe46bca760f42257a0041"
+      }
+    },
+    "build_metadata": {
+      "GATEWAY_RELEASE_REVISION": "875ea3590dab23c635699c1f34c55c690e6f1885",
+      "GATEWAY_RELEASE_RUST_VERSION": "1.97.1",
+      "GATEWAY_RELEASE_TARGET": "aarch64-apple-darwin"
+    }
+  },
+  "driver_sha256": "cbbdccacf42d661c46a055f8874104b9ff98ec4aaab76185aa2f22a35211630f",
+  "baseline": {
+    "status": "MEASURED_BASELINE_LIMIT",
+    "checks": 53,
+    "binaries": {
+      "current": {
+        "input": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-parallel-68-72-74-integration-20261025/output/integration/bin/gateway-6a7ae73e79b5",
+        "sha256": "d66580b1c2464d7a94b6467a21fd88546fb0dd6d8e4eef3ba680f2816ab6a54e"
+      },
+      "support": {
+        "input": "/Volumes/Asgard/Agentprojects/CPA-Rust/worktrees/cpar-parallel-68-72-74-integration-20261025/output/integration/target/debug/deps/cpar65_process_support-f00250d6b8b6b06f",
+        "sha256": "35bff676070cb0e1154524e30e7f94f8a383cd6f443fb938925e4b02ec37b60d"
+      }
+    },
+    "source": "84fbfbf778b582f746c1cafe31a2ce58962e8f77",
+    "fixture_database_bytes": 98541568,
+    "pre_materialization_seed": {
+      "requests": 25000,
+      "events": 100000,
+      "quotas": 40000,
+      "elapsed_seconds": 7.322354999999998,
+      "database_bytes": 84889600
+    },
+    "measurements": [
+      {
+        "operation": "source-selective-capture",
+        "seconds": 0.42175495800000107
+      },
+      {
+        "operation": "source-full-explicit-limit",
+        "seconds": 1.0883487500000015
+      },
+      {
+        "operation": "source-quota-page",
+        "seconds": 0.17598908400000823
+      }
+    ],
+    "backup": {
+      "seconds": 1.0441884580000078,
+      "exit": 101,
+      "os_high_water_rss_bytes": 11272192,
+      "artifact_bytes": null,
+      "artifact_sha256": null
+    },
+    "business_rows": {
+      "gateway_event_log": 100016,
+      "billing_ledger_entries": 25004,
+      "quota_history": 40000,
+      "native_usage_evidence": 1,
+      "messages_summary_evidence": 2,
+      "request_metadata_evidence": 1
+    },
+    "binary_code_commit": "6a7ae73e79b57576ee37b3ace1d70d60f1909a9b",
+    "mapping_to_common_base": "8 docs-only files; Rust/Cargo/lock identical"
+  },
+  "process": {
+    "status": "PASS_LOCAL_CAPACITY",
+    "checks": 86,
+    "passed": 86,
+    "reads": 8,
+    "business_tables_compared": 58,
+    "backup": {
+      "seconds": 18.232448041,
+      "exit": 0,
+      "os_high_water_rss_bytes": 11370496,
+      "artifact_bytes": 98582061,
+      "artifact_sha256": "fff1840f4099d291f52fbed8e2c86e8e85a8d452c9c1b01774f80332243d2257"
+    },
+    "plaintext_bytes": 98557952,
+    "measurements": [
+      {
+        "operation": "source-selective-capture",
+        "seconds": 0.21929229199999956
+      },
+      {
+        "operation": "source-full-explicit-limit",
+        "seconds": 1.3950535000000004
+      },
+      {
+        "operation": "source-quota-page",
+        "seconds": 0.05030900000000038
+      },
+      {
+        "operation": "/admin/restores/preflight",
+        "seconds": 29.7549105
+      },
+      {
+        "operation": "/admin/restores",
+        "seconds": 29.817697292000005
+      },
+      {
+        "operation": "restored-selective-capture",
+        "seconds": 1.160588875000002
+      },
+      {
+        "operation": "restored-full-explicit-limit",
+        "seconds": 2.138690208
+      },
+      {
+        "operation": "restored-quota-page",
+        "seconds": 0.3173173750000018
+      }
+    ],
+    "processes": [
+      {
+        "label": "large-source-query",
+        "pid": 65001,
+        "exit_code": 0,
+        "reaped": true,
+        "schema": 39,
+        "os_high_water_rss_bytes": 69795840
+      },
+      {
+        "label": "concurrent-ledger-replay",
+        "pid": 65387,
+        "exit_code": 0,
+        "reaped": true,
+        "schema": 39,
+        "os_high_water_rss_bytes": 45219840
+      },
+      {
+        "label": "interrupted-restore-host",
+        "pid": 65545,
+        "exit_code": -9,
+        "reaped": true,
+        "schema": 39,
+        "intentional_sigkill": true
+      },
+      {
+        "label": "restore-host",
+        "pid": 65580,
+        "exit_code": 0,
+        "reaped": true,
+        "schema": 39,
+        "os_high_water_rss_bytes": 36913152
+      },
+      {
+        "label": "restored-serving",
+        "pid": 67687,
+        "exit_code": 0,
+        "reaped": true,
+        "schema": 39,
+        "os_high_water_rss_bytes": 69435392
+      }
+    ],
+    "serve_resources": [
+      {
+        "label": "large-source-query",
+        "sampled_max_rss_bytes": 69795840,
+        "samples": 35
+      },
+      {
+        "label": "concurrent-ledger-replay",
+        "sampled_max_rss_bytes": 45187072,
+        "samples": 8
+      },
+      {
+        "label": "interrupted-restore-host",
+        "sampled_max_rss_bytes": 38387712,
+        "samples": 11
+      },
+      {
+        "label": "restore-host",
+        "sampled_max_rss_bytes": 36913152,
+        "samples": 887
+      },
+      {
+        "label": "restored-serving",
+        "sampled_max_rss_bytes": 69304320,
+        "samples": 149
+      }
+    ],
+    "concurrent_snapshot": {
+      "included_requests": 10,
+      "source_committed_requests": 100,
+      "batch_receipts": [
+        {
+          "batch": 0,
+          "request_ids": [
+            "concurrent75-0000",
+            "concurrent75-0001",
+            "concurrent75-0002",
+            "concurrent75-0003",
+            "concurrent75-0004",
+            "concurrent75-0005",
+            "concurrent75-0006",
+            "concurrent75-0007",
+            "concurrent75-0008",
+            "concurrent75-0009"
+          ],
+          "committed_at_monotonic": 12.142306625,
+          "copy_before_commit": false,
+          "copy_after_commit": false
+        },
+        {
+          "batch": 1,
+          "request_ids": [
+            "concurrent75-0010",
+            "concurrent75-0011",
+            "concurrent75-0012",
+            "concurrent75-0013",
+            "concurrent75-0014",
+            "concurrent75-0015",
+            "concurrent75-0016",
+            "concurrent75-0017",
+            "concurrent75-0018",
+            "concurrent75-0019"
+          ],
+          "committed_at_monotonic": 12.902543125,
+          "copy_before_commit": true,
+          "copy_after_commit": true
+        },
+        {
+          "batch": 2,
+          "request_ids": [
+            "concurrent75-0020",
+            "concurrent75-0021",
+            "concurrent75-0022",
+            "concurrent75-0023",
+            "concurrent75-0024",
+            "concurrent75-0025",
+            "concurrent75-0026",
+            "concurrent75-0027",
+            "concurrent75-0028",
+            "concurrent75-0029"
+          ],
+          "committed_at_monotonic": 12.964653875,
+          "copy_before_commit": true,
+          "copy_after_commit": true
+        },
+        {
+          "batch": 3,
+          "request_ids": [
+            "concurrent75-0030",
+            "concurrent75-0031",
+            "concurrent75-0032",
+            "concurrent75-0033",
+            "concurrent75-0034",
+            "concurrent75-0035",
+            "concurrent75-0036",
+            "concurrent75-0037",
+            "concurrent75-0038",
+            "concurrent75-0039"
+          ],
+          "committed_at_monotonic": 13.02414475,
+          "copy_before_commit": true,
+          "copy_after_commit": true
+        },
+        {
+          "batch": 4,
+          "request_ids": [
+            "concurrent75-0040",
+            "concurrent75-0041",
+            "concurrent75-0042",
+            "concurrent75-0043",
+            "concurrent75-0044",
+            "concurrent75-0045",
+            "concurrent75-0046",
+            "concurrent75-0047",
+            "concurrent75-0048",
+            "concurrent75-0049"
+          ],
+          "committed_at_monotonic": 13.142554625,
+          "copy_before_commit": true,
+          "copy_after_commit": true
+        },
+        {
+          "batch": 5,
+          "request_ids": [
+            "concurrent75-0050",
+            "concurrent75-0051",
+            "concurrent75-0052",
+            "concurrent75-0053",
+            "concurrent75-0054",
+            "concurrent75-0055",
+            "concurrent75-0056",
+            "concurrent75-0057",
+            "concurrent75-0058",
+            "concurrent75-0059"
+          ],
+          "committed_at_monotonic": 13.197021541,
+          "copy_before_commit": true,
+          "copy_after_commit": true
+        },
+        {
+          "batch": 6,
+          "request_ids": [
+            "concurrent75-0060",
+            "concurrent75-0061",
+            "concurrent75-0062",
+            "concurrent75-0063",
+            "concurrent75-0064",
+            "concurrent75-0065",
+            "concurrent75-0066",
+            "concurrent75-0067",
+            "concurrent75-0068",
+            "concurrent75-0069"
+          ],
+          "committed_at_monotonic": 13.261571708,
+          "copy_before_commit": true,
+          "copy_after_commit": true
+        },
+        {
+          "batch": 7,
+          "request_ids": [
+            "concurrent75-0070",
+            "concurrent75-0071",
+            "concurrent75-0072",
+            "concurrent75-0073",
+            "concurrent75-0074",
+            "concurrent75-0075",
+            "concurrent75-0076",
+            "concurrent75-0077",
+            "concurrent75-0078",
+            "concurrent75-0079"
+          ],
+          "committed_at_monotonic": 13.3241805,
+          "copy_before_commit": true,
+          "copy_after_commit": true
+        },
+        {
+          "batch": 8,
+          "request_ids": [
+            "concurrent75-0080",
+            "concurrent75-0081",
+            "concurrent75-0082",
+            "concurrent75-0083",
+            "concurrent75-0084",
+            "concurrent75-0085",
+            "concurrent75-0086",
+            "concurrent75-0087",
+            "concurrent75-0088",
+            "concurrent75-0089"
+          ],
+          "committed_at_monotonic": 13.387334458,
+          "copy_before_commit": true,
+          "copy_after_commit": true
+        },
+        {
+          "batch": 9,
+          "request_ids": [
+            "concurrent75-0090",
+            "concurrent75-0091",
+            "concurrent75-0092",
+            "concurrent75-0093",
+            "concurrent75-0094",
+            "concurrent75-0095",
+            "concurrent75-0096",
+            "concurrent75-0097",
+            "concurrent75-0098",
+            "concurrent75-0099"
+          ],
+          "committed_at_monotonic": 13.443001291,
+          "copy_before_commit": false,
+          "copy_after_commit": false
+        }
+      ]
+    },
+    "billing_processing": [
+      {
+        "stage": "source",
+        "checkpoint_ordinal": 100016,
+        "checkpoint_updated_at_ms": 1792912072936,
+        "failure_code": null,
+        "observed_at_ms": 1792912252713,
+        "quarantined_failures": 0,
+        "source_ordinal": 100016,
+        "state": "current",
+        "unresolved_failures": 0
+      },
+      {
+        "stage": "concurrent-ledger-replay",
+        "checkpoint_ordinal": 100416,
+        "checkpoint_updated_at_ms": 1792912276233,
+        "failure_code": null,
+        "observed_at_ms": 1792912276251,
+        "quarantined_failures": 0,
+        "source_ordinal": 100416,
+        "state": "current",
+        "unresolved_failures": 0
+      },
+      {
+        "stage": "restored",
+        "checkpoint_ordinal": 100056,
+        "checkpoint_updated_at_ms": 1792912346885,
+        "failure_code": null,
+        "observed_at_ms": 1792912346910,
+        "quarantined_failures": 0,
+        "source_ordinal": 100056,
+        "state": "current",
+        "unresolved_failures": 0
+      }
+    ],
+    "write_failure": {
+      "mechanism": "owned child RLIMIT_FSIZE=8MiB, SIGXFSZ ignored",
+      "physical_disk_exhaustion": "NOT_RUN"
+    },
+    "interruption": {
+      "sender_errors": [
+        "RemoteDisconnected"
+      ],
+      "partial_private_staging_retained": true
+    },
+    "comparison_scope": "Original data projection of 58 tables; concurrent75 event/ledger rows compared separately as exact committed prefix; all 4 original request recording rows checked separately."
+  },
+  "boundaries": {
+    "max_sqlite_plaintext_bytes": 134217728,
+    "max_artifact_bytes": 134250541,
+    "legacy_v1_artifact_bytes": 16777216,
+    "chunk_bytes": 65536,
+    "sqlite_schema": 39,
+    "retention_changes": false,
+    "real_provider": "NOT_RUN",
+    "actual_clients": "NOT_RUN",
+    "fixed_build_service": "NOT_RUN",
+    "remote_CI": "NOT_RUN",
+    "release_deployment": "NOT_RUN",
+    "physical_disk_exhaustion": "NOT_RUN",
+    "power_loss": "NOT_RUN",
+    "cost": "UNKNOWN",
+    "cost_in_usd_ticks": "NOT_ADMITTED"
+  },
+  "raw_receipts": {
+    "output/issue75/baseline-06/matrix.json": "44c8c129a9c62a53be0ef10725ae20dedef54ba9c67a186e3972dbc100d14be4",
+    "output/issue75/fixed-01/matrix.json": "a8977d7cb27e79813c40fb3bda5c2e87f6fb2bae25240c8c3545222a270e681d",
+    "output/issue75/preservation-verification.json": "00a4d9e23f612d38e6e29fd920cbb7dc1238254be565eea471a343dbbe916371"
+  },
+  "full": {
+    "source": "656c99b2fad042ba57030c4d4c1c40626cc87045",
+    "exit_code": 0,
+    "steps_passed": 44,
+    "steps_failed": 0,
+    "rust_result_sets": 133,
+    "rust_passed": 1699,
+    "rust_failed": 0,
+    "rust_ignored": 22,
+    "report_sha256": "40a048263a3efb5f15ec8706e75f5e0d17e3e7eb845571cba1750a022b24d645",
+    "log_sha256": "975abb00df2a281f80c2cd81b00c738c413fae251dc9cac46e9de1098d948a47",
+    "source_inputs_unchanged": 7159,
+    "completed_utc": "2026-10-25T07:28:58Z",
+    "supply_chain": "PASS; 378 locked dependencies, no audit vulnerability; existing duplicate warnings retained"
+  }
+}

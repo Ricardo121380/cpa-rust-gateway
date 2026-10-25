@@ -406,3 +406,9 @@ and protected existing restore handlers. Fixed scale and pre-change boundaries a
 [the experiment plan](reports/issue-75-capacity-plan-20261025.md). No migration; schema39,
 #72 query/export limits and #74 quota history ownership remain unchanged. Final process,
 Full and review evidence are recorded separately from implementation and historical #65.
+
+#75 final local acceptance → [capacity report](reports/issue-75-history-backup-capacity-20261025.md):
+qualified baseline53/53, stock process86/86, Full44/44; 1699 passed / 0 failed / 22 ignored.
+Explicit disk-capacity suite7/7; original recording4/4; 58 original table projections preserved
+plus the exact concurrently committed prefix. This is a documentation successor to tested
+`656c99b2`, not a claim about production, real Provider/client, or a full128MiB qualification.

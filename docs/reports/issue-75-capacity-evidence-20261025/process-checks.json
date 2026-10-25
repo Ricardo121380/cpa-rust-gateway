@@ -1,0 +1,1119 @@
+{
+  "status": "PASS_LOCAL_CAPACITY",
+  "driver_sha256": "cbbdccacf42d661c46a055f8874104b9ff98ec4aaab76185aa2f22a35211630f",
+  "checks": [
+    {
+      "name": "source input clone byte identical",
+      "pass": true
+    },
+    {
+      "name": "large-source-query data listener enforces authentication",
+      "pass": true
+    },
+    {
+      "name": "large-source ordinary disabled intent",
+      "pass": true
+    },
+    {
+      "name": "large-source native identity and disabled intent",
+      "pass": true
+    },
+    {
+      "name": "large-source models retain exact access scope",
+      "pass": true
+    },
+    {
+      "name": "large-source restricted model scope",
+      "pass": true
+    },
+    {
+      "name": "large-source permissions deny before sending",
+      "pass": true
+    },
+    {
+      "name": "source selective capture contains every requested Attempt",
+      "pass": true
+    },
+    {
+      "name": "source complete csv export",
+      "pass": true
+    },
+    {
+      "name": "source complete jsonl export",
+      "pass": true
+    },
+    {
+      "name": "source quota bounded and offline",
+      "pass": true
+    },
+    {
+      "name": "old serve exited and reaped",
+      "pass": true
+    },
+    {
+      "name": "graceful writer drain",
+      "pass": true
+    },
+    {
+      "name": "source-before-backup SQLite integrity",
+      "pass": true
+    },
+    {
+      "name": "backup outcome matches frozen mode",
+      "pass": true
+    },
+    {
+      "name": "bounded concurrent writer completed",
+      "pass": true
+    },
+    {
+      "name": "committed write overlaps the actual SQLite copy",
+      "pass": true
+    },
+    {
+      "name": "concurrent-ledger-replay data listener enforces authentication",
+      "pass": true
+    },
+    {
+      "name": "old serve exited and reaped",
+      "pass": true
+    },
+    {
+      "name": "graceful writer drain",
+      "pass": true
+    },
+    {
+      "name": "committed source IDs match every writer receipt",
+      "pass": true
+    },
+    {
+      "name": "source-after-backup SQLite integrity",
+      "pass": true
+    },
+    {
+      "name": "backup preserves original source data",
+      "pass": true
+    },
+    {
+      "name": "encrypted_backup file-size write failure publishes no target",
+      "pass": true
+    },
+    {
+      "name": "restore_encrypted_backup file-size write failure publishes no target",
+      "pass": true
+    },
+    {
+      "name": "source-after-write-failures SQLite integrity",
+      "pass": true
+    },
+    {
+      "name": "write failures preserve source",
+      "pass": true
+    },
+    {
+      "name": "interrupted-restore-host data listener enforces authentication",
+      "pass": true
+    },
+    {
+      "name": "cancelled upload leaves target absent",
+      "pass": true
+    },
+    {
+      "name": "interrupted restore never publishes a partial target",
+      "pass": true
+    },
+    {
+      "name": "restore-host data listener enforces authentication",
+      "pass": true
+    },
+    {
+      "name": "/admin/restores/preflight completed through protected HTTP",
+      "pass": true
+    },
+    {
+      "name": "/admin/restores completed through protected HTTP",
+      "pass": true
+    },
+    {
+      "name": "old serve exited and reaped",
+      "pass": true
+    },
+    {
+      "name": "graceful writer drain",
+      "pass": true
+    },
+    {
+      "name": "restored-serving data listener enforces authentication",
+      "pass": true
+    },
+    {
+      "name": "restored-serving SQLite integrity",
+      "pass": true
+    },
+    {
+      "name": "new gateway adopts exact restored business tables",
+      "pass": true
+    },
+    {
+      "name": "backup includes only complete concurrently committed lineages and ledger",
+      "pass": true
+    },
+    {
+      "name": "all restored concurrent cells equal an exact committed source prefix",
+      "pass": true
+    },
+    {
+      "name": "restored ordinary disabled intent",
+      "pass": true
+    },
+    {
+      "name": "restored native identity and disabled intent",
+      "pass": true
+    },
+    {
+      "name": "restored models retain exact access scope",
+      "pass": true
+    },
+    {
+      "name": "restored restricted model scope",
+      "pass": true
+    },
+    {
+      "name": "restored permissions deny before sending",
+      "pass": true
+    },
+    {
+      "name": "reader never emits private plaintext",
+      "pass": true
+    },
+    {
+      "name": "restored private authorized output",
+      "pass": true
+    },
+    {
+      "name": "restored retained",
+      "pass": true
+    },
+    {
+      "name": "native Usage preserves exact received object bytes",
+      "pass": true
+    },
+    {
+      "name": "native Usage completeness",
+      "pass": true
+    },
+    {
+      "name": "native Usage exact identity source and missing counters",
+      "pass": true
+    },
+    {
+      "name": "restored authenticated content unchanged",
+      "pass": true
+    },
+    {
+      "name": "reader never emits private plaintext",
+      "pass": true
+    },
+    {
+      "name": "restored-foreign private authorized output",
+      "pass": true
+    },
+    {
+      "name": "restored-foreign unknown",
+      "pass": true
+    },
+    {
+      "name": "reader never emits private plaintext",
+      "pass": true
+    },
+    {
+      "name": "restored private authorized output",
+      "pass": true
+    },
+    {
+      "name": "restored retained",
+      "pass": true
+    },
+    {
+      "name": "summary full received content identity hierarchy and order",
+      "pass": true
+    },
+    {
+      "name": "summary source exact owner and execution",
+      "pass": true
+    },
+    {
+      "name": "restored authenticated content unchanged",
+      "pass": true
+    },
+    {
+      "name": "reader never emits private plaintext",
+      "pass": true
+    },
+    {
+      "name": "restored-foreign private authorized output",
+      "pass": true
+    },
+    {
+      "name": "restored-foreign unknown",
+      "pass": true
+    },
+    {
+      "name": "private metadata never enters CLI stdout/errors",
+      "pass": true
+    },
+    {
+      "name": "restored private exclusive output",
+      "pass": true
+    },
+    {
+      "name": "restored retained",
+      "pass": true
+    },
+    {
+      "name": "restored exact raw field and authenticated source",
+      "pass": true
+    },
+    {
+      "name": "restored only real Attempts",
+      "pass": true
+    },
+    {
+      "name": "private metadata never enters CLI stdout/errors",
+      "pass": true
+    },
+    {
+      "name": "restored-foreign private exclusive output",
+      "pass": true
+    },
+    {
+      "name": "restored-foreign unknown",
+      "pass": true
+    },
+    {
+      "name": "reader never emits private plaintext",
+      "pass": true
+    },
+    {
+      "name": "restored-legacy private authorized output",
+      "pass": true
+    },
+    {
+      "name": "restored-legacy unknown",
+      "pass": true
+    },
+    {
+      "name": "reader never emits private plaintext",
+      "pass": true
+    },
+    {
+      "name": "restored-legacy-summary private authorized output",
+      "pass": true
+    },
+    {
+      "name": "restored-legacy-summary unknown",
+      "pass": true
+    },
+    {
+      "name": "restored diagnostics have no Provider sends",
+      "pass": true
+    },
+    {
+      "name": "restored selective capture contains every requested Attempt",
+      "pass": true
+    },
+    {
+      "name": "restored complete csv export",
+      "pass": true
+    },
+    {
+      "name": "restored complete jsonl export",
+      "pass": true
+    },
+    {
+      "name": "restored quota bounded and offline",
+      "pass": true
+    },
+    {
+      "name": "schema39 query/export/quota remain identical",
+      "pass": true
+    },
+    {
+      "name": "old serve exited and reaped",
+      "pass": true
+    },
+    {
+      "name": "graceful writer drain",
+      "pass": true
+    }
+  ],
+  "compared_tables": {
+    "access_group_routes": {
+      "columns": [
+        "config_version_id",
+        "access_group_id",
+        "route_id",
+        "enabled"
+      ],
+      "rows": 2,
+      "rows_sha256": "b2f54f238f99ef906921a3c3fc973be6890402dea4b79d9eb2fdbfb09f5d81d0"
+    },
+    "access_groups": {
+      "columns": [
+        "config_version_id",
+        "id",
+        "name",
+        "status",
+        "limits_json"
+      ],
+      "rows": 2,
+      "rows_sha256": "d1be58a526b3bf2e8174b4b884cd383036ae219a89b139bff5a500d837e7f8bf"
+    },
+    "billing_ledger_entries": {
+      "columns": [
+        "ledger_id",
+        "source_event_id",
+        "source_fingerprint",
+        "request_id",
+        "response_id",
+        "provider_id",
+        "channel_id",
+        "account_id",
+        "model",
+        "occurred_at_ms",
+        "catalog_version_id",
+        "input_tokens",
+        "output_tokens",
+        "reasoning_tokens",
+        "cache_read_tokens",
+        "cache_creation_tokens",
+        "cached_tokens",
+        "cost_microunits",
+        "cost_confidence",
+        "billing_status",
+        "retention_expires_at_ms",
+        "recorded_at_ms",
+        "usage_evidence_json"
+      ],
+      "rows": 25004,
+      "rows_sha256": "819d459e24c20cf5a586f2d42c788ea3e295e59fbe014fd8e097d0776b1bba57"
+    },
+    "billing_materializer_failures": {
+      "columns": [
+        "materializer_id",
+        "event_ordinal",
+        "reason",
+        "first_seen_at_ms",
+        "last_attempt_at_ms",
+        "attempts",
+        "resolved_at_ms"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "billing_price_catalog_entries": {
+      "columns": [
+        "catalog_version_id",
+        "provider_id",
+        "channel_id",
+        "model",
+        "input_microunits_per_million",
+        "output_microunits_per_million",
+        "reasoning_microunits_per_million",
+        "cache_read_microunits_per_million",
+        "cache_creation_microunits_per_million",
+        "cached_microunits_per_million"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "billing_price_catalog_versions": {
+      "columns": [
+        "catalog_version_id",
+        "effective_at_ms",
+        "source",
+        "created_at_ms"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "client_keys": {
+      "columns": [
+        "config_version_id",
+        "id",
+        "prefix",
+        "secret_digest",
+        "access_group_id",
+        "status",
+        "expires_at_ms"
+      ],
+      "rows": 3,
+      "rows_sha256": "ff92f0085e635f59f9e2e9ac08e3a16832651c53db53f7d1694da7180184a537"
+    },
+    "compatible_egress_binding_profiles": {
+      "columns": [
+        "config_version_id",
+        "endpoint_id",
+        "credential_id",
+        "target_kind",
+        "target_id",
+        "failure_scope",
+        "stickiness",
+        "pre_submit_max_attempts"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "compatible_egress_proxy_nodes": {
+      "columns": [
+        "config_version_id",
+        "id",
+        "upstream_id",
+        "pool_id",
+        "name",
+        "ciphertext",
+        "key_version",
+        "enabled",
+        "weight",
+        "maximum_concurrency"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "compatible_egress_proxy_pools": {
+      "columns": [
+        "config_version_id",
+        "id",
+        "upstream_id",
+        "name",
+        "enabled"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "config_versions": {
+      "columns": [
+        "id",
+        "parent_id",
+        "status",
+        "created_at_ms",
+        "description",
+        "revision"
+      ],
+      "rows": 1,
+      "rows_sha256": "302a0b3d5172a342a444958ad64fc944d7014f0dfe19f18892e939a27a0fa139"
+    },
+    "configuration_edit_origins": {
+      "columns": [
+        "config_version_id",
+        "source_version_id",
+        "source_revision",
+        "source_resource_sequence",
+        "source_lifecycle_sequence"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "credential_refresh_state": {
+      "columns": [
+        "config_version_id",
+        "credential_id",
+        "credential_revision",
+        "claim_id",
+        "lease_until_ms",
+        "retry_after_ms",
+        "failure_count",
+        "last_error",
+        "observed_at_ms"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "egress_policies": {
+      "columns": [
+        "config_version_id",
+        "id",
+        "name",
+        "allowed_schemes_json",
+        "allowed_hosts_json",
+        "allowed_ports_json",
+        "allowed_cidrs_json",
+        "redirect_mode",
+        "max_redirects"
+      ],
+      "rows": 2,
+      "rows_sha256": "b35185d883f2bfc5c9141944f90efba03cbbb8b3761eb71fbc2cbdcaa60e90dd"
+    },
+    "endpoint_credential_bindings": {
+      "columns": [
+        "config_version_id",
+        "endpoint_id",
+        "credential_id",
+        "upstream_id",
+        "enabled",
+        "priority",
+        "weight",
+        "concurrency"
+      ],
+      "rows": 2,
+      "rows_sha256": "6ec602f96a431afc0f98f34fdc727de6f7dd6397babdfcf3da6567fdca54c90b"
+    },
+    "gateway_attempt_execution": {
+      "columns": [
+        "event_type",
+        "attempt_id",
+        "request_id",
+        "attempt_payload_sha256",
+        "evidence_json"
+      ],
+      "rows": 4,
+      "rows_sha256": "cda389c96710b3496f194679b20df7ab62530fd5aed4a2bb9d8313fb4f852b56"
+    },
+    "gateway_event_log": {
+      "columns": [
+        "event_ordinal",
+        "event_type",
+        "event_id",
+        "request_id",
+        "occurred_at_ms",
+        "payload_json"
+      ],
+      "rows": 100016,
+      "rows_sha256": "9f9d9f4b1c84e93c2a710033c22d26289dd751373e26bbfc3651729847c3acca"
+    },
+    "gateway_event_quarantine": {
+      "columns": [
+        "fingerprint",
+        "event_kind",
+        "reason",
+        "payload_json",
+        "quarantined_at_ms"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "grok_account_entitlements": {
+      "columns": [
+        "account_id",
+        "domain",
+        "tier",
+        "source",
+        "confidence",
+        "observed_at_ms"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "grok_account_import_batches": {
+      "columns": [
+        "id",
+        "status",
+        "created_count",
+        "unchanged_count",
+        "created_at_ms",
+        "rolled_back_at_ms",
+        "updated_count"
+      ],
+      "rows": 2,
+      "rows_sha256": "88f08ed6890f52a38fe240eb83c1eab0954de5228221fcce31a7fce6742b8cf1"
+    },
+    "grok_account_links": {
+      "columns": [
+        "source_account_id",
+        "target_account_id",
+        "relation",
+        "created_at_ms"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "grok_account_quota_windows": {
+      "columns": [
+        "account_id",
+        "scope_kind",
+        "model_label",
+        "window_label",
+        "quota_limit",
+        "quota_remaining",
+        "reset_at_ms",
+        "source",
+        "confidence",
+        "observed_at_ms"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "grok_account_reauth_state": {
+      "columns": [
+        "account_id",
+        "next_attempt_at_ms",
+        "failure_count",
+        "operator_required",
+        "claim_id",
+        "claim_expires_at_ms"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "grok_accounts": {
+      "columns": [
+        "id",
+        "provider",
+        "identity_digest",
+        "credential_ciphertext",
+        "credential_key_version",
+        "auth_status",
+        "enabled",
+        "priority",
+        "weight",
+        "max_concurrency",
+        "refresh_due_at_ms",
+        "last_refresh_at_ms",
+        "refresh_failure_count",
+        "cooldown_until_ms",
+        "revision",
+        "import_batch_id",
+        "created_at_ms",
+        "updated_at_ms",
+        "quota_sync_due_at_ms",
+        "last_quota_sync_at_ms",
+        "quota_sync_failure_count",
+        "worker_claim_kind",
+        "worker_claim_id",
+        "worker_claim_expires_at_ms",
+        "continuation_floor_revision",
+        "continuation_current_revision"
+      ],
+      "rows": 2,
+      "rows_sha256": "0a9dbe02fd4bca14dfe7cb18eb83144447615a9e20456187de66fd51f271b5b2"
+    },
+    "grok_build_affinity_breaks": {
+      "columns": [
+        "id",
+        "client_key_id",
+        "upstream_model",
+        "cache_identity",
+        "prior_credential_id",
+        "next_credential_id",
+        "reason",
+        "estimated_cache_loss_tokens",
+        "occurred_at_ms"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "grok_build_billing_profiles": {
+      "columns": [
+        "credential_id",
+        "plan_kind",
+        "observed_at_ms"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "grok_build_cache_affinities": {
+      "columns": [
+        "client_key_id",
+        "provider_id",
+        "upstream_model",
+        "cache_identity",
+        "credential_id",
+        "egress_policy_id",
+        "expires_at_ms",
+        "reason",
+        "updated_at_ms"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "grok_build_credential_runtime": {
+      "columns": [
+        "config_version_id",
+        "credential_id",
+        "revision",
+        "ciphertext",
+        "key_version",
+        "updated_at_ms"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "grok_build_model_catalog": {
+      "columns": [
+        "credential_id",
+        "upstream_model",
+        "source",
+        "observed_at_ms"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "grok_build_quota_windows": {
+      "columns": [
+        "credential_id",
+        "window_kind",
+        "remaining",
+        "total",
+        "window_seconds",
+        "reset_at_ms",
+        "observed_at_ms",
+        "source",
+        "confidence",
+        "raw_window_type"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "grok_build_reasoning_replay": {
+      "columns": [
+        "client_key_id",
+        "provider_id",
+        "upstream_model",
+        "session_id",
+        "signature",
+        "ciphertext",
+        "key_version",
+        "expires_at_ms",
+        "updated_at_ms"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "grok_build_response_ownership": {
+      "columns": [
+        "client_key_id",
+        "downstream_response_id",
+        "provider_id",
+        "credential_id",
+        "upstream_response_id",
+        "expires_at_ms",
+        "created_at_ms"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "management_audit_events": {
+      "columns": [
+        "id",
+        "action",
+        "actor",
+        "occurred_at_ms",
+        "config_version_id",
+        "replaced_config_version_id"
+      ],
+      "rows": 2,
+      "rows_sha256": "203e4a5a7b7855e7dd5ee7bde7d3d84f7a9836f8d0b8467cb2eeffe9d9bcbb27"
+    },
+    "management_resource_audit_events": {
+      "columns": [
+        "id",
+        "action",
+        "actor",
+        "occurred_at_ms",
+        "config_version_id",
+        "resource_kind",
+        "resource_id"
+      ],
+      "rows": 24,
+      "rows_sha256": "8d2b2466c930e74b3006dca216afeeeae8ae0e0eb978b4c39bdcab654d0deeb0"
+    },
+    "messages_summary_evidence": {
+      "columns": [
+        "attempt_id",
+        "request_id",
+        "client_key_id",
+        "created_at_ms",
+        "expires_at_ms",
+        "payload_version",
+        "key_version",
+        "ciphertext"
+      ],
+      "rows": 2,
+      "rows_sha256": "9b1e810fd54a6b2ad10071e3b14e3c484a1551a0a85965f43aa466c6632b6d55"
+    },
+    "model_aliases": {
+      "columns": [
+        "config_version_id",
+        "alias",
+        "public_model_id"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "model_catalog_failures": {
+      "columns": [
+        "config_version_id",
+        "endpoint_id",
+        "credential_id",
+        "failed_at_ms",
+        "failure_class"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "model_catalog_models": {
+      "columns": [
+        "config_version_id",
+        "endpoint_id",
+        "credential_id",
+        "model",
+        "present_in_last_success",
+        "consecutive_successful_misses",
+        "first_missing_at_ms",
+        "removal_eligible_at_ms"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "model_catalog_targets": {
+      "columns": [
+        "config_version_id",
+        "endpoint_id",
+        "credential_id",
+        "snapshot_version",
+        "observed_at_ms",
+        "stale_at_ms",
+        "refresh_due_at_ms",
+        "expires_at_ms"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "model_routes": {
+      "columns": [
+        "config_version_id",
+        "id",
+        "public_model_id",
+        "policy",
+        "max_attempts",
+        "bootstrap_timeout_ms"
+      ],
+      "rows": 2,
+      "rows_sha256": "d6dd69c36a18eaa928eb19f69fdb34c4ca1173747cc413fe12e46bc34871a9bb"
+    },
+    "native_account_authorization_events": {
+      "columns": [
+        "id",
+        "account_id",
+        "revision",
+        "action",
+        "occurred_at_ms"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "native_account_identity_observations": {
+      "columns": [
+        "account_id",
+        "credential_fingerprint",
+        "ciphertext",
+        "key_version",
+        "observed_at_ms"
+      ],
+      "rows": 2,
+      "rows_sha256": "8cad9512fc6020ecb25472cb442fe2d4f4c101fba5a58f5f8f60f20dd000f400"
+    },
+    "native_account_import_receipts": {
+      "columns": [
+        "batch_id",
+        "account_id",
+        "provider",
+        "credential_revision",
+        "outcome",
+        "saved_at_ms"
+      ],
+      "rows": 2,
+      "rows_sha256": "bffc4fb545897e4cca52d73f7fb7df10628ea4674d8e8e0a6421e7e3113a0f07"
+    },
+    "native_account_inventory_generation": {
+      "columns": [
+        "singleton",
+        "generation"
+      ],
+      "rows": 1,
+      "rows_sha256": "2f98791946b1557368f1610f3430cc660b000bf7db8bf551c50faf6a570cebc9"
+    },
+    "native_account_management_events": {
+      "columns": [
+        "id",
+        "account_id",
+        "provider",
+        "action",
+        "revision",
+        "actor",
+        "occurred_at_ms"
+      ],
+      "rows": 1,
+      "rows_sha256": "7bbbf975b3ae1a9d65570feb760b5bb788def87be5c5f9454761e9082fe06242"
+    },
+    "native_usage_evidence": {
+      "columns": [
+        "attempt_id",
+        "request_id",
+        "client_key_id",
+        "source_event_id",
+        "created_at_ms",
+        "expires_at_ms",
+        "payload_version",
+        "key_version",
+        "ciphertext"
+      ],
+      "rows": 1,
+      "rows_sha256": "e278efdd565c7c142b7d6555551eb893dc1f8af7c01cc4a2e321522b3436e8d1"
+    },
+    "public_models": {
+      "columns": [
+        "config_version_id",
+        "id",
+        "model_name",
+        "status",
+        "display_name",
+        "capabilities_json"
+      ],
+      "rows": 2,
+      "rows_sha256": "f49f742c0b9f5c0b6216e743798a2a141a9d15a361227f81bf311a1ec4d2af19"
+    },
+    "quota_history": {
+      "columns": [
+        "id",
+        "account_kind",
+        "config_version_id",
+        "account_id",
+        "revision",
+        "provider",
+        "source",
+        "window",
+        "observed_at_ms",
+        "evidence_json"
+      ],
+      "rows": 40000,
+      "rows_sha256": "6a960f705fe972e490541155b531386bb42d1b17921f18e9e7dee4d2945924d9"
+    },
+    "request_metadata_evidence": {
+      "columns": [
+        "request_id",
+        "client_key_id",
+        "created_at_ms",
+        "expires_at_ms",
+        "payload_version",
+        "key_version",
+        "ciphertext"
+      ],
+      "rows": 1,
+      "rows_sha256": "ec728af20547b994a7153fb598ae4ddb5a6691a03dfce60609ebf202c296f2ec"
+    },
+    "route_candidates": {
+      "columns": [
+        "config_version_id",
+        "id",
+        "route_id",
+        "endpoint_id",
+        "upstream_model",
+        "credential_scope",
+        "transform_mode",
+        "enabled",
+        "priority",
+        "weight",
+        "capability_override_json"
+      ],
+      "rows": 2,
+      "rows_sha256": "e41c733b4a1b0fa6c1e33df1dc67035f75ff4fefd40906c50bd3245aa6b2dd40"
+    },
+    "routing_price_policies": {
+      "columns": [
+        "config_version_id",
+        "catalog_version_id",
+        "comparison"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "schema_migrations": {
+      "columns": [
+        "version",
+        "applied_at"
+      ],
+      "rows": 39,
+      "rows_sha256": "a2148adecefaf1d16294b7a961a97e3c98cfb1ee53aa5738bd95a46bcce2f816"
+    },
+    "sqlite_stat1": {
+      "columns": [
+        "tbl",
+        "idx",
+        "stat"
+      ],
+      "rows": 67,
+      "rows_sha256": "11ce736660e1f6fdd722fc416a5bbbd6fcac011a7986af37294cec2e5a68f6cc"
+    },
+    "stored_response_compactions": {
+      "columns": [
+        "client_key_id",
+        "compact_id",
+        "created_at_ms",
+        "expires_at_ms",
+        "payload_version",
+        "key_version",
+        "ciphertext"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stored_responses": {
+      "columns": [
+        "client_key_id",
+        "response_id",
+        "created_at_ms",
+        "expires_at_ms",
+        "payload_version",
+        "key_version",
+        "ciphertext"
+      ],
+      "rows": 0,
+      "rows_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "upstream_credentials": {
+      "columns": [
+        "config_version_id",
+        "id",
+        "upstream_id",
+        "kind",
+        "ciphertext",
+        "key_version",
+        "status",
+        "revision"
+      ],
+      "rows": 2,
+      "rows_sha256": "6937557ee9de69603ccacde0b14daf3cb9b8a481fe9bacc3b3b0b1c4775194d7"
+    },
+    "upstream_endpoints": {
+      "columns": [
+        "config_version_id",
+        "id",
+        "upstream_id",
+        "adapter_id",
+        "api_format",
+        "base_url",
+        "inference_path",
+        "models_path",
+        "transport",
+        "enabled"
+      ],
+      "rows": 2,
+      "rows_sha256": "c2dabb24281f77ff79aa8cbd3c187afdb24242fd8654aae81805305a497704be"
+    },
+    "upstreams": {
+      "columns": [
+        "config_version_id",
+        "id",
+        "name",
+        "kind",
+        "enabled",
+        "tags_json",
+        "egress_policy_id"
+      ],
+      "rows": 2,
+      "rows_sha256": "808692d1d10bbf395804fbf2faea59eefad33851ac9bbcb3e9afad78c9bf7e68"
+    }
+  },
+  "comparison_scope": "Original data projection of 58 tables; concurrent75 event/ledger rows compared separately as exact committed prefix; all 4 original request recording rows checked separately."
+}
