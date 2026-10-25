@@ -47,7 +47,9 @@ advances stored progress: an interrupted page can be fetched again with its orig
 
 ## Consequences
 
-No new schema, ledger, background export service or external queue is needed. Retained snapshots
+No new schema, ledger, background export service or external queue is needed. The control layer
+uses the existing workspace `serde` primitive for typed query/read-model serialization; its exact
+dependency-boundary list records this direct edge. No transport or Provider edge is added. Retained snapshots
 are disposable data products, not a backup. Process restart invalidates handles. Size limits are
 an implementation bound, not large-scale performance qualification or a retention policy for the
 source data. Existing admin permissions are global operator permissions; Client Keys cannot read

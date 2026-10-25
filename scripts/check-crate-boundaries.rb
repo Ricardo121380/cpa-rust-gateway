@@ -29,7 +29,9 @@ allowed = {
   # remain in their existing adapter/store layers. No other dependency edge is widened.
   "gateway-auth" => %w[argon2 gateway-core getrandom hmac libc sha2 subtle zeroize],
   "gateway-catalog" => %w[gateway-core gateway-provider gateway-store rusqlite tokio],
-  "gateway-control" => %w[gateway-auth gateway-catalog gateway-core gateway-observability gateway-protocol gateway-router gateway-store gateway-upstream serde_json sha2 zeroize],
+  # ADR-0128 serializes the bounded typed Usage projection with the existing serde primitive.
+  # It adds no transport, storage or Provider dependency to the control layer.
+  "gateway-control" => %w[gateway-auth gateway-catalog gateway-core gateway-observability gateway-protocol gateway-router gateway-store gateway-upstream serde serde_json sha2 zeroize],
   "gateway-core" => %w[serde serde_json],
   # P11-01/P12-08D4's differential gate is a test-only leaf under tests/differential. It may depend
   # on the protocol/router crates whose behavior it projects because nothing depends on it; the
