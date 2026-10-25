@@ -146,12 +146,15 @@ fn normalize_openai(
         };
     }
     if levels.is_none() && maximum > 0 && !matches!(effort.as_str(), "none" | "auto") {
-        let source_budget = source_request
-            .thinking
-            .as_ref()
-            .and_then(|t| t.extensions.get(ANTHROPIC_THINKING_BUDGET))
-            .and_then(|raw| serde_json::from_str::<i64>(raw.get()).ok())
-            .filter(|value| *value > 0);
+        let source_budget = match source_request.model_thinking.as_deref() {
+            Some(gateway_core::ModelThinking::Budget(budget)) => Some(*budget),
+            _ => source_request
+                .thinking
+                .as_ref()
+                .and_then(|t| t.extensions.get(ANTHROPIC_THINKING_BUDGET))
+                .and_then(|raw| serde_json::from_str::<i64>(raw.get()).ok()),
+        }
+        .filter(|value| *value > 0);
         if let Some(budget) = source_budget {
             let budget = u64::try_from(budget)
                 .map_err(|_| invalid())?

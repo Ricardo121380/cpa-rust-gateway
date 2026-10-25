@@ -779,3 +779,47 @@ fn cpa_69_count_shares_native_model_effort_and_output_config_admission() -> Test
     );
     Ok(())
 }
+
+#[test]
+fn cpa_69_openai_numeric_suffix_uses_budget_only_model_range() -> TestResult {
+    for source in [
+        ProtocolFormat::OpenAiChatCompletions,
+        ProtocolFormat::OpenAiResponses,
+    ] {
+        for target in [
+            ProtocolFormat::OpenAiChatCompletions,
+            ProtocolFormat::OpenAiResponses,
+        ] {
+            for (budget, effort) in [(1, "low"), (512, "low"), (1024, "low"), (2048, "medium")] {
+                let mut request = if source == ProtocolFormat::OpenAiChatCompletions {
+                    protocol_openai_chat::decode_request(
+                        &json!({"model":"public","messages":[{"role":"user","content":"question"}]}).to_string(),
+                    )?.request
+                } else {
+                    protocol_openai_responses::decode_request(
+                        &json!({"model":"public","input":"question"}).to_string(),
+                    )?
+                    .request
+                };
+                request.model_thinking =
+                    Some(Box::new(gateway_core::ModelThinking::Budget(budget)));
+                let ProjectedProtocolRequest::Canonical(projected) = named_project(
+                    &request,
+                    source,
+                    target,
+                    "claude-sonnet-4-5-20250929",
+                    SnapshotTransformMode::CanonicalBridge,
+                )?
+                else {
+                    return Err("canonical".into());
+                };
+                assert_eq!(
+                    projected.thinking.as_ref().map(|v| v.effort.as_str()),
+                    Some(effort),
+                    "{source:?} -> {target:?}, {budget}"
+                );
+            }
+        }
+    }
+    Ok(())
+}

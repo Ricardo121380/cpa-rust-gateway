@@ -59,3 +59,6 @@ CI, release and deployment are independently qualified. Cost remains unknown/una
 - `cpa_69_count_shares_native_model_effort_and_output_config_admission`
 - `cpa_69_count_native_effort_and_format_match_inference_admission`
 - `cpa_69_explain_prefers_exact_id_and_constrains_candidates`
+- `cpa_69_openai_numeric_suffix_uses_budget_only_model_range`
+- `cpa_69_numeric_suffix_range_reaches_openai_receiver`
+- `public_build_messages_cpa_controls_reach_receiver` (frozen xAI levels and Unmapped tier receiver)

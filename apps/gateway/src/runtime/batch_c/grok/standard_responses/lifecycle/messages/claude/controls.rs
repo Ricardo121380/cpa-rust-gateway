@@ -118,12 +118,13 @@ async fn public_build_messages_missing_runtime_is_not_an_effort_rejection() -> T
 
 #[actix_web::test]
 async fn public_build_messages_cpa_controls_reach_receiver() -> TestResult {
+    // grok-4.5 has low/medium/high and no zero in the frozen v8.0.40 model metadata.
     for streaming in [false, true] {
         for (control, expected) in [
-            (json!({"type":"adaptive"}), json!({"effort":"xhigh"})),
+            (json!({"type":"adaptive"}), json!({"effort":"high"})),
             (
                 json!({"type":"adaptive","display":"updates"}),
-                json!({"effort":"xhigh"}),
+                json!({"effort":"high"}),
             ),
             (
                 json!({"type":"adaptive","display":"summarized"}),
@@ -133,7 +134,7 @@ async fn public_build_messages_cpa_controls_reach_receiver() -> TestResult {
                 json!({"type":"enabled","budget_tokens":1024}),
                 json!({"effort":"low"}),
             ),
-            (json!({"type":"disabled"}), json!({"effort":"none"})),
+            (json!({"type":"disabled"}), json!({"effort":"low"})),
         ] {
             let peer = ModelPeer::start_wire(streaming, tool_rounds::wire(1, streaming)?)?;
             let fixture = lifecycle_fixture(MessagesTransport::new(&peer, 7)?)?;
@@ -141,6 +142,8 @@ async fn public_build_messages_cpa_controls_reach_receiver() -> TestResult {
             let (url, server) = namespaces::listener(&fixture)?;
             let mut body = request(streaming);
             body["thinking"] = control;
+            body["speed"] = json!("fast");
+            body["service_tier"] = json!("priority");
             if body["thinking"]["display"] == "summarized" {
                 body["output_config"] = json!({"effort":"high"});
             }
@@ -156,6 +159,8 @@ async fn public_build_messages_cpa_controls_reach_receiver() -> TestResult {
                 let received = peer.requests.lock().map_err(|_| "receiver")?;
                 assert_eq!(received.len(), 1);
                 assert_eq!(received[0].body["reasoning"], expected);
+                assert!(received[0].body.get("service_tier").is_none());
+                assert!(received[0].body.get("speed").is_none());
                 assert!(received[0].body.get("vendor_option").is_none());
                 assert!(received[0].body.get("top_k").is_none());
                 assert!(!received[0].body.to_string().contains("cache_control"));

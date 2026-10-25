@@ -510,6 +510,85 @@ async fn cpa_69_numeric_suffix_budget_reaches_messages_receiver_unchanged() -> T
 }
 
 #[actix_web::test]
+async fn cpa_69_numeric_suffix_range_reaches_openai_receiver() -> TestResult {
+    for (adapter, format, path, pointer) in [
+        (
+            "openai-compatible.responses",
+            "openai/responses",
+            "/responses",
+            "/reasoning/effort",
+        ),
+        (
+            "openai-compatible.chat-completions",
+            "openai/chat-completions",
+            "/chat/completions",
+            "/reasoning_effort",
+        ),
+    ] {
+        for uri in ["/v1/responses", "/v1/chat/completions"] {
+            for streaming in [false, true] {
+                let peer = Peer::start(false, None)?;
+                let fixture = fixture(
+                    Channel {
+                        adapter,
+                        format,
+                        path,
+                        base: "https://api.moonshot.cn/v1",
+                        model: "claude-sonnet-4-5-20250929",
+                    },
+                    b"synthetic-key",
+                    |endpoint| {
+                        let mut profiles = P12TransportProfiles::try_new()?;
+                        profiles.http = Some(peer.clone());
+                        endpoint.transports = Arc::new(profiles);
+                        endpoint.resolver = Arc::new(PublicResolver);
+                        Ok(())
+                    },
+                )?;
+                let app = test::init_service(
+                    App::new()
+                        .app_data(web::Data::new(fixture.state.clone()))
+                        .configure(gateway_http_actix::configure),
+                )
+                .await;
+                for (index, (budget, effort)) in
+                    [(1, "low"), (512, "low"), (1024, "low"), (2048, "medium")]
+                        .into_iter()
+                        .enumerate()
+                {
+                    let body = source(uri, &format!("p12-test-model({budget})"), streaming);
+                    let reply = test::call_service(
+                        &app,
+                        test::TestRequest::post()
+                            .uri(uri)
+                            .insert_header(("authorization", format!("Bearer {}", fixture.key)))
+                            .set_json(body)
+                            .to_request(),
+                    )
+                    .await;
+                    let status = reply.status();
+                    let bytes = test::read_body(reply).await;
+                    assert_eq!(
+                        status,
+                        StatusCode::OK,
+                        "{uri} -> {format}, {budget}: {}",
+                        String::from_utf8_lossy(&bytes)
+                    );
+                    super::super::public_response::assert_round(uri, streaming, 1, &bytes)?;
+                    let received = peer.received.lock().map_err(|_| "receiver")?;
+                    assert_eq!(received.len(), index + 1);
+                    let wire = received.last().ok_or("wire")?;
+                    assert_eq!(wire["model"], "claude-sonnet-4-5-20250929");
+                    assert_eq!(wire.pointer(pointer).and_then(Value::as_str), Some(effort));
+                }
+                peer.server.stop(false).await;
+            }
+        }
+    }
+    Ok(())
+}
+
+#[actix_web::test]
 async fn cpa_69_ambiguous_exact_id_stays_out_of_prefix_discovery() -> TestResult {
     let peer = Peer::start(false, None)?;
     let mut group = None;
