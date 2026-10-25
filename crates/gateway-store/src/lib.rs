@@ -766,6 +766,7 @@ mod tests {
             vec![
                 "access_group_routes",
                 "access_groups",
+                "billing_catalog_reviews",
                 "billing_ledger_entries",
                 "billing_materializer_checkpoints",
                 "billing_materializer_failures",
