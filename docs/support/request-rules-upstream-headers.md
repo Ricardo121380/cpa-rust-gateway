@@ -31,7 +31,8 @@ Temperature is0..2 (Messages0..1), top_p0..1, penalties-2..2, seed signed64-bit.
 Limits/top_k are positive integers through4294967295. Stops are1..4 nonempty strings, each at
 most1024 UTF-8 bytes; Chat also accepts one string. Values cannot be null. Messages max_tokens
 is mandatory and cannot be filtered; other protocol/collision/budget checks still apply after
-rules. A rule cannot configure both Chat output-limit names. These bounds do not promise a
+rules. Overlapping model/protocol rule scopes cannot force both Chat output-limit names after
+the final filter phase; a filter that removes one spelling can explicitly resolve that conflict. These bounds do not promise a
 provider accepts every value up to the configured limit.
 
 Protected fields include model/routing identity, credentials, ownership, internal/client metadata,

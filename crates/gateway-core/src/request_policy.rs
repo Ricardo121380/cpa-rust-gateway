@@ -110,11 +110,47 @@ impl RequestPolicy {
                 }
                 validate_field(target, name, None)?;
             }
-            if fields.contains("max_tokens") && fields.contains("max_completion_tokens") {
-                return Err(RequestPolicyError("request_policy_output_limit_conflict"));
-            }
             if fields.is_empty() {
                 return Err(RequestPolicyError("request_policy_empty_rule"));
+            }
+        }
+        if target == "openai/chat-completions" {
+            self.validate_output_limits()?;
+        }
+        Ok(())
+    }
+
+    // Exact names plus the wildcard-only partition cover every model matching combination.
+    // Only field presence matters here: every configured limit value was already validated.
+    fn validate_output_limits(&self) -> Result<(), RequestPolicyError> {
+        let models: BTreeSet<_> = self
+            .rules
+            .iter()
+            .flat_map(|r| r.models.iter().map(String::as_str))
+            .chain(std::iter::once("*"))
+            .collect();
+        for model in models {
+            for protocol in [
+                "openai/chat-completions",
+                "openai/responses",
+                "anthropic/messages",
+            ] {
+                let matching: Vec<_> = self
+                    .rules
+                    .iter()
+                    .filter(|r| r.matches(model, protocol))
+                    .collect();
+                let forced = |field: &str| {
+                    matching
+                        .iter()
+                        .any(|r| r.default.contains_key(field) || r.r#override.contains_key(field))
+                        && !matching
+                            .iter()
+                            .any(|r| r.filter.iter().any(|name| name == field))
+                };
+                if forced("max_tokens") && forced("max_completion_tokens") {
+                    return Err(RequestPolicyError("request_policy_output_limit_conflict"));
+                }
             }
         }
         Ok(())
@@ -136,10 +172,7 @@ impl RequestPolicy {
         let matching: Vec<_> = self
             .rules
             .iter()
-            .filter(|r| {
-                r.protocol.as_deref().is_none_or(|p| p == source)
-                    && r.models.iter().any(|m| m == "*" || m == model)
-            })
+            .filter(|r| r.matches(model, source))
             .collect();
         for rule in &matching {
             for (name, value) in &rule.default {
@@ -157,6 +190,13 @@ impl RequestPolicy {
             }
         }
         Ok(())
+    }
+}
+
+impl RequestRule {
+    fn matches(&self, model: &str, source: &str) -> bool {
+        self.protocol.as_deref().is_none_or(|p| p == source)
+            && self.models.iter().any(|m| m == "*" || m == model)
     }
 }
 
@@ -346,6 +386,52 @@ mod tests {
                 "{field}"
             );
         }
+        Ok(())
+    }
+
+    #[test]
+    fn request_policy_checks_overlapping_limit_rules_after_final_filters()
+    -> Result<(), Box<dyn Error>> {
+        let rule = |model: &str, protocol: Option<&str>, field: &str| json!({"models":[model],"protocol":protocol,"override":{field:128}});
+        let check = |rules: Value| -> Result<bool, Box<dyn Error>> {
+            let policy: RequestPolicy = serde_json::from_value(json!({"rules":rules}))?;
+            Ok(policy
+                .validate(
+                    "openai-compatible.chat-completions",
+                    "openai/chat-completions",
+                )
+                .is_ok())
+        };
+        let legacy = rule("*", None, "max_tokens");
+        let modern = rule("*", None, "max_completion_tokens");
+        assert!(!check(json!([legacy, modern]))?);
+        assert!(!check(json!([
+            legacy,
+            rule("public", None, "max_completion_tokens")
+        ]))?);
+        assert!(!check(
+            json!([{"models":["*"],"default":{"max_tokens":128}},modern])
+        )?);
+        assert!(check(json!([
+            rule("a", None, "max_tokens"),
+            rule("b", None, "max_completion_tokens")
+        ]))?);
+        assert!(check(json!([
+            rule("a", Some("openai/responses"), "max_tokens"),
+            rule("a", Some("anthropic/messages"), "max_completion_tokens")
+        ]))?);
+        assert!(check(
+            json!([legacy,modern,{"models":["*"],"filter":["max_tokens"]}])
+        )?);
+        assert!(!check(
+            json!([legacy,modern,{"models":["public"],"filter":["max_tokens"]}])
+        )?);
+        assert!(!check(
+            json!([legacy,modern,{"models":["*"],"protocol":"openai/responses","filter":["max_tokens"]}])
+        )?);
+        assert!(check(
+            json!([{"models":["*"],"override":{"max_completion_tokens":128},"filter":["max_tokens"]}])
+        )?);
         Ok(())
     }
 

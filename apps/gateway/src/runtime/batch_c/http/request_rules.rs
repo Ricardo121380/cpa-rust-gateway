@@ -347,6 +347,24 @@ async fn request_rules_real_management_publish_public_json_sse_and_rollback() ->
             )
             .await?;
         }
+        if target == "chat" {
+            let conflict = json!({"rules":[{"models":["*"],"override":{"max_tokens":128}},{"models":["*"],"override":{"max_completion_tokens":256}}]});
+            let rejected = admin(
+                &client,
+                &a,
+                reqwest::Method::PATCH,
+                &ep,
+                "rules-next",
+                1,
+                endpoint_body(&f, &conflict),
+                400,
+            )
+            .await?;
+            assert_eq!(
+                rejected["error"]["code"],
+                "request_policy_output_limit_conflict"
+            );
+        }
         // Real concurrent HTTP edits use one revision: exactly one wins, one conflicts.
         let mutation = || {
             client

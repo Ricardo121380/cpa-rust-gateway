@@ -31,6 +31,8 @@ old/frozen billing data, #75 formats/keys/restore boundaries remain independentl
 ## Corresponding tests
 
 - `request_policy_schema40_upgrade_preserves_configuration_and_ciphertext`
+- `request_policy_checks_overlapping_limit_rules_after_final_filters`
+- `management_contract_has_no_dangling_local_references`
 - `request_policy_phases_scope_and_protected_fields`
 - `request_policy_rejects_invalid_values_conflicts_and_headers`
 - `request_rules_real_management_publish_public_json_sse_and_rollback`

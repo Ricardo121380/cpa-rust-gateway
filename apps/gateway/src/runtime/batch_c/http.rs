@@ -180,7 +180,13 @@ async fn reply(
             request
                 .headers()
                 .get("x-request-tag")
-                .is_some_and(|v| v == "synthetic-request-tag"),
+                .is_some_and(|v| v == "synthetic-request-tag")
+                && (request.headers().contains_key("authorization")
+                    || request.headers().contains_key("x-api-key"))
+                && request
+                    .headers()
+                    .get("content-type")
+                    .is_some_and(|v| v == "application/json"),
         );
     paths
         .lock()
