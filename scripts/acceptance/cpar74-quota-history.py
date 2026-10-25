@@ -99,6 +99,7 @@ class Run:
             + '(allow network-outbound (remote ip "localhost:' + str(self.peer.server_port) + '"))\n'
             + '(deny file-read* (subpath "/Users") (subpath "/Volumes"))\n'
             + '(allow file-read* (subpath ' + json.dumps(str(self.root)) + '))\n'
+            + '(allow file-read-metadata ' + ' '.join('(literal ' + json.dumps(str(p)) + ')' for p in self.root.parents) + ')\n'
             + '(deny file-write*) (allow file-write* (subpath ' + json.dumps(str(self.root)) + ') (literal "/dev/null"))\n')
         self.admin, self.data = port(), port()
         while self.admin == self.data:
@@ -186,7 +187,7 @@ class Run:
         self.scope = "quota-74"
         ids = []
         for label in ("a", "b"):
-            claims = base64.urlsafe_b64encode(json.dumps({"sub": "quota74-" + label, "email": "quota@example.invalid"}).encode()).decode().rstrip("=")
+            claims = base64.urlsafe_b64encode(json.dumps({"sub": "quota74-" + label, "email": "quota@example.invalid", "name": "Synthetic quota", "client_id": "synthetic-client", "scope": "chat"}).encode()).decode().rstrip("=")
             credential = {"access_token": "synthetic-access-" + label, "refresh_token": "synthetic-refresh-" + label,
                           "id_token": "eyJhbGciOiJub25lIn0." + claims + ".synthetic", "expires_at": stamp(time.time()+86400)}
             self.api("POST", "/admin/native-accounts/import", {"id": "quota-"+label, "channel": "grok.build", "secret": json.dumps(credential)}, 201)

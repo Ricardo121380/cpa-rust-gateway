@@ -10,7 +10,7 @@ pub const FRESHNESS_MS: i64 = 300_000;
 pub const MAX_SPAN_MS: i64 = 31 * 86_400_000;
 
 /// Value-free history failure.
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum Error {
     /// Database or lock unavailable.
     Unavailable,
