@@ -60,6 +60,8 @@ No schema migration, management API, Provider qualification or actual-client sup
 ## Corresponding tests
 
 - `exact_capability_never_falls_back_to_an_estimate`
+- `count_sources_remain_distinct_with_the_same_total`
+- `count_legacy_exact_provenance_requires_explicit_source`
 - `count_tokens_returns_only_an_exact_value_and_passes_snapshot_route_identity`
 - `count_tokens_rejects_default_unsupported_capability_without_an_estimate`
 - `count_tokens_rejects_a_body_over_the_inference_limit_with_an_anthropic_error_envelope`
