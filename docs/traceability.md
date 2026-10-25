@@ -446,3 +446,8 @@ Historical RED/FAIL and schema39 evidence remain source-bound; remote/client/Pro
 [public scope and examples](support/request-rules-upstream-headers.md).
 Endpoint configuration owns scope/revision; ordinary three-protocol runtime owns final-body
 validation; existing Secret Store owns header values. No #70 selection policy or frontend.
+
+Local delivery: [implementation receipt](reports/issue-71-request-rules-upstream-headers-20261025.md),
+tested2dc8c87c / Full44/44 / Rust1733 passed,0 failed,23 ignored / explicit backup7/7.
+61 inference receives +1 native count are controlled local HTTP evidence; real clients/providers and
+shared #70 migration integration remain separate. Original FAIL/INTERRUPTED and partial scout evidence retained.
