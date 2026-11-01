@@ -73,7 +73,10 @@ export function selectWorking(v: S<"ConfigVersion">) {
 }
 export async function forkDraft(from: string, description: string) {
   const id = `draft-${new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14)}`;
-  const v = await send<S<"ConfigVersion">>("POST", "/admin/config-versions/{config_version_id}/fork", { path: { config_version_id: from }, body: { id, description } });
+  // Fork is a write against the *source* version: its X-Config-Version and If-Match name the source.
+  const src = (await get<S<"ConfigVersion">[]>("/admin/config-versions")).find((v) => v.id === from);
+  if (!src) throw new Error(`找不到配置版本 ${from}`);
+  const v = await send<S<"ConfigVersion">>("POST", "/admin/config-versions/{config_version_id}/fork", { path: { config_version_id: from }, body: { id, description }, headers: { "X-Config-Version": from, "If-Match": `"${src.revision.replace(/"/g, "")}"` } });
   selectWorking(v);
   return v;
 }
@@ -86,4 +89,10 @@ export async function ensureDraft() {
   const v = await forkDraft(config.active, "控制台编辑");
   toast({ title: `已从 ${config.active} 创建草稿 ${v.id}`, description: "后续修改都写入这个草稿，发布前不影响线上。", status: "info" });
   return v.id;
+}
+
+/** Runtime actions (recovery probes, cool-downs, quota resets) act on the live graph, not on a draft. */
+export function runtimeHeaders(): Record<string, string> {
+  const { config } = store.get();
+  return config.active ? { "X-Config-Version": config.active } : {};
 }

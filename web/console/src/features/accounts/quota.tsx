@@ -34,7 +34,7 @@ async function fetchQuota(a: Inv): Promise<{ obs: QuotaObs | null; error: string
   const m = await get<S<"CredentialMetadata">>("/admin/credentials/{credential_id}/metadata", { path: { credential_id: a.id } });
   return { obs: m.live_quota ?? null, error: m.live_quota_error ?? null };
 }
-const quotaQuery = (a: Inv) => ({ queryKey: ["quota", a.id], queryFn: () => fetchQuota(a), staleTime: 60_000, retry: false });
+const quotaQuery = (a: Inv) => ({ queryKey: ["quota", a.id], queryFn: () => fetchQuota(a), staleTime: 60_000, retry: false, enabled: !!a.id });
 export const useQuota = (a: Inv) => useQuery(quotaQuery(a));
 export const useQuotas = (as: Inv[]) => useQueries({ queries: as.map(quotaQuery) });
 

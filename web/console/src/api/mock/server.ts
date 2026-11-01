@@ -122,6 +122,8 @@ on("DELETE", "/admin/native-account-authorizations/{id}", () => ({ state: "cance
 on("POST", "/admin/upstreams/{id}/account-import", (c) => graphWrite(c, () => { draftChanges.push({ resource_kind: "credential", resource_key: c.body.id, change: "added", changed_fields: [] }); return { id: c.body.id, upstream_id: c.m[1], kind: "api_key", status: "active", revision: 1, secret_present: true }; }, 201));
 
 /* ---------------- graph writes (draft only) ---------------- */
+on("PATCH", "/admin/credentials/{id}/status", (c) => graphWrite(c, () => { const a = D.A[c.m[1]]; if (a) a.status = c.body.status; draftChanges.push({ resource_kind: "credential", resource_key: c.m[1], change: "changed", changed_fields: ["status"] }); return a ? D.credential(a) : undefined; }));
+on("PATCH", "/admin/native-accounts/{id}", (c) => { const a = D.A[c.m[1]]; if (a) a.status = c.body.enabled ? "active" : "disabled"; return { account_id: c.m[1], revision: 5, enabled: c.body.enabled }; });
 const patchList = (list: any[], key: string) => (c: Ctx) => graphWrite(c, () => { const x = list.find((y) => y[key] === c.m[1]); Object.assign(x, c.body); draftChanges.push({ resource_kind: key === "id" ? "resource" : key, resource_key: c.m[1], change: "changed", changed_fields: Object.keys(c.body ?? {}) }); return x; });
 on("PATCH", "/admin/upstreams/{id}", patchList(D.upstreams, "id"));
 on("PATCH", "/admin/client-keys/{id}", patchList(D.clientKeys, "id"));

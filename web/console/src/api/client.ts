@@ -15,11 +15,13 @@ export function headersFor(method: string, schemaPath: string, explicit: Headers
   const out: Record<string, string> = {};
   if (session.kind !== "none") out["X-Management-Key"] = session.token;
   if (UNSAFE.has(method) && session.kind !== "none" && session.csrf) out["X-Management-CSRF-Token"] = session.csrf;
-  if (rule?.cv && !explicit.has("X-Config-Version")) {
-    const v = UNSAFE.has(method) ? config.working : config.working ?? config.active;
-    if (v) out["X-Config-Version"] = v;
+  let target = explicit.get("X-Config-Version");
+  if (rule?.cv && !target) {
+    target = config.working ?? config.active;
+    if (target) out["X-Config-Version"] = target;
   }
-  if (rule?.ifMatch && !explicit.has("If-Match") && config.revision) out["If-Match"] = `"${config.revision.replace(/"/g, "")}"`;
+  // The tracked revision belongs to the working version; never send it for a write aimed elsewhere.
+  if (rule?.ifMatch && !explicit.has("If-Match") && config.revision && (!rule.cv || target === config.working)) out["If-Match"] = `"${config.revision.replace(/"/g, "")}"`;
   return out;
 }
 

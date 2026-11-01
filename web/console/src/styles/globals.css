@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "./transitions-dev.css";
+@import "../components/agent-elements/agent-ui.css";
 @source "../";
 
 @custom-variant dark (&:is(.dark *));
@@ -90,3 +91,22 @@
 .h5 { background: var(--ok) !important; } .h4 { background: color-mix(in srgb, var(--ok) 55%, var(--warn)) !important; } .h3 { background: var(--warn) !important; } .h2 { background: var(--serious) !important; } .h1 { background: var(--bad) !important; }
 .t-shake { animation: t-shake .42s cubic-bezier(.36,.07,.19,.97); }
 @keyframes t-shake { 10%, 90% { transform: translateX(-1px); } 20%, 80% { transform: translateX(2px); } 30%, 50%, 70% { transform: translateX(-4px); } 40%, 60% { transform: translateX(4px); } }
+
+/* Agent Elements (21st.dev) read --an-* tokens; map them onto the console theme in both modes. */
+:root, .dark {
+  --an-background: var(--card); --an-background-secondary: var(--muted); --an-background-tertiary: var(--accent);
+  --an-foreground: var(--foreground); --an-foreground-muted: var(--muted-foreground); --an-foreground-subtle: var(--muted-foreground);
+  --an-border-color: var(--border); --an-primary-color: var(--primary); --an-tool-border-radius: 10px;
+}
+
+/* Static replacement for react-remove-scroll-bar's injected rules (see src/lib/shims/style-singleton.ts). */
+body[data-scroll-locked] { overflow: hidden !important; overscroll-behavior: contain; }
+
+/* Transitions.dev page slide, extended: pages share one grid cell so the container takes the tallest page's
+   height (no fixed height needed), plus a third page that enters from the right like page 2. */
+.t-page-slide { display: grid; }
+.t-page-slide > .t-page { position: relative; inset: auto; grid-area: 1 / 1; min-width: 0; }
+.t-page-slide .t-page[data-page-id="3"] { --t-page-from-x: var(--page-slide-distance); }
+.t-page-slide[data-page="3"] .t-page[data-page-id="3"] { opacity: 1; pointer-events: auto; transform: translateX(0); filter: blur(0); transition-delay: var(--page-stagger); }
+.t-page-slide[data-page="3"] .t-page[data-page-id="2"] { --t-page-from-x: calc(var(--page-slide-distance) * -1); }
+.t-page-slide > .t-page:not([data-page-id]) { opacity: 1; }

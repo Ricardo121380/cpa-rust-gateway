@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { KeyRound, LogIn, Moon, ShieldCheck, Sun, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,12 @@ export function Login() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<{ title: string; detail?: string } | null>(null);
   const theme = useTheme();
+  // Demo builds only: ?autologin signs in against the mock so page reviews skip the form.
+  useEffect(() => {
+    if (import.meta.env.VITE_CONSOLE_MOCK === "1" && location.search.includes("autologin")) {
+      unwrap<S<"AdministratorSession">>(api.POST("/admin/auth/login", { body: { username: "admin", password: "demo" } }) as never).then((s) => store.setSession({ kind: "admin", username: s.username, token: s.session_token, csrf: s.csrf_token, expiresAt: s.expires_at_ms, mustChangePassword: false }));
+    }
+  }, []);
 
   async function submit(e: FormEvent) {
     e.preventDefault();

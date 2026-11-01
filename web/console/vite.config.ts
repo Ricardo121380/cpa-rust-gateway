@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
   return {
     base: "./",
     plugins: [react(), tailwindcss()],
-    resolve: { alias: { "@": path.resolve(__dirname_, "src"), "next/link": path.resolve(__dirname_, "src/lib/shims/next-link.tsx") } },
+    resolve: { alias: { "@": path.resolve(__dirname_, "src"), "next/link": path.resolve(__dirname_, "src/lib/shims/next-link.tsx"), "react-style-singleton": path.resolve(__dirname_, "src/lib/shims/style-singleton.ts") } },
     build: {
       assetsInlineLimit: 0,
       cssCodeSplit: false,
@@ -36,6 +36,6 @@ export default defineConfig(({ mode }) => {
       // so the dev proxy rewrites Origin to the listener's own address.
       proxy: { "/admin": { target, changeOrigin: true, headers: { Origin: target } } },
     },
-    test: { environment: "node" },
+    test: { environment: "jsdom" },
   };
 });
