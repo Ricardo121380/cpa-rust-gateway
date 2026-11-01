@@ -3884,3 +3884,23 @@ The first clean embedded build exposed that Node filesystem types are absent fro
 **Why:** The separate ordinary post-first-DELETE probe reached the fresh impact comparison and reported a known rejection while preserving the saved first result; only the pre-task configuration guard reports an unconfirmed precondition. Match each observed boundary explicitly, preserving exact zero/one DELETE counts and no retry. Move focus away from the final new-password field before dismissing the macOS password suggestion, which otherwise reopens asynchronously. The stock direct Back/Forward recovery already passed with one original session GET, one grant/exchange/account and zero cancellation; its legible recovered dialog screenshot was visually inspected.
 
 **Other side:** FYI. These are acceptance-driver corrections. Product behavior and contract are unchanged. Both failed driver assertions and the password-popup failures remain evidence, not product RED. Unknown write readback continues to use the original batch-loss cases.
+
+## 2026-11-01 — 新增独立管理控制台 `web/console`（不改后端）
+
+**Initiator:** frontend (Claude Code), at the repository owner's request, on branch `feature/management-console`.
+
+**Paths:** `web/console/**` (new), `docs/cross-boundary-log.md`.
+
+**Why:** The owner asked for a new management frontend built from scratch against the backend code and `docs/openapi/management-v1.json`, independent of `web/prism`. It lives in its own directory so Prism and the embedded `/admin-ui/` build stay untouched. The console targets the same serving constraints the gateway enforces today: exactly `index.html`, `assets/index.css`, `assets/main.js`, `assets/vendor.js`; the `management_ui_resources.rs` CSP (`script-src 'self'; style-src 'self'`, no inline `<style>`/`<script>`, no external origins); `X-Management-Key` + `X-Management-CSRF-Token` + `X-Config-Version` + `If-Match` header rules generated from the contract; credentials in memory only. `npm --prefix web/console run check` enforces these mechanically.
+
+**Other side:** FYI, no action required. No contract, Rust, build-script, CSP or CI change. `build.rs` still embeds `web/prism/dist`. Switching `/admin-ui/` to serve `web/console/dist` is a separate, explicitly deferred decision that would touch `crates/gateway-http-actix/build.rs`, `scripts/build-management-spa.sh` and `management_ui_resources.rs`.
+
+## 2026-11-01 — `web/console` 真实网关联调：两份变更请求
+
+**Initiator:** frontend (Claude Code), on branch `feature/management-console`.
+
+**Paths:** `docs/change-requests/CR-CONSOLE-REQUESTS-CONCURRENCY-001.md`, `docs/change-requests/CR-CONSOLE-VALIDATE-RESULT-001.md` (new), `docs/cross-boundary-log.md`.
+
+**Why:** The console was verified against a locally built gateway (fresh state, admin login, forced password change, create/publish first version, fork, PATCH with If-Match, 409 recovery, validate). Two backend behaviours could only be worked around on the frontend: (1) concurrent `GET /admin/requests` and `/admin/requests/summary` intermittently answer `500 management_internal_error`, which a normal overview load triggers; (2) validation answers an invalid graph with `409 management_lifecycle_conflict` and no reasons instead of the contract's `200 Validation{valid:false,error_codes}`. Each CR has the reproduction and the requested change.
+
+**Other side:** action requested in both CRs; nothing in backend source, contract, CSP or build was changed. Observed contract facts the console now follows (no backend action needed): list `limit` is capped at 100 (diff 200); `X-Config-Version` reads have no target on a gateway without versions; runtime projections (`runtime/availability`, `catalog/status`, `provider-egress-status`) must name the active version — a draft yields 503/409; password change revokes every session; `routing-price-policy` 404 means "not set".

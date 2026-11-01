@@ -1,0 +1,116 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "./transitions-dev.css";
+@import "../components/agent-elements/agent-ui.css";
+@source "../";
+
+@custom-variant dark (&:is(.dark *));
+
+/* shadcn/ui token contract; each variant overrides the raw values in its own theme.css.
+   --c1..--c6 are the validated categorical palette (provider identity, fixed order);
+   --ok/--warn/--serious/--bad are reserved status colors and always ship with a glyph + label. */
+:root {
+  --radius: 0.875rem;
+  --background: #f6f4ef; --foreground: #2b2824;
+  --card: #fdfcf9; --card-foreground: #2b2824;
+  --popover: #fdfcf9; --popover-foreground: #2b2824;
+  --primary: #2b2824; --primary-foreground: #fdfcf9;
+  --secondary: #f1efe9; --secondary-foreground: #2b2824;
+  --muted: #f1efe9; --muted-foreground: #776f67;
+  --accent: #ece9e2; --accent-foreground: #2b2824;
+  --destructive: #c65746; --border: #e4e1da; --input: #d9d5cd; --ring: #2f6fe4;
+  --chart-1: var(--c1); --chart-2: var(--c2); --chart-3: var(--c3); --chart-4: var(--c4); --chart-5: var(--c5);
+  --sidebar: #fdfcf9; --sidebar-foreground: #2b2824; --sidebar-primary: #2b2824; --sidebar-primary-foreground: #fdfcf9;
+  --sidebar-accent: #f1efe9; --sidebar-accent-foreground: #2b2824; --sidebar-border: #e4e1da; --sidebar-ring: #2f6fe4;
+  --c1: #2f6fe4; --c2: #e8710a; --c3: #0f9d8a; --c4: #8b5cf6; --c5: #a37b00; --c6: #d6336c;
+  --ok: #0f9f6e; --warn: #c98a04; --serious: #cf6a2c; --bad: #c65746; --off: var(--muted-foreground); --info: #2f6fe4;
+  /* CSP font-src falls back to 'self': no web fonts, system stacks only. */
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  --font-code: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+.dark {
+  --background: #141311; --foreground: #f5f2ee;
+  --card: #1c1a17; --card-foreground: #f5f2ee;
+  --popover: #221f1c; --popover-foreground: #f5f2ee;
+  --primary: #f5f2ee; --primary-foreground: #1c1a17;
+  --secondary: #25221f; --secondary-foreground: #f5f2ee;
+  --muted: #25221f; --muted-foreground: #a39c93;
+  --accent: #2e2b27; --accent-foreground: #f5f2ee;
+  --destructive: #d9685a; --border: #34302b; --input: #48433d; --ring: #6f9cf3;
+  --sidebar: #1c1a17; --sidebar-foreground: #f5f2ee; --sidebar-primary: #f5f2ee; --sidebar-primary-foreground: #1c1a17;
+  --sidebar-accent: #25221f; --sidebar-accent-foreground: #f5f2ee; --sidebar-border: #34302b; --sidebar-ring: #6f9cf3;
+  --c1: #4f84ec; --c2: #d9720f; --c3: #14a08b; --c4: #9070f0; --c5: #b08510; --c6: #d94a7a;
+  --ok: #22b07d; --warn: #d9a21a; --serious: #e07d3c; --bad: #d9685a; --info: #6f9cf3;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-background: var(--background); --color-foreground: var(--foreground);
+  --color-card: var(--card); --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover); --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary); --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary); --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted); --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent); --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive); --color-border: var(--border); --color-input: var(--input); --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1); --color-chart-2: var(--chart-2); --color-chart-3: var(--chart-3); --color-chart-4: var(--chart-4); --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar); --color-sidebar-foreground: var(--sidebar-foreground); --color-sidebar-primary: var(--sidebar-primary); --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent); --color-sidebar-accent-foreground: var(--sidebar-accent-foreground); --color-sidebar-border: var(--sidebar-border); --color-sidebar-ring: var(--sidebar-ring);
+  --color-ok: var(--ok); --color-warn: var(--warn); --color-serious: var(--serious); --color-bad: var(--bad); --color-info: var(--info);
+  --color-c1: var(--c1); --color-c2: var(--c2); --color-c3: var(--c3); --color-c4: var(--c4); --color-c5: var(--c5); --color-c6: var(--c6);
+  --radius-sm: calc(var(--radius) - 6px); --radius-md: calc(var(--radius) - 4px); --radius-lg: calc(var(--radius) - 2px); --radius-xl: calc(var(--radius) + 4px); --radius-2xl: calc(var(--radius) + 10px);
+  --font-sans: var(--font-ui); --font-mono: var(--font-code);
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  html { scrollbar-gutter: stable; }
+  body { @apply bg-background text-foreground antialiased; font-feature-settings: "tnum" 1; font-size: 13px; transition: background-color .3s; }
+  code { @apply rounded bg-muted px-1.5 py-0.5 font-mono text-[0.9em] text-muted-foreground; }
+}
+
+/* view-transition theme reveal (circle from the toggle) */
+@layer base { h1, h2, h3 { letter-spacing: -0.015em; } }
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+
+/* quota meter + matrix cells (shared, token driven) */
+.meter { height: 6px; border-radius: 99px; background: var(--muted); overflow: hidden; }
+.meter > i { display: block; height: 100%; border-radius: inherit; background: var(--mc); width: calc(var(--v) * 100%); transition: width .8s cubic-bezier(.22,1,.36,1); }
+.meter.null > i { width: 100%; background: repeating-linear-gradient(45deg, var(--border) 0 4px, transparent 4px 8px); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+/* ---- console additions ---- */
+.login-glow { position: absolute; inset: -20%; background: radial-gradient(40% 35% at 30% 30%, color-mix(in srgb, var(--c1) 18%, transparent), transparent 70%), radial-gradient(35% 30% at 72% 68%, color-mix(in srgb, var(--c3) 16%, transparent), transparent 70%), radial-gradient(30% 25% at 70% 25%, color-mix(in srgb, var(--c6) 12%, transparent), transparent 70%); filter: blur(10px); pointer-events: none; }
+.kpi { position: relative; overflow: hidden; display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: calc(var(--radius) + 8px); padding: 18px 20px 16px; background: linear-gradient(165deg, color-mix(in srgb, var(--k) 12%, var(--card)) 0%, var(--card) 58%); box-shadow: 0 1px 2px rgb(60 50 40 / .05), 0 8px 24px -14px rgb(60 50 40 / .18); min-width: 0; }
+.kpi::before { content: ""; position: absolute; left: 18px; right: 18px; top: 0; height: 2px; border-radius: 0 0 2px 2px; background: linear-gradient(90deg, var(--k), transparent); }
+.dark .kpi { box-shadow: 0 10px 30px -18px rgb(0 0 0 / .7); }
+.hgrid { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: var(--gap, 4px); }
+.hgrid > i { aspect-ratio: 1; border-radius: 3px; background: var(--muted); transition: transform .15s; }
+.hgrid > i:hover { outline: 2px solid var(--foreground); outline-offset: 1px; }
+.lv1 { background: color-mix(in srgb, var(--h) 25%, var(--muted)) !important; } .lv2 { background: color-mix(in srgb, var(--h) 48%, var(--muted)) !important; } .lv3 { background: color-mix(in srgb, var(--h) 72%, var(--muted)) !important; } .lv4 { background: var(--h) !important; }
+.h5 { background: var(--ok) !important; } .h4 { background: color-mix(in srgb, var(--ok) 55%, var(--warn)) !important; } .h3 { background: var(--warn) !important; } .h2 { background: var(--serious) !important; } .h1 { background: var(--bad) !important; }
+.t-shake { animation: t-shake .42s cubic-bezier(.36,.07,.19,.97); }
+@keyframes t-shake { 10%, 90% { transform: translateX(-1px); } 20%, 80% { transform: translateX(2px); } 30%, 50%, 70% { transform: translateX(-4px); } 40%, 60% { transform: translateX(4px); } }
+
+/* Agent Elements (21st.dev) read --an-* tokens; map them onto the console theme in both modes. */
+:root, .dark {
+  --an-background: var(--card); --an-background-secondary: var(--muted); --an-background-tertiary: var(--accent);
+  --an-foreground: var(--foreground); --an-foreground-muted: var(--muted-foreground); --an-foreground-subtle: var(--muted-foreground);
+  --an-border-color: var(--border); --an-primary-color: var(--primary); --an-tool-border-radius: 10px;
+}
+
+/* Static replacement for react-remove-scroll-bar's injected rules (see src/lib/shims/style-singleton.ts). */
+body[data-scroll-locked] { overflow: hidden !important; overscroll-behavior: contain; }
+
+/* Transitions.dev page slide, extended: pages share one grid cell so the container takes the tallest page's
+   height (no fixed height needed), plus a third page that enters from the right like page 2. */
+.t-page-slide { display: grid; }
+.t-page-slide > .t-page { position: relative; inset: auto; grid-area: 1 / 1; min-width: 0; }
+.t-page-slide .t-page[data-page-id="3"] { --t-page-from-x: var(--page-slide-distance); }
+.t-page-slide[data-page="3"] .t-page[data-page-id="3"] { opacity: 1; pointer-events: auto; transform: translateX(0); filter: blur(0); transition-delay: var(--page-stagger); }
+.t-page-slide[data-page="3"] .t-page[data-page-id="2"] { --t-page-from-x: calc(var(--page-slide-distance) * -1); }
+.t-page-slide > .t-page:not([data-page-id]) { opacity: 1; }
+
+/* Page enter (Transitions.dev page-slide tokens). */
+.page-enter { animation: page-enter 250ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes page-enter { from { opacity: 0; transform: translateY(8px); filter: blur(3px); } }
