@@ -47,7 +47,7 @@ export function PageHeader({ title, desc, actions }: { title: ReactNode; desc?: 
 export function Panel({ title, desc, action, children, className, flush }: { title?: ReactNode; desc?: ReactNode; action?: ReactNode; children: ReactNode; className?: string; flush?: boolean }) {
   return (
     <Card className={cn("min-w-0 gap-3", flush && "pb-2", className)}>
-      {title && <CardHeader><CardTitle className="text-[15px]">{title}</CardTitle>{desc && <CardDescription className="text-xs">{desc}</CardDescription>}{action && <CardAction>{action}</CardAction>}</CardHeader>}
+      {title && <CardHeader><CardTitle className="text-[15px]">{title}</CardTitle>{desc && <CardDescription className="text-xs">{desc}</CardDescription>}{action && <CardAction className="max-w-full max-sm:col-start-1 max-sm:row-start-3 max-sm:mt-2 max-sm:justify-self-start max-sm:overflow-x-auto">{action}</CardAction>}</CardHeader>}
       <CardContent className={cn(flush && "px-0")}>{children}</CardContent>
     </Card>
   );

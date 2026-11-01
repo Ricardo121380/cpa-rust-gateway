@@ -42,8 +42,8 @@ export function ConfigBar({ compact }: { compact?: boolean }) {
         <DropdownMenuTrigger asChild>
           <button className="flex min-w-0 items-center gap-1.5 rounded-lg px-2 py-1 hover:bg-muted" aria-label="切换正在查看的配置版本">
             <i className={cn("size-2 shrink-0 rounded-full", isDraft ? "border border-dashed" : "")} style={isDraft ? { borderColor: "var(--info)" } : { background: "var(--ok)" }} />
-            <span className="text-muted-foreground">{isDraft ? "草稿" : "查看"}</span><b className="truncate font-mono">{ctx.working ?? "—"}</b>
-            {!compact && ctx.revision && <span className="font-mono text-muted-foreground" title="If-Match 修订号">{ctx.revision}</span>}
+            <span className="hidden text-muted-foreground sm:inline">{isDraft ? "草稿" : "查看"}</span><b className="max-w-[9rem] truncate font-mono sm:max-w-none">{ctx.working ?? "—"}</b>
+            {!compact && ctx.revision && <span className="hidden font-mono text-muted-foreground md:inline" title="If-Match 修订号">{ctx.revision}</span>}
             <ChevronDown className="size-3.5 text-muted-foreground" />
           </button>
         </DropdownMenuTrigger>
@@ -61,11 +61,11 @@ export function ConfigBar({ compact }: { compact?: boolean }) {
       </DropdownMenu>
       {isDraft ? (
         <>
-          <Button size="sm" variant="ghost" className="h-7" onClick={validate}><Check />验证</Button>
-          <Button size="sm" className="h-7" onClick={() => setPublishing(true)}><Send />发布</Button>
+          <Button size="sm" variant="ghost" className="h-7" onClick={validate} aria-label="验证草稿"><Check /><span className="hidden sm:inline">验证</span></Button>
+          <Button size="sm" className="h-7" onClick={() => setPublishing(true)} aria-label="发布草稿"><Send /><span className="hidden sm:inline">发布</span></Button>
         </>
       ) : (
-        <Button size="sm" variant="ghost" className="h-7" onClick={fork} title="修改配置前需要先创建草稿"><GitFork /><span className="hidden md:inline">创建草稿</span></Button>
+        <Button size="sm" variant="ghost" className="h-7" onClick={fork} title="修改配置前需要先创建草稿" aria-label="创建草稿"><GitFork /><span className="hidden md:inline">创建草稿</span></Button>
       )}
       {publishing && working && <PublishDialog version={working} onClose={() => setPublishing(false)} />}
     </div>

@@ -1,5 +1,4 @@
 import { useMemo, type ReactNode } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { GitFork, LogOut, Moon, Search, Send, Sun, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -23,7 +22,6 @@ export function Shell() {
   const theme = useTheme();
   const session = useSession();
   const ctx = useConfigContext();
-  const reduce = useReducedMotion();
   const availability = useGet<S<"RuntimeAvailability">>(["availability"], "/admin/runtime/availability", undefined, { graph: false, refetchInterval: 30_000 });
   const issues = (availability.data ?? []).filter((a) => a.availability !== "available").length;
   const current = NAV.find((n) => n.id === page) ?? NAV[0];
@@ -44,6 +42,7 @@ export function Shell() {
 
   return (
     <div className="grid min-h-screen lg:grid-cols-[232px_minmax(0,1fr)]">
+      <a href="#main" onClick={(e) => { e.preventDefault(); document.getElementById("main")?.focus(); }} className="sr-only z-50 rounded-lg bg-primary px-3 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:left-3 focus:top-3">跳到主内容</a>
       <aside className="sticky top-0 hidden h-screen flex-col border-r bg-sidebar px-3 py-4 lg:flex" aria-label="主导航">
         <a href="#/overview" className="mb-5 flex items-center gap-2.5 px-2"><Logo size={30} /><div className="leading-tight"><b className="tracking-[0.12em]">CPAR</b><div className="text-[11px] text-muted-foreground">网关控制台</div></div></a>
         <BounceSidebar items={SIDEBAR.map((s) => s.item)} value={SIDEBAR.findIndex((s) => s.id === current.id)} onChange={(i) => SIDEBAR[i].id && go(SIDEBAR[i].id!)} dotColor="var(--c2)" className="flex-1 overflow-y-auto [&_a]:text-[13.5px]" />
@@ -70,12 +69,12 @@ export function Shell() {
         <nav className="flex gap-1 overflow-x-auto border-b px-3 py-2 [scrollbar-width:none] lg:hidden" aria-label="主导航">
           {NAV.map((n) => <Button key={n.id} size="sm" variant={n.id === current.id ? "secondary" : "ghost"} onClick={() => go(n.id)}><n.icon />{n.label}</Button>)}
         </nav>
-        <main className="mx-auto max-w-[1400px] px-4 py-6 lg:px-8">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div key={current.id} initial={reduce ? false : { opacity: 0, y: 8, filter: "blur(3px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} exit={reduce ? undefined : { opacity: 0, y: -6, filter: "blur(3px)" }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}>
-              <PageFrame><Page /></PageFrame>
-            </motion.div>
-          </AnimatePresence>
+        <main id="main" tabIndex={-1} className="mx-auto max-w-[1400px] px-4 py-6 outline-none lg:px-8">
+          {/* Enter-only page transition with Transitions.dev page tokens (250ms, smooth-out, 8px, 3px blur).
+              Pure CSS keyframes: no exit phase and no dependence on animation frames from JS. */}
+          <div key={current.id} className="page-enter" onAnimationEnd={(e) => { if (e.target === e.currentTarget) document.getElementById("main")?.focus({ preventScroll: true }); }}>
+            <PageFrame><Page /></PageFrame>
+          </div>
         </main>
       </div>
     </div>

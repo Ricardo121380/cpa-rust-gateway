@@ -15,6 +15,10 @@ export function get<T>(path: GetPath, params?: { path?: Record<string, string>; 
   const query = params?.query ? Object.fromEntries(Object.entries(params.query).filter(([, v]) => v !== undefined && v !== null && v !== "")) : undefined;
   return unwrap<T>(api.GET(path as never, { params: { ...params, query } } as never) as never);
 }
+/** Plain-text GET (Prometheus exposition). */
+export function getText(path: GetPath) {
+  return unwrap<string>(api.GET(path as never, { parseAs: "text" } as never) as never);
+}
 export function send<T>(method: "POST" | "PUT" | "PATCH" | "DELETE", path: keyof paths, opts?: { path?: Record<string, string>; query?: Record<string, unknown>; body?: unknown; headers?: Record<string, string> }) {
   const call = { POST: api.POST, PUT: api.PUT, PATCH: api.PATCH, DELETE: api.DELETE }[method] as unknown as (p: string, init: unknown) => Promise<never>;
   return unwrap<T>(call(path as string, { params: { path: opts?.path, query: opts?.query, header: opts?.headers }, body: opts?.body }));

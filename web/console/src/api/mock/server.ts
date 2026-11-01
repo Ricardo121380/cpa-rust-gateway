@@ -55,8 +55,8 @@ on("POST", "/admin/config-versions/{id}/publish", (c) => {
   D.audit.unshift({ id: D.audit[0].id + 1, action: "config_version.publish", actor: "admin", occurred_at_ms: Date.now(), config_version_id: v.id, replaced_config_version_id: old.id });
   return { active_config_version_id: v.id, replaced_config_version_id: old.id };
 });
-on("POST", "/admin/config-versions/rollback", (c) => {
-  const v = D.versions.find((x) => x.id === c.body?.id); if (!v) return err(404, "management_resource_not_found");
+on("POST", "/admin/config-versions/rollback", () => {
+  const cur = D.versions.find((x) => x.status === "active")!; const v = D.versions.find((x) => x.id === cur.parent_id); if (!v) return err(409, "management_revision_conflict", "no previous version");
   const old = D.versions.find((x) => x.status === "active")!; old.status = "archived"; v.status = "active";
   return { active_config_version_id: v.id, replaced_config_version_id: old.id };
 });
@@ -130,6 +130,7 @@ on("PATCH", "/admin/client-keys/{id}", patchList(D.clientKeys, "id"));
 on("PATCH", "/admin/access-groups/{id}", patchList(D.accessGroups, "id"));
 on("PATCH", "/admin/public-models/{id}", patchList(D.publicModels, "id"));
 on("PATCH", "/admin/compatible-proxy-nodes/{id}", patchList(D.proxyNodes, "id"));
+on("PATCH", "/admin/routes/{rid}/candidates/{id}", (c) => graphWrite(c, () => { const x = D.candidates.find((y) => y.id === c.m[2]); if (x) Object.assign(x, c.body); draftChanges.push({ resource_kind: "route_candidate", resource_key: c.m[2], change: "changed", changed_fields: ["enabled"] }); return x; }));
 on("POST", "/admin/endpoints/{id}/credential-bindings", (c) => graphWrite(c, () => { const b = D.bindings.find((x) => x.endpoint_id === c.m[1] && x.credential_id === c.body.credential_id); if (b) Object.assign(b, c.body); draftChanges.push({ resource_kind: "binding", resource_key: `${c.m[1]}/${c.body.credential_id}`, change: "changed", changed_fields: ["enabled"] }); return b; }, 201));
 on("POST", "/admin/access-groups/{id}/routes", (c) => graphWrite(c, () => { const g = D.grants.find((x) => x.access_group_id === c.m[1] && x.route_id === c.body.route_id); if (g) g.enabled = c.body.enabled; else D.grants.push({ access_group_id: c.m[1], route_id: c.body.route_id, enabled: c.body.enabled }); draftChanges.push({ resource_kind: "access_group_route", resource_key: `${c.m[1]}/${c.body.route_id}`, change: g ? "changed" : "added", changed_fields: ["enabled"] }); return { access_group_id: c.m[1], ...c.body }; }, 201));
 on("POST", "/admin/client-keys", (c) => graphWrite(c, () => { const k = { id: c.body.id, access_group_id: c.body.access_group_id, prefix: "rgw_Q8mT", status: "active" as const, expires_at_ms: c.body.expires_at_ms ?? null, last_request_at_ms: null, _name: c.body.id }; D.clientKeys.unshift(k); draftChanges.push({ resource_kind: "client_key", resource_key: k.id, change: "added", changed_fields: [] }); return { ...k, key: "rgw_Q8mT2vR7xK4nP9wL6cJ3hB5fD1sA0eYuW2" }; }, 201));
