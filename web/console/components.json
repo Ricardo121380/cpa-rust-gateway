@@ -1,0 +1,11 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "new-york", "rsc": false, "tsx": true,
+  "tailwind": { "config": "", "css": "src/styles/globals.css", "baseColor": "stone", "cssVariables": true, "prefix": "" },
+  "iconLibrary": "lucide",
+  "aliases": { "components": "@/components", "utils": "@/lib/utils", "ui": "@/components/ui", "lib": "@/lib", "hooks": "@/hooks" },
+  "registries": {
+    "@beui": "https://beui.dev/r/{name}.json",
+    "@rare-ui": "https://raw.githubusercontent.com/swamimalode07/rare-ui/main/public/r/{name}.json"
+  }
+}
