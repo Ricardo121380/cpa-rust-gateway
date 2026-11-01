@@ -1,12 +1,13 @@
 // Shared presentational atoms. Everything reads design tokens; no colors are hard-coded here.
 import type { ReactNode } from "react";
 import type { UseQueryResult } from "@tanstack/react-query";
-import { AlertTriangle, PlugZap, RefreshCw } from "lucide-react";
+import { AlertTriangle, GitFork, PlugZap, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { describeError, isUnavailable } from "@/api/errors";
+import { describeError, isNoConfig, isUnavailable } from "@/api/errors";
+import { go } from "@/app/router";
 import { fmt } from "@/lib/format";
 import { GLYPH, label, slotOf, CATEGORY, type Tone } from "@/lib/labels";
 import { cn } from "@/lib/utils";
@@ -79,6 +80,7 @@ export function Empty({ icon, title, body, action }: { icon?: ReactNode; title: 
 export function Q<T>({ q, children, skeleton = 3, what }: { q: UseQueryResult<T>; children: (d: T) => ReactNode; skeleton?: number; what?: string }) {
   if (q.isPending) return <div className="grid gap-2">{Array.from({ length: skeleton }, (_, i) => <Skeleton key={i} className="h-9 w-full" />)}</div>;
   if (q.isError) {
+    if (isNoConfig(q.error)) return <Empty icon={<GitFork className="size-5" />} title="网关还没有生效的配置版本" body={`${what ?? "这项数据"}按配置版本读取。创建并发布第一个版本后，这里会显示内容。`} action={<Button size="sm" variant="outline" onClick={() => go("versions")}>前往配置版本</Button>} />;
     if (isUnavailable(q.error)) return <Empty icon={<PlugZap className="size-5" />} title={`${what ?? "这项数据"}在当前部署中未启用`} body="网关返回 503：对应的状态或存储没有接入。启用后这里会显示真实数据。" />;
     const e = describeError(q.error);
     return <Empty icon={<AlertTriangle className="size-5" />} title={e.title} body={e.detail} action={<Button size="sm" variant="outline" onClick={() => q.refetch()}><RefreshCw />重试</Button>} />;

@@ -43,7 +43,7 @@ export function Overview() {
   const summary7 = useGet<Page>(["requests-summary", week], "/admin/requests/summary", { query: week }, { graph: false });
   const summary24 = useGet<Page>(["requests-summary", day], "/admin/requests/summary", { query: day }, { graph: false });
   const billing = useGet<S<"OperationalBillingPage">>(["billing", "7d"], "/admin/operations/billing", { query: { from_ms: week.from_ms, to_ms: week.to_ms, limit: 1 } }, { graph: false });
-  const usage = useGet<S<"OperationalUsagePage">>(["usage", "7d"], "/admin/operations/usage", { query: { from_ms: week.from_ms, to_ms: week.to_ms, limit: 500 } }, { graph: false });
+  const usage = useGet<S<"OperationalUsagePage">>(["usage", "7d"], "/admin/operations/usage", { query: { from_ms: week.from_ms, to_ms: week.to_ms } }, { graph: false, all: true });
   const inventory = useGet<S<"UnifiedAccountPage">>(["inventory", "all"], "/admin/accounts/inventory", { query: { limit: 100 } });
   const availability = useGet<S<"RuntimeAvailability">>(["availability"], "/admin/runtime/availability", undefined, { graph: false });
   const failed = useGet<Page>(["requests", "failed"], "/admin/requests", { query: { from_ms: day.from_ms, to_ms: day.to_ms, outcome: "failed", limit: 6 } }, { graph: false });

@@ -26,7 +26,7 @@ export function System() {
         <Panel title="外观">
           <div className="flex items-center justify-between gap-4"><div><b className="flex items-center gap-2">{theme === "dark" ? <Moon className="size-4" /> : <Sun className="size-4" />}暗色主题</b><p className="text-xs text-muted-foreground">默认跟随系统；切换时从开关位置展开</p></div><Switch checked={theme === "dark"} onCheckedChange={() => toggleTheme()} aria-label="暗色主题" /></div>
         </Panel>
-        {session.kind === "admin" && <Panel title="修改密码" desc="修改后当前会话保持有效"><ChangePassword /></Panel>}
+        {session.kind === "admin" && <Panel title="修改密码" desc="修改后所有管理员会话都会失效，需要用新密码重新登录"><ChangePassword /></Panel>}
       </div>
     </>
   );

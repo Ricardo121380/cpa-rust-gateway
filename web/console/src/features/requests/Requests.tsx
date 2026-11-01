@@ -35,7 +35,7 @@ export function Requests() {
   });
   const rows = list.data?.pages.flatMap((p) => p.items) ?? [];
   const sm = summary.data?.summary;
-  const usage = useGet<S<"OperationalUsagePage">>(["usage", "options"], "/admin/operations/usage", { query: { from_ms: Date.now() - 7 * 864e5, limit: 500 } }, { graph: false });
+  const usage = useGet<S<"OperationalUsagePage">>(["usage", "options"], "/admin/operations/usage", { query: { from_ms: Date.now() - 7 * 864e5, limit: 100 } }, { graph: false });
   const opt = (k: "public_model" | "provider_id" | "client_key_id" | "account_id") => [...new Set((usage.data?.items ?? []).map((u) => u[k]))].sort().map((v) => [v, v] as [string, string]);
 
   const cols: Col<Row>[] = [

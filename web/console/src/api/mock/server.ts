@@ -2,6 +2,7 @@
 // (X-Management-Key, CSRF on unsafe methods, If-Match revision, draft-only writes) so the console's
 // conflict and draft flows can be exercised without a backend.
 import * as D from "./seed";
+import { OPS } from "../ops.gen";
 
 type Ctx = { url: URL; method: string; headers: Headers; body: any; m: RegExpMatchArray };
 type Handler = (c: Ctx) => unknown | Response;
@@ -36,7 +37,7 @@ on("POST", "/admin/auth/login", (c) => {
   session = { token: "session_" + "a".repeat(64), csrf: "csrf_" + "b".repeat(64), mustChange: c.body.password === "change-me-now" };
   return { username: "admin", session_token: session.token, csrf_token: session.csrf, expires_at_ms: Date.now() + 8 * 36e5, password_change_required: session.mustChange };
 });
-on("POST", "/admin/auth/password", (c) => { if ((c.body?.new_password ?? "").length < 12) return err(400, "management_login_invalid_password"); if (session) session.mustChange = false; return new Response(null, { status: 204 }); });
+on("POST", "/admin/auth/password", (c) => { if ((c.body?.new_password ?? "").length < 12) return err(400, "management_login_invalid_password"); session = null; return new Response(null, { status: 204 }); }); // revokes every session, like the gateway
 on("POST", "/admin/auth/logout", () => { session = null; return new Response(null, { status: 204 }); });
 
 /* ---------------- system / versions / audit ---------------- */
@@ -60,7 +61,7 @@ on("POST", "/admin/config-versions/rollback", () => {
   const old = D.versions.find((x) => x.status === "active")!; old.status = "archived"; v.status = "active";
   return { active_config_version_id: v.id, replaced_config_version_id: old.id };
 });
-on("GET", "/admin/config-versions/{id}/diff", (c) => ({ base: { id: c.url.searchParams.get("base_id"), revision: "rev-45" }, target: { id: c.m[1], revision: `rev-${rev[c.m[1]] ?? 0}` }, items: c.m[1].startsWith("draft") ? draftChanges : [{ resource_kind: "endpoint", resource_key: "ep-mm-msg", change: "changed", changed_fields: ["adapter_id"] }, { resource_kind: "route_candidate", resource_key: "cd-m3-msg", change: "changed", changed_fields: ["transform_mode"] }], next_cursor: null }));
+on("GET", "/admin/config-versions/{id}/diff", (c) => ({ base: { id: c.url.searchParams.get("base_id"), revision: "rev-45" }, target: { id: c.m[1], revision: `rev-${rev[c.m[1]] ?? 0}` }, items: c.m[1].startsWith("draft") ? draftChanges : [{ resource_kind: "endpoint", resource_key: '["ep-mm-msg"]', change: "changed", changed_fields: ["adapter_id"] }, { resource_kind: "route_candidate", resource_key: '["cd-m3-msg"]', change: "changed", changed_fields: ["transform_mode"] }], next_cursor: null }));
 const draftChanges: { resource_kind: string; resource_key: string; change: string; changed_fields: string[] }[] = [];
 on("GET", "/admin/audit-events", () => D.audit);
 on("GET", "/admin/resource-audit-events", () => ({ items: D.resourceAudit, next_before_id: null }));
@@ -119,22 +120,22 @@ on("POST", "/admin/upstreams/{id}/kimi-authorization/cancel", () => ({ state: "c
 on("POST", "/admin/native-account-authorizations", () => { polls = 0; return { session_id: "sess-grok-1", state: "pending", user_code: "GROK-77Q2", verification_uri: "https://accounts.x.ai/device", expires_at_ms: Date.now() + 6e5, retry_at_ms: Date.now() + 5000, identity: null, identity_state: "pending" }; });
 on("POST", "/admin/native-account-authorizations/{id}/poll", () => (++polls >= 2 ? { session_id: "sess-grok-1", state: "complete", user_code: "GROK-77Q2", verification_uri: "https://accounts.x.ai/device", expires_at_ms: Date.now() + 6e5, retry_at_ms: Date.now(), identity: { email: "new***@x.com", phone: null, username: null }, identity_state: "observed" } : { session_id: "sess-grok-1", state: "pending", user_code: "GROK-77Q2", verification_uri: "https://accounts.x.ai/device", expires_at_ms: Date.now() + 6e5, retry_at_ms: Date.now() + 5000, identity: null, identity_state: "pending" }));
 on("DELETE", "/admin/native-account-authorizations/{id}", () => ({ state: "cancelled" }));
-on("POST", "/admin/upstreams/{id}/account-import", (c) => graphWrite(c, () => { draftChanges.push({ resource_kind: "credential", resource_key: c.body.id, change: "added", changed_fields: [] }); return { id: c.body.id, upstream_id: c.m[1], kind: "api_key", status: "active", revision: 1, secret_present: true }; }, 201));
+on("POST", "/admin/upstreams/{id}/account-import", (c) => graphWrite(c, () => { draftChanges.push({ resource_kind: "credential", resource_key: JSON.stringify([c.body.id]), change: "added", changed_fields: [] }); return { id: c.body.id, upstream_id: c.m[1], kind: "api_key", status: "active", revision: 1, secret_present: true }; }, 201));
 
 /* ---------------- graph writes (draft only) ---------------- */
-on("PATCH", "/admin/credentials/{id}/status", (c) => graphWrite(c, () => { const a = D.A[c.m[1]]; if (a) a.status = c.body.status; draftChanges.push({ resource_kind: "credential", resource_key: c.m[1], change: "changed", changed_fields: ["status"] }); return a ? D.credential(a) : undefined; }));
+on("PATCH", "/admin/credentials/{id}/status", (c) => graphWrite(c, () => { const a = D.A[c.m[1]]; if (a) a.status = c.body.status; draftChanges.push({ resource_kind: "credential", resource_key: JSON.stringify([c.m[1]]), change: "changed", changed_fields: ["status"] }); return a ? D.credential(a) : undefined; }));
 on("PATCH", "/admin/native-accounts/{id}", (c) => { const a = D.A[c.m[1]]; if (a) a.status = c.body.enabled ? "active" : "disabled"; return { account_id: c.m[1], revision: 5, enabled: c.body.enabled }; });
-const patchList = (list: any[], key: string) => (c: Ctx) => graphWrite(c, () => { const x = list.find((y) => y[key] === c.m[1]); Object.assign(x, c.body); draftChanges.push({ resource_kind: key === "id" ? "resource" : key, resource_key: c.m[1], change: "changed", changed_fields: Object.keys(c.body ?? {}) }); return x; });
+const patchList = (list: any[], key: string) => (c: Ctx) => graphWrite(c, () => { const x = list.find((y) => y[key] === c.m[1]); Object.assign(x, c.body); draftChanges.push({ resource_kind: key === "id" ? "resource" : key, resource_key: JSON.stringify([c.m[1]]), change: "changed", changed_fields: Object.keys(c.body ?? {}) }); return x; });
 on("PATCH", "/admin/upstreams/{id}", patchList(D.upstreams, "id"));
 on("PATCH", "/admin/client-keys/{id}", patchList(D.clientKeys, "id"));
 on("PATCH", "/admin/access-groups/{id}", patchList(D.accessGroups, "id"));
 on("PATCH", "/admin/public-models/{id}", patchList(D.publicModels, "id"));
 on("PATCH", "/admin/compatible-proxy-nodes/{id}", patchList(D.proxyNodes, "id"));
-on("PATCH", "/admin/routes/{rid}/candidates/{id}", (c) => graphWrite(c, () => { const x = D.candidates.find((y) => y.id === c.m[2]); if (x) Object.assign(x, c.body); draftChanges.push({ resource_kind: "route_candidate", resource_key: c.m[2], change: "changed", changed_fields: ["enabled"] }); return x; }));
-on("POST", "/admin/endpoints/{id}/credential-bindings", (c) => graphWrite(c, () => { const b = D.bindings.find((x) => x.endpoint_id === c.m[1] && x.credential_id === c.body.credential_id); if (b) Object.assign(b, c.body); draftChanges.push({ resource_kind: "binding", resource_key: `${c.m[1]}/${c.body.credential_id}`, change: "changed", changed_fields: ["enabled"] }); return b; }, 201));
-on("POST", "/admin/access-groups/{id}/routes", (c) => graphWrite(c, () => { const g = D.grants.find((x) => x.access_group_id === c.m[1] && x.route_id === c.body.route_id); if (g) g.enabled = c.body.enabled; else D.grants.push({ access_group_id: c.m[1], route_id: c.body.route_id, enabled: c.body.enabled }); draftChanges.push({ resource_kind: "access_group_route", resource_key: `${c.m[1]}/${c.body.route_id}`, change: g ? "changed" : "added", changed_fields: ["enabled"] }); return { access_group_id: c.m[1], ...c.body }; }, 201));
-on("POST", "/admin/client-keys", (c) => graphWrite(c, () => { const k = { id: c.body.id, access_group_id: c.body.access_group_id, prefix: "rgw_Q8mT", status: "active" as const, expires_at_ms: c.body.expires_at_ms ?? null, last_request_at_ms: null, _name: c.body.id }; D.clientKeys.unshift(k); draftChanges.push({ resource_kind: "client_key", resource_key: k.id, change: "added", changed_fields: [] }); return { ...k, key: "rgw_Q8mT2vR7xK4nP9wL6cJ3hB5fD1sA0eYuW2" }; }, 201));
-on("DELETE", "/admin/client-keys/{id}", (c) => graphWrite(c, () => { const k = D.clientKeys.find((x) => x.id === c.m[1]); if (k) k.status = "revoked"; draftChanges.push({ resource_kind: "client_key", resource_key: c.m[1], change: "changed", changed_fields: ["status"] }); return undefined; }));
+on("PATCH", "/admin/routes/{rid}/candidates/{id}", (c) => graphWrite(c, () => { const x = D.candidates.find((y) => y.id === c.m[2]); if (x) Object.assign(x, c.body); draftChanges.push({ resource_kind: "route_candidate", resource_key: JSON.stringify([c.m[2]]), change: "changed", changed_fields: ["enabled"] }); return x; }));
+on("POST", "/admin/endpoints/{id}/credential-bindings", (c) => graphWrite(c, () => { const b = D.bindings.find((x) => x.endpoint_id === c.m[1] && x.credential_id === c.body.credential_id); if (b) Object.assign(b, c.body); draftChanges.push({ resource_kind: "binding", resource_key: JSON.stringify([c.m[1], c.body.credential_id]), change: "changed", changed_fields: ["enabled"] }); return b; }, 201));
+on("POST", "/admin/access-groups/{id}/routes", (c) => graphWrite(c, () => { const g = D.grants.find((x) => x.access_group_id === c.m[1] && x.route_id === c.body.route_id); if (g) g.enabled = c.body.enabled; else D.grants.push({ access_group_id: c.m[1], route_id: c.body.route_id, enabled: c.body.enabled }); draftChanges.push({ resource_kind: "access_group_route", resource_key: JSON.stringify([c.m[1], c.body.route_id]), change: g ? "changed" : "added", changed_fields: ["enabled"] }); return { access_group_id: c.m[1], ...c.body }; }, 201));
+on("POST", "/admin/client-keys", (c) => graphWrite(c, () => { const k = { id: c.body.id, access_group_id: c.body.access_group_id, prefix: "rgw_Q8mT", status: "active" as const, expires_at_ms: c.body.expires_at_ms ?? null, last_request_at_ms: null, _name: c.body.id }; D.clientKeys.unshift(k); draftChanges.push({ resource_kind: "client_key", resource_key: JSON.stringify([k.id]), change: "added", changed_fields: [] }); return { ...k, key: "rgw_Q8mT2vR7xK4nP9wL6cJ3hB5fD1sA0eYuW2" }; }, 201));
+on("DELETE", "/admin/client-keys/{id}", (c) => graphWrite(c, () => { const k = D.clientKeys.find((x) => x.id === c.m[1]); if (k) k.status = "revoked"; draftChanges.push({ resource_kind: "client_key", resource_key: JSON.stringify([c.m[1]]), change: "changed", changed_fields: ["status"] }); return undefined; }));
 on("POST", "/admin/endpoints/{id}/test", (c) => (c.m[1] === "ep-kimi" ? { outcome: "rejected", status_class: "4xx", canonical_lifecycle: false } : { outcome: "pass", status_class: "2xx", canonical_lifecycle: true }));
 on("POST", "/admin/endpoints/{id}/models/discover-preview", () => ({ added: 3, removed: 1, unchanged: 14 }));
 on("POST", "/admin/endpoints/{id}/models/discover-apply", (c) => graphWrite(c, () => ({ added: 3, removed: 1, unchanged: 14 })));
@@ -182,6 +183,21 @@ on("POST", "/admin/billing/price-source/refresh", () => ({ source: "models.dev",
 on("POST", "/admin/backups/preflight", () => ({ schema_version: 42, secret_key_required: true }));
 on("POST", "/admin/restores/preflight", () => ({ schema_version: 42, quick_check_required: true, compatible: true }));
 
+// Contract rules the real gateway enforces before any handler runs; the mock enforces them too so a console
+// bug cannot hide behind a lenient fake (both were first caught against the real gateway).
+const OP_RULES = Object.entries(OPS as Record<string, { cv: number }>).map(([k, r]) => {
+  const [method, path] = k.split(" ");
+  return { method, re: new RegExp(`^${path.replace(/\{[^}]+\}/g, "[^/]+")}$`), cv: r.cv, maxLimit: path.endsWith("/diff") ? 200 : 100 };
+});
+function contractViolation(input: Request, url: URL): Response | null {
+  const rule = OP_RULES.find((r) => r.method === input.method && r.re.test(url.pathname));
+  if (!rule) return null;
+  const limit = url.searchParams.get("limit");
+  if (limit !== null && !(Number(limit) >= 1 && Number(limit) <= rule.maxLimit)) return err(400, "invalid_management_request");
+  if (rule.cv === 2 && !input.headers.get("X-Config-Version")) return err(400, "invalid_management_request");
+  return null;
+}
+
 export async function mockFetch(input: Request): Promise<Response> {
   const url = new URL(input.url);
   await new Promise((r) => setTimeout(r, 120 + Math.random() * 220));
@@ -189,6 +205,8 @@ export async function mockFetch(input: Request): Promise<Response> {
   const key = input.headers.get("X-Management-Key");
   if (!url.pathname.startsWith("/admin/auth/login") && !key) return err(404, "management_access_denied");
   if (unsafe && key?.startsWith("session_") && input.headers.get("X-Management-CSRF-Token") !== session?.csrf && !url.pathname.startsWith("/admin/auth/login")) return err(404, "management_access_denied");
+  const violation = contractViolation(input, url);
+  if (violation) return violation;
   for (const [method, re, h] of routes) {
     if (method !== input.method) continue;
     const m = url.pathname.match(re);

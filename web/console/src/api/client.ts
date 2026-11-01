@@ -9,6 +9,13 @@ import { store } from "./session";
 
 const UNSAFE = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
+/**
+ * Runtime projections exist only for the graph that is serving. Asked about a draft, the gateway answers
+ * 503 (availability, catalog status) or 409 (egress status) — which would read as "not enabled" — so these
+ * reads always name the active version, whatever version the operator is viewing.
+ */
+export const LIVE_READS = new Set(["/admin/runtime/availability", "/admin/catalog/status", "/admin/operations/provider-egress-status"]);
+
 export function headersFor(method: string, schemaPath: string, explicit: Headers) {
   const { session, config } = store.get();
   const rule = OPS[`${method} ${schemaPath}`];
@@ -17,7 +24,7 @@ export function headersFor(method: string, schemaPath: string, explicit: Headers
   if (UNSAFE.has(method) && session.kind !== "none" && session.csrf) out["X-Management-CSRF-Token"] = session.csrf;
   let target = explicit.get("X-Config-Version");
   if (rule?.cv && !target) {
-    target = config.working ?? config.active;
+    target = method === "GET" && LIVE_READS.has(schemaPath) ? config.active : config.working ?? config.active;
     if (target) out["X-Config-Version"] = target;
   }
   // The tracked revision belongs to the working version; never send it for a write aimed elsewhere.
@@ -52,7 +59,8 @@ let transport: typeof fetch = (...a) => globalThis.fetch(...a);
 /** Swapped for the in-memory implementation in mock mode (VITE_CONSOLE_MOCK=1). */
 export function useTransport(f: typeof fetch) { transport = f; }
 
-export const api = createClient<paths>({ baseUrl: "", fetch: (input) => transport(input) });
+// Same-origin by construction (the console is served from the management listener); explicit for non-browser runs.
+export const api = createClient<paths>({ baseUrl: globalThis.location?.origin ?? "", fetch: (input) => transport(input) });
 api.use(auth);
 
 /** Unwraps openapi-fetch results so React Query sees thrown ApiErrors and typed data. */

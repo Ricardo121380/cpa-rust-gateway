@@ -15,7 +15,7 @@ const qc = new QueryClient({
       staleTime: 15_000,
       refetchOnWindowFocus: false,
       // Retrying a denial, a conflict or a disabled feature only repeats the same answer.
-      retry: (n, e) => n < 2 && !(e instanceof ApiError && [400, 401, 403, 404, 409, 503].includes(e.status)),
+      retry: (n, e) => n < 2 && !(e instanceof ApiError && [0, 400, 401, 403, 404, 409, 503].includes(e.status) && e.code !== "management_operations_busy"),
     },
   },
 });

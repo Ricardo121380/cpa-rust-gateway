@@ -2,17 +2,17 @@
 // active graph, validate, publish (atomic) and roll back to the previous active version.
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, GitFork, Send, Undo2 } from "lucide-react";
+import { Check, GitFork, Plus, Send, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { forkDraft, refreshConfigContext, selectWorking, send, useConfigVersions, useGet, type S } from "@/api/hooks";
-import { describeError } from "@/api/errors";
+import { forkDraft, refreshConfigContext, selectWorking, send, useConfigVersions, useGet, validateVersion, type S } from "@/api/hooks";
+import { ApiError, describeError } from "@/api/errors";
 import { useConfigContext } from "@/api/session";
 import { toast } from "@/app/toast";
 import { setParam } from "@/app/router";
-import { KV, Mono, PageHeader, Panel, Q, Since, Status } from "@/components/kit";
+import { Empty, KV, Mono, PageHeader, Panel, Q, Since, Status } from "@/components/kit";
 import { useParam } from "@/components/table";
-import { fmt } from "@/lib/format";
+import { fmt, resourceKey } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { PublishDialog } from "./PublishDialog";
 
@@ -32,7 +32,7 @@ export function Versions() {
   useEffect(() => { if (wantsPublish && ctx.workingStatus === "draft") { const w = list.find((x) => x.id === ctx.working); if (w) setPublishing(w); setParam("publish", null); } }, [wantsPublish, list.length]);
 
   async function validate(id: string) {
-    try { setValidation({ id, r: await send<S<"Validation">>("POST", "/admin/config-versions/{config_version_id}/validate", { path: { config_version_id: id } }) }); }
+    try { setValidation({ id, r: await validateVersion(id) }); }
     catch (e) { const d = describeError(e); toast({ title: d.title, description: d.detail, status: "error" }); }
   }
   async function fork(from: string) {
@@ -44,7 +44,7 @@ export function Versions() {
   return (
     <>
       <PageHeader title="配置版本" desc={<>草稿 → 验证 → 原子发布 → 回滚。写入带 <code>X-Config-Version</code> 和 <code>If-Match</code>，修订号不一致时返回 409，不会部分写入。</>} actions={<><Button variant="outline" onClick={() => setRolling(true)} disabled={!list.some((x) => x.status === "active" && x.parent_id)}><Undo2 />回滚到上一版本</Button>{ctx.active && <Button onClick={() => fork(ctx.active!)}><GitFork />从生效版本创建草稿</Button>}</>} />
-      <Q q={versions} what="配置版本">{() => (<>
+      <Q q={versions} what="配置版本">{() => list.length === 0 ? <Panel><FirstVersion /></Panel> : (<>
         <Panel title="版本轨道" desc="从旧到新；实心为生效版本，虚线为草稿">
           <div className="flex overflow-x-auto pb-1" role="list">
             {ordered.map((x) => (
@@ -66,7 +66,7 @@ export function Versions() {
                 {v.status !== "draft" && <Button size="sm" variant="outline" onClick={() => fork(v.id)}><GitFork />基于此创建草稿</Button>}
               </div>}>
               <KV rows={[["修订号（ETag）", <Mono>{v.revision}</Mono>], ["父版本", v.parent_id ? <button className="font-mono underline decoration-border underline-offset-2" onClick={() => setParam("v", v.parent_id!)}>{v.parent_id}</button> : "—"], ["创建于", <span>{fmt.date(v.created_at_ms)} <Since t={v.created_at_ms} /></span>]]} />
-              {validation?.id === v.id && <div className="mt-4 flex items-start gap-3 rounded-xl p-3" style={{ background: `color-mix(in srgb, var(--${validation.r.valid ? "ok" : "bad"}) 10%, transparent)` }}>{validation.r.valid ? <span className="t-success-check" data-state="in" style={{ color: "var(--ok)" }}><svg viewBox="0 0 48 48" width="24" height="24" fill="none"><path d="M12 25l8 8 16-17" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" /></svg></span> : null}<div><b>{validation.r.valid ? "验证通过" : `${validation.r.error_codes?.length ?? 0} 个问题`}</b><ul className="font-mono text-xs text-muted-foreground">{(validation.r.error_codes ?? []).map((c) => <li key={c}>{c}</li>)}</ul></div></div>}
+              {validation?.id === v.id && <div className="mt-4 flex items-start gap-3 rounded-xl p-3" style={{ background: `color-mix(in srgb, var(--${validation.r.valid ? "ok" : "bad"}) 10%, transparent)` }}>{validation.r.valid ? <span className="t-success-check" data-state="in" style={{ color: "var(--ok)" }}><svg viewBox="0 0 48 48" width="24" height="24" fill="none"><path d="M12 25l8 8 16-17" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" /></svg></span> : null}<div><b>{validation.r.valid ? "验证通过" : "没有通过验证"}</b><ul className="text-xs text-muted-foreground">{(validation.r.error_codes ?? []).map((c) => <li key={c}>{describeError(new ApiError(409, c, c)).title} <Mono>{c}</Mono></li>)}</ul></div></div>}
             </Panel>
             <Diff v={v} base={ctx.active} />
           </div>
@@ -86,11 +86,28 @@ function Diff({ v, base }: { v: V; base: string | null }) {
     <Panel flush title="变更" desc={<>相对 <Mono>{vs}</Mono> 的资源级差异（只比较结构，不含密钥内容）</>}>
       <Q q={diff} what="版本差异">{(d) => d.items.length ? (
         <ul className="max-h-[420px] overflow-y-auto">{d.items.map((c) => (
-          <li key={c.resource_kind + c.resource_key} className="flex flex-wrap items-center gap-3 border-b px-6 py-2.5 text-sm last:border-0"><Status map="change" k={c.change} className="w-12" /><Mono className="text-xs text-muted-foreground">{c.resource_kind}</Mono><Mono className="flex-1 font-semibold">{c.resource_key}</Mono>{c.changed_fields.length > 0 && <span className="text-xs text-muted-foreground">{c.changed_fields.join(", ")}</span>}</li>
+          <li key={c.resource_kind + c.resource_key} className="flex flex-wrap items-center gap-3 border-b px-6 py-2.5 text-sm last:border-0"><Status map="change" k={c.change} className="w-12" /><Mono className="text-xs text-muted-foreground">{c.resource_kind}</Mono><Mono className="flex-1 font-semibold">{resourceKey(c.resource_key)}</Mono>{c.changed_fields.length > 0 && <span className="text-xs text-muted-foreground">{c.changed_fields.join(", ")}</span>}</li>
         ))}</ul>
       ) : <p className="px-6 py-8 text-center text-sm text-muted-foreground">与基线没有差异</p>}</Q>
     </Panel>
   );
+}
+
+/** A fresh gateway has no configuration graph at all: the first version starts empty, as a draft. */
+export function FirstVersion() {
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  async function create() {
+    setBusy(true);
+    try {
+      const id = `cv-${new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14)}`;
+      const v = await send<V>("POST", "/admin/config-versions", { body: { id, parent_id: null, description: "初始配置" } });
+      await refreshConfigContext(); selectWorking(v);
+      toast({ title: `已创建草稿 ${v.id}`, description: "在草稿里添加上游、模型和访问组，验证后发布即可生效", status: "success", duration: 6000 });
+      qc.invalidateQueries();
+    } catch (e) { const d = describeError(e); toast({ title: d.title, description: d.detail, status: "error" }); } finally { setBusy(false); }
+  }
+  return <Empty icon={<GitFork className="size-5" />} title="网关还没有配置版本" body="所有上游、模型、路由和访问组都属于某个配置版本。先创建一个空草稿，填好内容并验证，再发布为生效版本。" action={<Button size="sm" disabled={busy} onClick={create}><Plus />{busy ? "正在创建…" : "创建第一个配置版本"}</Button>} />;
 }
 
 function RollbackDialog({ active, onClose }: { active?: V; onClose: () => void }) {

@@ -40,3 +40,9 @@ export const fmt = {
 };
 
 export const sum = <T,>(a: readonly T[], f: (x: T) => number | null | undefined) => a.reduce((s, x) => s + (f(x) ?? 0), 0);
+
+/** Diff resource keys arrive as a JSON array of key parts (`["route","candidate"]`); show them as `route / candidate`. */
+export function resourceKey(key: string) {
+  try { const parts: unknown = JSON.parse(key); if (Array.isArray(parts)) return parts.map(String).join(" / "); } catch { /* plain key */ }
+  return key;
+}

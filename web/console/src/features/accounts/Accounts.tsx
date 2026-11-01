@@ -40,7 +40,7 @@ export function Accounts() {
   const [sel, setSel] = useState<string[]>([]);
   const open = useParam("account");
   const inventory = useGet<S<"UnifiedAccountPage">>(["inventory", category, q], "/admin/accounts/inventory", { query: { category: category || undefined, q: q || undefined, limit: 100 } });
-  const pools = useGet<S<"ProviderAccountPoolPage">>(["pools"], "/admin/operations/provider-account-pools", { query: { limit: 200 } }, { graph: false, refetchInterval: 30_000 });
+  const pools = useGet<S<"ProviderAccountPoolPage">>(["pools"], "/admin/operations/provider-account-pools", undefined, { graph: false, refetchInterval: 30_000, all: true });
   const poolBy = useMemo(() => new Map((pools.data?.items ?? []).map((p) => [p.account_id, p])), [pools.data]);
   const items = (inventory.data?.items ?? []).filter((i) => ISSUE[issue](i, poolBy.get(i.id)));
   const quotas = useQuotas(items.filter((i) => i.category !== "api"));

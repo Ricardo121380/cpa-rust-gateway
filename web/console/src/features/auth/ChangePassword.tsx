@@ -5,12 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { send } from "@/api/hooks";
 import { describeError } from "@/api/errors";
-import { store, useSession } from "@/api/session";
+import { store } from "@/api/session";
 import { toast } from "@/app/toast";
 
 /** Required after an initial login (only password change and logout are allowed then), and from Settings. */
 export function ChangePassword({ forced, onDone }: { forced?: boolean; onDone?: () => void }) {
-  const session = useSession();
   const [cur, setCur] = useState("");
   const [next, setNext] = useState("");
   const [again, setAgain] = useState("");
@@ -25,9 +24,10 @@ export function ChangePassword({ forced, onDone }: { forced?: boolean; onDone?: 
     setBusy(true); setError(null);
     try {
       await send("POST", "/admin/auth/password", { body: { current_password: cur, new_password: next } });
-      if (session.kind === "admin") store.setSession({ ...session, mustChangePassword: false });
-      toast({ title: "密码已更新", status: "success" });
+      // The gateway revokes every administrator session on a password change, this one included.
       setCur(""); setNext(""); setAgain(""); onDone?.();
+      store.signOut();
+      toast({ title: "密码已更新", description: "所有管理员会话都已失效，请用新密码重新登录", status: "success", duration: 6000 });
     } catch (err) { setError(describeError(err).title); } finally { setBusy(false); }
   }
 

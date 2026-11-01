@@ -12,7 +12,7 @@ import { getText, runtimeHeaders, send, useGet, type S } from "@/api/hooks";
 import { describeError } from "@/api/errors";
 import { useConfigContext } from "@/api/session";
 import { toast } from "@/app/toast";
-import { Count, KV, Mono, PageHeader, Panel, Q, Status, toneColor } from "@/components/kit";
+import { Count, Empty, KV, Mono, PageHeader, Panel, Q, Status, toneColor } from "@/components/kit";
 import { fmt } from "@/lib/format";
 import { GLYPH, label, LABELS } from "@/lib/labels";
 
@@ -39,7 +39,7 @@ export function Runtime() {
     <>
       <PageHeader title="运行时" desc={<>运行时状态作用于生效版本 <Mono>{ctx.active}</Mono>。恢复探测是受控动作：只调度一次探测，成功后才重新入池，不会直接清除冷却或配额。</>} actions={<Button variant="outline" onClick={() => qc.invalidateQueries({ queryKey: ["availability"] })}><RefreshCw />刷新</Button>} />
       <Panel title="可用性矩阵" desc="行是端点，列是凭据；只有存在绑定的格子有状态。点击受限的格子请求恢复。">
-        <Q q={availability} what="运行时可用性">{() => (
+        <Q q={availability} what="运行时可用性">{() => !list.length ? <Empty title="生效版本里还没有端点 × 凭据绑定" body="绑定建立并发布后，每个组合的调度状态会显示在这里。" /> : (
           <div className="overflow-x-auto">
             <table className="border-separate border-spacing-1" aria-label="可用性矩阵">
               <thead><tr><th />{creds.map((c) => <th key={c} scope="col" className="h-24 align-bottom"><span className="inline-block rotate-180 font-mono text-[11px] font-medium text-muted-foreground [writing-mode:vertical-rl]">{c}</span></th>)}</tr></thead>
@@ -67,7 +67,7 @@ export function Runtime() {
             </li>))}</ul> : <p className="py-6 text-center text-sm text-muted-foreground">所有目标都可调度</p>}
         </Panel>
         <Panel flush title="模型目录新鲜度" desc="每个端点 × 凭据最近一次读取上游模型目录的结果">
-          <Q q={catalog} what="模型目录状态">{(cs) => (
+          <Q q={catalog} what="模型目录状态">{(cs) => !cs.length ? <p className="px-6 py-8 text-center text-sm text-muted-foreground">还没有读取过上游模型目录</p> : (
             <Table><TableHeader><TableRow><TableHead className="pl-6">目标</TableHead><TableHead>新鲜度</TableHead><TableHead className="text-right">模型数</TableHead><TableHead className="pr-6 text-right">最近成功</TableHead></TableRow></TableHeader>
               <TableBody>{cs.map((c) => <TableRow key={c.endpoint_id + c.credential_id}><TableCell className="pl-6"><Mono className="text-xs">{c.endpoint_id}</Mono><div className="text-xs text-muted-foreground"><Mono>{c.credential_id}</Mono></div></TableCell><TableCell><Status map="freshness" k={c.freshness} />{c.observation_state === "unsupported" && <div className="text-[11px] text-muted-foreground">端点没有 models_path</div>}{c.refresh_due && <Badge variant="outline" className="ml-1 h-4 px-1 text-[10px]">待刷新</Badge>}</TableCell><TableCell className="text-right tabular-nums">{c.model_count}</TableCell><TableCell className="pr-6 text-right text-xs text-muted-foreground">{fmt.ago(c.last_success_at_ms)}</TableCell></TableRow>)}</TableBody></Table>
           )}</Q>

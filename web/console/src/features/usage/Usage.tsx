@@ -2,13 +2,13 @@
 // provenance and is always unpriced; money comes only from the billing ledger (GET /admin/operations/billing),
 // priced by versioned catalogs. Nothing is estimated from token counts.
 import { useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DownloadCloud, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { send, useGet, type S } from "@/api/hooks";
-import { describeError } from "@/api/errors";
+import { get, send, useGet, type S } from "@/api/hooks";
+import { ApiError, describeError } from "@/api/errors";
 import { toast } from "@/app/toast";
 import { Conf, Count, KV, Mono, PageHeader, Panel, Q, Status, Tonal } from "@/components/kit";
 import { HBars, StackBar } from "@/components/charts";
@@ -37,7 +37,7 @@ export function Usage() {
   const range = useRange("7d");
   const tab = useParam("tab", "usage");
   const [dim, setDim] = useState<keyof U>("public_model");
-  const usage = useGet<S<"OperationalUsagePage">>(["usage", range.key], "/admin/operations/usage", { query: { from_ms: range.from_ms, to_ms: range.to_ms, limit: 500, allow_partial: true } }, { graph: false });
+  const usage = useGet<S<"OperationalUsagePage"> & { truncated?: boolean }>(["usage", range.key], "/admin/operations/usage", { query: { from_ms: range.from_ms, to_ms: range.to_ms, allow_partial: true } }, { graph: false, all: true });
   const status = useParam("cost");
   const billing = useGet<S<"OperationalBillingPage">>(["billing", range.key, status], "/admin/operations/billing", { query: { from_ms: range.from_ms, to_ms: range.to_ms, status: status || undefined, limit: 100 } }, { graph: false });
   const processing = useGet<S<"BillingProcessingStatus">>(["billing-processing"], "/admin/operations/billing-processing", undefined, { graph: false });
@@ -86,7 +86,7 @@ export function Usage() {
             <Q q={usage} what="用量聚合">{() => <HBars items={aggregate(items, "provider_id").map((a) => ({ key: a.id, label: <Mono>{a.id}</Mono>, v: a.req, color: `var(--c${slotOf(categoryOfKind(a.id))})` }))} />}</Q>
           </Panel>
         </div>
-        <Panel flush title="明细聚合" desc={usage.data?.observed_through_ms ? `观测至 ${fmt.date(usage.data.observed_through_ms)}` : undefined} action={<Tabs value={String(dim)} onValueChange={(v) => setDim(v as keyof U)}><TabsList>{DIMS.map(([k, l]) => <TabsTrigger key={String(k)} value={String(k)}>{l}</TabsTrigger>)}</TabsList></Tabs>}>
+        <Panel flush title="明细聚合" desc={[usage.data?.observed_through_ms && `观测至 ${fmt.date(usage.data.observed_through_ms)}`, usage.data?.truncated && `只读取了前 ${fmt.int(usage.data.items.length)} 条，缩短时间范围可以看到完整数据`].filter(Boolean).join("；") || undefined} action={<Tabs value={String(dim)} onValueChange={(v) => setDim(v as keyof U)}><TabsList>{DIMS.map(([k, l]) => <TabsTrigger key={String(k)} value={String(k)}>{l}</TabsTrigger>)}</TabsList></Tabs>}>
           <Q q={usage} what="用量聚合">{() => <DataTable rows={rows} cols={cols} rowKey={(r) => r.id} initialSort={["req", "desc"]} />}</Q>
         </Panel>
       </>)}
@@ -110,7 +110,8 @@ export function Usage() {
 function Pricing() {
   const qc = useQueryClient();
   const catalogs = useGet<S<"BillingCatalog">[]>(["billing-catalogs"], "/admin/billing/catalogs", undefined, { graph: false });
-  const policy = useGet<S<"RoutingPricePolicy">>(["routing-price-policy"], "/admin/billing/routing-price-policy", undefined, { graph: false });
+  // 404 is the contract's "no policy set", not a failure.
+  const policy = useQuery({ queryKey: ["routing-price-policy"], queryFn: () => get<S<"RoutingPricePolicy">>("/admin/billing/routing-price-policy").catch((e) => { if (e instanceof ApiError && e.status === 404) return null; throw e; }) });
   const [sel, setSel] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const list = catalogs.data ?? [];
@@ -129,8 +130,7 @@ function Pricing() {
     <div className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
       <div className="grid content-start gap-4">
         <Panel title="路由价格策略" desc="按价格目录比较候选，不改变优先级分层">
-          <Q q={policy} what="路由价格策略">{(p) => <KV rows={[["目录", <Mono>{p.catalog_version_id}</Mono>], ["比较方式", <Mono>{p.comparison}</Mono>]]} />}</Q>
-          {policy.isError && <p className="text-xs text-muted-foreground">未设置。路由不参考价格。</p>}
+          <Q q={policy} what="路由价格策略">{(p) => p ? <KV rows={[["目录", <Mono>{p.catalog_version_id}</Mono>], ["比较方式", <Mono>{p.comparison}</Mono>]]} /> : <p className="text-sm text-muted-foreground">未设置。路由不参考价格。</p>}</Q>
         </Panel>
         <Panel title="价格目录" desc="单位：每百万 Token 的美元" action={<Button size="sm" variant="outline" disabled={busy} onClick={refresh}><DownloadCloud />{busy ? "读取中…" : "读取公开价格"}</Button>}>
           <Q q={catalogs} what="价格目录">{() => <ul className="grid gap-1">{list.map((c) => (

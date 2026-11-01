@@ -64,3 +64,18 @@ describe("quota windows", () => {
     expect(tightest({ source: "codex", observed_at_ms: 0, windows: [w({ used_percent: 10 }), w({ used_percent: 90 })] })).toBeCloseTo(0.1);
   });
 });
+
+describe("live reads", () => {
+  beforeEach(() => {
+    store.signOut();
+    store.setSession({ kind: "admin", username: "admin", token: "session_" + "a".repeat(64), csrf: "csrf_" + "b".repeat(64), expiresAt: 0, mustChangePassword: false });
+    store.setConfig({ active: "cv-1", working: "draft-1", workingStatus: "draft", revision: "rev-7" });
+  });
+  it("pin runtime projections to the active version while a draft is being viewed", () => {
+    expect(headersFor("GET", "/admin/runtime/availability", new Headers())["X-Config-Version"]).toBe("cv-1");
+    expect(headersFor("GET", "/admin/catalog/status", new Headers())["X-Config-Version"]).toBe("cv-1");
+  });
+  it("leave graph reads on the version being viewed", () => {
+    expect(headersFor("GET", "/admin/accounts/inventory", new Headers())["X-Config-Version"]).toBe("draft-1");
+  });
+});

@@ -1,16 +1,19 @@
 // The configuration context every read and write targets: active graph → working draft.
 // Reads follow the working version; writes go to a draft (forked on first edit). Validate and publish live here.
 import { useState } from "react";
-import { Check, ChevronDown, GitFork, Send } from "lucide-react";
+import { Check, ChevronDown, GitFork, Plus, Send } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { forkDraft, selectWorking, send, useConfigVersions, type S } from "@/api/hooks";
+import { forkDraft, selectWorking, useConfigVersions, validateVersion } from "@/api/hooks";
 import { useConfigContext } from "@/api/session";
-import { describeError } from "@/api/errors";
+import { ApiError, describeError } from "@/api/errors";
 import { toast } from "./toast";
+import { go } from "./router";
 import { PublishDialog } from "@/features/versions/PublishDialog";
 import { cn } from "@/lib/utils";
+
+const describeCodes = (codes?: string[]) => codes?.map((c) => describeError(new ApiError(409, c, c)).title).join("；");
 
 export function ConfigBar({ compact }: { compact?: boolean }) {
   const versions = useConfigVersions();
@@ -24,8 +27,8 @@ export function ConfigBar({ compact }: { compact?: boolean }) {
   async function validate() {
     if (!ctx.working) return;
     try {
-      const r = await send<S<"Validation">>("POST", "/admin/config-versions/{config_version_id}/validate", { path: { config_version_id: ctx.working } });
-      toast(r.valid ? { title: `${ctx.working} 验证通过`, description: "没有发现结构性错误", status: "success" } : { title: `${ctx.working} 有 ${r.error_codes?.length ?? 0} 个问题`, description: r.error_codes?.join(", "), status: "error", duration: 8000 });
+      const r = await validateVersion(ctx.working);
+      toast(r.valid ? { title: `${ctx.working} 验证通过`, description: "没有发现结构性错误", status: "success" } : { title: `${ctx.working} 没有通过验证`, description: describeCodes(r.error_codes), status: "error", duration: 8000 });
     } catch (e) { const d = describeError(e); toast({ title: d.title, description: d.detail, status: "error" }); }
   }
   async function fork() {
@@ -33,6 +36,13 @@ export function ConfigBar({ compact }: { compact?: boolean }) {
     try { const v = await forkDraft(ctx.active, "控制台编辑"); toast({ title: `已创建草稿 ${v.id}`, status: "success" }); qc.invalidateQueries(); }
     catch (e) { const d = describeError(e); toast({ title: d.title, description: d.detail, status: "error" }); }
   }
+
+  if (ctx.loaded && versions.isSuccess && !list.length) return (
+    <div className="flex min-w-0 items-center gap-1 rounded-xl border bg-card px-1 py-1 text-xs shadow-xs">
+      <span className="hidden items-center gap-1.5 px-2 sm:inline-flex"><i className="size-2 rounded-full border border-dashed" style={{ borderColor: "var(--muted-foreground)" }} /><span className="text-muted-foreground">没有配置版本</span></span>
+      <Button size="sm" variant="ghost" className="h-7" onClick={() => go("versions")} aria-label="创建第一个配置版本"><Plus /><span className="hidden md:inline">创建配置版本</span></Button>
+    </div>
+  );
 
   return (
     <div className="flex min-w-0 items-center gap-1 rounded-xl border bg-card px-1 py-1 text-xs shadow-xs">

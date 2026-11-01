@@ -6,6 +6,10 @@ export class ApiError extends Error {
   }
 }
 
+/** Raised locally (never sent) when a read needs X-Config-Version but the gateway has no version yet. */
+export const NO_CONFIG_VERSION = "console_no_config_version";
+export const isNoConfig = (e: unknown) => e instanceof ApiError && e.code === NO_CONFIG_VERSION;
+
 /** User-facing explanations keyed by backend error code; unknown codes fall back to the server message. */
 const COPY: Record<string, string> = {
   management_access_denied: "管理接口拒绝了这次访问：凭据无效、会话已过期，或页面不是从网关管理地址打开的。",
@@ -22,10 +26,12 @@ const COPY: Record<string, string> = {
   management_provider_account_action_target_changed: "目标账号的状态已经变化，操作没有执行。请刷新后确认。",
   management_billing_catalog_conflict: "价格目录已被修改，请刷新后重试。",
   management_resource_not_found: "找不到这个资源，它可能已被删除。",
-  management_operations_busy: "运营数据正在处理，请稍后再试。",
+  management_operations_busy: "网关的读取通道正忙，请稍后再试。",
   management_runtime_unavailable: "这个功能在当前网关部署中没有启用。",
   management_internal_error: "网关内部错误。请查看网关日志。",
   invalid_management_request: "请求缺少必要的参数或请求头。",
+  management_lifecycle_conflict: "配置没有通过网关校验。网关没有给出具体原因，请检查资源之间的引用是否完整，例如上游是否已经有端点。",
+  [NO_CONFIG_VERSION]: "网关还没有生效的配置版本。先创建并发布第一个配置版本。",
 };
 
 export function describeError(e: unknown): { title: string; detail?: string } {
@@ -37,6 +43,7 @@ export function describeError(e: unknown): { title: string; detail?: string } {
   return { title: e instanceof Error ? e.message : String(e) };
 }
 
-export const isUnavailable = (e: unknown) => e instanceof ApiError && (e.status === 503 || e.code === "management_runtime_unavailable");
+/** A 503 that means "not wired in this deployment" — not the transient `management_operations_busy`. */
+export const isUnavailable = (e: unknown) => e instanceof ApiError && e.code !== "management_operations_busy" && (e.status === 503 || e.code === "management_runtime_unavailable");
 export const isConflict = (e: unknown) => e instanceof ApiError && e.status === 409;
 export const isDenied = (e: unknown) => e instanceof ApiError && (e.status === 401 || e.code === "management_access_denied");
